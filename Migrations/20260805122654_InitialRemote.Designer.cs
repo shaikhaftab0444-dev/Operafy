@@ -12,14 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERP_System.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260804143910_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260805122654_InitialRemote")]
+    partial class InitialRemote
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("AITStudent")
                 .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -58,14 +59,14 @@ namespace ERP_System.Migrations
 
                     b.HasKey("ActivityLogId");
 
-                    b.ToTable("ActivityLogs");
+                    b.ToTable("erp_ActivityLogs", "AITStudent");
 
                     b.HasData(
                         new
                         {
                             ActivityLogId = 1,
                             ColorClass = "text-primary",
-                            CreatedAt = new DateTime(2026, 8, 4, 14, 37, 9, 110, DateTimeKind.Utc).AddTicks(6962),
+                            CreatedAt = new DateTime(2026, 8, 5, 12, 24, 53, 217, DateTimeKind.Utc).AddTicks(2107),
                             Description = "INV-10045 created",
                             IconClass = "fa-file-invoice",
                             Title = "New Sales Invoice"
@@ -74,7 +75,7 @@ namespace ERP_System.Migrations
                         {
                             ActivityLogId = 2,
                             ColorClass = "text-success",
-                            CreatedAt = new DateTime(2026, 8, 4, 14, 24, 9, 110, DateTimeKind.Utc).AddTicks(6982),
+                            CreatedAt = new DateTime(2026, 8, 5, 12, 11, 53, 217, DateTimeKind.Utc).AddTicks(2113),
                             Description = "PO-10023 created",
                             IconClass = "fa-shopping-cart",
                             Title = "New Purchase Order"
@@ -83,7 +84,7 @@ namespace ERP_System.Migrations
                         {
                             ActivityLogId = 3,
                             ColorClass = "text-info",
-                            CreatedAt = new DateTime(2026, 8, 4, 13, 39, 9, 110, DateTimeKind.Utc).AddTicks(6987),
+                            CreatedAt = new DateTime(2026, 8, 5, 11, 26, 53, 217, DateTimeKind.Utc).AddTicks(2116),
                             Description = "John Doe added",
                             IconClass = "fa-user-plus",
                             Title = "New Employee Added"
@@ -92,7 +93,7 @@ namespace ERP_System.Migrations
                         {
                             ActivityLogId = 4,
                             ColorClass = "text-warning",
-                            CreatedAt = new DateTime(2026, 8, 4, 12, 39, 9, 110, DateTimeKind.Utc).AddTicks(6993),
+                            CreatedAt = new DateTime(2026, 8, 5, 10, 26, 53, 217, DateTimeKind.Utc).AddTicks(2120),
                             Description = "₹25,000 received",
                             IconClass = "fa-hand-holding-usd",
                             Title = "Payment Received"
@@ -101,7 +102,7 @@ namespace ERP_System.Migrations
                         {
                             ActivityLogId = 5,
                             ColorClass = "text-danger",
-                            CreatedAt = new DateTime(2026, 8, 4, 11, 39, 9, 110, DateTimeKind.Utc).AddTicks(6996),
+                            CreatedAt = new DateTime(2026, 8, 5, 9, 26, 53, 217, DateTimeKind.Utc).AddTicks(2123),
                             Description = "Product stock updated",
                             IconClass = "fa-boxes",
                             Title = "Stock Updated"
@@ -137,7 +138,7 @@ namespace ERP_System.Migrations
 
                     b.HasKey("ProductId");
 
-                    b.ToTable("Products");
+                    b.ToTable("erp_Products", "AITStudent");
 
                     b.HasData(
                         new
@@ -191,116 +192,40 @@ namespace ERP_System.Migrations
                 {
                     b.Property<int>("RoleId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("role_id");
+                        .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
-                        .HasColumnName("description");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystemRole")
+                        .HasColumnType("bit");
 
                     b.Property<string>("RoleName")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("role_name");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("RoleId");
 
-                    b.ToTable("Roles");
-
-                    b.HasData(
-                        new
-                        {
-                            RoleId = 1,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Full system control",
-                            RoleName = "Super Admin"
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Manage system settings",
-                            RoleName = "Admin"
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Manage employees",
-                            RoleName = "HR"
-                        },
-                        new
-                        {
-                            RoleId = 4,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Manage teams",
-                            RoleName = "Manager"
-                        },
-                        new
-                        {
-                            RoleId = 5,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Basic access",
-                            RoleName = "Employee"
-                        },
-                        new
-                        {
-                            RoleId = 6,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Handle accounts",
-                            RoleName = "Accountant"
-                        },
-                        new
-                        {
-                            RoleId = 7,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Approve finance",
-                            RoleName = "Finance Manager"
-                        },
-                        new
-                        {
-                            RoleId = 8,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Manage stock",
-                            RoleName = "Inventory Manager"
-                        },
-                        new
-                        {
-                            RoleId = 9,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Handle purchases",
-                            RoleName = "Purchase Manager"
-                        },
-                        new
-                        {
-                            RoleId = 10,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Handle sales",
-                            RoleName = "Sales Executive"
-                        },
-                        new
-                        {
-                            RoleId = 11,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Manage sales",
-                            RoleName = "Sales Manager"
-                        },
-                        new
-                        {
-                            RoleId = 12,
-                            CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
-                            Description = "Read-only access",
-                            RoleName = "Auditor"
-                        });
+                    b.ToTable("erp_Roles", "AITStudent");
                 });
 
             modelBuilder.Entity("ERP_System.Models.Transaction", b =>
@@ -339,7 +264,7 @@ namespace ERP_System.Migrations
 
                     b.HasKey("TransactionId");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("erp_Transactions", "AITStudent");
 
                     b.HasData(
                         new
@@ -398,59 +323,108 @@ namespace ERP_System.Migrations
                 {
                     b.Property<int>("UserId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("user_id");
+                        .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
-                    b.Property<string>("Company")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("company");
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("email");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("FailedLoginAttempts")
+                        .HasColumnType("int");
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("full_name");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastLogin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastPasswordChanged")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MobileNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
-                        .HasColumnName("password_hash");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int")
-                        .HasColumnName("role_id");
+                    b.Property<string>("PasswordSalt")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ProfilePhoto")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("UserId");
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("Users");
+                    b.ToTable("erp_Users", "AITStudent");
 
                     b.HasData(
                         new
                         {
                             UserId = 1,
-                            Company = "ERP Solutions Ltd",
+                            BranchId = 3,
+                            CompanyId = 1,
                             CreatedAt = new DateTime(2026, 8, 4, 15, 53, 51, 483, DateTimeKind.Unspecified),
                             Email = "admin@erp.com",
+                            FailedLoginAttempts = 0,
                             FullName = "Admin User",
-                            PasswordHash = "AQAAAAIAAYagAAAAEDv5H2L8Edavym2dKKJKbdbHk4h1y0W8ePYxL7VZkC6MZ85tgSmgfS/YZn/PzveN1A==",
-                            RoleId = 1
+                            IsActive = true,
+                            IsEmailVerified = false,
+                            IsLocked = false,
+                            PasswordHash = "AQAAAAIAAYagAAAAEOkJcAU1YEZ50GcXjw9Sn+CYrXr+BWC75/EPUpfVliWCv4Alu/+3memoVLfE2G515w==",
+                            RoleId = 1,
+                            UserCode = "USR001",
+                            UserName = "admin"
                         });
                 });
 
@@ -458,9 +432,7 @@ namespace ERP_System.Migrations
                 {
                     b.HasOne("ERP_System.Models.Role", "Role")
                         .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("RoleId");
 
                     b.Navigation("Role");
                 });

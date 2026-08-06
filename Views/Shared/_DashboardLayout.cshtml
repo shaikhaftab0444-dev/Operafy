@@ -19,6 +19,8 @@
     bool showHRMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR";
     bool showReports = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR" || userRole == "Manager" || userRole == "Accountant" || userRole == "Finance Manager" || userRole == "Sales Manager" || userRole == "Auditor";
     bool showSettings = userRole == "Super Admin" || userRole == "Admin" || userRole == "Auditor";
+
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Dashboard";
 }
 
 <!DOCTYPE html>
@@ -30,18 +32,22 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/fontawesome-free/css/all.min.css" />
     <style>
+        @@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
         :root {
             --sidebar-bg: #0e1726;
             --sidebar-color: #abb5c2;
-            --sidebar-active-bg: #1e293b;
-            --sidebar-active-color: #3b82f6;
+            --sidebar-active-bg: #3b82f6;
+            --sidebar-active-color: #ffffff;
             --topbar-bg: #ffffff;
             --content-bg: #f8fafc;
             --text-color: #1e293b;
+            --border-warm: #e2e8f0;
+            --primary-warm: #3b82f6;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--content-bg);
             color: var(--text-color);
             margin: 0;
@@ -56,33 +62,33 @@
             min-height: 100vh;
         }
 
-        /* Left Sidebar styling */
+        /* Left Sidebar styling (Original Dark Navy) */
         #sidebar {
-            min-width: 260px;
-            max-width: 260px;
+            min-width: 280px;
+            max-width: 280px;
             background-color: var(--sidebar-bg);
             color: var(--sidebar-color);
             transition: all 0.3s;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid rgba(255,255,255,0.05);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         #sidebar.active {
-            margin-left: -260px;
+            margin-left: -280px;
         }
 
         .sidebar-header {
             padding: 1.5rem 1.25rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
         .sidebar-brand {
-            font-weight: 700;
-            font-size: 1.2rem;
+            font-weight: 800;
+            font-size: 1.25rem;
             color: #ffffff;
             text-decoration: none;
             display: flex;
@@ -102,11 +108,13 @@
             text-transform: uppercase;
             font-weight: 700;
             letter-spacing: 0.8px;
-            color: #4b5563;
+            color: #64748b;
         }
 
         .menu-link {
-            padding: 0.65rem 1.25rem;
+            padding: 0.65rem 1rem;
+            margin: 2px 12px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -115,31 +123,41 @@
             font-size: 0.9rem;
             font-weight: 500;
             transition: all 0.2s;
-            border-left: 3px solid transparent;
         }
 
         .menu-link:hover {
-            background-color: rgba(255,255,255,0.03);
+            background-color: rgba(255, 255, 255, 0.05);
             color: #ffffff;
         }
 
         .menu-link.active {
-            background-color: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-            border-left-color: #3b82f6;
+            background-color: var(--sidebar-active-bg);
+            color: var(--sidebar-active-color);
+            font-weight: 600;
+        }
+
+        .menu-link > div {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .menu-icon {
             margin-right: 12px;
             width: 18px;
             text-align: center;
+            font-size: 0.95rem;
         }
 
         /* Sidebar Quick Links */
         .sidebar-quicklinks {
-            padding: 1.25rem;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            background: rgba(0, 0, 0, 0.1);
+            margin: 12px;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: #141d31;
+            border: 1px solid rgba(255, 255, 255, 0.02);
         }
 
         /* Main Content Container */
@@ -153,7 +171,7 @@
         /* Top Header Navigation Bar */
         .topbar {
             background-color: var(--topbar-bg);
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-warm);
             padding: 0.75rem 1.5rem;
             display: flex;
             align-items: center;
@@ -164,8 +182,8 @@
         .toggle-btn {
             background: none;
             border: none;
-            font-size: 1.25rem;
-            color: #475569;
+            font-size: 1.2rem;
+            color: var(--text-color);
             cursor: pointer;
         }
 
@@ -181,7 +199,13 @@
             border: 1px solid #cbd5e1;
             font-size: 0.85rem;
             background-color: #f8fafc;
+            color: var(--text-color);
             width: 100%;
+            transition: border-color 0.2s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-warm);
         }
 
         .search-box i {
@@ -207,6 +231,10 @@
             cursor: pointer;
             font-size: 1.1rem;
             padding: 0.25rem;
+            transition: color 0.2s;
+        }
+        .icon-btn:hover {
+            color: var(--text-color);
         }
 
         .icon-badge {
@@ -235,10 +263,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            color: #3b82f6;
+            font-weight: 700;
+            color: var(--primary-warm);
             font-size: 0.85rem;
-            border: 2px solid #3b82f6;
+            border: 2px solid var(--primary-warm);
         }
 
         .profile-info {
@@ -248,7 +276,7 @@
         .profile-name {
             font-weight: 600;
             font-size: 0.85rem;
-            color: #1e293b;
+            color: var(--text-color);
         }
 
         .profile-role {
@@ -266,8 +294,8 @@
         .sidebar-footer {
             padding: 0.75rem 1.25rem;
             font-size: 0.7rem;
-            color: #4b5563;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            color: #64748b;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             justify-content: space-between;
         }
@@ -279,25 +307,35 @@
         <nav id="sidebar">
             <div class="sidebar-header">
                 <a href="/" class="sidebar-brand">
-                    <i class="fa-solid fa-cubes text-primary" style="color:#3b82f6 !important;"></i>
+                    <i class="fa-solid fa-cubes text-white"></i>
                     <span>ERP System</span>
                 </a>
                 <button class="toggle-btn text-white d-lg-none" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
             <div class="sidebar-menu">
-                <a href="/Dashboard" class="menu-link active">
+                <a href="/Dashboard" class="menu-link @(currentController == "Dashboard" ? "active" : "")">
                     <div>
                         <i class="fa-solid fa-gauge menu-icon"></i>
                         <span>Dashboard</span>
                     </div>
                 </a>
 
+                @if (userRole == "Super Admin" || userRole == "Admin" || userRole == "Manager")
+                {
+                    <a href="/Manager" class="menu-link @(currentController == "Manager" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-user-gear menu-icon"></i>
+                            <span>Manager Dashboard</span>
+                        </div>
+                    </a>
+                }
+
                 <div class="menu-title">Modules</div>
                 
                 @if (showUserMgmt)
                 {
-                    <a href="#" class="menu-link">
+                    <a href="/Users" class="menu-link @(currentController == "Users" ? "active" : "")">
                         <div>
                             <i class="fa-solid fa-users menu-icon"></i>
                             <span>User Management</span>
@@ -418,7 +456,7 @@
 
                 @if (showHRMgmt)
                 {
-                    <a href="#" class="menu-link">
+                    <a href="/HR" class="menu-link @(currentController == "HR" ? "active" : "")">
                         <div>
                             <i class="fa-solid fa-user-tie menu-icon"></i>
                             <span>HR Management</span>
@@ -452,12 +490,12 @@
 
             <!-- Quick Links -->
             <div class="sidebar-quicklinks">
-                <h6 class="text-white font-weight-bold mb-2 small uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; opacity:0.5;">Quick Links</h6>
+                <h6 class="font-weight-bold mb-2 small uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; color: var(--sidebar-color); opacity: 0.7;">Quick Links</h6>
                 <ul class="list-unstyled small mb-0 d-flex flex-column gap-2" style="font-size: 0.8rem;">
-                    <li><a href="#" class="text-secondary text-decoration-none d-flex align-items-center gap-2"><i class="fa-solid fa-user-plus" style="width: 14px;"></i> Add New Employee</a></li>
-                    <li><a href="#" class="text-secondary text-decoration-none d-flex align-items-center gap-2"><i class="fa-solid fa-file-signature" style="width: 14px;"></i> Purchase Order</a></li>
-                    <li><a href="#" class="text-secondary text-decoration-none d-flex align-items-center gap-2"><i class="fa-solid fa-file-invoice" style="width: 14px;"></i> Sales Invoice</a></li>
-                    <li><a href="#" class="text-secondary text-decoration-none d-flex align-items-center gap-2"><i class="fa-solid fa-receipt" style="width: 14px;"></i> Expense Entry</a></li>
+                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-user-plus" style="width: 14px;"></i> Add New Employee</a></li>
+                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-file-signature" style="width: 14px;"></i> Purchase Order</a></li>
+                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-file-invoice" style="width: 14px;"></i> Sales Invoice</a></li>
+                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-receipt" style="width: 14px;"></i> Expense Entry</a></li>
                 </ul>
             </div>
 
@@ -496,7 +534,7 @@
                     </button>
                     
                     <!-- Vertical Divider -->
-                    <div style="width: 1px; height: 24px; background-color: #cbd5e1;"></div>
+                    <div style="width: 1px; height: 24px; background-color: var(--border-warm);"></div>
                     
                     <!-- Profile dropdown -->
                     <div class="dropdown">
@@ -509,12 +547,12 @@
                                 <div class="profile-role">@userRole</div>
                             </div>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="background-color: #ffffff;">
-                            <li><h6 class="dropdown-header">@userCompany</h6></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#"><i class="fa-regular fa-user me-2"></i> My Profile</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fa-solid fa-sliders me-2"></i> Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="background-color: #ffffff; border: 1px solid var(--border-warm) !important;">
+                            <li><h6 class="dropdown-header" style="color: var(--text-color); font-weight: 700;">@userCompany</h6></li>
+                            <li><hr class="dropdown-divider" style="background-color: var(--border-warm);"></li>
+                            <li><a class="dropdown-item" href="#" style="color: var(--text-color);"><i class="fa-regular fa-user me-2"></i> My Profile</a></li>
+                            <li><a class="dropdown-item" href="#" style="color: var(--text-color);"><i class="fa-solid fa-sliders me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider" style="background-color: var(--border-warm);"></li>
                             <li><a class="dropdown-item text-danger" href="/Account/Logout"><i class="fa-solid fa-right-from-bracket me-2"></i> Sign Out</a></li>
                         </ul>
                     </div>

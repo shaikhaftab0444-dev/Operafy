@@ -1,0 +1,417 @@
+@model ERP_System.Models.ManagerDashboardViewModel
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Manager Dashboard";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+}
+
+<style>
+    .card-manager {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        height: 100%;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card-manager:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(45,37,30,0.05);
+    }
+    
+    .mgr-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .mgr-icon-team { background-color: rgba(79, 70, 229, 0.08); color: var(--primary-warm); }
+    .mgr-icon-catalog { background-color: rgba(6, 182, 212, 0.08); color: #06b6d4; }
+    .mgr-icon-warning { background-color: rgba(239, 68, 68, 0.08); color: #ef4444; }
+    .mgr-icon-approval { background-color: rgba(217, 119, 6, 0.08); color: var(--accent-warm); }
+
+    .mgr-info {
+        flex-grow: 1;
+    }
+    .mgr-label {
+        font-size: 0.75rem;
+        color: var(--sidebar-color);
+        font-weight: 700;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .mgr-val {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    .mgr-panel {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+        height: 100%;
+    }
+    .panel-header-mgr {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+    .panel-title-mgr {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-color);
+        margin-bottom: 0;
+    }
+
+    .table-mgr th {
+        background-color: #fcfbfa !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #7c7267;
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+    }
+    .table-mgr td {
+        font-size: 0.85rem;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+        vertical-align: middle;
+    }
+
+    .badge-pending {
+        background-color: rgba(217, 119, 6, 0.08);
+        color: var(--accent-warm);
+        font-weight: 600;
+        border: 1px solid rgba(217, 119, 6, 0.2);
+    }
+    .badge-danger-warm {
+        background-color: rgba(239, 68, 68, 0.08);
+        color: #ef4444;
+        font-weight: 600;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .badge-warning-warm {
+        background-color: rgba(245, 158, 11, 0.08);
+        color: #f59e0b;
+        font-weight: 600;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .btn-approve-warm {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        border: none;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 0.4rem 1rem;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+        transition: all 0.2s;
+    }
+    .btn-approve-warm:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+        color: #ffffff;
+    }
+
+    .activity-list-mgr {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .activity-item-mgr {
+        display: flex;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    .activity-icon-mgr {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background-color: #faf6f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+</style>
+
+<!-- Header & Title -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Operations Manager Dashboard</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Manager Portal</li>
+            </ol>
+        </nav>
+    </div>
+    <span class="badge bg-white text-dark border px-3 py-2 fw-bold" style="border-color: var(--border-warm) !important; font-size:0.8rem;">
+        <i class="fa-solid fa-user-shield text-primary me-2"></i>Manager Authority Status
+    </span>
+</div>
+
+<!-- Alert notifications -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
+        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card-manager">
+            <div class="mgr-icon-wrap mgr-icon-team"><i class="fa-solid fa-users"></i></div>
+            <div class="mgr-info">
+                <div class="mgr-label">Direct Team Size</div>
+                <div class="mgr-val">@Model.TotalTeamMembers Staff</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-manager">
+            <div class="mgr-icon-wrap mgr-icon-catalog"><i class="fa-solid fa-cubes"></i></div>
+            <div class="mgr-info">
+                <div class="mgr-label">Catalog Items</div>
+                <div class="mgr-val">@Model.TotalProducts Products</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-manager">
+            <div class="mgr-icon-wrap mgr-icon-warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="mgr-info">
+                <div class="mgr-label">Critical Stock Alerts</div>
+                <div class="mgr-val">@Model.LowStockCount Items</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-manager">
+            <div class="mgr-icon-wrap mgr-icon-approval"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="mgr-info">
+                <div class="mgr-label">Pending Approvals</div>
+                <div class="mgr-val">@Model.PendingApprovalsCount Orders</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Operations Log -->
+<div class="row g-4 mb-4">
+    <!-- Stock Levels Bar Chart -->
+    <div class="col-lg-8">
+        <div class="mgr-panel">
+            <div class="panel-header-mgr">
+                <h5 class="panel-title-mgr">Critical Stock Levels</h5>
+                <span class="small text-muted">Stock Quantity in Warehouse</span>
+            </div>
+            <div style="position: relative; height: 260px; width: 100%;">
+                <canvas id="stockAlertsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Operations Log -->
+    <div class="col-lg-4">
+        <div class="mgr-panel">
+            <div class="panel-header-mgr">
+                <h5 class="panel-title-mgr">Activity Tracker</h5>
+                <i class="fa-solid fa-clock-rotate-left text-muted"></i>
+            </div>
+            <div class="activity-list-mgr mt-2">
+                @if (Model.RecentOperationsLog != null && Model.RecentOperationsLog.Any())
+                {
+                    foreach (var activity in Model.RecentOperationsLog)
+                    {
+                        var timeDiff = DateTime.UtcNow - activity.CreatedAt.ToUniversalTime();
+                        var timeStr = timeDiff.TotalMinutes < 60 ? $"{(int)timeDiff.TotalMinutes}m ago" :
+                                      timeDiff.TotalHours < 24 ? $"{(int)timeDiff.TotalHours}h ago" :
+                                      $"{(int)timeDiff.TotalDays}d ago";
+                                      
+                        <div class="activity-item-mgr">
+                            <div class="activity-icon-mgr @activity.ColorClass">
+                                <i class="fa-solid @activity.IconClass"></i>
+                            </div>
+                            <div class="text-start flex-grow-1">
+                                <div class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">@activity.Title</div>
+                                <div class="text-secondary" style="font-size: 0.8rem;">@activity.Description</div>
+                            </div>
+                            <div class="text-muted small" style="font-size: 0.75rem; white-space: nowrap;">@timeStr</div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">No recent operations logged.</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Operations Grids -->
+<div class="row g-4">
+    <!-- Pending Approvals Grid -->
+    <div class="col-lg-7">
+        <div class="mgr-panel p-0 overflow-hidden">
+            <div class="panel-header-mgr p-4 pb-0 mb-3">
+                <h5 class="panel-title-mgr">Pending Order Approvals</h5>
+                <i class="fa-solid fa-file-invoice text-muted"></i>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-mgr mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">Order No.</th>
+                            <th class="border-0">Type</th>
+                            <th class="border-0">Party Name</th>
+                            <th class="border-0">Amount</th>
+                            <th class="border-0">Status</th>
+                            <th class="border-0 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.PendingTransactions != null && Model.PendingTransactions.Any())
+                        {
+                            foreach (var tx in Model.PendingTransactions)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-primary">@tx.TransactionNo</td>
+                                    <td>@tx.Type</td>
+                                    <td>@tx.PartyName</td>
+                                    <td class="fw-bold text-dark">@tx.Amount.ToString("C0", inCulture)</td>
+                                    <td>
+                                        <span class="badge rounded-pill px-2.5 py-1.5 badge-pending" style="font-size: 0.75rem;">@tx.Status</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <form asp-action="ApproveTransaction" asp-route-id="@tx.TransactionId" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-approve-warm">
+                                                <i class="fa-solid fa-circle-check me-1"></i> Approve
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">No pending approval transactions found in database.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Alerts Grid -->
+    <div class="col-lg-5">
+        <div class="mgr-panel p-0 overflow-hidden">
+            <div class="panel-header-mgr p-4 pb-0 mb-3">
+                <h5 class="panel-title-mgr">Inventory Re-order Alerts</h5>
+                <i class="fa-solid fa-boxes-stacked text-muted"></i>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-mgr mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">Product Name</th>
+                            <th class="border-0 text-center">Current Stock</th>
+                            <th class="border-0">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.StockAlerts != null && Model.StockAlerts.Any())
+                        {
+                            foreach (var item in Model.StockAlerts)
+                            {
+                                var alertClass = item.Status == "Out of Stock" ? "badge-danger-warm" : "badge-warning-warm";
+                                <tr>
+                                    <td class="fw-bold text-dark">@item.ProductName</td>
+                                    <td class="text-center fw-bold text-secondary">@item.StockQty Units</td>
+                                    <td>
+                                        <span class="badge rounded-pill px-2.5 py-1.5 @alertClass" style="font-size: 0.75rem;">@item.Status</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-5">All products are healthy. No alerts active.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chart.js/chart.umd.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const chartCtx = document.getElementById('stockAlertsChart').getContext('2d');
+            
+            // Serialize data from C#
+            const productNames = @Html.Raw(Json.Serialize(Model.StockAlerts.Select(p => p.ProductName)));
+            const stockQtys = @Html.Raw(Json.Serialize(Model.StockAlerts.Select(p => p.StockQty)));
+
+            new Chart(chartCtx, {
+                type: 'bar',
+                data: {
+                    labels: productNames,
+                    datasets: [{
+                        label: 'In Stock Quantity',
+                        data: stockQtys,
+                        backgroundColor: '#4f46e5',
+                        borderColor: '#4338ca',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        maxBarThickness: 45
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            grid: { color: '#faf6f0' },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        });
+    </script>
+}

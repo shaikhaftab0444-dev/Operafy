@@ -11,6 +11,10 @@ namespace ERP_System.Models
         public int TotalProducts { get; set; } = 320;
         public decimal StockValue { get; set; } = 1865000;
 
+        public int InStockQty { get; set; }
+        public int LowStockQty { get; set; }
+        public int OutOfStockQty { get; set; }
+
         public List<Transaction> RecentTransactions { get; set; } = new List<Transaction>();
         public List<Product> TopProducts { get; set; } = new List<Product>();
         public List<ActivityLog> RecentActivities { get; set; } = new List<ActivityLog>();

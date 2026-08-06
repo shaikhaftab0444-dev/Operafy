@@ -1,0 +1,163 @@
+@model IEnumerable<ERP_System.Models.Product>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Product Inventory Manager";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+}
+
+<style>
+    .panel-products {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+    }
+    
+    .table-products th {
+        background-color: #fcfbfa !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #7c7267;
+        border-bottom: 1px solid var(--border-warm);
+        padding: 1rem 1.25rem;
+    }
+    
+    .table-products td {
+        font-size: 0.875rem;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-warm);
+        padding: 1rem 1.25rem;
+        vertical-align: middle;
+    }
+
+    .badge-in-stock {
+        background-color: rgba(16, 185, 129, 0.08);
+        color: #10b981;
+        font-weight: 600;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .badge-low-stock {
+        background-color: rgba(245, 158, 11, 0.08);
+        color: #f59e0b;
+        font-weight: 600;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+    .badge-out-stock {
+        background-color: rgba(239, 68, 68, 0.08);
+        color: #ef4444;
+        font-weight: 600;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-edit-warm {
+        border: 1px solid var(--border-warm);
+        background-color: #ffffff;
+        color: var(--text-color);
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .btn-edit-warm:hover {
+        background-color: #faf8f5;
+        border-color: #cbd5e1;
+        color: var(--primary-warm);
+    }
+
+    .btn-delete-warm {
+        border: 1px solid rgba(239, 68, 68, 0.15);
+        background-color: #ffffff;
+        color: #ef4444;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .btn-delete-warm:hover {
+        background-color: rgba(239, 68, 68, 0.05);
+        border-color: #ef4444;
+    }
+</style>
+
+<!-- Top Breadcrumbs & Page Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Product Management</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Products</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <a href="/Products/Create" class="btn btn-primary-warm px-4 py-2">
+        <i class="fa-solid fa-plus me-2"></i> Add New Product
+    </a>
+</div>
+
+<!-- Alerts -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
+        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Products Inventory Grid -->
+<div class="panel-products overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover table-products mb-0 border-0 text-start">
+            <thead>
+                <tr>
+                    <th class="border-0">Product ID</th>
+                    <th class="border-0">Product Name</th>
+                    <th class="border-0 text-center">Sold Qty</th>
+                    <th class="border-0">Total Revenue</th>
+                    <th class="border-0 text-center">In Stock Bal</th>
+                    <th class="border-0">Availability Status</th>
+                    <th class="border-0 text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var prod in Model)
+                    {
+                        var badgeClass = prod.Status == "In Stock" ? "badge-in-stock" :
+                                         prod.Status == "Low Stock" ? "badge-low-stock" : "badge-out-stock";
+                        <tr>
+                            <td class="fw-bold text-secondary">PROD#@prod.ProductId.ToString("D3")</td>
+                            <td class="fw-bold text-dark">@prod.ProductName</td>
+                            <td class="text-center fw-bold text-secondary">@prod.SoldQty</td>
+                            <td class="fw-bold text-dark">@prod.Revenue.ToString("C0", inCulture)</td>
+                            <td class="text-center fw-bold @(prod.StockQty <= 50 ? "text-danger" : "text-dark")">@prod.StockQty Units</td>
+                            <td>
+                                <span class="badge rounded-pill px-2.5 py-1.5 @badgeClass" style="font-size: 0.75rem;">@prod.Status</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="/Products/Edit/@prod.ProductId" class="btn btn-sm btn-edit-warm px-3 py-1 rounded">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@prod.ProductId" method="post" onsubmit="return confirm('Are you sure you want to delete this product?');" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-delete-warm px-3 py-1 rounded">
+                                            <i class="fa-solid fa-trash-can me-1"></i>Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">No product records found in warehouse inventory.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

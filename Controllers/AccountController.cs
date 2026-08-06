@@ -52,7 +52,7 @@ namespace ERP_System.Controllers
                             new Claim(ClaimTypes.Name, user.FullName),
                             new Claim(ClaimTypes.Email, user.Email),
                             new Claim(ClaimTypes.Role, user.Role?.RoleName ?? "Employee"),
-                            new Claim("Company", user.Company)
+                            new Claim("Company", user.CompanyId.ToString())
                         };
 
                         var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
