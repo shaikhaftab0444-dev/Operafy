@@ -79,5 +79,29 @@ namespace ERP_System.Controllers
             TempData["SuccessMessage"] = $"Employee '{user.FullName}' status changed successfully.";
             return RedirectToAction(nameof(Index));
         }
+
+        // POST: /EmployeeManagement/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (user.UserId == 1)
+            {
+                TempData["ErrorMessage"] = "Cannot delete the root Super Admin account.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Employee '{user.FullName}' has been deleted successfully.";
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

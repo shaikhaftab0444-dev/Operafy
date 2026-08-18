@@ -1,406 +1,1482 @@
 @model ERP_System.Models.HRDashboardViewModel
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "HR Operations Dashboard";
+    ViewData["Title"] = "HR Management";
+
+    var totalEmployees = Model.TotalEmployees;
+    var activeEmployees = Model.ActiveEmployees;
+    var inactiveEmployees = Model.InactiveEmployees;
+    var lockedAccounts = Model.LockedAccounts;
+
+    double activePercentage = totalEmployees > 0
+        ? (double)activeEmployees / totalEmployees * 100
+        : 0;
+
+    // =========================================================
+    // FILTER HR STAFF ROLES
+    // Admin and Super Admin are intentionally excluded
+    // =========================================================
+    var staffRoles = Model.RoleDistribution?
+        .Where(x =>
+            !string.Equals(
+                x.RoleName?.Trim(),
+                "Admin",
+                StringComparison.OrdinalIgnoreCase
+            )
+            &&
+            !string.Equals(
+                x.RoleName?.Trim(),
+                "Super Admin",
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        .OrderByDescending(x => x.Count)
+        .ToList()
+        ?? new List<ERP_System.Models.RoleDistributionItem>();
+
+    var maxRoleCount = staffRoles.Any()
+        ? staffRoles.Max(x => x.Count)
+        : 0;
 }
 
 <style>
-    .card-hr {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        height: 100%;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .card-hr:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(45,37,30,0.05);
-    }
-    
-    .hr-icon-wrap {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-    }
-    .hr-icon-total { background-color: rgba(79, 70, 229, 0.08); color: var(--primary-warm); }
-    .hr-icon-active { background-color: rgba(16, 185, 129, 0.08); color: #10b981; }
-    .hr-icon-inactive { background-color: rgba(239, 68, 68, 0.08); color: #ef4444; }
-    .hr-icon-locked { background-color: rgba(217, 119, 6, 0.08); color: var(--accent-warm); }
 
-    .hr-info {
-        flex-grow: 1;
-    }
-    .hr-label {
-        font-size: 0.75rem;
-        color: var(--sidebar-color);
-        font-weight: 700;
-        margin-bottom: 2px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .hr-val {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: var(--text-color);
+    /* =========================================================
+           HR ENTERPRISE DASHBOARD
+           ========================================================= */
+
+    .hr-page {
+        padding-bottom: 30px;
     }
 
-    .hr-panel {
+    /* =========================================================
+           PAGE HEADER
+           ========================================================= */
+
+    .hr-page-header {
         background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-        height: 100%;
-    }
-    .panel-header-hr {
+        border: 1px solid #e7eaf0;
+        border-radius: 16px;
+        padding: 22px 24px;
+        margin-bottom: 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.25rem;
-    }
-    .panel-title-hr {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--text-color);
-        margin-bottom: 0;
+        gap: 20px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
     }
 
-    .table-hr th {
-        background-color: #fcfbfa !important;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        font-weight: 700;
-        color: #7c7267;
-        border-bottom: 1px solid var(--border-warm);
-        padding: 0.85rem 1rem;
-    }
-    .table-hr td {
-        font-size: 0.85rem;
-        color: var(--text-color);
-        border-bottom: 1px solid var(--border-warm);
-        padding: 0.85rem 1rem;
-        vertical-align: middle;
-    }
-
-    .badge-active {
-        background-color: rgba(16, 185, 129, 0.08);
-        color: #10b981;
-        font-weight: 600;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    .badge-inactive {
-        background-color: rgba(239, 68, 68, 0.08);
-        color: #ef4444;
-        font-weight: 600;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    .btn-action-warm {
-        border: 1px solid var(--border-warm);
-        background-color: #ffffff;
-        color: var(--text-color);
-        font-size: 0.8rem;
-        font-weight: 600;
-        transition: all 0.2s;
-    }
-    .btn-action-warm:hover {
-        background-color: #faf8f5;
-        border-color: #cbd5e1;
-        color: var(--primary-warm);
-    }
-
-    .btn-primary-warm {
-        background: linear-gradient(135deg, var(--primary-warm) 0%, #6366f1 100%);
-        color: #ffffff;
-        border: none;
-        font-weight: 600;
-        font-size: 0.875rem;
-        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
-        transition: all 0.2s;
-    }
-    .btn-primary-warm:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 14px rgba(79, 70, 229, 0.3);
-        color: #ffffff;
-    }
-
-    /* Onboarding timeline */
-    .timeline-hr {
+    .hr-title-area {
         display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-    .timeline-item {
-        display: flex;
-        gap: 12px;
         align-items: center;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px dashed var(--border-warm);
+        gap: 15px;
     }
-    .timeline-item:last-child {
-        border-bottom: none;
-    }
-    .timeline-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background-color: #faf6f0;
-        color: var(--primary-warm);
-        font-weight: 700;
-        font-size: 0.8rem;
+
+    .hr-title-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #eef2ff;
+        color: #4f46e5;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 1.5px solid var(--primary-warm);
+        font-size: 20px;
         flex-shrink: 0;
     }
+
+    .hr-title {
+        margin: 0;
+        font-size: 21px;
+        font-weight: 750;
+        color: #172033;
+        letter-spacing: -0.3px;
+    }
+
+    .hr-subtitle {
+        margin: 4px 0 0;
+        color: #7b8495;
+        font-size: 13px;
+    }
+
+    .hr-breadcrumb {
+        margin-top: 6px;
+        font-size: 12px;
+    }
+
+        .hr-breadcrumb a {
+            color: #64748b;
+            text-decoration: none;
+        }
+
+        .hr-breadcrumb .active {
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+    /* =========================================================
+           PRIMARY BUTTON
+           ========================================================= */
+
+    .btn-hr-primary {
+        border: 0;
+        background: #4f46e5;
+        color: #ffffff;
+        padding: 11px 17px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 650;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all .2s ease;
+        white-space: nowrap;
+        box-shadow: 0 5px 14px rgba(79, 70, 229, .18);
+    }
+
+        .btn-hr-primary:hover {
+            background: #4338ca;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(79, 70, 229, .24);
+        }
+
+    /* =========================================================
+           KPI CARDS
+           ========================================================= */
+
+    .hr-kpi {
+        background: #ffffff;
+        border: 1px solid #e7eaf0;
+        border-radius: 14px;
+        padding: 18px;
+        min-height: 118px;
+        box-shadow: 0 3px 15px rgba(15, 23, 42, 0.035);
+        transition: all .2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .hr-kpi:hover {
+            transform: translateY(-2px);
+            border-color: #d9ddea;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+        }
+
+        .hr-kpi::after {
+            content: "";
+            position: absolute;
+            right: -25px;
+            top: -25px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(79, 70, 229, .035);
+        }
+
+    .hr-kpi-content {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .hr-kpi-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .kpi-blue {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+
+    .kpi-green {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .kpi-red {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .kpi-orange {
+        background: #fff7ed;
+        color: #ea580c;
+    }
+
+    .hr-kpi-label {
+        color: #7b8495;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .55px;
+        margin-bottom: 4px;
+    }
+
+    .hr-kpi-value {
+        color: #172033;
+        font-size: 24px;
+        line-height: 1;
+        font-weight: 750;
+    }
+
+    .hr-kpi-note {
+        margin-top: 7px;
+        font-size: 10px;
+        color: #94a3b8;
+    }
+
+    /* =========================================================
+           PANELS
+           ========================================================= */
+
+    .hr-panel {
+        background: #ffffff;
+        border: 1px solid #e7eaf0;
+        border-radius: 14px;
+        box-shadow: 0 3px 15px rgba(15, 23, 42, 0.035);
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .hr-panel-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf0f4;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .hr-panel-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .hr-panel-heading-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: #f4f6fb;
+        color: #4f46e5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .hr-panel-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 750;
+        color: #172033;
+    }
+
+    .hr-panel-description {
+        margin: 2px 0 0;
+        font-size: 11px;
+        color: #94a3b8;
+    }
+
+    .hr-panel-body {
+        padding: 20px;
+    }
+
+    /* =========================================================
+           STAFF DISTRIBUTION
+           ========================================================= */
+
+    .role-distribution-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 5px 2px;
+    }
+
+    .role-row {
+        width: 100%;
+    }
+
+    .role-row-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 9px;
+    }
+
+    .role-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        font-weight: 650;
+        color: #263238;
+        min-width: 0;
+    }
+
+    .role-name-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .role-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #4f46e5;
+        flex-shrink: 0;
+    }
+
+    .role-count {
+        font-size: 13px;
+        font-weight: 750;
+        color: #172033;
+        white-space: nowrap;
+    }
+
+    .role-count-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: #8a8f98;
+        margin-left: 3px;
+    }
+
+    .role-progress {
+        width: 100%;
+        height: 9px;
+        background: #f1f3f5;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .role-progress-fill {
+        height: 100%;
+        min-width: 7px;
+        border-radius: 20px;
+        background: linear-gradient(90deg, #4f46e5, #818cf8);
+        transition: width .6s ease;
+    }
+
+    .role-row:hover .role-progress-fill {
+        filter: brightness(1.05);
+    }
+
+    .role-row:hover .role-name {
+        color: #4f46e5;
+    }
+
+    .distribution-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: #f8fafc;
+        border: 1px solid #edf0f4;
+    }
+
+    .distribution-summary-label {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .distribution-summary-value {
+        font-size: 13px;
+        color: #172033;
+        font-weight: 750;
+    }
+
+    /* =========================================================
+           RECENT HIRES
+           ========================================================= */
+
+    .hire-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .hire-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 0;
+        border-bottom: 1px solid #f0f2f5;
+    }
+
+        .hire-item:first-child {
+            padding-top: 2px;
+        }
+
+        .hire-item:last-child {
+            border-bottom: 0;
+            padding-bottom: 2px;
+        }
+
+    .hire-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: #eef2ff;
+        color: #4f46e5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 750;
+        flex-shrink: 0;
+    }
+
+    .hire-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: #172033;
+        margin-bottom: 3px;
+    }
+
+    .hire-meta {
+        font-size: 11px;
+        color: #8b95a7;
+    }
+
+    .hire-time {
+        margin-left: auto;
+        font-size: 10px;
+        color: #94a3b8;
+        white-space: nowrap;
+    }
+
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: #f5f7fb;
+        color: #596579;
+        font-size: 10px;
+        font-weight: 650;
+        margin-left: 5px;
+    }
+
+    /* =========================================================
+           DIRECTORY
+           ========================================================= */
+
+    .directory-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf0f4;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .directory-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .directory-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        background: #eef2ff;
+        color: #4f46e5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .directory-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 750;
+        color: #172033;
+    }
+
+    .directory-subtitle {
+        margin: 2px 0 0;
+        font-size: 11px;
+        color: #94a3b8;
+    }
+
+    .btn-manage {
+        background: #ffffff;
+        border: 1px solid #dfe3ea;
+        color: #475569;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 650;
+        text-decoration: none;
+        transition: all .2s ease;
+    }
+
+        .btn-manage:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #4f46e5;
+        }
+
+    .hr-table {
+        margin: 0;
+        width: 100%;
+    }
+
+        .hr-table thead th {
+            background: #f8fafc;
+            border-bottom: 1px solid #e7eaf0;
+            color: #7b8495;
+            font-size: 10px;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: .45px;
+            padding: 12px 16px;
+            white-space: nowrap;
+        }
+
+        .hr-table tbody td {
+            padding: 13px 16px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #475569;
+            font-size: 12px;
+            vertical-align: middle;
+        }
+
+        .hr-table tbody tr {
+            transition: background .15s ease;
+        }
+
+            .hr-table tbody tr:hover {
+                background: #fafbff;
+            }
+
+            .hr-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .employee-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 170px;
+    }
+
+    .employee-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: #eef2ff;
+        color: #4f46e5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 750;
+        flex-shrink: 0;
+    }
+
+    .employee-name {
+        color: #172033;
+        font-weight: 700;
+        font-size: 12px;
+    }
+
+    .employee-code {
+        color: #94a3b8;
+        font-size: 10px;
+        margin-top: 2px;
+    }
+
+    .username {
+        color: #64748b;
+        font-size: 11px;
+    }
+
+    .role-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 8px;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 7px;
+        color: #475569;
+        font-size: 10px;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+        .status-chip::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+    .status-active {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+        .status-active::before {
+            background: #10b981;
+        }
+
+    .status-inactive {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+        .status-inactive::before {
+            background: #ef4444;
+        }
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .hr-empty {
+        padding: 45px 20px;
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .hr-empty-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 12px;
+        border-radius: 12px;
+        background: #f8fafc;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 767.98px) {
+
+        .hr-page-header {
+            padding: 17px;
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .btn-hr-primary {
+            width: 100%;
+        }
+
+        .hr-title {
+            font-size: 18px;
+        }
+
+        .hr-panel-body {
+            padding: 15px;
+        }
+
+        .hire-time {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 576px) {
+
+        .role-distribution-list {
+            gap: 16px;
+        }
+
+        .role-name {
+            font-size: 13px;
+        }
+
+        .role-count {
+            font-size: 13px;
+        }
+
+        .role-count-label {
+            display: none;
+        }
+
+        .role-progress {
+            height: 8px;
+        }
+
+        .distribution-summary {
+            margin-bottom: 16px;
+        }
+    }
+
 </style>
 
-<!-- Top Breadcrumbs -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-    <div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-color);">HR Operations Dashboard</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">HR Management</li>
-            </ol>
-        </nav>
-    </div>
-    
-    <a href="/Users/Create" class="btn btn-primary-warm px-4 py-2">
-        <i class="fa-solid fa-user-plus me-2"></i> Onboard Employee
-    </a>
-</div>
 
-<!-- KPI Metric Cards Grid -->
-<div class="row g-4 mb-4">
-    <!-- Total Staff -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card-hr">
-            <div class="hr-icon-wrap hr-icon-total"><i class="fa-solid fa-users-gear"></i></div>
-            <div class="hr-info">
-                <div class="hr-label">Total Staff</div>
-                <div class="hr-val">@Model.TotalEmployees</div>
-            </div>
-        </div>
-    </div>
-    <!-- Active Employees -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card-hr">
-            <div class="hr-icon-wrap hr-icon-active"><i class="fa-solid fa-user-check"></i></div>
-            <div class="hr-info">
-                <div class="hr-label">Active Employees</div>
-                <div class="hr-val">@Model.ActiveEmployees</div>
-            </div>
-        </div>
-    </div>
-    <!-- Inactive Employees -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card-hr">
-            <div class="hr-icon-wrap hr-icon-inactive"><i class="fa-solid fa-user-slash"></i></div>
-            <div class="hr-info">
-                <div class="hr-label">Inactive Employees</div>
-                <div class="hr-val">@Model.InactiveEmployees</div>
-            </div>
-        </div>
-    </div>
-    <!-- Locked Accounts -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card-hr">
-            <div class="hr-icon-wrap hr-icon-locked"><i class="fa-solid fa-user-lock"></i></div>
-            <div class="hr-info">
-                <div class="hr-label">Locked Accounts</div>
-                <div class="hr-val">@Model.LockedAccounts</div>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="hr-page">
 
-<!-- Middle Panels (Charts & Recent Onboardings) -->
-<div class="row g-4 mb-4">
-    <!-- Role & Department Distribution Chart -->
-    <div class="col-lg-6">
-        <div class="hr-panel">
-            <div class="panel-header-hr">
-                <h5 class="panel-title-hr">Staff Distribution by Role</h5>
-                <i class="fa-solid fa-chart-pie text-muted"></i>
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+    <div class="hr-page-header">
+
+        <div class="hr-title-area">
+
+            <div class="hr-title-icon">
+                <i class="fa-solid fa-users-gear"></i>
             </div>
-            <div style="position: relative; height: 260px; width: 100%;">
-                <canvas id="roleChart"></canvas>
+
+            <div>
+
+                <h1 class="hr-title">
+                    HR Management
+                </h1>
+
+                <p class="hr-subtitle">
+                    Workforce overview, employee activity and access management
+                </p>
+
+                <div class="hr-breadcrumb">
+
+                    <a href="/Dashboard">
+                        <i class="fa-solid fa-house me-1"></i>
+                        Dashboard
+                    </a>
+
+                    <span class="mx-1 text-muted">/</span>
+
+                    <span class="active">
+                        HR Management
+                    </span>
+
+                </div>
+
             </div>
+
         </div>
+
+
+        <a href="/UserAccounts/Create" class="btn-hr-primary">
+
+            <i class="fa-solid fa-user-plus"></i>
+
+            Onboard Employee
+
+        </a>
+
     </div>
-    
-    <!-- Recent Onboardings List -->
-    <div class="col-lg-6">
-        <div class="hr-panel">
-            <div class="panel-header-hr">
-                <h5 class="panel-title-hr">Recent Onboardings</h5>
-                <span class="badge bg-light text-dark border fw-bold" style="font-size: 0.75rem; border-color: var(--border-warm) !important;">Last 5 Hires</span>
-            </div>
-            
-            <div class="timeline-hr mt-2">
-                @if (Model.RecentHires != null && Model.RecentHires.Any())
-                {
-                    foreach (var hire in Model.RecentHires)
-                    {
-                        var timeDiff = DateTime.UtcNow - hire.CreatedAt.ToUniversalTime();
-                        var timeStr = timeDiff.TotalMinutes < 60 ? $"{(int)timeDiff.TotalMinutes} min ago" :
-                                      timeDiff.TotalHours < 24 ? $"{(int)timeDiff.TotalHours} hour ago" :
-                                      $"{(int)timeDiff.TotalDays} days ago";
-                                      
-                        <div class="timeline-item">
-                            <div class="timeline-avatar">
-                                @hire.FullName.Substring(0,1).ToUpper()
-                            </div>
-                            <div class="text-start flex-grow-1">
-                                <div class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">@hire.FullName</div>
-                                <div class="text-muted" style="font-size: 0.8rem;">
-                                    User Code: <code style="color: var(--accent-warm); font-weight: 700;">@hire.UserCode</code> | Role: <strong>@(hire.Role?.RoleName ?? "Employee")</strong>
-                                </div>
-                            </div>
-                            <div class="text-muted small" style="font-size: 0.75rem;">@timeStr</div>
+
+
+    <!-- =====================================================
+         KPI CARDS
+         ===================================================== -->
+
+    <div class="row g-3 mb-4">
+
+        <!-- Total Employees -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="hr-kpi">
+
+                <div class="hr-kpi-content">
+
+                    <div class="hr-kpi-icon kpi-blue">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="hr-kpi-label">
+                            Total Employees
                         </div>
-                    }
-                }
-                else
-                {
-                    <div class="text-center text-muted py-5">No recent hiring entries recorded.</div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Active Staff Directory Table Panel -->
-<div class="hr-panel p-0 overflow-hidden">
-    <div class="panel-header-hr p-4 pb-0 mb-3">
-        <h5 class="panel-title-hr">Staff Directory</h5>
-        <a href="/Users" class="btn btn-sm btn-outline-secondary btn-sm-custom px-3 py-1" style="font-size: 0.8rem;">Manage Access</a>
+                        <div class="hr-kpi-value">
+                            @totalEmployees
+                        </div>
+
+                        <div class="hr-kpi-note">
+                            Registered workforce
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Active Employees -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="hr-kpi">
+
+                <div class="hr-kpi-content">
+
+                    <div class="hr-kpi-icon kpi-green">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="hr-kpi-label">
+                            Active Employees
+                        </div>
+
+                        <div class="hr-kpi-value">
+                            @activeEmployees
+                        </div>
+
+                        <div class="hr-kpi-note">
+                            @activePercentage.ToString("0.0")% of workforce
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Inactive Employees -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="hr-kpi">
+
+                <div class="hr-kpi-content">
+
+                    <div class="hr-kpi-icon kpi-red">
+                        <i class="fa-solid fa-user-slash"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="hr-kpi-label">
+                            Inactive Employees
+                        </div>
+
+                        <div class="hr-kpi-value">
+                            @inactiveEmployees
+                        </div>
+
+                        <div class="hr-kpi-note">
+                            Requires attention
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Locked Accounts -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="hr-kpi">
+
+                <div class="hr-kpi-content">
+
+                    <div class="hr-kpi-icon kpi-orange">
+                        <i class="fa-solid fa-user-lock"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="hr-kpi-label">
+                            Locked Accounts
+                        </div>
+
+                        <div class="hr-kpi-value">
+                            @lockedAccounts
+                        </div>
+
+                        <div class="hr-kpi-note">
+                            Security monitoring
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
-    
-    <div class="table-responsive">
-        <table class="table table-hover table-hr mb-0 border-0">
-            <thead>
-                <tr>
-                    <th class="border-0">Employee Code</th>
-                    <th class="border-0">Full Name</th>
-                    <th class="border-0">Username</th>
-                    <th class="border-0">Email</th>
-                    <th class="border-0">Phone</th>
-                    <th class="border-0">Role</th>
-                    <th class="border-0 text-center">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model.EmployeesList != null && Model.EmployeesList.Any())
-                {
-                    foreach (var emp in Model.EmployeesList)
+
+
+    <!-- =====================================================
+         ANALYTICS + RECENT HIRES
+         ===================================================== -->
+
+    <div class="row g-3 mb-4">
+
+
+        <!-- =================================================
+             STAFF DISTRIBUTION
+             ================================================= -->
+
+        <div class="col-lg-6">
+
+            <div class="hr-panel">
+
+                <div class="hr-panel-header">
+
+                    <div class="hr-panel-heading">
+
+                        <div class="hr-panel-heading-icon">
+                            <i class="fa-solid fa-chart-bar"></i>
+                        </div>
+
+                        <div>
+
+                            <h5 class="hr-panel-title">
+                                Staff Distribution
+                            </h5>
+
+                            <p class="hr-panel-description">
+                                Employees grouped by operational role
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <span class="text-muted small">
+                        <i class="fa-solid fa-users"></i>
+                    </span>
+
+                </div>
+
+
+                <div class="hr-panel-body">
+
+                    @if (staffRoles.Any())
                     {
-                        <tr>
-                            <td class="fw-bold text-secondary">@emp.UserCode</td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="timeline-avatar" style="width:26px; height:26px; font-size:0.7rem;">
-                                        @emp.FullName.Substring(0,1).ToUpper()
+
+                        <div class="distribution-summary">
+
+                            <span class="distribution-summary-label">
+                                HR-managed staff roles
+                            </span>
+
+                            <span class="distribution-summary-value">
+                                @staffRoles.Sum(x => x.Count) Employees
+                            </span>
+
+                        </div>
+
+
+                        <div class="role-distribution-list">
+
+                            @foreach (var item in staffRoles)
+                            {
+
+                                var percentage = maxRoleCount > 0
+                                ? (item.Count * 100.0 / maxRoleCount)
+                                : 0;
+
+
+                                <div class="role-row">
+
+                                    <div class="role-row-top">
+
+                                        <div class="role-name">
+
+                                            <span class="role-dot"></span>
+
+                                            <span class="role-name-text">
+                                                @item.RoleName
+                                            </span>
+
+                                        </div>
+
+
+                                        <div class="role-count">
+
+                                            @item.Count
+
+                                            <span class="role-count-label">
+                                                employee@(item.Count == 1 ? "" : "s")
+                                            </span>
+
+                                        </div>
+
                                     </div>
-                                    <span class="fw-bold text-dark">@emp.FullName</span>
+
+
+                                    <div class="role-progress">
+
+                                        <div class="role-progress-fill"
+                                             style="width:@percentage.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;">
+                                        </div>
+
+                                    </div>
+
                                 </div>
-                            </td>
-                            <td>@@@emp.UserName</td>
-                            <td>@emp.Email</td>
-                            <td>@(string.IsNullOrEmpty(emp.MobileNumber) ? "N/A" : emp.MobileNumber)</td>
-                            <td>
-                                <span class="badge bg-light text-dark border px-2.5 py-1.5 fw-bold" style="font-size: 0.75rem; border-color: var(--border-warm) !important;">
-                                    <i class="fa-solid fa-user-tag text-primary me-1" style="color: var(--primary-warm) !important;"></i>
-                                    @(emp.Role?.RoleName ?? "Employee")
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                @if (emp.IsActive)
+
+                            }
+
+                        </div>
+
+                    }
+                    else
+                    {
+
+                        <div class="hr-empty">
+
+                            <div class="hr-empty-icon">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+
+                            <div class="fw-semibold">
+                                No staff distribution data
+                            </div>
+
+                            <small>
+                                Employee role information will appear here once staff are assigned.
+                            </small>
+
+                        </div>
+
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             RECENT HIRES
+             ================================================= -->
+
+        <div class="col-lg-6">
+
+            <div class="hr-panel">
+
+                <div class="hr-panel-header">
+
+                    <div class="hr-panel-heading">
+
+                        <div class="hr-panel-heading-icon">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </div>
+
+                        <div>
+
+                            <h5 class="hr-panel-title">
+                                Recent Onboardings
+                            </h5>
+
+                            <p class="hr-panel-description">
+                                Latest employees added to the organization
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <span class="badge rounded-pill bg-light text-secondary border">
+                        Last 5
+                    </span>
+
+                </div>
+
+
+                <div class="hr-panel-body">
+
+                    @if (Model.RecentHires != null &&
+                                        Model.RecentHires.Any())
+                    {
+
+                        <div class="hire-list">
+
+                            @foreach (var hire in Model.RecentHires)
+                            {
+
+                                var initial =
+                                !string.IsNullOrWhiteSpace(hire.FullName)
+                                ? hire.FullName.Substring(0, 1).ToUpper()
+                                : "U";
+
+
+                                var timeDiff =
+                                DateTime.UtcNow -
+                                hire.CreatedAt.ToUniversalTime();
+
+
+                                string timeText;
+
+
+                                if (timeDiff.TotalMinutes < 1)
                                 {
-                                    <span class="badge rounded-pill px-2.5 py-1.5 badge-active" style="font-size: 0.75rem;">Active</span>
+                                    timeText = "Just now";
+                                }
+                                else if (timeDiff.TotalMinutes < 60)
+                                {
+                                    timeText =
+                                    $"{Math.Max(1, (int)timeDiff.TotalMinutes)} min ago";
+                                }
+                                else if (timeDiff.TotalHours < 24)
+                                {
+                                    timeText =
+                                    $"{Math.Max(1, (int)timeDiff.TotalHours)} hr ago";
                                 }
                                 else
                                 {
-                                    <span class="badge rounded-pill px-2.5 py-1.5 badge-inactive" style="font-size: 0.75rem;">Inactive</span>
+                                    timeText =
+                                    $"{Math.Max(1, (int)timeDiff.TotalDays)} days ago";
                                 }
-                            </td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-5">No employee records recorded in the system.</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
 
-@section Scripts {
-    <script src="~/lib/chart.js/chart.umd.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            // Role Distribution Chart Setup
-            const roleCtx = document.getElementById('roleChart').getContext('2d');
-            
-            // Native C# to JS array serialization in MVC Razor
-            const chartLabels = @Html.Raw(Json.Serialize(Model.RoleDistribution.Select(r => r.RoleName)));
-            const chartData = @Html.Raw(Json.Serialize(Model.RoleDistribution.Select(r => r.Count)));
 
-            // Curated premium warm colors matching the design system
-            const warmPalette = [
-                '#4f46e5', // Primary Indigo
-                '#10b981', // Success Emerald
-                '#d97706', // Warning Amber
-                '#ec4899', // Pink Accent
-                '#06b6d4', // Cyan Accent
-                '#f43f5e', // Rose Accent
-                '#8b5cf6', // Purple Accent
-                '#7c7267'  // Warm Slate Gray
-            ];
+                                <div class="hire-item">
 
-            new Chart(roleCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        data: chartData,
-                        backgroundColor: warmPalette.slice(0, chartLabels.length),
-                        borderWidth: 2,
-                        borderColor: '#ffffff',
-                        hoverOffset: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '65%',
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                usePointStyle: true,
-                                boxWidth: 8,
-                                font: { size: 11, weight: 600 }
+                                    <div class="hire-avatar">
+                                        @initial
+                                    </div>
+
+
+                                    <div class="flex-grow-1">
+
+                                        <div class="hire-name">
+                                            @hire.FullName
+                                        </div>
+
+
+                                        <div class="hire-meta">
+
+                                            <span>
+                                                @hire.UserCode
+                                            </span>
+
+
+                                            <span class="role-badge">
+
+                                                <i class="fa-solid fa-user-tag"></i>
+
+                                                @(hire.Role?.RoleName ?? "Employee")
+
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="hire-time">
+                                        @timeText
+                                    </div>
+
+                                </div>
+
                             }
-                        }
+
+                        </div>
+
                     }
-                }
-            });
-        });
-    </script>
-}
+                    else
+                    {
+
+                        <div class="hr-empty py-4">
+
+                            <div class="hr-empty-icon">
+                                <i class="fa-solid fa-user-clock"></i>
+                            </div>
+
+                            <div class="fw-semibold">
+                                No recent onboarding records
+                            </div>
+
+                        </div>
+
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         EMPLOYEE DIRECTORY
+         ===================================================== -->
+
+    <div class="hr-panel">
+
+        <div class="directory-header">
+
+            <div class="directory-title-wrap">
+
+                <div class="directory-icon">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+
+                <div>
+
+                    <h5 class="directory-title">
+                        Employee Directory
+                    </h5>
+
+                    <p class="directory-subtitle">
+                        Organization-wide employee registry and access status
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <a href="/Users" class="btn-manage">
+
+                <i class="fa-solid fa-user-shield me-1"></i>
+
+                Manage Access
+
+            </a>
+
+        </div>
+
+
+        <div class="table-responsive">
+
+            <table class="table hr-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Employee
+                        </th>
+
+                        <th>
+                            Username
+                        </th>
+
+                        <th>
+                            Email
+                        </th>
+
+                        <th>
+                            Phone
+                        </th>
+
+                        <th>
+                            Role
+                        </th>
+
+                        <th class="text-center">
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.EmployeesList != null &&
+                                        Model.EmployeesList.Any())
+                    {
+
+                        @foreach (var emp in Model.EmployeesList)
+                        {
+
+                            var employeeInitial =
+                            !string.IsNullOrWhiteSpace(emp.FullName)
+                            ? emp.FullName.Substring(0, 1).ToUpper()
+                            : "U";
+
+
+                            <tr>
+
+                                <!-- Employee -->
+
+                                <td>
+
+                                    <div class="employee-cell">
+
+                                        <div class="employee-avatar">
+                                            @employeeInitial
+                                        </div>
+
+                                        <div>
+
+                                            <div class="employee-name">
+                                                @emp.FullName
+                                            </div>
+
+                                            <div class="employee-code">
+                                                @emp.UserCode
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- Username -->
+
+                                <td>
+
+                                    <span class="username">
+                                        @emp.UserName
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Email -->
+
+                                <td>
+
+                                    <span>
+                                        @emp.Email
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Phone -->
+
+                                <td>
+
+                                    @(string.IsNullOrWhiteSpace(emp.MobileNumber)
+                                                                ? "—"
+                                                                : emp.MobileNumber)
+
+                        </td>
+
+
+                                <!-- Role -->
+
+                                <td>
+
+                                    <span class="role-chip">
+
+                                        <i class="fa-solid fa-user-tag"></i>
+
+                                        @(emp.Role?.RoleName ?? "Employee")
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Status -->
+
+                                <td class="text-center">
+
+                            @if (emp.IsActive)
+                                    {
+
+                                        <span class="status-chip status-active">
+                                            Active
+                                        </span>
+
+                                    }
+                                    else
+                                    {
+
+                                        <span class="status-chip status-inactive">
+                                            Inactive
+                                        </span>
+
+                                    }
+
+                                </td>
+
+                            </tr>
+
+                        }
+
+                    }
+                    else
+                    {
+
+                        <tr>
+
+                            <td colspan="6">
+
+                                <div class="hr-empty">
+
+                                    <div class="hr-empty-icon">
+                                        <i class="fa-solid fa-users-slash"></i>
+                                    </div>
+
+                                    <div class="fw-semibold">
+                                        No employee records found
+                                    </div>
+
+                                    <small>
+                                        Employee records will appear here when available.
+                                    </small>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

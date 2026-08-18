@@ -1,0 +1,379 @@
+@model ERP_System.Models.InboxViewModel
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Inbox & Internal Messaging";
+}
+
+<style>
+    .panel-inbox {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+        min-height: 650px;
+    }
+
+    .inbox-nav-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.65rem 1rem;
+        border-radius: 8px;
+        color: #475569;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        margin-bottom: 4px;
+    }
+    .inbox-nav-link:hover {
+        background-color: #f1f5f9;
+        color: #0f172a;
+    }
+    .inbox-nav-link.active {
+        background-color: #3b82f6;
+        color: #ffffff;
+    }
+    .inbox-nav-link.active .badge {
+        background-color: #ffffff !important;
+        color: #3b82f6 !important;
+    }
+
+    .msg-item-row {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--border-warm);
+        cursor: pointer;
+        transition: background-color 0.15s;
+    }
+    .msg-item-row:hover {
+        background-color: #f8fafc;
+    }
+    .msg-item-row.selected-msg {
+        background-color: #eff6ff;
+        border-left: 3px solid #3b82f6;
+    }
+    .msg-item-row.unread-msg {
+        font-weight: 700;
+        background-color: #fafbfd;
+    }
+
+    .avatar-msg {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .star-btn {
+        background: none;
+        border: none;
+        color: #cbd5e1;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0;
+        transition: color 0.15s;
+    }
+    .star-btn:hover, .star-btn.starred {
+        color: #f59e0b;
+    }
+
+    .btn-compose {
+        background-color: #3b82f6;
+        color: #ffffff;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0.6rem 1.25rem;
+        border: none;
+        width: 100%;
+        transition: all 0.2s;
+    }
+    .btn-compose:hover {
+        background-color: #2563eb;
+        color: #ffffff;
+    }
+</style>
+
+<!-- Top Header & Breadcrumbs -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none text-muted">Dashboard</a></li>
+                <li class="breadcrumb-item active fw-semibold text-primary" aria-current="page">Inbox</li>
+            </ol>
+        </nav>
+        <h4 class="fw-bold m-0 text-dark">Inbox & Internal Messaging</h4>
+        <p class="text-muted small m-0">Communicate with staff, review automated system alerts, and manage task messages.</p>
+    </div>
+    <div>
+        <button type="button" class="btn btn-compose px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#composeModal">
+            <i class="fa-solid fa-pen-to-square me-2"></i> Compose Message
+        </button>
+    </div>
+</div>
+
+<!-- TempData Alerts -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Main Inbox Container Layout -->
+<div class="panel-inbox overflow-hidden mb-4">
+    <div class="row g-0">
+        <!-- LEFT SIDEBAR: FOLDERS & LABELS -->
+        <div class="col-12 col-md-3 border-end bg-light-subtle p-3 text-start">
+            <div class="mb-4">
+                <span class="text-muted small uppercase fw-bold d-block mb-2 text-uppercase" style="letter-spacing:0.8px; font-size:0.7rem;">Folders</span>
+                <a href="/Inbox?folder=inbox" class="inbox-nav-link @(Model.SelectedFolder == "inbox" ? "active" : "")">
+                    <div><i class="fa-solid fa-inbox me-2.5"></i> Inbox</div>
+                    @if (Model.UnreadCount > 0)
+                    {
+                        <span class="badge bg-primary rounded-pill px-2 py-0.5" style="font-size:0.7rem;">@Model.UnreadCount</span>
+                    }
+                </a>
+                <a href="/Inbox?folder=starred" class="inbox-nav-link @(Model.SelectedFolder == "starred" ? "active" : "")">
+                    <div><i class="fa-solid fa-star me-2.5"></i> Starred</div>
+                    @if (Model.StarredCount > 0)
+                    {
+                        <span class="badge bg-secondary-subtle text-dark border rounded-pill px-2 py-0.5" style="font-size:0.7rem;">@Model.StarredCount</span>
+                    }
+                </a>
+                <a href="/Inbox?folder=sent" class="inbox-nav-link @(Model.SelectedFolder == "sent" ? "active" : "")">
+                    <div><i class="fa-solid fa-paper-plane me-2.5"></i> Sent Items</div>
+                    @if (Model.SentCount > 0)
+                    {
+                        <span class="badge bg-secondary-subtle text-dark border rounded-pill px-2 py-0.5" style="font-size:0.7rem;">@Model.SentCount</span>
+                    }
+                </a>
+                <a href="/Inbox?folder=trash" class="inbox-nav-link @(Model.SelectedFolder == "trash" ? "active" : "")">
+                    <div><i class="fa-solid fa-trash me-2.5"></i> Trash</div>
+                    @if (Model.TrashCount > 0)
+                    {
+                        <span class="badge bg-secondary-subtle text-dark border rounded-pill px-2 py-0.5" style="font-size:0.7rem;">@Model.TrashCount</span>
+                    }
+                </a>
+            </div>
+
+            <div class="pt-3 border-top">
+                <span class="text-muted small uppercase fw-bold d-block mb-2 text-uppercase" style="letter-spacing:0.8px; font-size:0.7rem;">Categories</span>
+                <div class="d-flex flex-column gap-1">
+                    <span class="small text-secondary"><i class="fa-solid fa-circle text-primary me-2" style="font-size:0.5rem;"></i> General</span>
+                    <span class="small text-secondary"><i class="fa-solid fa-circle text-success me-2" style="font-size:0.5rem;"></i> Payroll & Audit</span>
+                    <span class="small text-secondary"><i class="fa-solid fa-circle text-warning me-2" style="font-size:0.5rem;"></i> Tasks & Operations</span>
+                    <span class="small text-secondary"><i class="fa-solid fa-circle text-info me-2" style="font-size:0.5rem;"></i> Automated System</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MIDDLE PANEL: MESSAGE LIST -->
+        <div class="col-12 col-md-4 border-end text-start d-flex flex-column">
+            <!-- Search Input -->
+            <div class="p-3 border-bottom bg-white">
+                <form method="get" asp-action="Index">
+                    <input type="hidden" name="folder" value="@Model.SelectedFolder" />
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" name="search" value="@Model.SearchTerm" class="form-control bg-light border-start-0" placeholder="Search messages..." />
+                    </div>
+                </form>
+            </div>
+
+            <!-- Messages List -->
+            <div class="flex-grow-1 overflow-y-auto" style="max-height: 580px;">
+                @if (Model.Messages.Any())
+                {
+                    @foreach (var msg in Model.Messages)
+                    {
+                        bool isSelected = Model.SelectedMessage?.MessageId == msg.MessageId;
+                        <div class="msg-item-row @(isSelected ? "selected-msg" : "") @(!msg.IsRead ? "unread-msg" : "")"
+                             onclick="window.location.href='/Inbox?folder=@Model.SelectedFolder&id=@msg.MessageId';">
+                            <div class="d-flex align-items-start gap-2.5">
+                                <img src="@msg.SenderAvatar" alt="@msg.SenderName" class="avatar-msg" />
+                                <div class="flex-grow-1 min-width-0">
+                                    <div class="d-flex justify-content-between align-items-center mb-0.5">
+                                        <span class="fw-semibold text-dark text-truncate small">
+                                            @(Model.SelectedFolder == "sent" ? "To: " + msg.RecipientName : msg.SenderName)
+                                        </span>
+                                        <span class="text-muted small" style="font-size:0.7rem;">@msg.SentAt.ToString("MMM dd")</span>
+                                    </div>
+                                    <h6 class="fw-semibold text-dark text-truncate mb-0.5" style="font-size:0.825rem;">@msg.Subject</h6>
+                                    <p class="text-muted text-truncate mb-0 small" style="font-size:0.75rem;">@msg.BodyContent</p>
+                                </div>
+                                <form method="post" asp-action="ToggleStar" asp-route-id="@msg.MessageId" asp-route-folder="@Model.SelectedFolder" onclick="event.stopPropagation();" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="star-btn @(msg.IsStarred ? "starred" : "")">
+                                        <i class="fa-solid fa-star"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="fa-regular fa-envelope-open d-block fs-2 mb-2 text-secondary"></i>
+                        <span class="small d-block">No messages in this folder</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: MESSAGE READING PANE -->
+        <div class="col-12 col-md-5 bg-white text-start d-flex flex-column">
+            @if (Model.SelectedMessage != null)
+            {
+                var currentMsg = Model.SelectedMessage;
+                <!-- Message Header Bar -->
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light-subtle">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary-subtle text-primary border px-2 py-1">@currentMsg.Category</span>
+                        @if (currentMsg.Priority == "High")
+                        {
+                            <span class="badge bg-danger-subtle text-danger border px-2 py-1"><i class="fa-solid fa-circle-exclamation me-1"></i>High Priority</span>
+                        }
+                    </div>
+                    <div class="d-flex gap-2">
+                        <form method="post" asp-action="DeleteMessage" asp-route-id="@currentMsg.MessageId" asp-route-folder="@Model.SelectedFolder">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Move to Trash / Delete">
+                                <i class="fa-solid fa-trash me-1"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Message Details & Body -->
+                <div class="p-4 flex-grow-1 overflow-y-auto" style="max-height: 520px;">
+                    <h5 class="fw-bold text-dark mb-3">@currentMsg.Subject</h5>
+
+                    <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                        <img src="@currentMsg.SenderAvatar" alt="@currentMsg.SenderName" class="avatar-msg" style="width:44px; height:44px;" />
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0">@currentMsg.SenderName</h6>
+                                    <span class="text-muted small">@currentMsg.SenderEmail &bull; <strong class="text-secondary">@currentMsg.SenderRole</strong></span>
+                                </div>
+                                <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i>@currentMsg.SentAt.ToString("MMM dd, yyyy - hh:mm tt")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-dark small lh-lg whitespace-pre-line mb-4" style="font-size: 0.9rem; white-space: pre-line;">
+                        @currentMsg.BodyContent
+                    </div>
+
+                    <!-- Quick Reply Section -->
+                    <div class="pt-4 border-top">
+                        <h6 class="fw-bold text-dark mb-2" style="font-size:0.85rem;"><i class="fa-solid fa-reply text-primary me-2"></i>Quick Reply</h6>
+                        <form method="post" asp-action="SendMessage">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="recipientEmail" value="@currentMsg.SenderEmail" />
+                            <input type="hidden" name="subject" value="Re: @currentMsg.Subject" />
+                            <input type="hidden" name="category" value="@currentMsg.Category" />
+                            <input type="hidden" name="priority" value="Normal" />
+                            <div class="mb-2">
+                                <textarea name="body" class="form-control form-control-sm" rows="3" placeholder="Type your reply to @currentMsg.SenderName..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold">
+                                <i class="fa-solid fa-paper-plane me-1"></i> Send Reply
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-column align-items-center justify-content-center h-100 p-5 text-muted">
+                    <i class="fa-regular fa-envelope d-block fs-1 mb-3 text-secondary"></i>
+                    <h6 class="fw-bold text-dark">No Message Selected</h6>
+                    <p class="small text-muted text-center">Select a message from the list to view full details and reply.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- COMPOSE MESSAGE MODAL -->
+<div class="modal fade" id="composeModal" tabindex="-1" aria-labelledby="composeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-action="SendMessage">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold text-dark" id="composeModalLabel">
+                        <i class="fa-solid fa-pen-to-square text-primary me-2"></i>Compose Internal Message
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Recipient User <span class="text-danger">*</span></label>
+                            <select name="recipientEmail" class="form-select" required>
+                                <option value="">-- Select Recipient --</option>
+                                @if (Model.AvailableUsers.Any())
+                                {
+                                    @foreach (var user in Model.AvailableUsers)
+                                    {
+                                        <option value="@user.Email">@user.FullName (@user.Email)</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option value="s.jenkins@erp.com">Sarah Jenkins (s.jenkins@erp.com)</option>
+                                    <option value="m.scott@erp.com">Michael Scott (m.scott@erp.com)</option>
+                                    <option value="d.miller@erp.com">David Miller (d.miller@erp.com)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label small fw-semibold text-dark">Category</label>
+                            <select name="category" class="form-select">
+                                <option value="General">General</option>
+                                <option value="Payroll">Payroll</option>
+                                <option value="Support">Support</option>
+                                <option value="Task">Task</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label small fw-semibold text-dark">Priority</label>
+                            <select name="priority" class="form-select">
+                                <option value="Normal">Normal</option>
+                                <option value="High">High</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-dark">Subject <span class="text-danger">*</span></label>
+                        <input type="text" name="subject" class="form-control" placeholder="Subject title of your message..." required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-dark">Message Content <span class="text-danger">*</span></label>
+                        <textarea name="body" class="form-control" rows="6" placeholder="Write your internal message here..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Send Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

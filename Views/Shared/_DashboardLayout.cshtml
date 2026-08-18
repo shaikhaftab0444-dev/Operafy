@@ -1,26 +1,65 @@
 @using System.Security.Claims
+<<<<<<< Updated upstream
+=======
+@using Microsoft.EntityFrameworkCore
+@inject ERP_System.Data.ApplicationDbContext _switcherContext
+>>>>>>> Stashed changes
 @{
     var userFullName = User.Identity?.Name ?? "User Account";
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Employee";
-    var userCompany = User.FindFirst("Company")?.Value ?? "ERP Solutions Ltd";
+    
+    // Resolve Company Name from CompanyId claim to prevent printing "1" in dropdown header
+    var userCompanyIdStr = User.FindFirst("Company")?.Value;
+    var userCompany = "ERP Solutions Ltd";
+    if (int.TryParse(userCompanyIdStr, out int loggedCompanyId))
+    {
+        userCompany = _switcherContext.Companies.Where(c => c.CompanyId == loggedCompanyId).Select(c => c.CompanyName).FirstOrDefault() ?? "ERP Solutions Ltd";
+    }
 
-    // Role-based visibility logic for the 14 modules
-    bool showUserMgmt = userRole == "Super Admin" || userRole == "Admin";
-    bool showCompany = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR" || userRole == "Manager";
-    bool showEmployeeMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR" || userRole == "Manager" || userRole == "Employee";
-    bool showCustomerMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Sales Executive" || userRole == "Sales Manager";
-    bool showSupplierMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Inventory Manager" || userRole == "Purchase Manager";
-    bool showProductMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Inventory Manager" || userRole == "Sales Executive" || userRole == "Sales Manager" || userRole == "Manager";
-    bool showInventoryMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Inventory Manager" || userRole == "Purchase Manager";
-    bool showPurchaseMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Purchase Manager" || userRole == "Finance Manager";
-    bool showSalesMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Sales Executive" || userRole == "Sales Manager" || userRole == "Accountant" || userRole == "Finance Manager";
-    bool showExpenseMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Accountant" || userRole == "Finance Manager";
-    bool showAccounting = userRole == "Super Admin" || userRole == "Admin" || userRole == "Accountant" || userRole == "Finance Manager" || userRole == "Auditor";
-    bool showHRMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR";
-    bool showReports = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR" || userRole == "Manager" || userRole == "Accountant" || userRole == "Finance Manager" || userRole == "Sales Manager" || userRole == "Auditor";
-    bool showSettings = userRole == "Super Admin" || userRole == "Admin" || userRole == "Auditor";
+    // Load dynamic page visibility permissions from erp_RolePermissions
+    var allowedModules = new List<string>();
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        allowedModules = _switcherContext.RolePermissions
+            .Include(p => p.Role)
+            .Where(p => p.Role != null && p.Role.RoleName == userRole && p.IsAllowed)
+            .Select(p => p.ModuleName)
+            .ToList();
+    }
+
+    // Role-based visibility logic evaluated from database configurations
+    // Note: Super Admin and Admin bypass these checks to ensure they always retain master administration access
+    bool isMasterAdmin = userRole == "Super Admin" || userRole == "Admin";
+    
+    bool showUserMgmt = isMasterAdmin || allowedModules.Contains("UserManagement");
+    bool showCompany = isMasterAdmin || allowedModules.Contains("Company");
+    bool showBranchMgmt = isMasterAdmin || allowedModules.Contains("BranchManagement");
+    bool showEmployeeMgmt = isMasterAdmin || allowedModules.Contains("EmployeeManagement");
+    bool showCustomerMgmt = isMasterAdmin || allowedModules.Contains("CustomerManagement");
+    bool showSupplierMgmt = isMasterAdmin || allowedModules.Contains("SupplierManagement");
+    bool showProductMgmt = isMasterAdmin || allowedModules.Contains("ProductManagement");
+    bool showInventoryMgmt = isMasterAdmin || allowedModules.Contains("InventoryManagement");
+    bool showPurchaseMgmt = isMasterAdmin || allowedModules.Contains("PurchaseManagement");
+    bool showSalesMgmt = isMasterAdmin || allowedModules.Contains("SalesManagement");
+    bool showExpenseMgmt = isMasterAdmin || allowedModules.Contains("ExpenseManagement");
+    bool showAccounting = isMasterAdmin || allowedModules.Contains("Accounting");
+    bool showHRMgmt = isMasterAdmin || allowedModules.Contains("HRManagement");
+    bool showReports = isMasterAdmin || allowedModules.Contains("Reports");
+    bool showSettings = isMasterAdmin || allowedModules.Contains("Settings");
 
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Dashboard";
+<<<<<<< Updated upstream
+=======
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
+
+    var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    string? userProfilePhoto = null;
+    if (int.TryParse(currentUserIdClaim, out int loggedUserId))
+    {
+        userProfilePhoto = _switcherContext.Users.Where(u => u.UserId == loggedUserId).Select(u => u.ProfilePhoto).FirstOrDefault();
+    }
+    var layoutProfilePhoto = !string.IsNullOrEmpty(userProfilePhoto) ? userProfilePhoto : "/profile_images/admin-avatar.jpg";
+>>>>>>> Stashed changes
 }
 
 <!DOCTYPE html>
@@ -299,6 +338,11 @@
             display: flex;
             justify-content: space-between;
         }
+
+        /* Suppress Google Translate Top Banner & Iframe */
+        .goog-te-banner-frame, .goog-te-banner-frame.skiptranslate, iframe.skiptranslate, iframe[class*="VIpgJd"], iframe[id*="goog-gt"], .VIpgJd-ZGain-xl0qp4-Ojan2-OWX0fe, #goog-gt-tt, .goog-te-balloon-frame { display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; pointer-events: none !important; }
+        body { top: 0px !important; position: static !important; margin-top: 0px !important; }
+        #google_translate_element, .goog-te-spinner-pos, .goog-te-combo { display: none !important; }
     </style>
 </head>
 <body>
@@ -342,6 +386,15 @@
                         </div>
                         <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
                     </a>
+
+                    <div class="menu-title">System Settings</div>
+                    <a href="/Settings" class="menu-link @(currentController == "Settings" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-sliders menu-icon"></i>
+                            <span>Settings</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
                 }
                 
                 @if (showCompany)
@@ -355,6 +408,7 @@
                     </a>
                 }
 
+<<<<<<< Updated upstream
                 @if (showEmployeeMgmt)
                 {
                     <a href="#" class="menu-link">
@@ -376,6 +430,52 @@
                         <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
                     </a>
                 }
+=======
+                    <div class="menu-title">Modules</div>
+                    
+                    @if (showUserMgmt)
+                    {
+                        <a href="/UserAccounts" class="menu-link @(currentController == "UserAccounts" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-users-gear menu-icon"></i>
+                                <span>User Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                        @if (userRole == "Super Admin" || userRole == "Admin")
+                        {
+                            <a href="/RolePermissions" class="menu-link @(currentController == "RolePermissions" ? "active" : "")">
+                                <div>
+                                    <i class="fa-solid fa-user-shield menu-icon"></i>
+                                    <span>Page Permissions</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                            </a>
+                        }
+                    }
+                    
+                    @if (showCompany)
+                    {
+                        <a href="/Company" class="menu-link @(currentController == "Company" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-building menu-icon"></i>
+                                <span>Company</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showBranchMgmt)
+                    {
+                        <a href="/Branches" class="menu-link @(currentController == "Branches" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-code-fork menu-icon"></i>
+                                <span>Branch Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+>>>>>>> Stashed changes
 
                 @if (showSupplierMgmt)
                 {
@@ -399,6 +499,7 @@
                     </a>
                 }
 
+<<<<<<< Updated upstream
                 @if (showInventoryMgmt)
                 {
                     <a href="#" class="menu-link">
@@ -409,6 +510,18 @@
                         <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
                     </a>
                 }
+=======
+                    @if (showSupplierMgmt)
+                    {
+                        <a href="/Suppliers" class="menu-link @(currentController == "Suppliers" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-truck menu-icon"></i>
+                                <span>Supplier Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+>>>>>>> Stashed changes
 
                 @if (showPurchaseMgmt)
                 {
@@ -421,6 +534,7 @@
                     </a>
                 }
 
+<<<<<<< Updated upstream
                 @if (showSalesMgmt)
                 {
                     <a href="#" class="menu-link">
@@ -485,6 +599,106 @@
                         </div>
                         <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
                     </a>
+=======
+                    @if (showInventoryMgmt)
+                    {
+                        <a href="/Inventory" class="menu-link @(currentController == "Inventory" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-boxes-stacked menu-icon"></i>
+                                <span>Inventory Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showPurchaseMgmt)
+                    {
+                        <a href="/Purchase" class="menu-link @(currentController == "Purchase" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-cart-shopping menu-icon"></i>
+                                <span>Purchase Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showSalesMgmt)
+                    {
+                        <a href="/Sales" class="menu-link @(currentController == "Sales" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-file-invoice-dollar menu-icon"></i>
+                                <span>Sales Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showExpenseMgmt)
+                    {
+                        <a href="/Expense" class="menu-link @(currentController == "Expense" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-receipt menu-icon"></i>
+                                <span>Expense Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showAccounting)
+                    {
+                        <a href="/Accounts" class="menu-link @(currentController == "Accounts" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-coins menu-icon"></i>
+                                <span>Accounting</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showHRMgmt)
+                    {
+                        <a href="/HR" class="menu-link @(currentController == "HR" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-user-tie menu-icon"></i>
+                                <span>HR Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showReports)
+                    {
+                        <a href="/Reports" class="menu-link @(currentController == "Reports" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-chart-column menu-icon"></i>
+                                <span>Reports</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (userRole == "Super Admin" || userRole == "HR" || userRole == "Accountant")
+                    {
+                        <a href="/Payroll" class="menu-link @(currentController == "Payroll" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-money-check-dollar menu-icon"></i>
+                                <span>Payroll Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showSettings)
+                    {
+                        <a href="/Settings" class="menu-link @(currentController == "Settings" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-sliders menu-icon"></i>
+                                <span>Settings</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+>>>>>>> Stashed changes
                 }
             </div>
 
@@ -518,16 +732,80 @@
                 </div>
                 
                 <div class="topbar-right">
-                    <!-- Notifications -->
-                    <button class="icon-btn">
-                        <i class="fa-regular fa-bell"></i>
-                        <span class="badge bg-danger icon-badge">5</span>
-                    </button>
-                    <!-- Messages -->
-                    <button class="icon-btn">
-                        <i class="fa-regular fa-envelope"></i>
-                        <span class="badge bg-primary icon-badge">3</span>
-                    </button>
+                    <!-- Language Selector Dropdown -->
+                    <div class="dropdown me-1">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1.5 px-2.5 py-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius:6px; font-size:0.8rem; font-weight:600; background-color:#faf8f5; border-color:#d4cbbd; color:var(--text-color);">
+                            <i class="fa-solid fa-globe text-primary"></i> <span class="d-none d-md-inline">Language</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="background-color: #ffffff; border: 1px solid var(--border-warm) !important; font-size:0.85rem;">
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('en'); return false;">🇬🇧 English</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('hi'); return false;">🇮🇳 हिंदी (Hindi)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('es'); return false;">🇪🇸 Español (Spanish)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('ar'); return false;">🇸🇦 العربية (Arabic)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('fr'); return false;">🇫🇷 Français (French)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('de'); return false;">🇩🇪 Deutsch (German)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('ur'); return false;">🇵🇰 اردو (Urdu)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('zh-CN'); return false;">🇨🇳 中文 (Chinese)</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- Notifications Dropdown -->
+                    <div class="dropdown">
+                        <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="badge bg-danger icon-badge">5</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="width: 320px; border: 1px solid var(--border-warm) !important; font-size: 0.85rem;">
+                            <div class="p-2.5 border-bottom d-flex justify-content-between align-items-center bg-light-subtle">
+                                <h6 class="fw-bold m-0 text-dark" style="font-size:0.85rem;"><i class="fa-solid fa-bell text-primary me-1.5"></i>Notifications</h6>
+                                <span class="badge bg-danger-subtle text-danger rounded-pill px-2">5 Unread</span>
+                            </div>
+                            <div class="p-2 border-bottom text-start">
+                                <div class="p-2 rounded bg-light-subtle mb-1">
+                                    <span class="fw-bold d-block text-dark small">New Sales Invoice Generated</span>
+                                    <span class="text-muted extra-small">Invoice INV-10045 created for Rahul Enterprises</span>
+                                </div>
+                                <div class="p-2 rounded bg-light-subtle mb-1">
+                                    <span class="fw-bold d-block text-dark small">Low Stock Alert: Smartphone</span>
+                                    <span class="text-muted extra-small">Stock quantity fell below threshold (60 remaining)</span>
+                                </div>
+                            </div>
+                            <div class="p-2 text-center bg-light">
+                                <a href="/Notifications" class="text-decoration-none fw-bold text-primary small d-block">
+                                    View All Notifications <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Dropdown -->
+                    <div class="dropdown">
+                        <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Inbox Messages">
+                            <i class="fa-regular fa-envelope"></i>
+                            <span class="badge bg-primary icon-badge">3</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="width: 320px; border: 1px solid var(--border-warm) !important; font-size: 0.85rem;">
+                            <div class="p-2.5 border-bottom d-flex justify-content-between align-items-center bg-light-subtle">
+                                <h6 class="fw-bold m-0 text-dark" style="font-size:0.85rem;"><i class="fa-solid fa-envelope text-primary me-1.5"></i>Inbox Messages</h6>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill px-2">3 Unread</span>
+                            </div>
+                            <div class="p-2 border-bottom text-start">
+                                <div class="p-2 rounded bg-light-subtle mb-1">
+                                    <span class="fw-bold d-block text-dark small">Sarah Jenkins</span>
+                                    <span class="text-muted extra-small text-truncate d-block">Monthly Financial Audit Report - Q2 2026</span>
+                                </div>
+                                <div class="p-2 rounded bg-light-subtle mb-1">
+                                    <span class="fw-bold d-block text-dark small">Michael Scott</span>
+                                    <span class="text-muted extra-small text-truncate d-block">New Enterprise Account Signed - Rahul Enterprises</span>
+                                </div>
+                            </div>
+                            <div class="p-2 text-center bg-light">
+                                <a href="/Inbox" class="text-decoration-none fw-bold text-primary small d-block">
+                                    Open Inbox & Messages <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Fullscreen -->
                     <button class="icon-btn d-none d-sm-block" onclick="toggleFullscreen()">
                         <i class="fa-solid fa-expand"></i>
@@ -539,9 +817,7 @@
                     <!-- Profile dropdown -->
                     <div class="dropdown">
                         <a href="#" class="user-profile dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="profile-img">
-                                @(userFullName.Length > 0 ? userFullName.Substring(0,1).ToUpper() : "A")
-                            </div>
+                            <img src="@layoutProfilePhoto" alt="@userFullName" class="profile-img" style="object-fit: cover; border: 2px solid var(--primary-warm);" />
                             <div class="profile-info d-none d-sm-block text-start">
                                 <div class="profile-name">@userFullName</div>
                                 <div class="profile-role">@userRole</div>
@@ -550,8 +826,8 @@
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="background-color: #ffffff; border: 1px solid var(--border-warm) !important;">
                             <li><h6 class="dropdown-header" style="color: var(--text-color); font-weight: 700;">@userCompany</h6></li>
                             <li><hr class="dropdown-divider" style="background-color: var(--border-warm);"></li>
-                            <li><a class="dropdown-item" href="#" style="color: var(--text-color);"><i class="fa-regular fa-user me-2"></i> My Profile</a></li>
-                            <li><a class="dropdown-item" href="#" style="color: var(--text-color);"><i class="fa-solid fa-sliders me-2"></i> Settings</a></li>
+                            <li><a class="dropdown-item" href="/Profile" style="color: var(--text-color);"><i class="fa-regular fa-user me-2"></i> My Profile</a></li>
+                            <li><a class="dropdown-item" href="/Settings" style="color: var(--text-color);"><i class="fa-solid fa-sliders me-2"></i> Settings</a></li>
                             <li><hr class="dropdown-divider" style="background-color: var(--border-warm);"></li>
                             <li><a class="dropdown-item text-danger" href="/Account/Logout"><i class="fa-solid fa-right-from-bracket me-2"></i> Sign Out</a></li>
                         </ul>
@@ -566,8 +842,10 @@
         </div>
     </div>
 
+    <div id="google_translate_element"></div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/language-selector.js" asp-append-version="true"></script>
     <script>
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('active');
