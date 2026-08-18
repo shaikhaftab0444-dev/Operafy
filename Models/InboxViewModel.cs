@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 using System;
+=======
+﻿using System;
+>>>>>>> f33209e (updated)
 using System.Collections.Generic;
 
 namespace ERP_System.Models
