@@ -1,0 +1,242 @@
+@model IEnumerable<ERP_System.Models.RolePermission>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Page Permissions Management";
+    var roles = (List<ERP_System.Models.Role>)ViewBag.Roles;
+    var selectedRoleId = (int)ViewBag.SelectedRoleId;
+    var selectedRoleName = (string)ViewBag.SelectedRoleName;
+    var isSystemAdminRole = selectedRoleName == "Super Admin" || selectedRoleName == "Admin";
+
+    // Map module system names to friendly names, icons, and descriptions
+    var moduleMeta = new Dictionary<string, (string Title, string Icon, string Desc)>
+    {
+        { "UserManagement", ("User Directory", "fa-user-shield text-primary", "Manage user logins, password resets, credentials, and deactivations.") },
+        { "Company", ("Company Details", "fa-building text-info", "Review company settings, address coordinates, and currency rules.") },
+        { "BranchManagement", ("Branches Directory", "fa-code-branch text-secondary", "List and manage branches, locations, and codes branch-wise.") },
+        { "EmployeeManagement", ("Employee Directory", "fa-users-gear text-success", "List staff directories, edit roles, and manage active system employees.") },
+        { "CustomerManagement", ("Customer Directory", "fa-handshake text-warning", "Manage registered corporate clients, contact info, and joined dates.") },
+        { "SupplierManagement", ("Supplier Directory", "fa-truck-field text-danger", "Configure vendors ledger accounts, bank settings, and tax profiles.") },
+        { "ProductManagement", ("Product Catalog", "fa-box-open text-primary", "Manage product catalog items, prices, SKUs, and default stock info.") },
+        { "InventoryManagement", ("Inventory Stock", "fa-boxes-stacked text-success", "Control warehouse listings, track stock adjustments, and print ledger lists.") },
+        { "PurchaseManagement", ("Purchase Orders", "fa-file-invoice-dollar text-info", "Generate purchases requests, pay vendors, and manage inventory expenses.") },
+        { "SalesManagement", ("Sales Invoices", "fa-cart-shopping text-warning", "Process corporate clients invoicing, collect payments, and view returns.") },
+        { "ExpenseManagement", ("Expense Ledger", "fa-receipt text-danger", "Track recurring operational expenditures, rents, and office supplies.") },
+        { "Accounting", ("Chart of Accounts", "fa-scale-balanced text-primary", "Configure ledger category codes, double-entry journals, and cash balances.") },
+        { "HRManagement", ("Payroll & Salaries", "fa-people-group text-success", "Manage staff salary structures, process monthly payslips, and log HR files.") },
+        { "Reports", ("Analysis Reports", "fa-chart-line text-info", "View monthly summaries, download financial ledgers, and export PDF sheets.") },
+        { "Settings", ("System Configurations", "fa-gears text-secondary", "Manage financial year settings, fiscal calendars, and global switch parameters.") }
+    };
+}
+
+<style>
+    .perm-card {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 1.25rem;
+    }
+    .perm-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(45,37,30,0.05);
+        border-color: #cbd5e1;
+    }
+    .perm-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+    .perm-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        background-color: #fbf9f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        border: 1px solid var(--border-warm);
+    }
+    .perm-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-color);
+        margin: 0;
+    }
+    .perm-desc {
+        font-size: 0.8rem;
+        color: #7c7267;
+        line-height: 1.45;
+        margin-bottom: 1rem;
+        flex-grow: 1;
+    }
+    
+    /* Toggle Switch custom styling */
+    .switch-warm {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 24px;
+    }
+    .switch-warm input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider-warm {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #e2e8f0;
+        transition: .3s;
+        border-radius: 24px;
+        border: 1px solid #cbd5e1;
+    }
+    .slider-warm:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    input:checked + .slider-warm {
+        background-color: var(--primary-warm);
+        border-color: #4f46e5;
+    }
+    input:checked + .slider-warm:before {
+        transform: translateX(24px);
+    }
+    input:disabled + .slider-warm {
+        background-color: #f1f5f9;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .btn-primary-warm {
+        background: linear-gradient(135deg, var(--primary-warm) 0%, #6366f1 100%);
+        color: #ffffff;
+        border: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+        transition: all 0.2s;
+        padding: 0.65rem 1.5rem;
+        border-radius: 8px;
+    }
+    .btn-primary-warm:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(79, 70, 229, 0.3);
+        color: #ffffff;
+    }
+</style>
+
+<!-- Top Breadcrumbs & Page Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Page Permissions Management</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/Roles" class="text-decoration-none">User Types</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Permissions</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Notifications -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
+        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card border shadow-sm p-4 text-start mb-4" style="border-radius: 12px; background-color: #ffffff;">
+    <form method="get" action="/RolePermissions" id="roleSelectForm" class="row align-items-center g-3">
+        <div class="col-md-6">
+            <label class="form-label fw-bold text-dark small">Select User Role (Customize Access):</label>
+            <select name="roleId" class="form-select" style="border: 1px solid #d4cbbd; border-radius: 8px; padding: 0.7rem 1rem; font-size: 0.9rem; font-weight: 600; outline: none; color: var(--text-color);" onchange="document.getElementById('roleSelectForm').submit();">
+                @foreach (var r in roles)
+                {
+                    <!option value="@r.RoleId" @(r.RoleId == selectedRoleId ? "selected" : "")>
+                        @r.RoleName @(r.RoleName == "Super Admin" || r.RoleName == "Admin" ? "(System Protected)" : "")
+                    </!option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 small border" style="border-color: #e2e8f0 !important; margin-top: 1.5rem;">
+                <i class="fa-solid fa-circle-info text-primary me-2"></i>
+                <span>Editing page access permissions for role: <strong>@selectedRoleName</strong>. Access restrictions take effect immediately upon saving.</span>
+            </div>
+        </div>
+    </form>
+</div>
+
+@if (isSystemAdminRole)
+{
+    <div class="alert alert-warning border-0 shadow-sm mb-4 small text-start" role="alert" style="background-color: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b !important;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i> 
+        <strong>System Admin Override:</strong> The role <strong>@selectedRoleName</strong> is a master administrator system account. System administrator roles bypass sidebar restriction lists and always retain full page access.
+    </div>
+}
+
+<!-- Permissions Configuration Grid -->
+<form method="post" action="/RolePermissions/Save" class="text-start">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="roleId" value="@selectedRoleId" />
+
+    <div class="row g-4 mb-4">
+        @foreach (var meta in moduleMeta)
+        {
+            var systemModName = meta.Key;
+            var info = meta.Value;
+            var isAllowed = Model.FirstOrDefault(p => p.ModuleName == systemModName)?.IsAllowed ?? false;
+            
+            // System admins are locked to checked/disabled
+            var checkedAttr = (isAllowed || isSystemAdminRole) ? "checked" : "";
+            var disabledAttr = isSystemAdminRole ? "disabled" : "";
+
+            <div class="col-xl-4 col-md-6">
+                <div class="perm-card">
+                    <div class="perm-header">
+                        <div class="perm-icon">
+                            <i class="fa-solid @info.Icon"></i>
+                        </div>
+                        
+                        <!-- Toggle Switch -->
+                        <label class="switch-warm">
+                            <input type="hidden" name="modulePermissions[@systemModName]" value="false" />
+                            <input type="checkbox" name="modulePermissions[@systemModName]" value="true" @checkedAttr @disabledAttr />
+                            <span class="slider-warm"></span>
+                        </label>
+                    </div>
+                    <h5 class="perm-title mb-1">@info.Title</h5>
+                    <p class="perm-desc">@info.Desc</p>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex justify-content-end mb-5">
+        <button type="submit" class="btn btn-primary-warm px-5 py-2.5 fw-bold" @(isSystemAdminRole ? "disabled" : "")>
+            <i class="fa-solid fa-shield-halved me-2"></i> Save Role Permissions
+        </button>
+    </div>
+</form>

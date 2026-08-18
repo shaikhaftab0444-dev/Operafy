@@ -1,0 +1,550 @@
+@using System.Security.Claims
+@{
+    var userFullName = User.Identity?.Name ?? "User Account";
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Employee";
+    var userCompany = User.FindFirst("Company")?.Value ?? "ERP Solutions Ltd";
+
+    // Role-based visibility logic for the 14 modules
+    bool showUserMgmt = userRole == "Super Admin" || userRole == "Admin";
+    bool showCompany = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR" || userRole == "Manager";
+    bool showEmployeeMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR" || userRole == "Manager" || userRole == "Employee";
+    bool showCustomerMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Sales Executive" || userRole == "Sales Manager";
+    bool showSupplierMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Inventory Manager" || userRole == "Purchase Manager";
+    bool showProductMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Inventory Manager" || userRole == "Sales Executive" || userRole == "Sales Manager" || userRole == "Manager";
+    bool showInventoryMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Inventory Manager" || userRole == "Purchase Manager";
+    bool showPurchaseMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Purchase Manager" || userRole == "Finance Manager";
+    bool showSalesMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Sales Executive" || userRole == "Sales Manager" || userRole == "Accountant" || userRole == "Finance Manager";
+    bool showExpenseMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "Accountant" || userRole == "Finance Manager";
+    bool showAccounting = userRole == "Super Admin" || userRole == "Admin" || userRole == "Accountant" || userRole == "Finance Manager" || userRole == "Auditor";
+    bool showHRMgmt = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR";
+    bool showReports = userRole == "Super Admin" || userRole == "Admin" || userRole == "HR" || userRole == "Manager" || userRole == "Accountant" || userRole == "Finance Manager" || userRole == "Sales Manager" || userRole == "Auditor";
+    bool showSettings = userRole == "Super Admin" || userRole == "Admin" || userRole == "Auditor";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ERP Dashboard</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/fontawesome-free/css/all.min.css" />
+    <style>
+        :root {
+            --sidebar-bg: #0e1726;
+            --sidebar-color: #abb5c2;
+            --sidebar-active-bg: #1e293b;
+            --sidebar-active-color: #3b82f6;
+            --topbar-bg: #ffffff;
+            --content-bg: #f8fafc;
+            --text-color: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--content-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* Layout Structure */
+        .wrapper {
+            display: flex;
+            align-items: stretch;
+            min-height: 100vh;
+        }
+
+        /* Left Sidebar styling */
+        #sidebar {
+            min-width: 260px;
+            max-width: 260px;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-color);
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+
+        #sidebar.active {
+            margin-left: -260px;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-brand {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #ffffff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu {
+            flex-grow: 1;
+            padding: 1rem 0;
+            overflow-y: auto;
+        }
+
+        .menu-title {
+            padding: 0.75rem 1.25rem 0.25rem 1.25rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: #4b5563;
+        }
+
+        .menu-link {
+            padding: 0.65rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--sidebar-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-link:hover {
+            background-color: rgba(255,255,255,0.03);
+            color: #ffffff;
+        }
+
+        .menu-link.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            border-left-color: #3b82f6;
+        }
+
+        .menu-icon {
+            margin-right: 12px;
+            width: 18px;
+            text-align: center;
+        }
+
+        /* Sidebar Quick Links */
+        .sidebar-quicklinks {
+            padding: 1.25rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Main Content Container */
+        #content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* Top Header Navigation Bar */
+        .topbar {
+            background-color: var(--topbar-bg);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #475569;
+            cursor: pointer;
+        }
+
+        .search-box {
+            position: relative;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .search-box input {
+            padding: 0.4rem 1rem 0.4rem 2.2rem;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.85rem;
+            background-color: #f8fafc;
+            width: 100%;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            position: relative;
+            color: #475569;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0.25rem;
+        }
+
+        .icon-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            font-size: 0.6rem;
+            padding: 0.2rem 0.35rem;
+            border-radius: 50%;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .profile-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #3b82f6;
+            font-size: 0.85rem;
+            border: 2px solid #3b82f6;
+        }
+
+        .profile-info {
+            line-height: 1.1;
+        }
+
+        .profile-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #1e293b;
+        }
+
+        .profile-role {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+
+        .main-inner {
+            padding: 1.5rem;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        /* Sidebar Footer copyright */
+        .sidebar-footer {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.7rem;
+            color: #4b5563;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Left Sidebar Navigation -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="sidebar-brand">
+                    <i class="fa-solid fa-cubes text-primary" style="color:#3b82f6 !important;"></i>
+                    <span>ERP System</span>
+                </a>
+                <button class="toggle-btn text-white d-lg-none" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="sidebar-menu">
+                <a href="/Dashboard" class="menu-link active">
+                    <div>
+                        <i class="fa-solid fa-gauge menu-icon"></i>
+                        <span>Dashboard</span>
+                    </div>
+                </a>
+
+                <div class="menu-title">Modules</div>
+                
+                @if (showUserMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-users menu-icon"></i>
+                            <span>User Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+                
+                @if (showCompany)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-building menu-icon"></i>
+                            <span>Company</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showEmployeeMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-id-card menu-icon"></i>
+                            <span>Employee Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showCustomerMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-handshake menu-icon"></i>
+                            <span>Customer Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showSupplierMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-truck menu-icon"></i>
+                            <span>Supplier Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showProductMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-box-open menu-icon"></i>
+                            <span>Product Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showInventoryMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-boxes-stacked menu-icon"></i>
+                            <span>Inventory Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showPurchaseMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-cart-shopping menu-icon"></i>
+                            <span>Purchase Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showSalesMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-file-invoice-dollar menu-icon"></i>
+                            <span>Sales Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showExpenseMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-receipt menu-icon"></i>
+                            <span>Expense Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showAccounting)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-coins menu-icon"></i>
+                            <span>Accounting</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showHRMgmt)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-user-tie menu-icon"></i>
+                            <span>HR Management</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showReports)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-chart-column menu-icon"></i>
+                            <span>Reports</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+
+                @if (showSettings)
+                {
+                    <a href="#" class="menu-link">
+                        <div>
+                            <i class="fa-solid fa-sliders menu-icon"></i>
+                            <span>Settings</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                }
+            </div>
+
+            <!-- Quick Links -->
+            <div class="sidebar-quicklinks">
+                <h6 class="text-white font-weight-bold mb-2 small uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; opacity:0.5;">Quick Links</h6>
+                <ul class="list-unstyled small mb-0 d-flex flex-column gap-2" style="font-size: 0.8rem;">
+                    <li><a href="#" class="text-secondary text-decoration-none d-flex align-items-center gap-2"><i class="fa-solid fa-user-plus" style="width: 14px;"></i> Add New Employee</a></li>
+                    <li><a href="#" class="text-secondary text-decoration-none d-flex align-items-center gap-2"><i class="fa-solid fa-file-signature" style="width: 14px;"></i> Purchase Order</a></li>
+                    <li><a href="#" class="text-secondary text-decoration-none d-flex align-items-center gap-2"><i class="fa-solid fa-file-invoice" style="width: 14px;"></i> Sales Invoice</a></li>
+                    <li><a href="#" class="text-secondary text-decoration-none d-flex align-items-center gap-2"><i class="fa-solid fa-receipt" style="width: 14px;"></i> Expense Entry</a></li>
+                </ul>
+            </div>
+
+            <div class="sidebar-footer">
+                <span>&copy; 2026 ERP System</span>
+                <span>v1.0.0</span>
+            </div>
+        </nav>
+
+        <!-- Right Hand Content Page -->
+        <div id="content">
+            <!-- Topbar Header -->
+            <header class="topbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="toggle-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+                    <div class="search-box d-none d-md-block">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Search operational databases..." />
+                    </div>
+                </div>
+                
+                <div class="topbar-right">
+                    <!-- Notifications -->
+                    <button class="icon-btn">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge bg-danger icon-badge">5</span>
+                    </button>
+                    <!-- Messages -->
+                    <button class="icon-btn">
+                        <i class="fa-regular fa-envelope"></i>
+                        <span class="badge bg-primary icon-badge">3</span>
+                    </button>
+                    <!-- Fullscreen -->
+                    <button class="icon-btn d-none d-sm-block" onclick="toggleFullscreen()">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                    
+                    <!-- Vertical Divider -->
+                    <div style="width: 1px; height: 24px; background-color: #cbd5e1;"></div>
+                    
+                    <!-- Profile dropdown -->
+                    <div class="dropdown">
+                        <a href="#" class="user-profile dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="profile-img">
+                                @(userFullName.Length > 0 ? userFullName.Substring(0,1).ToUpper() : "A")
+                            </div>
+                            <div class="profile-info d-none d-sm-block text-start">
+                                <div class="profile-name">@userFullName</div>
+                                <div class="profile-role">@userRole</div>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="background-color: #ffffff;">
+                            <li><h6 class="dropdown-header">@userCompany</h6></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="fa-regular fa-user me-2"></i> My Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fa-solid fa-sliders me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="/Account/Logout"><i class="fa-solid fa-right-from-bracket me-2"></i> Sign Out</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Panel Render Area -->
+            <main class="main-inner">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

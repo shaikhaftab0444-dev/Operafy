@@ -1,0 +1,267 @@
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Employee Portal";
+    var currentUser = (ERP_System.Models.User)ViewBag.CurrentUser;
+    var activityLogs = (IEnumerable<ERP_System.Models.ActivityLog>)ViewBag.ActivityLogs;
+    var transactions = (IEnumerable<ERP_System.Models.Transaction>)ViewBag.Transactions;
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+}
+
+<style>
+    .welcome-banner {
+        background: linear-gradient(135deg, #fdfcfb 0%, #faf6f0 100%);
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+    }
+    
+    .emp-card {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+    }
+
+    .badge-active {
+        background-color: rgba(16, 185, 129, 0.08);
+        color: #10b981;
+        font-weight: 600;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .table-emp th {
+        background-color: #fcfbfa !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #7c7267;
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+    }
+    .table-emp td {
+        font-size: 0.85rem;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+        vertical-align: middle;
+    }
+
+    .activity-list-emp {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .activity-item-emp {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    .activity-icon-emp {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background-color: #faf6f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+</style>
+
+<!-- Welcome Header banner -->
+<div class="welcome-banner mb-4 text-start">
+    <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 54px; height: 54px; background-color: #ffffff; color: var(--primary-warm); font-size: 1.5rem; border: 2.5px solid var(--primary-warm);">
+            @(currentUser != null ? currentUser.FullName.Substring(0,1).ToUpper() : "E")
+        </div>
+        <div>
+            <h4 class="fw-bold mb-1" style="color: var(--text-color);">Good day, @(currentUser != null ? currentUser.FullName : "Employee")!</h4>
+            <p class="text-muted mb-0 small"><i class="fa-solid fa-calendar-day me-1"></i>Welcome back to your central operations panel.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Info & Operation Feeds -->
+<div class="row g-4 mb-4">
+    <!-- Profile Card -->
+    <div class="col-lg-5">
+        <div class="emp-card text-start">
+            <h5 class="fw-bold mb-3" style="color: var(--text-color);">My Profile Summary</h5>
+            <hr style="border-color: var(--border-warm); margin-bottom: 1.25rem;" />
+            
+            @if (currentUser != null)
+            {
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small uppercase fw-bold">Employee Code</span>
+                        <code style="color: var(--accent-warm); font-weight: 700; font-size: 0.9rem;">@currentUser.UserCode</code>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small uppercase fw-bold">System Username</span>
+                        <strong class="text-dark">@@@currentUser.UserName</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small uppercase fw-bold">Work Email</span>
+                        <span class="text-dark">@currentUser.Email</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small uppercase fw-bold">Phone Connection</span>
+                        <span class="text-dark">@(string.IsNullOrEmpty(currentUser.MobileNumber) ? "N/A" : currentUser.MobileNumber)</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small uppercase fw-bold">Assigned Role</span>
+                        <span class="badge bg-light text-dark border px-2.5 py-1.5 fw-bold" style="font-size: 0.75rem; border-color: var(--border-warm) !important;">
+                            <i class="fa-solid fa-user-tag text-primary me-1" style="color: var(--primary-warm) !important;"></i>
+                            @(currentUser.Role?.RoleName ?? "Employee")
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small uppercase fw-bold">Access Status</span>
+                        <span class="badge rounded-pill px-2.5 py-1.5 badge-active" style="font-size: 0.75rem;">Active Member</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-muted py-4">Unable to load employee profile records.</div>
+            }
+        </div>
+    </div>
+
+    <!-- Active System Activity Logs -->
+    <div class="col-lg-7">
+        <div class="emp-card text-start">
+            <h5 class="fw-bold mb-3" style="color: var(--text-color);">Operations Bulletin</h5>
+            <hr style="border-color: var(--border-warm); margin-bottom: 1.25rem;" />
+
+            <div class="activity-list-emp">
+                @if (activityLogs != null && activityLogs.Any())
+                {
+                    foreach (var activity in activityLogs)
+                    {
+                        var timeDiff = DateTime.UtcNow - activity.CreatedAt.ToUniversalTime();
+                        var timeStr = timeDiff.TotalMinutes < 60 ? $"{(int)timeDiff.TotalMinutes}m ago" :
+                                      timeDiff.TotalHours < 24 ? $"{(int)timeDiff.TotalHours}h ago" :
+                                      $"{(int)timeDiff.TotalDays}d ago";
+                                      
+                        <div class="activity-item-emp">
+                            <div class="activity-icon-emp @activity.ColorClass">
+                                <i class="fa-solid @activity.IconClass"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">@activity.Title</div>
+                                <div class="text-secondary" style="font-size: 0.8rem;">@activity.Description</div>
+                            </div>
+                            <div class="text-muted small" style="font-size: 0.75rem; white-space: nowrap;">@timeStr</div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">No recent update bulletins active.</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom row: Ledger and Payslips -->
+<div class="row g-4">
+    <!-- Reference Transactions Grid -->
+    <div class="col-lg-7">
+        <div class="emp-card p-0 overflow-hidden text-start">
+            <div class="p-4 pb-0 mb-3">
+                <h5 class="fw-bold" style="color: var(--text-color);">Operational Ledger Reference</h5>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover table-emp mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">Type</th>
+                            <th class="border-0">Order No.</th>
+                            <th class="border-0">Date</th>
+                            <th class="border-0">Amount</th>
+                            <th class="border-0">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (transactions != null && transactions.Any())
+                        {
+                            foreach (var tx in transactions)
+                            {
+                                var statusClass = tx.Status == "Paid" ? "bg-success bg-opacity-10 text-success" : "bg-warning bg-opacity-10 text-warning";
+                                <tr>
+                                    <td>@tx.Type</td>
+                                    <td class="fw-bold text-primary">@tx.TransactionNo</td>
+                                    <td>@tx.Date.ToString("dd MMM yyyy")</td>
+                                    <td class="fw-bold text-dark">@tx.Amount.ToString("C0", inCulture)</td>
+                                    <td>
+                                        <span class="badge rounded-pill px-2.5 py-1.5 @statusClass" style="font-size: 0.75rem;">@tx.Status</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No ledger records found in database.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Payslips Grid -->
+    <div class="col-lg-5">
+        <div class="emp-card p-0 overflow-hidden text-start">
+            <div class="p-4 pb-0 mb-3">
+                <h5 class="fw-bold" style="color: var(--text-color);">My Salary slips</h5>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover table-emp mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">Period</th>
+                            <th class="border-0">Net Salary</th>
+                            <th class="border-0 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var myPayslips = (IEnumerable<ERP_System.Models.Payslip>)ViewBag.MyPayslips;
+                        }
+                        @if (myPayslips != null && myPayslips.Any())
+                        {
+                            foreach (var slip in myPayslips)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-dark">@slip.PayPeriod</td>
+                                    <td class="fw-bold text-success">@slip.NetSalary.ToString("C0", inCulture)</td>
+                                    <td class="text-center">
+                                        <a href="/Payroll/ViewPayslip/@slip.PayslipId" target="_blank" class="btn btn-sm btn-outline-secondary btn-sm-custom px-3 py-1">
+                                            <i class="fa-solid fa-print me-1"></i> Print
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">No payslips generated for your profile.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>

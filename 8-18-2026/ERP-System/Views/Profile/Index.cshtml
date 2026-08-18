@@ -1,0 +1,570 @@
+@model ERP_System.Models.ProfileViewModel
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "My Profile";
+    var userPhoto = !string.IsNullOrEmpty(Model.User.ProfilePhoto) 
+        ? Model.User.ProfilePhoto 
+        : "/profile_images/admin-avatar.jpg";
+}
+
+<style>
+    .profile-hero-card {
+        background: linear-gradient(135deg, #0e1726 0%, #1e293b 60%, #1e3a8a 100%);
+        border-radius: 16px;
+        padding: 2.5rem 2rem 2rem 2rem;
+        color: #ffffff;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+    }
+
+    .profile-hero-overlay {
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .avatar-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .profile-avatar-lg {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #ffffff;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        background-color: #f1f5f9;
+        transition: transform 0.3s ease;
+    }
+
+    .avatar-wrapper:hover .profile-avatar-lg {
+        transform: scale(1.02);
+    }
+
+    .avatar-edit-badge {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        background: linear-gradient(135deg, var(--primary-warm) 0%, #2563eb 100%);
+        color: #ffffff;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 2px solid #ffffff;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        transition: all 0.2s ease;
+    }
+
+    .avatar-edit-badge:hover {
+        transform: scale(1.1);
+        background: #1d4ed8;
+    }
+
+    .panel-card {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 14px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        padding: 1.75rem;
+    }
+
+    .detail-row {
+        padding: 0.85rem 0;
+        border-bottom: 1px dashed var(--border-warm);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #64748b;
+        letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+        font-size: 0.925rem;
+        color: var(--text-color);
+        font-weight: 600;
+    }
+
+    .btn-primary-warm {
+        background: linear-gradient(135deg, var(--primary-warm) 0%, #2563eb 100%);
+        color: #ffffff;
+        border: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        border-radius: 8px;
+        padding: 0.65rem 1.5rem;
+        transition: all 0.2s ease;
+    }
+    .btn-primary-warm:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+        color: #ffffff;
+    }
+
+    .form-control-warm {
+        border: 1px solid #cbd5e1 !important;
+        background-color: #f8fafc !important;
+        color: var(--text-color) !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
+        padding: 0.65rem 0.9rem !important;
+        transition: all 0.2s ease;
+    }
+    .form-control-warm:focus {
+        border-color: var(--primary-warm) !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+        background-color: #ffffff !important;
+    }
+
+    .nav-pills-custom .nav-link {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        padding: 0.65rem 1.25rem;
+        transition: all 0.2s ease;
+    }
+    .nav-pills-custom .nav-link.active {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        font-weight: 700;
+    }
+
+    .image-preview-container {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid #e2e8f0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        background-color: #f8fafc;
+    }
+    .image-preview-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+</style>
+
+<!-- Breadcrumbs & Page Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">User Profile</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">My Profile</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="/Settings" class="btn btn-outline-secondary btn-sm px-3 py-2 fw-semibold" style="border-radius: 8px;">
+            <i class="fa-solid fa-sliders me-1.5"></i> Account Settings
+        </a>
+    </div>
+</div>
+
+<!-- Notification Alerts -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
+        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #fef2f2; color: #b91c1c; border-left: 4px solid #dc2626 !important;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Profile Hero Banner Card -->
+<div class="profile-hero-card mb-4 text-start">
+    <div class="profile-hero-overlay"></div>
+    <div class="row align-items-center g-4">
+        <div class="col-auto">
+            <div class="avatar-wrapper">
+                <img src="@userPhoto" id="mainHeroAvatar" alt="@Model.User.FullName" class="profile-avatar-lg" />
+                <label for="ProfileImage" class="avatar-edit-badge" title="Change Profile Picture" onclick="switchTabToEdit()">
+                    <i class="fa-solid fa-camera" style="font-size: 0.95rem;"></i>
+                </label>
+            </div>
+        </div>
+        <div class="col">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="badge bg-primary px-3 py-1.5 rounded-pill fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;">
+                    <i class="fa-solid fa-user-shield me-1"></i> @(Model.User.Role?.RoleName ?? "System User")
+                </span>
+                <span class="badge bg-success px-3 py-1.5 rounded-pill fw-semibold" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-circle-check me-1"></i> Active Status
+                </span>
+                <span class="badge bg-dark px-3 py-1.5 rounded-pill fw-semibold text-light" style="font-size: 0.75rem; opacity: 0.85;">
+                    <i class="fa-solid fa-hashtag me-1"></i> Code: @Model.User.UserCode
+                </span>
+            </div>
+
+            <h2 class="fw-bold text-white mb-1">@Model.User.FullName</h2>
+            <p class="text-white-50 small mb-3">
+                <i class="fa-regular fa-envelope me-1.5"></i>@Model.User.Email 
+                <span class="mx-2">•</span> 
+                <i class="fa-solid fa-building me-1.5"></i>@(Model.Company?.CompanyName ?? "ERP Solutions Ltd")
+                <span class="mx-2">•</span> 
+                <i class="fa-solid fa-location-dot me-1.5"></i>@(Model.Branch?.BranchName ?? "Head Office")
+            </p>
+
+            <div class="d-flex flex-wrap gap-4 pt-2 border-top border-secondary border-opacity-25 small text-white-50">
+                <div>
+                    <span class="text-white fw-bold"><i class="fa-regular fa-calendar-days me-1 text-primary"></i> Member Since:</span> 
+                    <span>@Model.User.CreatedAt.ToString("MMM dd, yyyy")</span>
+                </div>
+                <div>
+                    <span class="text-white fw-bold"><i class="fa-regular fa-clock me-1 text-info"></i> Last Login:</span> 
+                    <span>@(Model.User.LastLogin.HasValue ? Model.User.LastLogin.Value.ToString("dd MMM yyyy, hh:mm tt") : "Active Now")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Personal Overview Info -->
+    <div class="col-lg-4">
+        <div class="panel-card text-start mb-4">
+            <h6 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2">
+                <i class="fa-solid fa-id-card text-primary"></i> Contact & Account Overview
+            </h6>
+            <hr style="border-color: var(--border-warm); margin-top: 0.5rem; margin-bottom: 1rem;" />
+
+            <div class="d-flex flex-column">
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-user me-1 text-muted"></i> Username</span>
+                    <span class="detail-value text-dark">@Model.User.UserName</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-phone me-1 text-muted"></i> Mobile</span>
+                    <span class="detail-value text-dark">@(string.IsNullOrEmpty(Model.User.MobileNumber) ? "+91 98765 43210" : Model.User.MobileNumber)</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-building me-1 text-muted"></i> Company</span>
+                    <span class="detail-value text-dark">@(Model.Company?.CompanyName ?? "AIT Technologies")</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-code-branch me-1 text-muted"></i> Branch</span>
+                    <span class="detail-value text-dark">@(Model.Branch?.BranchName ?? "Head Office")</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-envelope-circle-check me-1 text-muted"></i> Email Status</span>
+                    <span class="detail-value text-success"><i class="fa-solid fa-shield-check me-1"></i> Verified</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-card text-start">
+            <h6 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-warning"></i> Security Summary
+            </h6>
+            <hr style="border-color: var(--border-warm); margin-top: 0.5rem; margin-bottom: 1rem;" />
+
+            <div class="d-flex flex-column gap-3 small">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Password Changed:</span>
+                    <span class="fw-bold text-dark">@(Model.User.LastPasswordChanged.HasValue ? Model.User.LastPasswordChanged.Value.ToString("dd MMM yyyy") : "Recently")</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">2-Factor Authentication:</span>
+                    <span class="badge bg-secondary px-2 py-1">Disabled</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Account Security Grade:</span>
+                    <span class="badge bg-success px-2 py-1"><i class="fa-solid fa-lock me-1"></i> Strong (A+)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Tabs (Edit Profile, Security, Activity) -->
+    <div class="col-lg-8 text-start">
+        <div class="panel-card p-4">
+            <!-- Nav Tabs -->
+            <ul class="nav nav-pills nav-pills-custom gap-2 mb-4 border-bottom pb-3" id="profileTab" role="tablist" style="border-color: var(--border-warm) !important;">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="edit-tab" data-bs-toggle="tab" data-bs-target="#edit-panel" type="button" role="tab" aria-controls="edit-panel" aria-selected="true">
+                        <i class="fa-solid fa-user-pen me-2"></i> Edit Information & Photo
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-panel" type="button" role="tab" aria-controls="security-panel" aria-selected="false">
+                        <i class="fa-solid fa-key me-2"></i> Security & Password
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity-panel" type="button" role="tab" aria-controls="activity-panel" aria-selected="false">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i> Activity Log
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Contents -->
+            <div class="tab-content" id="profileTabContent">
+                
+                <!-- TAB 1: EDIT PROFILE & IMAGE -->
+                <div class="tab-pane fade show active" id="edit-panel" role="tabpanel" aria-labelledby="edit-tab">
+                    <form asp-action="UpdateProfile" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row g-4">
+                            <!-- Image Upload Box -->
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-dark mb-2">Profile Picture Image</label>
+                                <div class="p-3 border rounded-3 bg-light d-flex flex-column flex-sm-row align-items-center gap-3" style="border-color: #e2e8f0 !important;">
+                                    <div class="image-preview-container flex-shrink-0">
+                                        <img src="@userPhoto" id="imagePreview" alt="Profile Preview" />
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="fw-bold mb-1 text-dark">Upload Profile Image</h6>
+                                        <p class="text-muted small mb-2">Allowed formats: JPG, PNG, WEBP. Maximum file size 5MB.</p>
+                                        <input type="file" asp-for="ProfileImage" class="form-control form-control-warm" accept="image/*" onchange="previewSelectedImage(this)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Full Name -->
+                            <div class="col-md-6">
+                                <label asp-for="FullName" class="form-label small fw-bold text-dark">Full Name</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #cbd5e1;"><i class="fa-regular fa-user"></i></span>
+                                    <input asp-for="FullName" class="form-control form-control-warm border-start-0 ps-0" required />
+                                </div>
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Email Address -->
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label small fw-bold text-dark">Email Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #cbd5e1;"><i class="fa-regular fa-envelope"></i></span>
+                                    <input asp-for="Email" type="email" class="form-control form-control-warm border-start-0 ps-0" required />
+                                </div>
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Mobile Number -->
+                            <div class="col-md-6">
+                                <label asp-for="MobileNumber" class="form-label small fw-bold text-dark">Mobile Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #cbd5e1;"><i class="fa-solid fa-phone"></i></span>
+                                    <input asp-for="MobileNumber" class="form-control form-control-warm border-start-0 ps-0" placeholder="+91 98765 43210" />
+                                </div>
+                            </div>
+
+                            <!-- Username (Readonly) -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Username (System Identifier)</label>
+                                <input type="text" class="form-control form-control-warm bg-secondary bg-opacity-10" value="@Model.User.UserName" readonly disabled />
+                                <span class="form-text text-muted" style="font-size: 0.75rem;">Username cannot be altered after account creation.</span>
+                            </div>
+
+                            <!-- Role (Readonly) -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Assigned Role</label>
+                                <input type="text" class="form-control form-control-warm bg-secondary bg-opacity-10" value="@(Model.User.Role?.RoleName ?? "Employee")" readonly disabled />
+                            </div>
+
+                            <!-- User Code (Readonly) -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Employee User Code</label>
+                                <input type="text" class="form-control form-control-warm bg-secondary bg-opacity-10" value="@Model.User.UserCode" readonly disabled />
+                            </div>
+                        </div>
+
+                        <hr style="border-color: var(--border-warm); margin: 1.5rem 0;" />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary-warm px-4">
+                                <i class="fa-solid fa-floppy-disk me-2"></i> Save Profile Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TAB 2: CHANGE PASSWORD -->
+                <div class="tab-pane fade" id="security-panel" role="tabpanel" aria-labelledby="security-tab">
+                    <form asp-action="ChangePassword" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-dark">Current Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #cbd5e1;"><i class="fa-solid fa-lock"></i></span>
+                                    <input type="password" name="CurrentPassword" class="form-control form-control-warm border-start-0 ps-0" required placeholder="Enter current password" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">New Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #cbd5e1;"><i class="fa-solid fa-key"></i></span>
+                                    <input type="password" name="NewPassword" id="newPwdInput" class="form-control form-control-warm border-start-0 ps-0" required placeholder="Enter new password" onkeyup="checkPasswordStrength(this.value)" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Confirm New Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #cbd5e1;"><i class="fa-solid fa-check-double"></i></span>
+                                    <input type="password" name="ConfirmPassword" class="form-control form-control-warm border-start-0 ps-0" required placeholder="Confirm new password" />
+                                </div>
+                            </div>
+
+                            <!-- Password strength meter -->
+                            <div class="col-12 mt-3">
+                                <div class="p-3 rounded-3 bg-light border" style="border-color: #e2e8f0 !important;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="small fw-bold text-dark">Password Strength:</span>
+                                        <span class="small fw-bold" id="pwdStrengthText" style="color: #64748b;">Not Entered</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-secondary" id="pwdStrengthBar" role="progressbar" style="width: 0%;"></div>
+                                    </div>
+                                    <ul class="list-inline mb-0 mt-2 text-muted" style="font-size: 0.75rem;">
+                                        <li class="list-inline-item me-3"><i class="fa-solid fa-circle-info me-1"></i> Min 6 characters</li>
+                                        <li class="list-inline-item me-3"><i class="fa-solid fa-circle-info me-1"></i> Uppercase & Lowercase</li>
+                                        <li class="list-inline-item"><i class="fa-solid fa-circle-info me-1"></i> Numbers / Special characters</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr style="border-color: var(--border-warm); margin: 1.5rem 0;" />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary-warm px-4">
+                                <i class="fa-solid fa-shield-halved me-2"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TAB 3: ACTIVITY LOG -->
+                <div class="tab-pane fade" id="activity-panel" role="tabpanel" aria-labelledby="activity-tab">
+                    <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-list-check me-2 text-primary"></i> Recent User Operations</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Activity</th>
+                                    <th>Description</th>
+                                    <th>Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.RecentActivities != null && Model.RecentActivities.Any())
+                                {
+                                    @foreach (var act in Model.RecentActivities)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="fw-bold text-dark"><i class="fa-solid @act.IconClass me-1.5 @act.ColorClass"></i> @act.Title</span>
+                                            </td>
+                                            <td class="text-muted">@act.Description</td>
+                                            <td class="text-muted small">@act.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center py-4 text-muted">No recent activities recorded.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function previewSelectedImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('mainHeroAvatar').src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function switchTabToEdit() {
+            const editTabBtn = document.getElementById('edit-tab');
+            if (editTabBtn) {
+                const tab = new bootstrap.Tab(editTabBtn);
+                tab.show();
+            }
+        }
+
+        function checkPasswordStrength(val) {
+            const bar = document.getElementById('pwdStrengthBar');
+            const txt = document.getElementById('pwdStrengthText');
+
+            if (!val) {
+                bar.style.width = '0%';
+                bar.className = 'progress-bar bg-secondary';
+                txt.innerText = 'Not Entered';
+                txt.style.color = '#64748b';
+                return;
+            }
+
+            let score = 0;
+            if (val.length >= 6) score += 25;
+            if (val.length >= 10) score += 25;
+            if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score += 25;
+            if (/[0-9]/.test(val) || /[^A-Za-z0-9]/.test(val)) score += 25;
+
+            bar.style.width = score + '%';
+            if (score <= 25) {
+                bar.className = 'progress-bar bg-danger';
+                txt.innerText = 'Weak';
+                txt.style.color = '#dc2626';
+            } else if (score <= 75) {
+                bar.className = 'progress-bar bg-warning';
+                txt.innerText = 'Moderate';
+                txt.style.color = '#d97706';
+            } else {
+                bar.className = 'progress-bar bg-success';
+                txt.innerText = 'Strong';
+                txt.style.color = '#16a34a';
+            }
+        }
+    </script>
+}
