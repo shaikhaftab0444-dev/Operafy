@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using ERP_System.Models;
+using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {

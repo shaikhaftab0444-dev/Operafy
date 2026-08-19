@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP_System.Models;
 using System;
 using System.Threading.Tasks;
+using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {
@@ -81,6 +82,45 @@ namespace ERP_System.Controllers
 
             TempData["ErrorMessage"] = "Failed to update company profile. Invalid form inputs.";
             return View("Index", model);
+        }
+
+        // GET: /Company/Create
+        [HttpGet]
+        public IActionResult Create()
+        {
+            return View(new Company());
+        }
+
+        // POST: /Company/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Company model)
+        {
+            if (ModelState.IsValid)
+            {
+                model.CreatedAt = DateTime.UtcNow;
+                model.IsActive = true;
+                
+                _context.Companies.Add(model);
+                await _context.SaveChangesAsync();
+
+                // Log activity
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    Title = "Company Registered",
+                    Description = $"Company '{model.CompanyName}' ({model.CompanyCode}) was successfully registered.",
+                    IconClass = "fa-building",
+                    ColorClass = "bg-success text-white",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Company '{model.CompanyName}' registered successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            TempData["ErrorMessage"] = "Failed to register company. Please verify the input values.";
+            return View(model);
         }
     }
 }

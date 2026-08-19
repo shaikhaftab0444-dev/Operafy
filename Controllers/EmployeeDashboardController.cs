@@ -4,15 +4,16 @@ using Microsoft.EntityFrameworkCore;
 using ERP_System.Models;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {
     [Authorize]
-    public class EmployeeController : Controller
+    public class EmployeeDashboardController : Controller
     {
         private readonly ApplicationDbContext _context;
 
-        public EmployeeController(ApplicationDbContext context)
+        public EmployeeDashboardController(ApplicationDbContext context)
         {
             _context = context;
         }
@@ -44,9 +45,20 @@ namespace ERP_System.Controllers
                 .Take(5)
                 .ToListAsync();
 
+            // Fetch payslips for this logged-in user
+            var payslips = new System.Collections.Generic.List<Payslip>();
+            if (currentUser != null)
+            {
+                payslips = await _context.Payslips
+                    .Where(p => p.UserId == currentUser.UserId)
+                    .OrderByDescending(p => p.PaymentDate)
+                    .ToListAsync();
+            }
+
             ViewBag.CurrentUser = currentUser;
             ViewBag.ActivityLogs = activityLogs;
             ViewBag.Transactions = transactions;
+            ViewBag.MyPayslips = payslips;
 
             return View();
         }

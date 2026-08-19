@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERP_System.Models;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {
@@ -20,15 +23,31 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var products = await _context.Products.ToListAsync();
+            var products = await _context.Products
+                .Include(p => p.Branch)
+                .OrderBy(p => p.ProductName)
+                .ToListAsync();
+
+            ViewBag.BranchesList = await _context.Branches.Where(b => b.IsActive).ToListAsync();
+            
+            // Generate list of distinct categories plus default ones
+            var categories = new List<string> { "Electronics", "Office Supplies", "Hardware", "General" };
+            var dbCategories = await _context.Products.Select(p => p.Category).Distinct().ToListAsync();
+            foreach (var cat in dbCategories)
+            {
+                if (!categories.Contains(cat)) categories.Add(cat);
+            }
+            ViewBag.CategoriesList = categories;
+
             return View(products);
         }
 
         // GET: /Products/Create
         [HttpGet]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            return View();
+            ViewBag.BranchesList = await _context.Branches.Where(b => b.IsActive).ToListAsync();
+            return View(new Product());
         }
 
         // POST: /Products/Create
@@ -53,6 +72,7 @@ namespace ERP_System.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            ViewBag.BranchesList = await _context.Branches.Where(b => b.IsActive).ToListAsync();
             return View(model);
         }
 
@@ -65,6 +85,8 @@ namespace ERP_System.Controllers
             {
                 return NotFound();
             }
+
+            ViewBag.BranchesList = await _context.Branches.Where(b => b.IsActive).ToListAsync();
             return View(product);
         }
 
@@ -95,6 +117,7 @@ namespace ERP_System.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            ViewBag.BranchesList = await _context.Branches.Where(b => b.IsActive).ToListAsync();
             return View(model);
         }
 

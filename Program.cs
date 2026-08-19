@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using ERP_System.Models;
+using ERP_System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 

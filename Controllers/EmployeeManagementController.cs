@@ -4,29 +4,33 @@ using Microsoft.EntityFrameworkCore;
 using ERP_System.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {
     [Authorize(Roles = "Super Admin,Admin,HR,Manager")]
-    public class EmployeesController : Controller
+    public class EmployeeManagementController : Controller
     {
         private readonly ApplicationDbContext _context;
 
-        public EmployeesController(ApplicationDbContext context)
+        public EmployeeManagementController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // GET: /Employees
+        // GET: /EmployeeManagement
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             var employees = await _context.Users
                 .Include(u => u.Role)
+                .Include(u => u.Branch)
+                .Where(u => u.Role != null && u.Role.RoleName != "Admin" && u.Role.RoleName != "Super Admin")
                 .OrderBy(u => u.FullName)
                 .ToListAsync();
 
             ViewBag.Roles = await _context.Roles.Where(r => r.IsActive).ToListAsync();
+            ViewBag.BranchesList = await _context.Branches.Where(b => b.IsActive).ToListAsync();
             return View(employees);
         }
 

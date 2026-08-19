@@ -103,6 +103,39 @@
     </div>
 }
 
+<!-- Search & Filter Controls -->
+<div class="row g-3 mb-4 text-start">
+    <!-- Search Input -->
+    <div class="col-md-5">
+        <div class="input-group-warm" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; display: flex; align-items: center; padding: 2px;">
+            <span style="padding: 0.6rem 0.5rem 0.6rem 1rem; color: #7c7267;"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input type="text" id="searchStaff" class="form-control" style="border: none !important; box-shadow: none !important; background: transparent; font-size: 0.9rem; padding: 0.6rem 1rem 0.6rem 0;" placeholder="Search by name, email, or code..." />
+        </div>
+    </div>
+    
+    <!-- Role Filter Dropdown -->
+    <div class="col-md-3">
+        <select id="filterRole" class="form-select" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; padding: 0.72rem 1rem; font-size: 0.9rem; font-weight: 600; outline: none; width: 100%; color: var(--text-color);">
+            <option value="">All Roles (Filter by Role)</option>
+            @foreach (var role in roles.Where(r => r.RoleName != "Admin" && r.RoleName != "Super Admin"))
+            {
+                <option value="@role.RoleName">@role.RoleName</option>
+            }
+        </select>
+    </div>
+
+    <!-- Branch Filter Dropdown -->
+    <div class="col-md-4">
+        <select id="filterBranch" class="form-select" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; padding: 0.72rem 1rem; font-size: 0.9rem; font-weight: 600; outline: none; width: 100%; color: var(--text-color);">
+            <option value="">All Branches (Filter by Branch)</option>
+            @foreach (var branch in (IEnumerable<ERP_System.Models.Branch>)ViewBag.BranchesList)
+            {
+                <option value="@branch.BranchName">@branch.BranchName</option>
+            }
+        </select>
+    </div>
+</div>
+
 <!-- Employees Directory -->
 <div class="panel-employees overflow-hidden">
     <div class="table-responsive">
@@ -113,6 +146,7 @@
                     <th class="border-0">Staff Name</th>
                     <th class="border-0">Email</th>
                     <th class="border-0">Mobile</th>
+                    <th class="border-0">Branch Location</th>
                     <th class="border-0">Authority Role</th>
                     <th class="border-0 text-center">Status</th>
                     <th class="border-0 text-center">Action</th>
@@ -136,6 +170,7 @@
                             </td>
                             <td>@emp.Email</td>
                             <td>@(string.IsNullOrEmpty(emp.MobileNumber) ? "N/A" : emp.MobileNumber)</td>
+                            <td class="fw-bold text-secondary">@(emp.Branch?.BranchName ?? "Head Office")</td>
                             <td>
                                 @if (!isRootAdmin)
                                 {
@@ -206,3 +241,53 @@
         </table>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const searchInput = document.getElementById("searchStaff");
+            const roleSelect = document.getElementById("filterRole");
+            const branchSelect = document.getElementById("filterBranch");
+            const tableRows = document.querySelectorAll(".table-employees tbody tr");
+
+            function filterTable() {
+                const query = searchInput.value.toLowerCase().trim();
+                const selectedRole = roleSelect.value.toLowerCase().trim();
+                const selectedBranch = branchSelect.value.toLowerCase().trim();
+
+                tableRows.forEach(row => {
+                    // Skip "no records" row if present
+                    if (row.cells.length < 6) return;
+
+                    const code = row.cells[0].innerText.toLowerCase();
+                    const name = row.cells[1].innerText.toLowerCase();
+                    const email = row.cells[2].innerText.toLowerCase();
+                    const branch = row.cells[4].innerText.toLowerCase();
+                    
+                    // Finding the selected value in the dropdown within the cell
+                    const selectElem = row.querySelector("select.select-role-warm");
+                    let role = "";
+                    if (selectElem) {
+                        role = selectElem.options[selectElem.selectedIndex].text.toLowerCase();
+                    } else {
+                        role = row.cells[5].innerText.toLowerCase();
+                    }
+
+                    const matchesSearch = code.includes(query) || name.includes(query) || email.includes(query);
+                    const matchesRole = selectedRole === "" || role.includes(selectedRole);
+                    const matchesBranch = selectedBranch === "" || branch.includes(selectedBranch);
+
+                    if (matchesSearch && matchesRole && matchesBranch) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            }
+
+            searchInput.addEventListener("input", filterTable);
+            roleSelect.addEventListener("change", filterTable);
+            branchSelect.addEventListener("change", filterTable);
+        });
+    </script>
+}

@@ -1,0 +1,213 @@
+@model IEnumerable<ERP_System.Models.Customer>
+@{
+    ViewData["Title"] = "Customer Registry";
+    Layout = "_DashboardLayout";
+}
+
+<style>
+    .card-cust {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        height: 100%;
+        text-align: left;
+    }
+    
+    .cust-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .cust-icon-total { background-color: rgba(79, 70, 229, 0.08); color: var(--primary-warm); }
+    .cust-icon-active { background-color: rgba(16, 185, 129, 0.08); color: #10b981; }
+
+    .cust-info {
+        flex-grow: 1;
+    }
+    .cust-label {
+        font-size: 0.75rem;
+        color: var(--sidebar-color);
+        font-weight: 700;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .cust-val {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    .panel-cust {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+    }
+
+    .table-cust th {
+        background-color: #fcfbfa !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #7c7267;
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+    }
+    .table-cust td {
+        font-size: 0.85rem;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+        vertical-align: middle;
+    }
+
+    .badge-active {
+        background-color: rgba(16, 185, 129, 0.08);
+        color: #10b981;
+        font-weight: 600;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .badge-inactive {
+        background-color: rgba(239, 68, 68, 0.08);
+        color: #ef4444;
+        font-weight: 600;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+</style>
+
+<!-- Top Breadcrumbs & Page Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Customer Registry</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Customers</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Alerts -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
+        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card-cust">
+            <div class="cust-icon-wrap cust-icon-total"><i class="fa-solid fa-handshake"></i></div>
+            <div class="cust-info">
+                <div class="cust-label">Total Accounts</div>
+                <div class="cust-val">@ViewBag.TotalCustomers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card-cust">
+            <div class="cust-icon-wrap cust-icon-active"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="cust-info">
+                <div class="cust-label">Active Connections</div>
+                <div class="cust-val">@ViewBag.ActiveCustomers</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Panel -->
+<div class="panel-cust mb-4">
+    <form method="get" asp-action="Index" class="row g-3 align-items-center text-start">
+        <div class="col-md-6">
+            <label class="small fw-bold text-secondary mb-1">Search Directory</label>
+            <div class="position-relative">
+                <input type="text" name="searchTerm" value="@ViewBag.SearchTerm" class="form-control" placeholder="Search by name, email, or phone number..." style="padding: 0.5rem 1rem;" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label class="small fw-bold text-secondary mb-1">Status Filter</label>
+            <select name="statusFilter" class="form-select" style="padding: 0.5rem 1rem;">
+                <!option value="All" @(ViewBag.StatusFilter == "All" ? "selected" : "")>All Connections</!option>
+                <!option value="Active" @(ViewBag.StatusFilter == "Active" ? "selected" : "")>Active Only</!option>
+                <!option value="Inactive" @(ViewBag.StatusFilter == "Inactive" ? "selected" : "")>Inactive Only</!option>
+            </select>
+        </div>
+        <div class="col-md-3 align-self-end d-flex gap-2">
+            <button type="submit" class="btn btn-primary-warm w-100 py-2 fw-bold">Filter</button>
+            <a asp-action="Index" class="btn btn-outline-secondary py-2 fw-bold">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Customers Directory Table -->
+<div class="panel-cust p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover table-cust mb-0 border-0 text-start">
+            <thead>
+                <tr>
+                    <th class="ps-3 border-0">Customer ID</th>
+                    <th class="border-0">Customer Name</th>
+                    <th class="border-0">Email</th>
+                    <th class="border-0">Phone Connection</th>
+                    <th class="border-0">Date of Birth</th>
+                    <th class="border-0">Joined Date</th>
+                    <th class="border-0 text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var customer in Model)
+                    {
+                        <tr>
+                            <td class="ps-3 fw-bold text-secondary">CUST#@customer.Id.ToString("D4")</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; background-color: #faf6f0; color: var(--primary-warm); font-size: 0.75rem; border: 1.5px solid var(--primary-warm);">
+                                        @customer.FirstName.Substring(0,1).ToUpper()
+                                    </div>
+                                    <span class="fw-bold text-dark">@customer.CustomerName</span>
+                                </div>
+                            </td>
+                            <td>@customer.Email</td>
+                            <td>@customer.PhoneNumber</td>
+                            <td>@customer.DateOfBirth.ToString("dd MMM yyyy")</td>
+                            <td>@(customer.JoinedDate?.ToString("dd MMM yyyy") ?? "-")</td>
+                            <td class="text-center">
+                                @if (customer.IsActive)
+                                {
+                                    <span class="badge rounded-pill px-2.5 py-1.5 badge-active" style="font-size: 0.75rem;">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-pill px-2.5 py-1.5 badge-inactive" style="font-size: 0.75rem;">Inactive</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">No customer connection records found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
