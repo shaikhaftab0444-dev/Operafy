@@ -39,6 +39,12 @@ namespace ERP_System.Models
         [Key]
         public int ProductId { get; set; }
 
+        public int BranchId { get; set; } = 3; // Defaults to Head Office
+
+        [Required]
+        [StringLength(100)]
+        public string Category { get; set; } = "General";
+
         [Required]
         [StringLength(100)]
         public string ProductName { get; set; } = string.Empty;
@@ -53,11 +59,6 @@ namespace ERP_System.Models
         [Required]
         [StringLength(50)]
         public string Status { get; set; } = "In Stock"; // In Stock, Low Stock, Out of Stock
-
-        [StringLength(100)]
-        public string Category { get; set; } = "General";
-
-        public int BranchId { get; set; } = 3;
 
         [ForeignKey("BranchId")]
         public Branch? Branch { get; set; }

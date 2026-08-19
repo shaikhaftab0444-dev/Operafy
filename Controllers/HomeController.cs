@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ERP_System.Models;
 using Microsoft.AspNetCore.Mvc;
+using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {

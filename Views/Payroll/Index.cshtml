@@ -1,0 +1,325 @@
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Payroll Administration";
+    var employees = (IEnumerable<ERP_System.Models.User>)ViewBag.EmployeesList;
+    var structures = (Dictionary<int, ERP_System.Models.SalaryStructure>)ViewBag.SalaryStructures;
+    var payslips = (IEnumerable<ERP_System.Models.Payslip>)ViewBag.PayslipsList;
+    
+    decimal totalMonthlyPayout = (decimal)ViewBag.TotalMonthlyPayout;
+    int configuredStructuresCount = (int)ViewBag.ConfiguredStructuresCount;
+    int activeStaffCount = employees.Count();
+    
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+    
+    // Generate recent pay periods
+    var months = System.Globalization.DateTimeFormatInfo.InvariantInfo.MonthNames.Where(m => !string.IsNullOrEmpty(m)).ToList();
+    var currentYear = DateTime.UtcNow.Year;
+    var currentMonth = DateTime.UtcNow.Month;
+}
+
+<style>
+    .card-payroll {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        height: 100%;
+    }
+    
+    .pr-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .pr-icon-payout { background-color: rgba(16, 185, 129, 0.08); color: #10b981; }
+    .pr-icon-staff { background-color: rgba(79, 70, 229, 0.08); color: var(--primary-warm); }
+    .pr-icon-config { background-color: rgba(217, 119, 6, 0.08); color: var(--accent-warm); }
+
+    .pr-info {
+        flex-grow: 1;
+        text-align: left;
+    }
+    .pr-label {
+        font-size: 0.75rem;
+        color: var(--sidebar-color);
+        font-weight: 700;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .pr-val {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    .payroll-panel {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+    }
+
+    .table-payroll th {
+        background-color: #fcfbfa !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #7c7267;
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+    }
+    .table-payroll td {
+        font-size: 0.85rem;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+        vertical-align: middle;
+    }
+
+    .select-period-warm {
+        font-size: 0.875rem;
+        font-weight: 600;
+        border: 1px solid var(--border-warm);
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        background-color: #ffffff;
+        color: var(--text-color);
+        outline: none;
+    }
+
+    .btn-run-payroll {
+        background: linear-gradient(135deg, var(--primary-warm) 0%, #6366f1 100%);
+        color: #ffffff;
+        border: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+        padding: 0.55rem 1.5rem;
+        border-radius: 6px;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);
+        transition: all 0.2s;
+    }
+    .btn-run-payroll:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(79, 70, 229, 0.25);
+        color: #ffffff;
+    }
+
+    .nav-tabs-warm {
+        border-bottom: 2px solid var(--border-warm) !important;
+        margin-bottom: 1.5rem;
+    }
+    .nav-tabs-warm .nav-link {
+        border: none !important;
+        color: var(--sidebar-color) !important;
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 0.75rem 1.5rem;
+        position: relative;
+        transition: all 0.2s;
+    }
+    .nav-tabs-warm .nav-link.active {
+        color: var(--primary-warm) !important;
+        background-color: transparent !important;
+    }
+    .nav-tabs-warm .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: var(--primary-warm);
+    }
+</style>
+
+<!-- Top Breadcrumbs & Page Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Payroll Administration</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Payroll Management</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Alerts -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
+        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #fef2f2; color: #b91c1c; border-left: 4px solid #dc2626 !important;">
+        <i class="fa-solid fa-circle-xmark me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- KPI Cards Grid -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="card-payroll">
+            <div class="pr-icon-wrap pr-icon-payout"><i class="fa-solid fa-wallet"></i></div>
+            <div class="pr-info">
+                <div class="pr-label">Payout processed (Month)</div>
+                <div class="pr-val">@totalMonthlyPayout.ToString("C0", inCulture)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="card-payroll">
+            <div class="pr-icon-wrap pr-icon-staff"><i class="fa-solid fa-user-tie"></i></div>
+            <div class="pr-info">
+                <div class="pr-label">Active Staff</div>
+                <div class="pr-val">@activeStaffCount Employees</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-12">
+        <div class="card-payroll">
+            <div class="pr-icon-wrap pr-icon-config"><i class="fa-solid fa-gears"></i></div>
+            <div class="pr-info">
+                <div class="pr-label">Salary structures Configured</div>
+                <div class="pr-val">@configuredStructuresCount / @activeStaffCount Users</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Run payroll panel -->
+<div class="payroll-panel mb-4 text-start">
+    <h5 class="fw-bold mb-3" style="color: var(--text-color);"><i class="fa-solid fa-calculator text-primary me-2"></i>Process Monthly Salary Run</h5>
+    <form asp-action="RunMonthlyPayroll" method="post" class="d-flex flex-wrap align-items-center gap-3">
+        @Html.AntiForgeryToken()
+        <div class="d-flex flex-column">
+            <label class="small fw-bold text-secondary mb-1">Select Pay Period</label>
+            <select name="payPeriod" class="select-period-warm" required>
+                @for (int i = 0; i < 6; i++)
+                {
+                    var date = DateTime.UtcNow.AddMonths(-i);
+                    var period = $"{date.ToString("MMMM")} {date.Year}";
+                    <!option value="@period" @(i == 0 ? "selected" : "")>@period</!option>
+                }
+            </select>
+        </div>
+        <div class="align-self-end mt-2 mt-sm-0">
+            <button type="submit" class="btn btn-run-payroll">
+                <i class="fa-solid fa-circle-check me-2"></i> Execute Payroll Run
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Main list tabs -->
+<div class="payroll-panel">
+    <ul class="nav nav-tabs nav-tabs-warm" id="payrollTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff-panel" type="button" role="tab" aria-controls="staff-panel" aria-selected="true">
+                <i class="fa-solid fa-users me-2"></i>Salary Configurations
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="payslips-tab" data-bs-toggle="tab" data-bs-target="#payslips-panel" type="button" role="tab" aria-controls="payslips-panel" aria-selected="false">
+                <i class="fa-solid fa-copy me-2"></i>Generated Pay Slips
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="payrollTabsContent">
+        <!-- Tab 1: Staff salary config -->
+        <div class="tab-pane fade show active text-start" id="staff-panel" role="tabpanel" aria-labelledby="staff-tab">
+            <div class="table-responsive">
+                <table class="table table-hover table-payroll mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">User Code</th>
+                            <th class="border-0">Full Name</th>
+                            <th class="border-0">System Role</th>
+                            <th class="border-0">Basic Salary</th>
+                            <th class="border-0">Net Monthly Salary</th>
+                            <th class="border-0 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var emp in employees)
+                        {
+                            var hasConfig = structures.TryGetValue(emp.UserId, out var sal);
+                            <tr>
+                                <td class="fw-bold text-secondary">@emp.UserCode</td>
+                                <td class="fw-bold text-dark">@emp.FullName</td>
+                                <td>@(emp.Role?.RoleName ?? "Employee")</td>
+                                <td>@(hasConfig ? sal.BasicSalary.ToString("C0", inCulture) : "Not Configured")</td>
+                                <td class="fw-bold text-primary">@(hasConfig ? sal.NetSalary.ToString("C0", inCulture) : "N/A")</td>
+                                <td class="text-center">
+                                    <a href="/Payroll/ManageSalary/@emp.UserId" class="btn btn-sm btn-outline-primary btn-sm-custom px-3 py-1">
+                                        <i class="fa-solid fa-sliders me-1"></i> Configure Salary
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 2: Payslips history -->
+        <div class="tab-pane fade text-start" id="payslips-panel" role="tabpanel" aria-labelledby="payslips-tab">
+            <div class="table-responsive">
+                <table class="table table-hover table-payroll mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">Slip ID</th>
+                            <th class="border-0">Employee</th>
+                            <th class="border-0">Pay Period</th>
+                            <th class="border-0">Payment Date</th>
+                            <th class="border-0">Net Salary Paid</th>
+                            <th class="border-0 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (payslips != null && payslips.Any())
+                        {
+                            foreach (var slip in payslips)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-secondary">SLIP#@slip.PayslipId.ToString("D4")</td>
+                                    <td class="fw-bold text-dark">@(slip.User?.FullName ?? "Staff Member")</td>
+                                    <td>@slip.PayPeriod</td>
+                                    <td>@slip.PaymentDate.ToString("dd MMM yyyy")</td>
+                                    <td class="fw-bold text-success">@slip.NetSalary.ToString("C0", inCulture)</td>
+                                    <td class="text-center">
+                                        <a href="/Payroll/ViewPayslip/@slip.PayslipId" target="_blank" class="btn btn-sm btn-outline-secondary btn-sm-custom px-3 py-1">
+                                            <i class="fa-solid fa-print me-1"></i> View Slip
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">No salary slips have been generated yet. Run payroll above.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,151 @@
+@model IEnumerable<ERP_System.Models.AccountHead>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Chart of Account Heads";
+    var assetHeads = Model.Where(m => m.AccountType == "Asset");
+    var liabilityHeads = Model.Where(m => m.AccountType == "Liability");
+    var equityHeads = Model.Where(m => m.AccountType == "Equity");
+    var revenueHeads = Model.Where(m => m.AccountType == "Revenue");
+    var expenseHeads = Model.Where(m => m.AccountType == "Expense");
+}
+
+<style>
+    .panel-accounts {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+    }
+    
+    .table-accounts th {
+        background-color: #fcfbfa !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #7c7267;
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1.25rem;
+    }
+    
+    .table-accounts td {
+        font-size: 0.85rem;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1.25rem;
+        vertical-align: middle;
+    }
+
+    .badge-ah-active {
+        background-color: rgba(16, 185, 129, 0.08);
+        color: #10b981;
+        font-weight: 600;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .badge-ah-inactive {
+        background-color: rgba(239, 68, 68, 0.08);
+        color: #ef4444;
+        font-weight: 600;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .type-header {
+        background-color: #faf6f0;
+        color: var(--primary-warm);
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--border-warm);
+    }
+</style>
+
+<!-- Top Breadcrumbs & Page Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Chart of Account Heads</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Account Heads</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <a href="/AccountHeads/Create" class="btn btn-primary-warm px-4 py-2">
+        <i class="fa-solid fa-plus me-2"></i> Add Account Head
+    </a>
+</div>
+
+<!-- Alerts -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
+        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="d-flex flex-column gap-4">
+    @foreach (var type in new[] { "Asset", "Liability", "Equity", "Revenue", "Expense" })
+    {
+        var headsList = Model.Where(h => h.AccountType == type);
+        
+        <div class="panel-accounts overflow-hidden text-start">
+            <div class="type-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-coins me-2"></i>@type Ledgers</span>
+                <span class="badge bg-white border text-secondary rounded-pill" style="font-size:0.7rem;">@headsList.Count() accounts</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-accounts mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0" style="width: 15%;">Head Code</th>
+                            <th class="border-0" style="width: 30%;">Account Name</th>
+                            <th class="border-0" style="width: 35%;">Description</th>
+                            <th class="border-0 text-center" style="width: 10%;">Status</th>
+                            <th class="border-0 text-center" style="width: 10%;">Toggle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (headsList.Any())
+                        {
+                            foreach (var head in headsList)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-secondary">@head.HeadCode</td>
+                                    <td class="fw-bold text-dark">@head.HeadName</td>
+                                    <td class="text-secondary">@(string.IsNullOrEmpty(head.Description) ? "No description registered." : head.Description)</td>
+                                    <td class="text-center">
+                                        @if (head.IsActive)
+                                        {
+                                            <span class="badge rounded-pill px-2.5 py-1.5 badge-ah-active" style="font-size: 0.75rem;">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill px-2.5 py-1.5 badge-ah-inactive" style="font-size: 0.75rem;">Inactive</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <form asp-action="ToggleActive" asp-route-id="@head.AccountHeadId" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-sm-custom px-3 py-1 @(head.IsActive ? "btn-outline-danger" : "btn-outline-success")" style="font-size: 0.75rem;">
+                                                @(head.IsActive ? "Deactivate" : "Activate")
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4 small italic">No ledger accounts registered under this category yet.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

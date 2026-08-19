@@ -22,72 +22,38 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            // =====================================================
-            // EMPLOYEE/STAFF ONLY
-            // Exclude Super Admin and Admin completely
-            // =====================================================
-            var employeeQuery = _context.Users
+            var totalEmployees = await _context.Users.CountAsync();
+            var activeEmployees = await _context.Users.CountAsync(u => u.IsActive);
+            var inactiveEmployees = await _context.Users.CountAsync(u => !u.IsActive);
+            var lockedAccounts = await _context.Users.CountAsync(u => u.IsLocked);
+
+            var recentHires = await _context.Users
                 .Include(u => u.Role)
-                .Where(u =>
-                    u.Role != null &&
-                    u.Role.RoleName != null &&
-                    u.Role.RoleName.Trim() != "Admin" &&
-                    u.Role.RoleName.Trim() != "Super Admin"
-                );
-
-            // =====================================================
-            // KPI COUNTS
-            // =====================================================
-            var totalEmployees = await employeeQuery.CountAsync();
-
-            var activeEmployees = await employeeQuery
-                .CountAsync(u => u.IsActive);
-
-            var inactiveEmployees = await employeeQuery
-                .CountAsync(u => !u.IsActive);
-
-            var lockedAccounts = await employeeQuery
-                .CountAsync(u => u.IsLocked);
-
-            // =====================================================
-            // RECENT EMPLOYEES
-            // =====================================================
-            var recentHires = await employeeQuery
                 .OrderByDescending(u => u.CreatedAt)
                 .Take(5)
                 .ToListAsync();
 
-            // =====================================================
-            // EMPLOYEE DIRECTORY
-            // =====================================================
-            var employeesList = await employeeQuery
+            var employeesList = await _context.Users
+                .Include(u => u.Role)
                 .OrderBy(u => u.FullName)
                 .ToListAsync();
 
-            // =====================================================
-            // ROLE DISTRIBUTION
-            // Admin and Super Admin are already excluded
-            // =====================================================
-            var roleDistribution = await employeeQuery
-                .GroupBy(u => u.Role!.RoleName!.Trim())
+            var roleDistribution = await _context.Users
+                .Include(u => u.Role)
+                .GroupBy(u => u.Role != null ? u.Role.RoleName : "Unassigned")
                 .Select(g => new RoleDistributionItem
                 {
                     RoleName = g.Key,
                     Count = g.Count()
                 })
-                .OrderByDescending(x => x.Count)
                 .ToListAsync();
 
-            // =====================================================
-            // DASHBOARD VIEW MODEL
-            // =====================================================
             var model = new HRDashboardViewModel
             {
                 TotalEmployees = totalEmployees,
                 ActiveEmployees = activeEmployees,
                 InactiveEmployees = inactiveEmployees,
                 LockedAccounts = lockedAccounts,
-
                 RecentHires = recentHires,
                 EmployeesList = employeesList,
                 RoleDistribution = roleDistribution

@@ -70,8 +70,5 @@ namespace ERP_System.Models
 
         [ForeignKey("BranchId")]
         public Branch? Branch { get; set; }
-
-        [ForeignKey("CompanyId")]
-        public Company? Company { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP_System.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {

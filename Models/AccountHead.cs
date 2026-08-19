@@ -12,18 +12,23 @@ namespace ERP_System.Models
 
         [Required]
         [StringLength(50)]
-        public string AccountCode { get; set; } = string.Empty;
+        public string HeadCode { get; set; } = string.Empty; // e.g. "AC-1001"
 
         [Required]
         [StringLength(150)]
-        public string AccountName { get; set; } = string.Empty;
+        public string HeadName { get; set; } = string.Empty; // e.g. "Cash Account"
 
         [Required]
         [StringLength(50)]
-        public string AccountType { get; set; } = "Asset";
+        public string AccountType { get; set; } = string.Empty; // Asset, Liability, Equity, Revenue, Expense
 
-        public decimal Balance { get; set; }
+        [StringLength(500)]
+        public string? Description { get; set; }
 
+        [Required]
         public bool IsActive { get; set; } = true;
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

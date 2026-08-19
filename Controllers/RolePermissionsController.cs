@@ -44,7 +44,7 @@ namespace ERP_System.Controllers
         // POST: /RolePermissions/Save
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Save(int roleId, Dictionary<string, string> modulePermissions)
+        public async Task<IActionResult> Save(int roleId, List<string> allowedModules)
         {
             var existingPermissions = await _context.RolePermissions
                 .Where(p => p.RoleId == roleId)
@@ -59,8 +59,8 @@ namespace ERP_System.Controllers
 
             foreach (var mod in modules)
             {
-                // Check if module is allowed (submitted from checkbox form)
-                bool isAllowed = modulePermissions.ContainsKey(mod) && modulePermissions[mod] == "true";
+                // Check if module is allowed (its name is present in the list of checked values)
+                bool isAllowed = allowedModules != null && allowedModules.Contains(mod);
                 var perm = existingPermissions.FirstOrDefault(p => p.ModuleName == mod);
                 if (perm != null)
                 {

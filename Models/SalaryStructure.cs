@@ -10,27 +10,34 @@ namespace ERP_System.Models
         [Key]
         public int SalaryStructureId { get; set; }
 
+        [Required]
         public int UserId { get; set; }
-
-        public decimal BasicSalary { get; set; }
-
-        public decimal HRA { get; set; }
-
-        public decimal MedicalAllowance { get; set; }
-
-        public decimal TransportAllowance { get; set; }
-
-        public decimal ProvidentFund { get; set; }
-
-        public decimal ProfessionalTax { get; set; }
-
-        public decimal NetSalary { get; set; }
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        public DateTime? UpdatedAt { get; set; }
 
         [ForeignKey("UserId")]
         public User? User { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal BasicSalary { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal HRA { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal TransportAllowance { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal MedicalAllowance { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal ProvidentFund { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal ProfessionalTax { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal NetSalary { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
     }
 }

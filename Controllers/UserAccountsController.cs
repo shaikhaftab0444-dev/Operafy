@@ -7,15 +7,16 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
+using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {
     [Authorize(Roles = "Super Admin,Admin")]
-    public class UsersController : Controller
+    public class UserAccountsController : Controller
     {
         private readonly ApplicationDbContext _context;
 
-        public UsersController(ApplicationDbContext context)
+        public UserAccountsController(ApplicationDbContext context)
         {
             _context = context;
         }

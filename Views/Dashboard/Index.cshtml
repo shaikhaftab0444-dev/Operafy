@@ -1,506 +1,883 @@
-@model ERP_System.Models.DashboardViewModel
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@inject ERP_System.Data.ApplicationDbContext _switcherContext
 @{
-    Layout = "_DashboardLayout";
-    ViewData["Title"] = "Operations Dashboard";
-    var inCulture = new System.Globalization.CultureInfo("en-IN");
+    var userFullName = User.Identity?.Name ?? "User Account";
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Employee";
+
+    // Resolve Company Name from CompanyId claim to prevent printing "1" in dropdown header
+    var userCompanyIdStr = User.FindFirst("Company")?.Value;
+    var userCompany = "ERP Solutions Ltd";
+    if (int.TryParse(userCompanyIdStr, out int loggedCompanyId))
+    {
+        userCompany = _switcherContext.Companies.Where(c => c.CompanyId == loggedCompanyId).Select(c => c.CompanyName).FirstOrDefault() ?? "ERP Solutions Ltd";
+    }
+
+    // Load dynamic page visibility permissions from erp_RolePermissions
+    var allowedModules = new List<string>();
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        allowedModules = _switcherContext.RolePermissions
+            .Include(p => p.Role)
+            .Where(p => p.Role != null && p.Role.RoleName == userRole && p.IsAllowed)
+            .Select(p => p.ModuleName)
+            .ToList();
+    }
+
+    // Role-based visibility logic evaluated from database configurations
+    // Note: Super Admin and Admin bypass these checks to ensure they always retain master administration access
+    bool isMasterAdmin = userRole == "Super Admin" || userRole == "Admin";
+
+    bool showUserMgmt = isMasterAdmin || allowedModules.Contains("UserManagement");
+    bool showCompany = isMasterAdmin || allowedModules.Contains("Company");
+    bool showBranchMgmt = isMasterAdmin || allowedModules.Contains("BranchManagement");
+    bool showEmployeeMgmt = isMasterAdmin || allowedModules.Contains("EmployeeManagement");
+    bool showCustomerMgmt = isMasterAdmin || allowedModules.Contains("CustomerManagement");
+    bool showSupplierMgmt = isMasterAdmin || allowedModules.Contains("SupplierManagement");
+    bool showProductMgmt = isMasterAdmin || allowedModules.Contains("ProductManagement");
+    bool showInventoryMgmt = isMasterAdmin || allowedModules.Contains("InventoryManagement");
+    bool showPurchaseMgmt = isMasterAdmin || allowedModules.Contains("PurchaseManagement");
+    bool showSalesMgmt = isMasterAdmin || allowedModules.Contains("SalesManagement");
+    bool showExpenseMgmt = isMasterAdmin || allowedModules.Contains("ExpenseManagement");
+    bool showAccounting = isMasterAdmin || allowedModules.Contains("Accounting");
+    bool showHRMgmt = isMasterAdmin || allowedModules.Contains("HRManagement");
+    bool showReports = isMasterAdmin || allowedModules.Contains("Reports");
+    bool showSettings = isMasterAdmin || allowedModules.Contains("Settings");
+
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Dashboard";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
+
+    var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    string? userProfilePhoto = null;
+    if (int.TryParse(currentUserIdClaim, out int loggedUserId))
+    {
+        userProfilePhoto = _switcherContext.Users.Where(u => u.UserId == loggedUserId).Select(u => u.ProfilePhoto).FirstOrDefault();
+    }
+    var layoutProfilePhoto = !string.IsNullOrEmpty(userProfilePhoto) ? userProfilePhoto : "/profile_images/admin-avatar.jpg";
 }
 
-<style>
-    .card-kpi {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        padding: 1rem 0.85rem;
-        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        height: 100%;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .card-kpi:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(45,37,30,0.05);
-    }
-    .kpi-icon-wrap {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-    }
-    .kpi-icon-sales { background-color: rgba(79, 70, 229, 0.08); color: var(--primary-warm); }
-    .kpi-icon-purchase { background-color: rgba(16, 185, 129, 0.08); color: #10b981; }
-    .kpi-icon-customers { background-color: rgba(217, 119, 6, 0.08); color: var(--accent-warm); }
-    .kpi-icon-employees { background-color: rgba(99, 102, 241, 0.08); color: #6366f1; }
-    .kpi-icon-products { background-color: rgba(6, 182, 212, 0.08); color: #06b6d4; }
-    .kpi-icon-stock { background-color: rgba(244, 63, 94, 0.08); color: #f43f5e; }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ERP Dashboard</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/fontawesome-free/css/all.min.css" />
+    <style>
+        @@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-    .kpi-info {
-        flex-grow: 1;
-    }
-    .kpi-label {
-        font-size: 0.75rem;
-        color: var(--sidebar-color);
-        font-weight: 700;
-        margin-bottom: 2px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .kpi-val {
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: var(--text-color);
-        white-space: nowrap;
-    }
-    .kpi-trend {
-        font-size: 0.75rem;
-        font-weight: 600;
-        margin-top: 2px;
-    }
+        :root {
+            --sidebar-bg: #0e1726;
+            --sidebar-color: #abb5c2;
+            --sidebar-active-bg: #3b82f6;
+            --sidebar-active-color: #ffffff;
+            --topbar-bg: #ffffff;
+            --content-bg: #f8fafc;
+            --text-color: #1e293b;
+            --border-warm: #e2e8f0;
+            --primary-warm: #3b82f6;
+        }
 
-    /* Card Panels */
-    .dashboard-panel {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-        height: 100%;
-    }
-    .panel-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.25rem;
-    }
-    .panel-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--text-color);
-        margin-bottom: 0;
-    }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--content-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
 
-    /* Recent activities feed */
-    .activity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-    .activity-item {
-        display: flex;
-        gap: 15px;
-        align-items: flex-start;
-    }
-    .activity-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        background-color: #faf6f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.9rem;
-        flex-shrink: 0;
-    }
-    .activity-body {
-        flex-grow: 1;
-        font-size: 0.85rem;
-    }
-    .activity-time {
-        font-size: 0.75rem;
-        color: #a19688;
-        white-space: nowrap;
-    }
+        /* Layout Structure */
+        .wrapper {
+            display: flex;
+            align-items: stretch;
+            min-height: 100vh;
+        }
 
-    /* Table styles */
-    .table-custom th {
-        background-color: #fcfbfa !important;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        font-weight: 700;
-        color: #7c7267;
-        border-bottom: 1px solid var(--border-warm);
-        padding: 0.75rem 1rem;
-    }
-    .table-custom td {
-        font-size: 0.85rem;
-        color: var(--text-color);
-        border-bottom: 1px solid var(--border-warm);
-        padding: 0.75rem 1rem;
-        vertical-align: middle;
-    }
-</style>
+        /* Left Sidebar styling (Original Dark Navy) */
+        #sidebar {
+            min-width: 280px;
+            max-width: 280px;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-color);
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-<!-- Top Breadcrumbs -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-    <div>
-        <h4 class="fw-bold mb-1" style="color: #0f172a;">Dashboard</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Home</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-            </ol>
-        </nav>
-    </div>
-    
-    <div>
-        <div class="input-group">
-            <span class="input-group-text bg-white border-end-0 text-muted small"><i class="fa-regular fa-calendar"></i></span>
-            <select class="form-select border-start-0 bg-white small fw-bold" style="font-size: 0.85rem; width: 220px; cursor: pointer;">
-                <option selected>01 May 2026 - 31 May 2026</option>
-                <option>01 Jun 2026 - 30 Jun 2026</option>
-                <option>Year to Date (YTD)</option>
-            </select>
-        </div>
-    </div>
-</div>
-
-<!-- KPI Cards Container -->
-<div class="row g-4 mb-4">
-    <!-- Total Sales -->
-    <div class="col-xl-2 col-md-4 col-sm-6">
-        <div class="card-kpi">
-            <div class="kpi-icon-wrap kpi-icon-sales"><i class="fa-solid fa-cart-shopping"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-label">Total Sales</div>
-                <div class="kpi-val">@Model.TotalSales.ToString("C0", inCulture)</div>
-                <div class="kpi-trend text-success"><i class="fa-solid fa-circle-chevron-up me-1"></i>+12.5%</div>
-            </div>
-        </div>
-    </div>
-    <!-- Total Purchase -->
-    <div class="col-xl-2 col-md-4 col-sm-6">
-        <div class="card-kpi">
-            <div class="kpi-icon-wrap kpi-icon-purchase"><i class="fa-solid fa-bag-shopping"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-label">Total Purchase</div>
-                <div class="kpi-val">@Model.TotalPurchase.ToString("C0", inCulture)</div>
-                <div class="kpi-trend text-success"><i class="fa-solid fa-circle-chevron-up me-1"></i>+8.3%</div>
-            </div>
-        </div>
-    </div>
-    <!-- Total Customers -->
-    <div class="col-xl-2 col-md-4 col-sm-6">
-        <div class="card-kpi">
-            <div class="kpi-icon-wrap kpi-icon-customers"><i class="fa-solid fa-users"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-label">Total Customers</div>
-                <div class="kpi-val">@Model.TotalCustomers.ToString("N0")</div>
-                <div class="kpi-trend text-success"><i class="fa-solid fa-circle-chevron-up me-1"></i>+15.2%</div>
-            </div>
-        </div>
-    </div>
-    <!-- Total Employees -->
-    <div class="col-xl-2 col-md-4 col-sm-6">
-        <div class="card-kpi">
-            <div class="kpi-icon-wrap kpi-icon-employees"><i class="fa-solid fa-id-card"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-label">Total Employees</div>
-                <div class="kpi-val">@Model.TotalEmployees</div>
-                <div class="kpi-trend text-success"><i class="fa-solid fa-plus me-1"></i>4 New</div>
-            </div>
-        </div>
-    </div>
-    <!-- Total Products -->
-    <div class="col-xl-2 col-md-4 col-sm-6">
-        <div class="card-kpi">
-            <div class="kpi-icon-wrap kpi-icon-products"><i class="fa-solid fa-box-open"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-label">Total Products</div>
-                <div class="kpi-val">@Model.TotalProducts</div>
-                <div class="kpi-trend text-success"><i class="fa-solid fa-plus me-1"></i>23 New</div>
-            </div>
-        </div>
-    </div>
-    <!-- Stock Value -->
-    <div class="col-xl-2 col-md-4 col-sm-6">
-        <div class="card-kpi">
-            <div class="kpi-icon-wrap kpi-icon-stock"><i class="fa-solid fa-coins"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-label">Stock Value</div>
-                <div class="kpi-val">@Model.StockValue.ToString("C0", inCulture)</div>
-                <div class="kpi-trend text-danger"><i class="fa-solid fa-circle-chevron-down me-1"></i>-2.4%</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Middle Graphs & Activities Panels -->
-<div class="row g-4 mb-4">
-    <!-- Sales Overview Line Chart -->
-    <div class="col-lg-6">
-        <div class="dashboard-panel">
-            <div class="panel-header">
-                <h5 class="panel-title">Sales Overview</h5>
-                <select class="form-select form-select-sm bg-light border-0 small font-weight-bold" style="width:110px; cursor: pointer;">
-                    <option>This Month</option>
-                    <option>Quarterly</option>
-                    <option>Annually</option>
-                </select>
-            </div>
-            <div style="position: relative; height: 300px; width: 100%;">
-                <canvas id="salesChart"></canvas>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Stock Summary Pie/Donut Chart -->
-    <div class="col-lg-3 col-md-6">
-        <div class="dashboard-panel">
-            <div class="panel-header">
-                <h5 class="panel-title">Stock Summary</h5>
-                <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-            </div>
-            <div style="position: relative; height: 200px; width: 100%;" class="mb-4">
-                <canvas id="stockChart"></canvas>
-            </div>
-            @{
-                int totalStock = Model.InStockQty + Model.LowStockQty + Model.OutOfStockQty;
-                double inStockPct = totalStock > 0 ? (double)Model.InStockQty * 100 / totalStock : 0;
-                double lowStockPct = totalStock > 0 ? (double)Model.LowStockQty * 100 / totalStock : 0;
-                double outStockPct = totalStock > 0 ? (double)Model.OutOfStockQty * 100 / totalStock : 0;
+            #sidebar.active {
+                margin-left: -280px;
             }
-            <div class="d-flex flex-column gap-2 small">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><i class="fa-solid fa-circle text-success me-2"></i>In Stock (@Model.InStockQty Units)</span>
-                    <strong class="text-dark">@inStockPct.ToString("F1")%</strong>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><i class="fa-solid fa-circle text-warning me-2"></i>Low Stock (@Model.LowStockQty Units)</span>
-                    <strong class="text-dark">@lowStockPct.ToString("F1")%</strong>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><i class="fa-solid fa-circle text-danger me-2"></i>Out of Stock (@Model.OutOfStockQty Units)</span>
-                    <strong class="text-dark">@outStockPct.ToString("F1")%</strong>
-                </div>
+
+        .sidebar-header {
+            padding: 1.5rem 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-brand {
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: #ffffff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-menu {
+            flex-grow: 1;
+            padding: 1rem 0;
+            overflow-y: auto;
+        }
+
+        .menu-title {
+            padding: 0.75rem 1.25rem 0.25rem 1.25rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: #64748b;
+        }
+
+        .menu-link {
+            padding: 0.65rem 1rem;
+            margin: 2px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--sidebar-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+            .menu-link:hover {
+                background-color: rgba(255, 255, 255, 0.05);
+                color: #ffffff;
+            }
+
+            .menu-link.active {
+                background-color: var(--sidebar-active-bg);
+                color: var(--sidebar-active-color);
+                font-weight: 600;
+            }
+
+            .menu-link > div {
+                display: flex;
+                align-items: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+        .menu-icon {
+            margin-right: 12px;
+            width: 18px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        /* Sidebar Quick Links */
+        .sidebar-quicklinks {
+            margin: 12px;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: #141d31;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        /* Main Content Container */
+        #content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* Top Header Navigation Bar */
+        .topbar {
+            background-color: var(--topbar-bg);
+            border-bottom: 1px solid var(--border-warm);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .search-box {
+            position: relative;
+            max-width: 300px;
+            width: 100%;
+        }
+
+            .search-box input {
+                padding: 0.4rem 1rem 0.4rem 2.2rem;
+                border-radius: 6px;
+                border: 1px solid #cbd5e1;
+                font-size: 0.85rem;
+                background-color: #f8fafc;
+                color: var(--text-color);
+                width: 100%;
+                transition: border-color 0.2s;
+            }
+
+                .search-box input:focus {
+                    outline: none;
+                    border-color: var(--primary-warm);
+                }
+
+            .search-box i {
+                position: absolute;
+                left: 0.8rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #94a3b8;
+                font-size: 0.85rem;
+            }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            position: relative;
+            color: #475569;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0.25rem;
+            transition: color 0.2s;
+        }
+
+            .icon-btn:hover {
+                color: var(--text-color);
+            }
+
+        .icon-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            font-size: 0.6rem;
+            padding: 0.2rem 0.35rem;
+            border-radius: 50%;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .profile-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--primary-warm);
+            font-size: 0.85rem;
+            border: 2px solid var(--primary-warm);
+        }
+
+        .profile-info {
+            line-height: 1.1;
+        }
+
+        .profile-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-color);
+        }
+
+        .profile-role {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+
+        .main-inner {
+            padding: 1.5rem;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        /* Sidebar Footer copyright */
+        .sidebar-footer {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.7rem;
+            color: #64748b;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Suppress Google Translate Top Banner & Iframe */
+        .goog-te-banner-frame, .goog-te-banner-frame.skiptranslate, iframe.skiptranslate, iframe[class*="VIpgJd"], iframe[id*="goog-gt"], .VIpgJd-ZGain-xl0qp4-Ojan2-OWX0fe, #goog-gt-tt, .goog-te-balloon-frame {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            pointer-events: none !important;
+        }
+
+        body {
+            top: 0px !important;
+            position: static !important;
+            margin-top: 0px !important;
+        }
+
+        #google_translate_element, .goog-te-spinner-pos, .goog-te-combo {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Left Sidebar Navigation -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="sidebar-brand">
+                    <i class="fa-solid fa-cubes text-white"></i>
+                    <span>ERP System</span>
+                </a>
+                <button class="toggle-btn text-white d-lg-none" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-        </div>
-    </div>
-    
-    <!-- Recent Activities list -->
-    <div class="col-lg-3 col-md-6">
-        <div class="dashboard-panel">
-            <div class="panel-header">
-                <h5 class="panel-title">Recent Activities</h5>
-                <button class="btn btn-sm btn-outline-secondary btn-sm-custom px-2 py-0.5" style="font-size:0.75rem;">View All</button>
-            </div>
-            
-            <div class="activity-list mt-3">
-                @if (Model.RecentActivities != null && Model.RecentActivities.Any())
+
+            <div class="sidebar-menu">
+                @{
+                    var dashboardUrl = userRole == "Employee" ? "/EmployeeDashboard" : "/Dashboard";
+                    var isDashboardActive = currentController == "Dashboard" || currentController == "EmployeeDashboard";
+                }
+                <a href="@dashboardUrl" class="menu-link @(isDashboardActive ? "active" : "")">
+                    <div>
+                        <i class="fa-solid fa-gauge menu-icon"></i>
+                        <span>Dashboard</span>
+                    </div>
+                </a>
+
+                @if (userRole == "Admin")
                 {
-                    foreach (var activity in Model.RecentActivities)
-                    {
-                        var timeDiff = DateTime.UtcNow - activity.CreatedAt.ToUniversalTime();
-                        var timeStr = timeDiff.TotalMinutes < 60 ? $"{(int)timeDiff.TotalMinutes} min ago" :
-                                      timeDiff.TotalHours < 24 ? $"{(int)timeDiff.TotalHours} hour ago" :
-                                      $"{(int)timeDiff.TotalDays} days ago";
-                                      
-                        <div class="activity-item">
-                            <div class="activity-icon @activity.ColorClass">
-                                <i class="fa-solid @activity.IconClass"></i>
-                            </div>
-                            <div class="activity-body text-start">
-                                <div class="fw-bold text-dark mb-0" style="font-size: 0.825rem;">@activity.Title</div>
-                                <div class="text-secondary" style="font-size: 0.8rem;">@activity.Description</div>
-                            </div>
-                            <div class="activity-time">@timeStr</div>
+                    <!-- Admin (System Admin) Sidebar Content from screenshots -->
+                    <div class="menu-title">User Setting</div>
+                    <a href="/Roles" class="menu-link @(currentController == "Roles" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-user-shield menu-icon"></i>
+                            <span>User Types</span>
                         </div>
-                    }
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                    <a href="/UserAccounts" class="menu-link @(currentController == "UserAccounts" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-users menu-icon"></i>
+                            <span>Users</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+
+                    <div class="menu-title">Companies</div>
+                    <a href="/Company" class="menu-link @(currentController == "Company" && currentAction == "Index" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-building menu-icon"></i>
+                            <span>Companies</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                    <a href="/Company/Create" class="menu-link @(currentController == "Company" && currentAction == "Create" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-folder-plus menu-icon"></i>
+                            <span>Company Registration</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+
+                    <div class="menu-title">Account Setting</div>
+                    <a href="/AccountHeads" class="menu-link @(currentController == "AccountHeads" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-wallet menu-icon"></i>
+                            <span>Account Head's</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+
+                    <div class="menu-title">Financial Year Setting</div>
+                    <a href="/FinancialYear" class="menu-link @(currentController == "FinancialYear" && currentAction == "Index" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-calendar-days menu-icon"></i>
+                            <span>Financial Year</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+                    <a href="/FinancialYear/Create" class="menu-link @(currentController == "FinancialYear" && currentAction == "Create" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-calendar-plus menu-icon"></i>
+                            <span>New Financial Year</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+
+                    <div class="menu-title">Customer's</div>
+                    <a href="/Customers" class="menu-link @(currentController == "Customers" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-handshake menu-icon"></i>
+                            <span>All Customer's</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+
+                    <div class="menu-title">Supplier's</div>
+                    <a href="/Suppliers" class="menu-link @(currentController == "Suppliers" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-truck menu-icon"></i>
+                            <span>All Supplier's</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+
+                    <div class="menu-title">System Settings</div>
+                    <a href="/Settings" class="menu-link @(currentController == "Settings" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-sliders menu-icon"></i>
+                            <span>Settings</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
                 }
                 else
                 {
-                    <div class="text-center text-muted small py-4">No recent activities available.</div>
+                    <!-- Old/Default Sidebar for Super Admin, HR, Manager, Employee -->
+                    @if (userRole == "Super Admin" || userRole == "Manager")
+                    {
+                        <a href="/Manager" class="menu-link @(currentController == "Manager" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-user-gear menu-icon"></i>
+                                <span>Manager Dashboard</span>
+                            </div>
+                        </a>
+                    }
+
+                    <div class="menu-title">Modules</div>
+
+                    @if (showUserMgmt)
+                    {
+                        <a href="/UserAccounts" class="menu-link @(currentController == "UserAccounts" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-users-gear menu-icon"></i>
+                                <span>User Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                        @if (userRole == "Super Admin" || userRole == "Admin")
+                        {
+                            <a href="/RolePermissions" class="menu-link @(currentController == "RolePermissions" ? "active" : "")">
+                                <div>
+                                    <i class="fa-solid fa-user-shield menu-icon"></i>
+                                    <span>Page Permissions</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                            </a>
+                        }
+                    }
+
+                    @if (showCompany)
+                    {
+                        <a href="/Company" class="menu-link @(currentController == "Company" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-building menu-icon"></i>
+                                <span>Company</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showBranchMgmt)
+                    {
+                        <a href="/Branches" class="menu-link @(currentController == "Branches" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-code-fork menu-icon"></i>
+                                <span>Branch Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showEmployeeMgmt)
+                    {
+                        <a href="/EmployeeManagement" class="menu-link @(currentController == "EmployeeManagement" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-id-card menu-icon"></i>
+                                <span>Employee Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showCustomerMgmt)
+                    {
+                        <a href="/Customers" class="menu-link @(currentController == "Customers" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-handshake menu-icon"></i>
+                                <span>Customer Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showSupplierMgmt)
+                    {
+                        <a href="/Suppliers" class="menu-link @(currentController == "Suppliers" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-truck menu-icon"></i>
+                                <span>Supplier Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showProductMgmt)
+                    {
+                        <a href="/Products" class="menu-link @(currentController == "Products" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-box-open menu-icon"></i>
+                                <span>Product Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showInventoryMgmt)
+                    {
+                        <a href="/Inventory" class="menu-link @(currentController == "Inventory" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-boxes-stacked menu-icon"></i>
+                                <span>Inventory Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showPurchaseMgmt)
+                    {
+                        <a href="/Purchase" class="menu-link @(currentController == "Purchase" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-cart-shopping menu-icon"></i>
+                                <span>Purchase Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showSalesMgmt)
+                    {
+                        <a href="/Sales" class="menu-link @(currentController == "Sales" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-file-invoice-dollar menu-icon"></i>
+                                <span>Sales Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showExpenseMgmt)
+                    {
+                        <a href="/Expense" class="menu-link @(currentController == "Expense" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-receipt menu-icon"></i>
+                                <span>Expense Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showAccounting)
+                    {
+                        <a href="/Accounts" class="menu-link @(currentController == "Accounts" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-coins menu-icon"></i>
+                                <span>Accounting</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showHRMgmt)
+                    {
+                        <a href="/HR" class="menu-link @(currentController == "HR" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-user-tie menu-icon"></i>
+                                <span>HR Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showReports)
+                    {
+                        <a href="/Reports" class="menu-link @(currentController == "Reports" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-chart-column menu-icon"></i>
+                                <span>Reports</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (userRole == "Super Admin" || userRole == "HR" || userRole == "Accountant")
+                    {
+                        <a href="/Payroll" class="menu-link @(currentController == "Payroll" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-money-check-dollar menu-icon"></i>
+                                <span>Payroll Management</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
+
+                    @if (showSettings)
+                    {
+                        <a href="/Settings" class="menu-link @(currentController == "Settings" ? "active" : "")">
+                            <div>
+                                <i class="fa-solid fa-sliders menu-icon"></i>
+                                <span>Settings</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
+                        </a>
+                    }
                 }
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Bottom Tables Panel Grid -->
-<div class="row g-4">
-    <!-- Recent Transactions Table -->
-    <div class="col-lg-7">
-        <div class="dashboard-panel p-0 overflow-hidden">
-            <div class="panel-header p-4 pb-0 mb-3">
-                <h5 class="panel-title">Recent Transactions</h5>
-                <button class="btn btn-sm btn-outline-secondary btn-sm-custom px-3 py-1" style="font-size: 0.8rem;">View All</button>
+            <!-- Quick Links -->
+            <div class="sidebar-quicklinks">
+                <h6 class="font-weight-bold mb-2 small uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; color: var(--sidebar-color); opacity: 0.7;">Quick Links</h6>
+                <ul class="list-unstyled small mb-0 d-flex flex-column gap-2" style="font-size: 0.8rem;">
+                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-user-plus" style="width: 14px;"></i> Add New Employee</a></li>
+                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-file-signature" style="width: 14px;"></i> Purchase Order</a></li>
+                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-file-invoice" style="width: 14px;"></i> Sales Invoice</a></li>
+                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-receipt" style="width: 14px;"></i> Expense Entry</a></li>
+                </ul>
             </div>
-            
-            <div class="table-responsive">
-                <table class="table table-hover table-custom mb-0 border-0">
-                    <thead>
-                        <tr>
-                            <th class="border-0">Type</th>
-                            <th class="border-0">Transaction No.</th>
-                            <th class="border-0">Date</th>
-                            <th class="border-0">Party Name</th>
-                            <th class="border-0">Amount</th>
-                            <th class="border-0">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.RecentTransactions != null && Model.RecentTransactions.Any())
-                        {
-                            foreach (var tx in Model.RecentTransactions)
-                            {
-                                var statusClass = tx.Status == "Paid" ? "bg-success bg-opacity-10 text-success" : "bg-warning bg-opacity-10 text-warning";
-                                
-                                <tr>
-                                    <td>@tx.Type</td>
-                                    <td><a href="#" class="text-decoration-none fw-bold text-primary">@tx.TransactionNo</a></td>
-                                    <td>@tx.Date.ToString("dd MMM yyyy")</td>
-                                    <td>@tx.PartyName</td>
-                                    <td class="fw-bold text-dark">@tx.Amount.ToString("C0", inCulture)</td>
-                                    <td>
-                                        <span class="badge rounded-pill px-2.5 py-1.5 @statusClass" style="font-size: 0.75rem;">@tx.Status</span>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No transactions seeded or found in the database.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Top Selling Products Table -->
-    <div class="col-lg-5">
-        <div class="dashboard-panel p-0 overflow-hidden">
-            <div class="panel-header p-4 pb-0 mb-3">
-                <h5 class="panel-title">Top Selling Products</h5>
-                <button class="btn btn-sm btn-outline-secondary btn-sm-custom px-3 py-1" style="font-size: 0.8rem;">View All</button>
-            </div>
-            
-            <div class="table-responsive">
-                <table class="table table-hover table-custom mb-0 border-0">
-                    <thead>
-                        <tr>
-                            <th class="border-0">Product</th>
-                            <th class="border-0 text-center">Sold Qty</th>
-                            <th class="border-0">Revenue</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.TopProducts != null && Model.TopProducts.Any())
-                        {
-                            foreach (var prod in Model.TopProducts)
-                            {
-                                <tr>
-                                    <td class="fw-bold text-dark">@prod.ProductName</td>
-                                    <td class="text-center fw-bold text-secondary">@prod.SoldQty</td>
-                                    <td class="fw-bold text-dark">@prod.Revenue.ToString("C0", inCulture)</td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="3" class="text-center text-muted py-4">No product sales records recorded.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
 
-@section Scripts {
-    <!-- Include Local UMD Chart.js for beautiful interactive charts -->
-    <script src="~/lib/chart.js/chart.umd.js"></script>
+            <div class="sidebar-footer">
+                <span>&copy; 2026 ERP System</span>
+                <span>v1.0.0</span>
+            </div>
+        </nav>
+
+        <!-- Right Hand Content Page -->
+        <div id="content">
+            <!-- Topbar Header -->
+            <header class="topbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="toggle-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+                    <div class="search-box d-none d-md-block">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Search operational databases..." />
+                    </div>
+                </div>
+
+                @if (userRole == "Super Admin" || userRole == "Admin")
+                {
+                    var activeCompanies = _switcherContext.Companies.Where(c => c.IsActive).ToList();
+                    var activeBranches = _switcherContext.Branches.Where(b => b.IsActive).ToList();
+
+                    // Resolve current active IDs
+                    int currCompanyId = 1;
+                    int currBranchId = 3;
+
+                    var userCompanyClaim = User.FindFirst("Company")?.Value;
+                    if (int.TryParse(userCompanyClaim, out int userCompId)) currCompanyId = userCompId;
+
+                    if (Context.Request.Cookies.TryGetValue("ActiveCompanyId", out string? cookieCId) && int.TryParse(cookieCId, out int ccId)) currCompanyId = ccId;
+                    if (Context.Request.Cookies.TryGetValue("ActiveBranchId", out string? cookieBId) && int.TryParse(cookieBId, out int cbId)) currBranchId = cbId;
+
+                    // Filter branches by selected company
+                    var filteredBranches = activeBranches.Where(b => b.CompanyId == currCompanyId).ToList();
+
+                    <form asp-controller="Dashboard" asp-action="SwitchContext" method="post" class="d-none d-lg-flex align-items-center gap-2 me-3" id="switcherForm">
+                        @Html.AntiForgeryToken()
+
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="small fw-bold text-secondary text-uppercase" style="font-size:0.7rem; letter-spacing:0.5px;">Company:</span>
+                            <select name="companyId" class="form-select form-select-sm" style="border-radius:6px; font-size:0.8rem; font-weight:600; padding:0.25rem 1.5rem 0.25rem 0.5rem; background-color:#faf8f5; border-color:#d4cbbd; color:var(--text-color); cursor:pointer;" onchange="updateSwitcherBranches();">
+                                @foreach (var c in activeCompanies)
+                                {
+                                    <!option value="@c.CompanyId" @(c.CompanyId == currCompanyId ? "selected" : "")>@c.CompanyName</!option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="small fw-bold text-secondary text-uppercase" style="font-size:0.7rem; letter-spacing:0.5px;">Branch:</span>
+                            <select id="switcherBranchSelect" name="branchId" class="form-select form-select-sm" style="border-radius:6px; font-size:0.8rem; font-weight:600; padding:0.25rem 1.5rem 0.25rem 0.5rem; background-color:#faf8f5; border-color:#d4cbbd; color:var(--text-color); cursor:pointer;" onchange="this.form.submit();">
+                                @foreach (var b in filteredBranches)
+                                {
+                                    <!option value="@b.BranchId" @(b.BranchId == currBranchId ? "selected" : "")>@b.BranchName</!option>
+                                }
+                            </select>
+                        </div>
+                    </form>
+
+                    <script>
+                        function updateSwitcherBranches() {
+                            const compSelect = document.getElementsByName("companyId")[0];
+                            const branchSelect = document.getElementById("switcherBranchSelect");
+                            const selectedCompanyId = compSelect.value;
+
+                            // We can query all branches as a JSON object inside javascript
+                            const branchesData = [
+                                @foreach (var b in activeBranches)
+                                {
+                                            @:{ id: @b.BranchId, compId: @b.CompanyId, name: "@b.BranchName" },
+                                }
+                            ];
+
+                            // Clear dropdown
+                            branchSelect.innerHTML = "";
+
+                            // Re-populate with matching branches
+                            const matching = branchesData.filter(b => b.compId == selectedCompanyId);
+                            matching.forEach(b => {
+                                const opt = document.createElement("option");
+                                opt.value = b.id;
+                                opt.text = b.name;
+                                branchSelect.appendChild(opt);
+                            });
+
+                            // Submit context change immediately
+                            compSelect.form.submit();
+                        }
+                    </script>
+                }
+
+                <div class="topbar-right">
+                    <!-- Language Selector Dropdown -->
+                    <div class="dropdown me-1">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1.5 px-2.5 py-1 notranslate" translate="no" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius:6px; font-size:0.8rem; font-weight:600; background-color:#faf8f5; border-color:#d4cbbd; color:var(--text-color);">
+                            <i class="fa-solid fa-globe text-primary"></i> <span class="d-none d-md-inline">Language</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 notranslate" translate="no" style="background-color: #ffffff; border: 1px solid var(--border-warm) !important; font-size:0.85rem;">
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('en'); return false;">🇬🇧 English</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('hi'); return false;">🇮🇳 हिंदी (Hindi)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('es'); return false;">🇪🇸 Español (Spanish)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('ar'); return false;">🇸🇦 العربية (Arabic)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('fr'); return false;">🇫🇷 Français (French)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('de'); return false;">🇩🇪 Deutsch (German)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('ur'); return false;">🇵🇰 اردو (Urdu)</a></li>
+                            <li><a class="dropdown-item py-1.5" href="#" onclick="changeLanguage('zh-CN'); return false;">🇨🇳 中文 (Chinese)</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- Notifications Dropdown -->
+                    <div class="dropdown">
+                        <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="badge bg-danger icon-badge">5</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="width: 320px; border: 1px solid var(--border-warm) !important; font-size: 0.85rem;">
+                            <div class="p-2.5 border-bottom d-flex justify-content-between align-items-center bg-light-subtle">
+                                <h6 class="fw-bold m-0 text-dark" style="font-size:0.85rem;"><i class="fa-solid fa-bell text-primary me-1.5"></i>Notifications</h6>
+                                <span class="badge bg-danger-subtle text-danger rounded-pill px-2">5 Unread</span>
+                            </div>
+                            <div class="p-2 border-bottom text-start">
+                                <div class="p-2 rounded bg-light-subtle mb-1">
+                                    <span class="fw-bold d-block text-dark small">New Sales Invoice Generated</span>
+                                    <span class="text-muted extra-small">Invoice INV-10045 created for Rahul Enterprises</span>
+                                </div>
+                                <div class="p-2 rounded bg-light-subtle mb-1">
+                                    <span class="fw-bold d-block text-dark small">Low Stock Alert: Smartphone</span>
+                                    <span class="text-muted extra-small">Stock quantity fell below threshold (60 remaining)</span>
+                                </div>
+                            </div>
+                            <div class="p-2 text-center bg-light">
+                                <a href="/Notifications" class="text-decoration-none fw-bold text-primary small d-block">
+                                    View All Notifications <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Messages -->
+                    <button class="icon-btn">
+                        <i class="fa-regular fa-envelope"></i>
+                        <span class="badge bg-primary icon-badge">3</span>
+                    </button>
+                    <!-- Fullscreen -->
+                    <button class="icon-btn d-none d-sm-block" onclick="toggleFullscreen()">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+
+                    <!-- Vertical Divider -->
+                    <div style="width: 1px; height: 24px; background-color: var(--border-warm);"></div>
+
+                    <!-- Profile dropdown -->
+                    <div class="dropdown">
+                        <a href="#" class="user-profile dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="@layoutProfilePhoto" alt="@userFullName" class="profile-img" style="object-fit: cover; border: 2px solid var(--primary-warm);" />
+                            <div class="profile-info d-none d-sm-block text-start">
+                                <div class="profile-name">@userFullName</div>
+                                <div class="profile-role">@userRole</div>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="background-color: #ffffff; border: 1px solid var(--border-warm) !important;">
+                            <li><h6 class="dropdown-header" style="color: var(--text-color); font-weight: 700;">@userCompany</h6></li>
+                            <li><hr class="dropdown-divider" style="background-color: var(--border-warm);"></li>
+                            <li><a class="dropdown-item" href="/Profile" style="color: var(--text-color);"><i class="fa-regular fa-user me-2"></i> My Profile</a></li>
+                            <li><a class="dropdown-item" href="/Settings" style="color: var(--text-color);"><i class="fa-solid fa-sliders me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider" style="background-color: var(--border-warm);"></li>
+                            <li><a class="dropdown-item text-danger" href="/Account/Logout"><i class="fa-solid fa-right-from-bracket me-2"></i> Sign Out</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Panel Render Area -->
+            <main class="main-inner">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <div id="google_translate_element"></div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/language-selector.js" asp-append-version="true"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            // 1. Sales Overview Chart Setup
-            const salesCtx = document.getElementById('salesChart').getContext('2d');
-            new Chart(salesCtx, {
-                type: 'line',
-                data: {
-                    labels: ['01 May', '06 May', '11 May', '16 May', '21 May', '26 May', '31 May'],
-                    datasets: [{
-                        label: 'This Month',
-                        data: [20000, 45000, 60000, 50000, 80000, 75000, 95000],
-                        borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.05)',
-                        borderWidth: 2.5,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#4f46e5',
-                        pointHoverRadius: 6,
-                        tension: 0.35,
-                        fill: true
-                    }, {
-                        label: 'Last Month',
-                        data: [15000, 32000, 48000, 38000, 62000, 55000, 78000],
-                        borderColor: '#a19688',
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        pointRadius: 3,
-                        pointBackgroundColor: '#a19688',
-                        tension: 0.35,
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true,
-                                boxWidth: 6,
-                                font: { size: 11, weight: 600 }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            grid: { color: '#faf6f0' },
-                            ticks: {
-                                font: { size: 10 },
-                                callback: function(value) { return '₹' + (value / 1000) + 'K'; }
-                            }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { size: 10 } }
-                        }
-                    }
-                }
-            });
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
 
-            // 2. Stock Summary Chart Setup
-            const stockCtx = document.getElementById('stockChart').getContext('2d');
-            new Chart(stockCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['In Stock', 'Low Stock', 'Out of Stock'],
-                    datasets: [{
-                        data: [@Model.InStockQty, @Model.LowStockQty, @Model.OutOfStockQty],
-                        backgroundColor: ['#10b981', '#d97706', '#ef4444'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff',
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        });
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
     </script>
-}
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -10,26 +10,43 @@ namespace ERP_System.Models
         [Key]
         public int PayslipId { get; set; }
 
-        public int UserId { get; set; }
-
         [Required]
-        [StringLength(50)]
-        public string MonthYear { get; set; } = string.Empty;
-
-        public decimal BasicSalary { get; set; }
-
-        public decimal Allowances { get; set; }
-
-        public decimal Deductions { get; set; }
-
-        public decimal NetPay { get; set; }
-
-        public DateTime GeneratedDate { get; set; } = DateTime.UtcNow;
-
-        [StringLength(50)]
-        public string Status { get; set; } = "Paid";
+        public int UserId { get; set; }
 
         [ForeignKey("UserId")]
         public User? User { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string PayPeriod { get; set; } = string.Empty;
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal BasicSalary { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal HRA { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal TransportAllowance { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal MedicalAllowance { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal ProvidentFund { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal ProfessionalTax { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal NetSalary { get; set; }
+
+        public int PaidDays { get; set; } = 30;
+
+        public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
+
+        [Required]
+        [StringLength(30)]
+        public string Status { get; set; } = "Paid";
     }
 }

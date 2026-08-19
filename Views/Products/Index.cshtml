@@ -3,6 +3,8 @@
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Product Inventory Manager";
     var inCulture = new System.Globalization.CultureInfo("en-IN");
+    var branches = (IEnumerable<ERP_System.Models.Branch>)ViewBag.BranchesList;
+    var categories = (IEnumerable<string>)ViewBag.CategoriesList;
 }
 
 <style>
@@ -79,7 +81,7 @@
 </style>
 
 <!-- Top Breadcrumbs & Page Header -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
     <div>
         <h4 class="fw-bold mb-1" style="color: var(--text-color);">Product Management</h4>
         <nav aria-label="breadcrumb">
@@ -104,14 +106,49 @@
     </div>
 }
 
+<!-- Search & Filter Controls -->
+<div class="row g-3 mb-4 text-start">
+    <!-- Search Input -->
+    <div class="col-md-5">
+        <div class="input-group-warm" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; display: flex; align-items: center; padding: 2px;">
+            <span style="padding: 0.6rem 0.5rem 0.6rem 1rem; color: #7c7267;"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input type="text" id="searchProduct" class="form-control" style="border: none !important; box-shadow: none !important; background: transparent; font-size: 0.9rem; padding: 0.6rem 1rem 0.6rem 0;" placeholder="Search products by name..." />
+        </div>
+    </div>
+    
+    <!-- Category Filter Dropdown -->
+    <div class="col-md-3">
+        <select id="filterCategory" class="form-select" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; padding: 0.72rem 1rem; font-size: 0.9rem; font-weight: 600; outline: none; width: 100%; color: var(--text-color);">
+            <option value="">All Categories (Filter by Category)</option>
+            @foreach (var cat in categories)
+            {
+                <option value="@cat">@cat</option>
+            }
+        </select>
+    </div>
+
+    <!-- Branch Filter Dropdown -->
+    <div class="col-md-4">
+        <select id="filterBranch" class="form-select" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; padding: 0.72rem 1rem; font-size: 0.9rem; font-weight: 600; outline: none; width: 100%; color: var(--text-color);">
+            <option value="">All Branches (Filter by Branch)</option>
+            @foreach (var branch in branches)
+            {
+                <option value="@branch.BranchName">@branch.BranchName</option>
+            }
+        </select>
+    </div>
+</div>
+
 <!-- Products Inventory Grid -->
 <div class="panel-products overflow-hidden">
     <div class="table-responsive">
-        <table class="table table-hover table-products mb-0 border-0 text-start">
+        <table class="table table-hover table-products mb-0 border-0 text-start" id="productsTable">
             <thead>
                 <tr>
                     <th class="border-0">Product ID</th>
                     <th class="border-0">Product Name</th>
+                    <th class="border-0">Category</th>
+                    <th class="border-0">Branch Location</th>
                     <th class="border-0 text-center">Sold Qty</th>
                     <th class="border-0">Total Revenue</th>
                     <th class="border-0 text-center">In Stock Bal</th>
@@ -129,6 +166,8 @@
                         <tr>
                             <td class="fw-bold text-secondary">PROD#@prod.ProductId.ToString("D3")</td>
                             <td class="fw-bold text-dark">@prod.ProductName</td>
+                            <td class="fw-bold text-secondary">@prod.Category</td>
+                            <td class="fw-bold text-secondary">@(prod.Branch?.BranchName ?? "Head Office")</td>
                             <td class="text-center fw-bold text-secondary">@prod.SoldQty</td>
                             <td class="fw-bold text-dark">@prod.Revenue.ToString("C0", inCulture)</td>
                             <td class="text-center fw-bold @(prod.StockQty <= 50 ? "text-danger" : "text-dark")">@prod.StockQty Units</td>
@@ -154,10 +193,49 @@
                 else
                 {
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-5">No product records found in warehouse inventory.</td>
+                        <td colspan="9" class="text-center text-muted py-5">No product records found in warehouse inventory.</td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const searchInput = document.getElementById("searchProduct");
+            const catSelect = document.getElementById("filterCategory");
+            const branchSelect = document.getElementById("filterBranch");
+            const tableRows = document.querySelectorAll("#productsTable tbody tr");
+
+            function filterTable() {
+                const query = searchInput.value.toLowerCase().trim();
+                const selectedCat = catSelect.value.toLowerCase().trim();
+                const selectedBranch = branchSelect.value.toLowerCase().trim();
+
+                tableRows.forEach(row => {
+                    if (row.cells.length < 8) return;
+
+                    const name = row.cells[1].innerText.toLowerCase();
+                    const category = row.cells[2].innerText.toLowerCase();
+                    const branch = row.cells[3].innerText.toLowerCase();
+
+                    const matchesSearch = name.includes(query);
+                    const matchesCat = selectedCat === "" || category.includes(selectedCat);
+                    const matchesBranch = selectedBranch === "" || branch.includes(selectedBranch);
+
+                    if (matchesSearch && matchesCat && matchesBranch) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            }
+
+            searchInput.addEventListener("input", filterTable);
+            catSelect.addEventListener("change", filterTable);
+            branchSelect.addEventListener("change", filterTable);
+        });
+    </script>
+}

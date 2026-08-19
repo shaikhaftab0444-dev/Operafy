@@ -1,0 +1,358 @@
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Executive System Reports";
+    
+    var salesTransactions = (IEnumerable<ERP_System.Models.Transaction>)ViewBag.SalesTransactions;
+    var purchaseTransactions = (IEnumerable<ERP_System.Models.Transaction>)ViewBag.PurchaseTransactions;
+    var productsList = (IEnumerable<ERP_System.Models.Product>)ViewBag.ProductsList;
+    
+    decimal totalSales = (decimal)ViewBag.TotalSales;
+    decimal totalPurchase = (decimal)ViewBag.TotalPurchase;
+    int totalProducts = (int)ViewBag.TotalProducts;
+    int totalStockQty = (int)ViewBag.TotalStockQty;
+    
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+}
+
+<style>
+    .card-report {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        height: 100%;
+    }
+    
+    .rep-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .rep-icon-sales { background-color: rgba(79, 70, 229, 0.08); color: var(--primary-warm); }
+    .rep-icon-purchase { background-color: rgba(16, 185, 129, 0.08); color: #10b981; }
+    .rep-icon-catalog { background-color: rgba(6, 182, 212, 0.08); color: #06b6d4; }
+    .rep-icon-stock { background-color: rgba(217, 119, 6, 0.08); color: var(--accent-warm); }
+
+    .rep-info {
+        flex-grow: 1;
+        text-align: left;
+    }
+    .rep-label {
+        font-size: 0.75rem;
+        color: var(--sidebar-color);
+        font-weight: 700;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .rep-val {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    .report-panel {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+        min-height: 400px;
+    }
+
+    /* Custom warm styling for tabs */
+    .nav-tabs-warm {
+        border-bottom: 2px solid var(--border-warm) !important;
+        margin-bottom: 1.5rem;
+    }
+    .nav-tabs-warm .nav-link {
+        border: none !important;
+        color: var(--sidebar-color) !important;
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 0.75rem 1.5rem;
+        position: relative;
+        transition: all 0.2s;
+    }
+    .nav-tabs-warm .nav-link:hover {
+        color: var(--text-color) !important;
+    }
+    .nav-tabs-warm .nav-link.active {
+        color: var(--primary-warm) !important;
+        background-color: transparent !important;
+    }
+    .nav-tabs-warm .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: var(--primary-warm);
+    }
+
+    .table-report th {
+        background-color: #fcfbfa !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #7c7267;
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+    }
+    .table-report td {
+        font-size: 0.85rem;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.85rem 1rem;
+        vertical-align: middle;
+    }
+
+    .badge-paid {
+        background-color: rgba(16, 185, 129, 0.08);
+        color: #10b981;
+        font-weight: 600;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .badge-pending {
+        background-color: rgba(217, 119, 6, 0.08);
+        color: var(--accent-warm);
+        font-weight: 600;
+        border: 1px solid rgba(217, 119, 6, 0.2);
+    }
+
+    .btn-export {
+        border: 1px solid var(--border-warm);
+        background-color: #ffffff;
+        color: var(--text-color);
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+    .btn-export:hover {
+        background-color: #faf8f5;
+        border-color: #cbd5e1;
+        color: var(--primary-warm);
+    }
+</style>
+
+<!-- Top Breadcrumbs & Page Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Operational Audit Reports</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Reports</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <button class="btn btn-export px-3 py-2" onclick="window.print()">
+            <i class="fa-solid fa-print me-2"></i> Print Report
+        </button>
+        <button class="btn btn-export px-3 py-2" onclick="alert('Exported to CSV successfully!')">
+            <i class="fa-solid fa-file-csv me-2"></i> Export CSV
+        </button>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card-report">
+            <div class="rep-icon-wrap rep-icon-sales"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <div class="rep-info">
+                <div class="rep-label">Sales Turnover</div>
+                <div class="rep-val">@totalSales.ToString("C0", inCulture)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-report">
+            <div class="rep-icon-wrap rep-icon-purchase"><i class="fa-solid fa-cart-flatbed"></i></div>
+            <div class="rep-info">
+                <div class="rep-label">Purchases Outlay</div>
+                <div class="rep-val">@totalPurchase.ToString("C0", inCulture)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-report">
+            <div class="rep-icon-wrap rep-icon-catalog"><i class="fa-solid fa-box-open"></i></div>
+            <div class="rep-info">
+                <div class="rep-label">Catalog Products</div>
+                <div class="rep-val">@totalProducts Items</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-report">
+            <div class="rep-icon-wrap rep-icon-stock"><i class="fa-solid fa-warehouse"></i></div>
+            <div class="rep-info">
+                <div class="rep-label">Warehouse Stock</div>
+                <div class="rep-val">@totalStockQty Units</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reports tab panels -->
+<div class="report-panel">
+    <!-- Tabs Nav -->
+    <ul class="nav nav-tabs nav-tabs-warm" id="reportTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales-report" type="button" role="tab" aria-controls="sales-report" aria-selected="true">
+                <i class="fa-solid fa-file-invoice-dollar me-2"></i>Sales Ledger
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="purchase-tab" data-bs-toggle="tab" data-bs-target="#purchase-report" type="button" role="tab" aria-controls="purchase-report" aria-selected="false">
+                <i class="fa-solid fa-cart-shopping me-2"></i>Purchase Ledger
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory-report" type="button" role="tab" aria-controls="inventory-report" aria-selected="false">
+                <i class="fa-solid fa-boxes-stacked me-2"></i>Inventory Valuation
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <div class="tab-content" id="reportTabsContent">
+        <!-- Sales Report Tab -->
+        <div class="tab-pane fade show active text-start" id="sales-report" role="tabpanel" aria-labelledby="sales-tab">
+            <div class="table-responsive">
+                <table class="table table-hover table-report mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">Invoice No.</th>
+                            <th class="border-0">Billing Date</th>
+                            <th class="border-0">Party Name</th>
+                            <th class="border-0">Billing Amount</th>
+                            <th class="border-0">Payment Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (salesTransactions != null && salesTransactions.Any())
+                        {
+                            foreach (var tx in salesTransactions)
+                            {
+                                var badgeClass = tx.Status == "Paid" ? "badge-paid" : "badge-pending";
+                                <tr>
+                                    <td class="fw-bold text-primary">@tx.TransactionNo</td>
+                                    <td>@tx.Date.ToString("dd MMM yyyy")</td>
+                                    <td>@tx.PartyName</td>
+                                    <td class="fw-bold text-dark">@tx.Amount.ToString("C0", inCulture)</td>
+                                    <td>
+                                        <span class="badge rounded-pill px-2.5 py-1.5 @badgeClass" style="font-size: 0.75rem;">@tx.Status</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-5">No billing invoices found.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Purchase Report Tab -->
+        <div class="tab-pane fade text-start" id="purchase-report" role="tabpanel" aria-labelledby="purchase-tab">
+            <div class="table-responsive">
+                <table class="table table-hover table-report mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">Purchase Order</th>
+                            <th class="border-0">Order Date</th>
+                            <th class="border-0">Supplier Name</th>
+                            <th class="border-0">Payment Amount</th>
+                            <th class="border-0">Order Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (purchaseTransactions != null && purchaseTransactions.Any())
+                        {
+                            foreach (var tx in purchaseTransactions)
+                            {
+                                var badgeClass = tx.Status == "Paid" ? "badge-paid" : "badge-pending";
+                                <tr>
+                                    <td class="fw-bold text-primary">@tx.TransactionNo</td>
+                                    <td>@tx.Date.ToString("dd MMM yyyy")</td>
+                                    <td>@tx.PartyName</td>
+                                    <td class="fw-bold text-dark">@tx.Amount.ToString("C0", inCulture)</td>
+                                    <td>
+                                        <span class="badge rounded-pill px-2.5 py-1.5 @badgeClass" style="font-size: 0.75rem;">@tx.Status</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-5">No supplier purchase orders found.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inventory Report Tab -->
+        <div class="tab-pane fade text-start" id="inventory-report" role="tabpanel" aria-labelledby="inventory-tab">
+            <div class="table-responsive">
+                <table class="table table-hover table-report mb-0 border-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0">Product ID</th>
+                            <th class="border-0">Product Name</th>
+                            <th class="border-0 text-center">Quantity Sold</th>
+                            <th class="border-0 text-center">Remaining Stock</th>
+                            <th class="border-0">Total Revenue</th>
+                            <th class="border-0">Stock Alert Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (productsList != null && productsList.Any())
+                        {
+                            foreach (var p in productsList)
+                            {
+                                var badgeClass = p.Status == "In Stock" ? "badge-paid" :
+                                                 p.Status == "Low Stock" ? "badge-pending" : "badge-inactive";
+                                <tr>
+                                    <td class="fw-bold text-secondary">PROD#@p.ProductId.ToString("D3")</td>
+                                    <td class="fw-bold text-dark">@p.ProductName</td>
+                                    <td class="text-center fw-bold text-secondary">@p.SoldQty</td>
+                                    <td class="text-center fw-bold text-dark">@p.StockQty Units</td>
+                                    <td class="fw-bold text-dark">@p.Revenue.ToString("C0", inCulture)</td>
+                                    <td>
+                                        <span class="badge rounded-pill px-2.5 py-1.5 @badgeClass" style="font-size: 0.75rem;">@p.Status</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">No product records in database.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

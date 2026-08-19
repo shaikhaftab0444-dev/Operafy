@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using ERP_System.Models;
 using System;
 
-namespace ERP_System.Models
+namespace ERP_System.Data
 {
     public class ApplicationDbContext : DbContext
     {
