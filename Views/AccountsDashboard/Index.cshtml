@@ -1,0 +1,417 @@
+@model ERP_System.Models.AccountsDashboardViewModel
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Accounts Dashboard";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+    var now = DateTime.Now;
+    var activeMonthName = now.ToString("MMMM yyyy");
+}
+
+<style>
+    .dashboard-title-bar {
+        text-align: left;
+        margin-bottom: 1.5rem;
+    }
+
+    .dashboard-title {
+        font-size: 1.8rem;
+        font-weight: 500;
+        color: #555555;
+        margin: 0;
+    }
+
+    /* 4 KPI Cards Grid Layout */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    @@media (max-width: 1200px) {
+        .kpi-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .kpi-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* KPI Card Style */
+    .screenshot-card {
+        border-radius: 6px;
+        color: #ffffff !important;
+        display: flex;
+        align-items: stretch;
+        min-height: 100px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        text-align: left;
+    }
+
+    .card-left-block {
+        width: 34%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border-right: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(0, 0, 0, 0.08);
+        padding: 0.5rem;
+        text-align: center;
+    }
+
+    .card-left-month {
+        font-size: 0.7rem;
+        font-weight: 500;
+        opacity: 0.9;
+        text-transform: capitalize;
+    }
+
+    .card-left-year {
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .card-left-icon {
+        font-size: 1.8rem;
+        opacity: 0.85;
+    }
+
+    .card-right-block {
+        width: 66%;
+        padding: 0.75rem 1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+    }
+
+    .card-val {
+        font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .card-label {
+        font-size: 0.72rem;
+        font-weight: 500;
+        opacity: 0.95;
+        margin-top: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Card Background Colors */
+    .bg-kpi-blue {
+        background-color: #3b82f6;
+    }
+
+    .bg-kpi-indigo {
+        background-color: #6366f1;
+    }
+
+    .bg-kpi-purple {
+        background-color: #a855f7;
+    }
+
+    .bg-kpi-teal-dark {
+        background-color: #0d9488;
+    }
+
+    .bg-kpi-green {
+        background-color: #10b981;
+    }
+
+    .bg-kpi-slate {
+        background-color: #475569;
+    }
+
+    .bg-kpi-violet {
+        background-color: #8b5cf6;
+    }
+
+    .bg-kpi-teal-light {
+        background-color: #14b8a6;
+    }
+
+    /* Summary Modules (Grid Tables) */
+    .summary-module {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: left;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .summary-header {
+        background-color: #fafafa;
+        border-bottom: 1px solid var(--border-warm);
+        padding: 0.75rem 1.25rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #666666;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-collapse: collapse;
+    }
+
+    @@media (max-width: 900px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .summary-box {
+        text-align: center;
+        padding: 1.25rem 0.5rem;
+        border-right: 1px solid var(--border-warm);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .summary-box:last-child {
+        border-right: none;
+    }
+
+    .summary-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #3b82f6;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-title.pending {
+        color: #ef4444;
+    }
+
+    .summary-title.success {
+        color: #10b981;
+    }
+
+    .summary-val {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #333333;
+    }
+
+    .detail-card {
+        background: #ffffff;
+        border: 1px solid var(--border-warm);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        padding: 1.5rem;
+        height: 100%;
+        text-align: left;
+    }
+</style>
+
+<!-- Header & Context Area -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Dashboard</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Accounts & Finance</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <div class="d-flex flex-column flex-sm-row gap-2">
+        <div class="px-3 py-2 bg-white border rounded-3 text-start small shadow-sm">
+            <div class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Active Role</div>
+            <div class="fw-bold text-dark"><i class="fa-solid fa-scale-balanced me-1.5 text-primary"></i>@Model.CurrentUserRole</div>
+        </div>
+        <div class="px-3 py-2 bg-white border rounded-3 text-start small shadow-sm">
+            <div class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Scope Context</div>
+            <div class="fw-bold text-dark"><i class="fa-solid fa-building me-1.5 text-info"></i>@Model.CurrentCompany</div>
+        </div>
+    </div>
+</div>
+
+<!-- 4 KPI Cards Grid -->
+<div class="kpi-row">
+    <!-- Sales Revenue -->
+    <div class="screenshot-card bg-kpi-blue">
+        <div class="card-left-block">
+            <span class="card-left-month">@activeMonthName.Split(' ')[0]</span>
+            <span class="card-left-year">@activeMonthName.Split(' ')[1]</span>
+        </div>
+        <div class="card-right-block">
+            <h4 class="card-val">₹@Model.TotalSalesRevenue.ToString("N0", inCulture)</h4>
+            <span class="card-label">Sales Revenue</span>
+        </div>
+    </div>
+
+    <!-- Purchase Expenses -->
+    <div class="screenshot-card bg-kpi-indigo">
+        <div class="card-left-block">
+            <i class="fa-solid fa-cart-shopping card-left-icon"></i>
+        </div>
+        <div class="card-right-block">
+            <h4 class="card-val">₹@Model.TotalPurchaseExpenses.ToString("N0", inCulture)</h4>
+            <span class="card-label">Purchase Expenses</span>
+        </div>
+    </div>
+
+    <!-- Other Expenses -->
+    <div class="screenshot-card bg-kpi-purple">
+        <div class="card-left-block">
+            <i class="fa-solid fa-file-invoice-dollar card-left-icon"></i>
+        </div>
+        <div class="card-right-block">
+            <h4 class="card-val">₹@Model.TotalOtherExpenses.ToString("N0", inCulture)</h4>
+            <span class="card-label">Other Expenses</span>
+        </div>
+    </div>
+
+    <!-- Cash / Bank Balance -->
+    <div class="screenshot-card bg-kpi-green">
+        <div class="card-left-block">
+            <i class="fa-solid fa-wallet card-left-icon"></i>
+        </div>
+        <div class="card-right-block">
+            <h4 class="card-val">₹@Model.CashBankBalance.ToString("N0", inCulture)</h4>
+            <span class="card-label">Cash / Bank Balance</span>
+        </div>
+    </div>
+</div>
+
+<!-- Receivables / Payables Ledger Portal -->
+<div class="summary-module">
+    <div class="summary-header">
+        <i class="fa-solid fa-scale-balanced me-2 text-primary"></i> Outstanding Balances & Receivables
+    </div>
+    <div class="summary-grid">
+        <div class="summary-box">
+            <span class="summary-title pending">Total Outstanding Receivables</span>
+            <span class="summary-val">₹@Model.TotalReceivable.ToString("N0", inCulture)</span>
+        </div>
+        <div class="summary-box">
+            <span class="summary-title pending">Total Outstanding Payables</span>
+            <span class="summary-val">₹@Model.TotalPayable.ToString("N0", inCulture)</span>
+        </div>
+        <div class="summary-box">
+            <span class="summary-title">Net Financial Cash Position</span>
+            <span class="summary-val text-success">₹@((Model.CashBankBalance + Model.TotalReceivable - Model.TotalPayable).ToString("N0", inCulture))</span>
+        </div>
+        <div class="summary-box">
+            <span class="summary-title">Financial Ledger Month</span>
+            <span class="summary-val" style="font-size: 0.95rem; font-weight: 800;">@activeMonthName</span>
+        </div>
+    </div>
+</div>
+
+<!-- Details Grid -->
+<div class="row g-4 mb-5">
+    <!-- Left Column: Recent Transactions -->
+    <div class="col-lg-7">
+        <div class="detail-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-receipt me-2 text-primary"></i>Recent General Ledger Entries</h5>
+                <a href="/Accounts" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">Audit Ledger</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tx No</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.RecentTransactions != null && Model.RecentTransactions.Any())
+                        {
+                            @foreach (var tx in Model.RecentTransactions)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-dark">@tx.TransactionNo</td>
+                                    <td>
+                                        <span class="badge @(tx.Type == "Sales Invoice" ? "bg-primary-subtle text-primary" : tx.Type == "Purchase Order" ? "bg-indigo-subtle text-indigo" : "bg-purple-subtle text-purple") px-2 py-0.5">
+                                            @tx.Type
+                                        </span>
+                                    </td>
+                                    <td class="text-muted">@tx.Date.ToString("dd MMM yyyy")</td>
+                                    <td class="fw-bold">₹@tx.Amount.ToString("N0", inCulture)</td>
+                                    <td>
+                                        <span class="badge rounded-pill @(tx.Status == "Paid" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning") px-2.5 py-1">
+                                            @tx.Status
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No transactions registered yet.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Chart of Accounts -->
+    <div class="col-lg-5">
+        <div class="detail-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-list-check me-2 text-success"></i>Chart of Accounts</h5>
+                <a href="/AccountHeads" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">All Heads</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Head Code</th>
+                            <th>Account Head</th>
+                            <th>Group Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.ChartOfAccounts != null && Model.ChartOfAccounts.Any())
+                        {
+                            @foreach (var head in Model.ChartOfAccounts)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-dark">@head.HeadCode</td>
+                                    <td>@head.HeadName</td>
+                                    <td>
+                                        <span class="badge bg-secondary-subtle text-secondary px-2 py-0.5 small">
+                                            @head.AccountType
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">No ledger accounts registered yet.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

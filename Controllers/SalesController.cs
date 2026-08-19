@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,Sales Manager,Inventory Manager,Manager")]
+    [Authorize(Roles = "Super Admin,Admin,Sales Manager,Sales Executive,Inventory Manager,Manager")]
     public class SalesController : Controller
     {
         private readonly ApplicationDbContext _context;

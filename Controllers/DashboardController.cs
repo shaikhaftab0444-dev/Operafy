@@ -36,6 +36,15 @@ namespace ERP_System.Controllers
             {
                 return RedirectToAction("Index", "EmployeeDashboard");
             }
+            else if (roleName == "Sales Executive" || roleName == "Sales Manager")
+            {
+                return RedirectToAction("Index", "SalesDashboard");
+            }
+            else if (roleName != "Super Admin" && roleName != "Admin")
+            {
+                // Fallback for other custom/new roles to prevent showing them the Super Admin KPI dashboard
+                return RedirectToAction("Index", "EmployeeDashboard");
+            }
 
             var fullName = User.Identity?.Name ?? "User Account";
 
