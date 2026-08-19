@@ -2,12 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERP_System.Models;
-<<<<<<< Updated upstream
 using System.Linq;
 using System.Threading.Tasks;
-=======
 using ERP_System.Data;
->>>>>>> Stashed changes
 
 namespace ERP_System.Controllers
 {

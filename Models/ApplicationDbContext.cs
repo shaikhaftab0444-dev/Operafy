@@ -17,8 +17,6 @@ namespace ERP_System.Models
         public DbSet<Product> Products { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
         public DbSet<Company> Companies { get; set; }
-<<<<<<< Updated upstream:Models/ApplicationDbContext.cs
-=======
         public DbSet<Customer> Customers { get; set; }
         public DbSet<SalaryStructure> SalaryStructures { get; set; }
         public DbSet<Payslip> Payslips { get; set; }
@@ -28,7 +26,6 @@ namespace ERP_System.Models
         public DbSet<AccountHead> AccountHeads { get; set; }
         public DbSet<StockAdjustment> StockAdjustments { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
->>>>>>> Stashed changes:Data/ApplicationDbContext.cs
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -44,8 +41,6 @@ namespace ERP_System.Models
             modelBuilder.Entity<Product>().ToTable("erp_Products");
             modelBuilder.Entity<ActivityLog>().ToTable("erp_ActivityLogs");
             modelBuilder.Entity<Company>().ToTable("erp_Companies");
-<<<<<<< Updated upstream:Models/ApplicationDbContext.cs
-=======
             modelBuilder.Entity<Customer>().ToTable("Customers");
             modelBuilder.Entity<SalaryStructure>().ToTable("erp_SalaryStructures");
             modelBuilder.Entity<Payslip>().ToTable("erp_Payslips");
@@ -55,7 +50,6 @@ namespace ERP_System.Models
             modelBuilder.Entity<AccountHead>().ToTable("erp_AccountHeads");
             modelBuilder.Entity<RolePermission>().ToTable("erp_RolePermissions");
             modelBuilder.Entity<StockAdjustment>().ToTable("erp_StockAdjustments");
->>>>>>> Stashed changes:Data/ApplicationDbContext.cs
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

@@ -53,6 +53,14 @@ namespace ERP_System.Models
         [Required]
         [StringLength(50)]
         public string Status { get; set; } = "In Stock"; // In Stock, Low Stock, Out of Stock
+
+        [StringLength(100)]
+        public string Category { get; set; } = "General";
+
+        public int BranchId { get; set; } = 3;
+
+        [ForeignKey("BranchId")]
+        public Branch? Branch { get; set; }
     }
 
     [Table("ActivityLogs")]

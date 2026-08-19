@@ -67,5 +67,11 @@ namespace ERP_System.Models
 
         [ForeignKey("RoleId")]
         public Role? Role { get; set; }
+
+        [ForeignKey("BranchId")]
+        public Branch? Branch { get; set; }
+
+        [ForeignKey("CompanyId")]
+        public Company? Company { get; set; }
     }
 }
