@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ERP_System.Models
@@ -15,6 +15,8 @@ namespace ERP_System.Models
         public string ColorClass { get; set; } = "text-primary";
         public string BgColorClass { get; set; } = "bg-primary-subtle";
         public string TargetUrl { get; set; } = "#";
+        public string TargetEmail { get; set; } = string.Empty; // Empty means all users, or specific user email
+        public string TargetRole { get; set; } = string.Empty;  // Empty means all roles, or specific role
     }
 
     public class NotificationViewModel
