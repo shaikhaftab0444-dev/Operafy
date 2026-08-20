@@ -104,7 +104,7 @@
             </ol>
         </nav>
         <h4 class="fw-bold m-0 text-dark">Inbox & Internal Messaging</h4>
-        <p class="text-muted small m-0">Communicate with staff, review automated system alerts, and manage task messages.</p>
+        <p class="text-muted small m-0">Communicate securely with staff members, review automated system alerts, and manage task messages.</p>
     </div>
     <div>
         <button type="button" class="btn btn-compose px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#composeModal">
@@ -264,7 +264,7 @@
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6 class="fw-bold text-dark mb-0">@currentMsg.SenderName</h6>
+                                    <h6 class="fw-bold text-dark mb-0">From: @currentMsg.SenderName &rarr; To: @currentMsg.RecipientName</h6>
                                     <span class="text-muted small">@currentMsg.SenderEmail &bull; <strong class="text-secondary">@currentMsg.SenderRole</strong></span>
                                 </div>
                                 <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i>@currentMsg.SentAt.ToString("MMM dd, yyyy - hh:mm tt")</span>
@@ -281,12 +281,12 @@
                         <h6 class="fw-bold text-dark mb-2" style="font-size:0.85rem;"><i class="fa-solid fa-reply text-primary me-2"></i>Quick Reply</h6>
                         <form method="post" asp-action="SendMessage">
                             @Html.AntiForgeryToken()
-                            <input type="hidden" name="recipientEmail" value="@currentMsg.SenderEmail" />
+                            <input type="hidden" name="recipientEmail" value="@(Model.SelectedFolder == "sent" ? currentMsg.RecipientEmail : currentMsg.SenderEmail)" />
                             <input type="hidden" name="subject" value="Re: @currentMsg.Subject" />
                             <input type="hidden" name="category" value="@currentMsg.Category" />
                             <input type="hidden" name="priority" value="Normal" />
                             <div class="mb-2">
-                                <textarea name="body" class="form-control form-control-sm" rows="3" placeholder="Type your reply to @currentMsg.SenderName..." required></textarea>
+                                <textarea name="body" class="form-control form-control-sm" rows="3" placeholder="Type your reply to @(Model.SelectedFolder == "sent" ? currentMsg.RecipientName : currentMsg.SenderName)..." required></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold">
                                 <i class="fa-solid fa-paper-plane me-1"></i> Send Reply
@@ -324,19 +324,23 @@
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-dark">Recipient User <span class="text-danger">*</span></label>
                             <select name="recipientEmail" class="form-select" required>
-                                <option value="">-- Select Recipient --</option>
+                                <option value="">-- Select Recipient User --</option>
                                 @if (Model.AvailableUsers.Any())
                                 {
-                                    @foreach (var user in Model.AvailableUsers)
+                                    @foreach (var u in Model.AvailableUsers)
                                     {
-                                        <option value="@user.Email">@user.FullName (@user.Email)</option>
+                                        var roleName = u.Role?.RoleName ?? "User";
+                                        var displayName = !string.IsNullOrEmpty(u.FullName) ? u.FullName : u.UserName;
+                                        <option value="@u.Email">@displayName (@roleName - @u.Email)</option>
                                     }
                                 }
                                 else
                                 {
-                                    <option value="s.jenkins@erp.com">Sarah Jenkins (s.jenkins@erp.com)</option>
-                                    <option value="m.scott@erp.com">Michael Scott (m.scott@erp.com)</option>
-                                    <option value="d.miller@erp.com">David Miller (d.miller@erp.com)</option>
+                                    <option value="admin@erp.com">Admin User (Super Admin - admin@erp.com)</option>
+                                    <option value="sales@erp.com">Sales Executive (Sales - sales@erp.com)</option>
+                                    <option value="s.jenkins@erp.com">Sarah Jenkins (Finance Manager - s.jenkins@erp.com)</option>
+                                    <option value="m.scott@erp.com">Michael Scott (Sales Director - m.scott@erp.com)</option>
+                                    <option value="d.miller@erp.com">David Miller (HR Manager - d.miller@erp.com)</option>
                                 }
                             </select>
                         </div>
