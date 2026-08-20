@@ -1,7 +1,7 @@
 @using System.Security.Claims
 @using Microsoft.EntityFrameworkCore
 @inject ERP_System.Data.ApplicationDbContext _switcherContext
->>>>>>> Stashed changes
+
 @{
     var userFullName = User.Identity?.Name ?? "User Account";
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Employee";
@@ -354,6 +354,40 @@
         #google_translate_element, .goog-te-spinner-pos, .goog-te-combo {
             display: none !important;
         }
+
+        /* Collapsible sub-menus for nested layout */
+        .sidebar-submenu {
+            background-color: rgba(0, 0, 0, 0.15);
+            border-left: 2px solid rgba(255, 255, 255, 0.08);
+            margin: 2px 12px 2px 24px;
+            padding-left: 8px;
+            border-radius: 4px;
+        }
+        .submenu-link {
+            padding: 0.45rem 1rem;
+            color: var(--sidebar-color);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: block;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .submenu-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+        }
+        .submenu-link.active {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+        }
+        .dropdown-toggle-arrow {
+            transition: transform 0.2s;
+        }
+        .menu-link[aria-expanded="true"] .dropdown-toggle-arrow {
+            transform: rotate(90deg);
+        }
     </style>
 </head>
 <body>
@@ -397,10 +431,10 @@
                 
                 @if (showUserMgmt)
                 {
-                    <a href="/Users" class="menu-link @(currentController == "Users" ? "active" : "")">
+                    <a href="/Roles" class="menu-link @(currentController == "Users" ? "active" : "")">
                         <div>
                             <i class="fa-solid fa-users menu-icon"></i>
-                            <span>Users</span>
+                            <span>User Types</span>
                         </div>
                         <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
                     </a>
@@ -539,13 +573,102 @@
 
                     @if (showSalesMgmt)
                     {
-                        <a href="/Sales" class="menu-link @(currentController == "Sales" ? "active" : "")">
-                            <div>
-                                <i class="fa-solid fa-file-invoice-dollar menu-icon"></i>
-                                <span>Sales Management</span>
+                        var isSalesMenuExpanded = currentController == "Sales" || currentController == "SalesTeam" || currentController == "SalesManagement" || currentController == "SalesReports" || currentController == "ProductSettings" || currentController == "SalesDashboard";
+                        <div class="menu-item-dropdown">
+                            <a class="menu-link @(isSalesMenuExpanded ? "active" : "")" 
+                               data-bs-toggle="collapse" href="#salesSubMenu" role="button" aria-expanded="@(isSalesMenuExpanded ? "true" : "false")" aria-controls="salesSubMenu">
+                                <div>
+                                    <i class="fa-solid fa-file-invoice-dollar menu-icon"></i>
+                                    <span>Sales Management</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right dropdown-toggle-arrow small text-muted" style="font-size: 0.6rem;"></i>
+                            </a>
+                            <div class="collapse sidebar-submenu @(isSalesMenuExpanded ? "show" : "")" id="salesSubMenu">
+                                @{
+                                    var salesDashUrl = userRole == "Sales Manager" ? "/SalesManagerDashboard" : "/SalesDashboard";
+                                    var isSalesDashActive = currentController == "SalesDashboard" || currentController == "SalesManagerDashboard";
+                                }
+                                <a href="@salesDashUrl" class="submenu-link @(isSalesDashActive ? "active" : "")">
+                                    <i class="fa-solid fa-gauge me-2"></i> Sales Dashboard
+                                </a>
+                                
+                                <!-- Collapsible Sales Team -->
+                                @if (userRole != "Sales Executive")
+                                {
+                                    var isSalesTeamExpanded = currentController == "SalesTeam";
+                                    <a class="submenu-link @(isSalesTeamExpanded ? "active" : "")" data-bs-toggle="collapse" href="#salesTeamSub" role="button" aria-expanded="@(isSalesTeamExpanded ? "true" : "false")" aria-controls="salesTeamSub">
+                                        <i class="fa-solid fa-users-rectangle me-2"></i> Sales Team <i class="fa-solid fa-chevron-right dropdown-toggle-arrow float-end mt-1" style="font-size: 0.5rem;"></i>
+                                    </a>
+                                    <div class="collapse @(isSalesTeamExpanded ? "show" : "") ps-2" id="salesTeamSub" style="background-color: rgba(0,0,0,0.1);">
+                                        <a href="/SalesTeam/Executives" class="submenu-link @(currentController == "SalesTeam" && currentAction == "Executives" ? "active" : "")">Sales Executives</a>
+                                        <a href="/SalesTeam/Coordinators" class="submenu-link @(currentController == "SalesTeam" && currentAction == "Coordinators" ? "active" : "")">Sales Coordinators</a>
+                                        <a href="/SalesTeam/Targets" class="submenu-link @(currentController == "SalesTeam" && currentAction == "Targets" ? "active" : "")">Sales Targets</a>
+                                        <a href="/SalesTeam/Performance" class="submenu-link @(currentController == "SalesTeam" && currentAction == "Performance" ? "active" : "")">Sales Performance</a>
+                                    </div>
+                                }
+                                
+                                <a href="/Customers" class="submenu-link @(currentController == "Customers" ? "active" : "")">
+                                    <i class="fa-solid fa-handshake me-2"></i> Customers
+                                </a>
+                                <a href="/SalesManagement/Leads" class="submenu-link @(currentController == "SalesManagement" && currentAction == "Leads" ? "active" : "")">
+                                    <i class="fa-solid fa-filter me-2"></i> Leads
+                                </a>
+                                <a href="/SalesManagement/Quotations" class="submenu-link @(currentController == "SalesManagement" && currentAction == "Quotations" ? "active" : "")">
+                                    <i class="fa-solid fa-file-signature me-2"></i> Quotations
+                                </a>
+                                <a href="/SalesManagement/Orders" class="submenu-link @(currentController == "SalesManagement" && currentAction == "Orders" ? "active" : "")">
+                                    <i class="fa-solid fa-folder-open me-2"></i> Sales Orders
+                                </a>
+                                <a href="/Sales" class="submenu-link @(currentController == "Sales" && currentAction == "Index" ? "active" : "")">
+                                    <i class="fa-solid fa-file-invoice me-2"></i> Sales Invoices
+                                </a>
+                                <a href="/SalesManagement/Returns" class="submenu-link @(currentController == "SalesManagement" && currentAction == "Returns" ? "active" : "")">
+                                    <i class="fa-solid fa-arrow-rotate-left me-2"></i> Sales Returns
+                                </a>
+                                <a href="/SalesManagement/Receivables" class="submenu-link @(currentController == "SalesManagement" && currentAction == "Receivables" ? "active" : "")">
+                                    <i class="fa-solid fa-money-bill-trend-up me-2"></i> Payments / Receivables
+                                </a>
+                                
+                                <!-- Collapsible Product Management -->
+                                @if (userRole != "Sales Executive")
+                                {
+                                    var isProdSettingsExpanded = currentController == "ProductSettings" || currentController == "Products";
+                                    <a class="submenu-link @(isProdSettingsExpanded ? "active" : "")" data-bs-toggle="collapse" href="#prodMgmtSub" role="button" aria-expanded="@(isProdSettingsExpanded ? "true" : "false")" aria-controls="prodMgmtSub">
+                                        <i class="fa-solid fa-box-open me-2"></i> Product Management <i class="fa-solid fa-chevron-right dropdown-toggle-arrow float-end mt-1" style="font-size: 0.5rem;"></i>
+                                    </a>
+                                    <div class="collapse @(isProdSettingsExpanded ? "show" : "") ps-2" id="prodMgmtSub" style="background-color: rgba(0,0,0,0.1);">
+                                        <a href="/Products" class="submenu-link @(currentController == "Products" && currentAction == "Index" ? "active" : "")">Products</a>
+                                        <a href="/ProductSettings/Categories" class="submenu-link @(currentController == "ProductSettings" && currentAction == "Categories" ? "active" : "")">Categories</a>
+                                        <a href="/ProductSettings/Brands" class="submenu-link @(currentController == "ProductSettings" && currentAction == "Brands" ? "active" : "")">Brands</a>
+                                        <a href="/ProductSettings/Units" class="submenu-link @(currentController == "ProductSettings" && currentAction == "Units" ? "active" : "")">Units</a>
+                                        <a href="/ProductSettings/Variants" class="submenu-link @(currentController == "ProductSettings" && currentAction == "Variants" ? "active" : "")">Variants</a>
+                                        <a href="/ProductSettings/PriceLists" class="submenu-link @(currentController == "ProductSettings" && currentAction == "PriceLists" ? "active" : "")">Price Lists</a>
+                                        <a href="/ProductSettings/Barcodes" class="submenu-link @(currentController == "ProductSettings" && currentAction == "Barcodes" ? "active" : "")">Product Barcodes</a>
+                                    </div>
+                                }
+                                
+                                <!-- Collapsible Sales Reports -->
+                                @if (userRole != "Sales Executive")
+                                {
+                                    var isSalesReportsExpanded = currentController == "SalesReports";
+                                    <a class="submenu-link @(isSalesReportsExpanded ? "active" : "")" data-bs-toggle="collapse" href="#salesReportsSub" role="button" aria-expanded="@(isSalesReportsExpanded ? "true" : "false")" aria-controls="salesReportsSub">
+                                        <i class="fa-solid fa-chart-pie me-2"></i> Sales Reports <i class="fa-solid fa-chevron-right dropdown-toggle-arrow float-end mt-1" style="font-size: 0.5rem;"></i>
+                                    </a>
+                                    <div class="collapse @(isSalesReportsExpanded ? "show" : "") ps-2" id="salesReportsSub" style="background-color: rgba(0,0,0,0.1);">
+                                        <a href="/SalesReports/Summary" class="submenu-link @(currentController == "SalesReports" && currentAction == "Summary" ? "active" : "")">Sales Summary</a>
+                                        <a href="/SalesReports/ByCustomer" class="submenu-link @(currentController == "SalesReports" && currentAction == "ByCustomer" ? "active" : "")">Sales by Customer</a>
+                                        <a href="/SalesReports/ByProduct" class="submenu-link @(currentController == "SalesReports" && currentAction == "ByProduct" ? "active" : "")">Sales by Product</a>
+                                        <a href="/SalesReports/BySalesperson" class="submenu-link @(currentController == "SalesReports" && currentAction == "BySalesperson" ? "active" : "")">Sales by Salesperson</a>
+                                        <a href="/SalesReports/TargetReport" class="submenu-link @(currentController == "SalesReports" && currentAction == "TargetReport" ? "active" : "")">Sales Target Report</a>
+                                        <a href="/SalesReports/ReceivablesReport" class="submenu-link @(currentController == "SalesReports" && currentAction == "ReceivablesReport" ? "active" : "")">Receivables Report</a>
+                                    </div>
+                                }
+                                
+                                <a href="/Notifications" class="submenu-link @(currentController == "Notifications" ? "active" : "")">
+                                    <i class="fa-solid fa-bell me-2"></i> Notifications
+                                </a>
                             </div>
-                            <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
-                        </a>
+                        </div>
                     }
 
                     @if (showExpenseMgmt)
@@ -613,18 +736,7 @@
                             <i class="fa-solid fa-chevron-right small text-muted" style="font-size: 0.6rem;"></i>
                         </a>
                     }
-                }
-            </div>
-
-            <!-- Quick Links -->
-            <div class="sidebar-quicklinks">
-                <h6 class="font-weight-bold mb-2 small uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; color: var(--sidebar-color); opacity: 0.7;">Quick Links</h6>
-                <ul class="list-unstyled small mb-0 d-flex flex-column gap-2" style="font-size: 0.8rem;">
-                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-user-plus" style="width: 14px;"></i> Add New Employee</a></li>
-                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-file-signature" style="width: 14px;"></i> Purchase Order</a></li>
-                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-file-invoice" style="width: 14px;"></i> Sales Invoice</a></li>
-                    <li><a href="#" class="text-decoration-none d-flex align-items-center gap-2" style="color: var(--sidebar-color);"><i class="fa-solid fa-receipt" style="width: 14px;"></i> Expense Entry</a></li>
-                </ul>
+                
             </div>
 
             <div class="sidebar-footer">

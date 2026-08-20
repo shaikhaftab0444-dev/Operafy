@@ -36,9 +36,13 @@ namespace ERP_System.Controllers
             {
                 return RedirectToAction("Index", "EmployeeDashboard");
             }
-            else if (roleName == "Sales Executive" || roleName == "Sales Manager")
+            else if (roleName == "Sales Executive")
             {
                 return RedirectToAction("Index", "SalesDashboard");
+            }
+            else if (roleName == "Sales Manager")
+            {
+                return RedirectToAction("Index", "SalesManagerDashboard");
             }
             else if (roleName != "Super Admin" && roleName != "Admin")
             {
