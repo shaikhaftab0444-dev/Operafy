@@ -1,0 +1,387 @@
+@model IEnumerable<ERP_System.Models.User>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Employee Directory";
+    var roles = ViewBag.Roles as IEnumerable<ERP_System.Models.Role> ?? new List<ERP_System.Models.Role>();
+}
+
+<div class="container-fluid py-4 text-start">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-users text-primary me-2"></i>Employee Directory</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Employee Directory</li>
+                </ol>
+            </nav>
+        </div>
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+            <i class="fa-solid fa-plus me-1.5"></i>Add Employee
+        </button>
+    </div>
+
+    <!-- Search & Filter Card -->
+    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search by name, email, or employee code..." />
+            </div>
+            <div class="col-md-6">
+                <select id="roleSelect" class="form-select form-select-sm">
+                    <option value="">All Departments/Roles</option>
+                    @foreach (var role in roles)
+                    {
+                        <option value="@role.RoleId">@role.RoleName</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directory Grid -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Role/Designation</th>
+                        <th>Email</th>
+                        <th>Mobile</th>
+                        <th>Join Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var emp in Model)
+                        {
+                            <tr data-role-id="@emp.RoleId">
+                                <td class="fw-bold text-dark emp-code">@emp.UserCode</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        @if (!string.IsNullOrEmpty(emp.ProfilePhoto))
+                                        {
+                                            <img src="@emp.ProfilePhoto" class="rounded-circle me-2" style="width: 28px; height: 28px; object-fit: cover;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2 font-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                                @(!string.IsNullOrEmpty(emp.FullName) ? emp.FullName.Substring(0, Math.Min(2, emp.FullName.Length)).ToUpper() : "EM")
+                                            </div>
+                                        }
+                                        <div class="emp-name">@emp.FullName</div>
+                                    </div>
+                                </td>
+                                <td>@(emp.Role != null ? emp.Role.RoleName : "Unassigned")</td>
+                                <td class="emp-email">@emp.Email</td>
+                                <td>@(string.IsNullOrEmpty(emp.MobileNumber) ? "N/A" : emp.MobileNumber)</td>
+                                <td class="text-muted">@emp.CreatedAt.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    @if (emp.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-primary btn-xs rounded-pill px-2.5 view-btn"
+                                            data-code="@emp.UserCode"
+                                            data-name="@emp.FullName"
+                                            data-email="@emp.Email"
+                                            data-mobile="@emp.MobileNumber"
+                                            data-role="@(emp.Role != null ? emp.Role.RoleName : "Unassigned")"
+                                            data-date="@emp.CreatedAt.ToString("dd MMM yyyy")"
+                                            data-photo="@emp.ProfilePhoto"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#viewProfileModal">View Profile</button>
+
+                                    <button class="btn btn-outline-secondary btn-xs rounded-pill px-2.5 edit-btn"
+                                            data-id="@emp.UserId"
+                                            data-name="@emp.FullName"
+                                            data-user="@emp.UserName"
+                                            data-email="@emp.Email"
+                                            data-mobile="@emp.MobileNumber"
+                                            data-role="@emp.RoleId"
+                                            data-active="@emp.IsActive.ToString().ToLower()"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editEmployeeModal">Edit</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">No employees found in database.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal fade text-start" id="addEmployeeModal" tabindex="-1" aria-labelledby="addEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/HREmployee/CreateEmployee" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="addEmployeeModalLabel">Add New Employee</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Full Name</label>
+                        <input type="text" name="FullName" class="form-control" placeholder="e.g. Rajesh Kumar" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Username</label>
+                        <input type="text" name="UserName" class="form-control" placeholder="e.g. rajeshk" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Email Address</label>
+                        <input type="email" name="Email" class="form-control" placeholder="e.g. rajesh@erp.com" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Password</label>
+                        <input type="password" name="Password" class="form-control" placeholder="Defaults to Monitor@2026" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Mobile Number</label>
+                        <input type="text" name="MobileNumber" class="form-control" placeholder="e.g. 9876543210" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Assign Role/Designation</label>
+                        <select name="SelectedRoleId" class="form-select" required>
+                            @foreach (var role in roles)
+                            {
+                                <option value="@role.RoleId">@role.RoleName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Profile Photo</label>
+                        <input type="file" name="ProfilePhotoFile" class="form-control" accept="image/*" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div class="modal fade text-start" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/HREmployee/EditEmployee" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="UserId" id="editUserId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="editEmployeeModalLabel">Edit Employee Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Full Name</label>
+                        <input type="text" name="FullName" id="editFullName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Username</label>
+                        <input type="text" name="UserName" id="editUserName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Email Address</label>
+                        <input type="email" name="Email" id="editEmail" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Mobile Number</label>
+                        <input type="text" name="MobileNumber" id="editMobileNumber" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Assign Role/Designation</label>
+                        <select name="SelectedRoleId" id="editRoleId" class="form-select" required>
+                            @foreach (var role in roles)
+                            {
+                                <option value="@role.RoleId">@role.RoleName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">New Profile Photo</label>
+                        <input type="file" name="NewProfilePhotoFile" class="form-control" accept="image/*" />
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <div>
+                        <!-- Status Toggle Form -->
+                        <form id="statusToggleForm" action="/HREmployee/ToggleStatus" method="post" class="d-inline-block">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="UserId" id="statusUserId" />
+                            <button type="submit" id="statusToggleBtn" class="btn btn-warning rounded-pill btn-sm px-3">Deactivate</button>
+                        </form>
+                        <!-- Delete Form -->
+                        <form id="deleteForm" action="/HREmployee/DeleteEmployee" method="post" class="d-inline-block" onsubmit="return confirm('Are you sure you want to delete this employee?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="UserId" id="deleteUserId" />
+                            <button type="submit" class="btn btn-danger rounded-pill btn-sm px-3">Delete</button>
+                        </form>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Profile Modal -->
+<div class="modal fade text-start" id="viewProfileModal" tabindex="-1" aria-labelledby="viewProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="viewProfileModalLabel">Employee Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3 d-flex justify-content-center">
+                    <img id="viewPhoto" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover; display: none;" />
+                    <div id="viewAvatarCircle" class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center font-bold" style="width: 100px; height: 100px; font-size: 2rem;">
+                        EM
+                    </div>
+                </div>
+                <h5 class="fw-bold mb-1" id="viewName">Numan Sales Man</h5>
+                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1.5 mb-4" id="viewRole">Sales Manager</span>
+
+                <div class="text-start border-top pt-3">
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted small fw-semibold">Employee Code:</div>
+                        <div class="col-7 small fw-bold text-dark" id="viewCode">EMP-001</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted small fw-semibold">Email:</div>
+                        <div class="col-7 small text-dark" id="viewEmail">numan@sales.com</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted small fw-semibold">Mobile Number:</div>
+                        <div class="col-7 small text-dark" id="viewMobile">9876543210</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted small fw-semibold">Joining Date:</div>
+                        <div class="col-7 small text-dark" id="viewDate">12 Jan 2024</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Real-time Javascript automatic filtering
+    document.addEventListener("DOMContentLoaded", function () {
+        var searchInput = document.getElementById("searchInput");
+        var roleSelect = document.getElementById("roleSelect");
+
+        function filterTable() {
+            var searchValue = searchInput.value.toLowerCase();
+            var roleValue = roleSelect.value;
+            var rows = document.querySelectorAll("tbody tr");
+
+            rows.forEach(function (row) {
+                var nameEl = row.querySelector(".emp-name");
+                var codeEl = row.querySelector(".emp-code");
+                var emailEl = row.querySelector(".emp-email");
+                
+                if (!nameEl) return; // Skip empty message rows
+
+                var name = nameEl.textContent.toLowerCase();
+                var code = codeEl.textContent.toLowerCase();
+                var email = emailEl.textContent.toLowerCase();
+                var roleId = row.getAttribute("data-role-id");
+
+                var matchesSearch = name.includes(searchValue) || code.includes(searchValue) || email.includes(searchValue);
+                var matchesRole = !roleValue || roleId === roleValue;
+
+                if (matchesSearch && matchesRole) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        searchInput.addEventListener("keyup", filterTable);
+        roleSelect.addEventListener("change", filterTable);
+
+        // Edit button data transfer to inputs
+        document.querySelectorAll(".edit-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                document.getElementById("editUserId").value = this.getAttribute("data-id");
+                document.getElementById("editFullName").value = this.getAttribute("data-name");
+                document.getElementById("editUserName").value = this.getAttribute("data-user");
+                document.getElementById("editEmail").value = this.getAttribute("data-email");
+                document.getElementById("editMobileNumber").value = this.getAttribute("data-mobile");
+                document.getElementById("editRoleId").value = this.getAttribute("data-role");
+
+                var isActive = this.getAttribute("data-active") === "true";
+                var statusToggleBtn = document.getElementById("statusToggleBtn");
+
+                document.getElementById("statusUserId").value = this.getAttribute("data-id");
+                document.getElementById("deleteUserId").value = this.getAttribute("data-id");
+
+                if (isActive) {
+                    statusToggleBtn.textContent = "Deactivate";
+                    statusToggleBtn.className = "btn btn-warning rounded-pill btn-sm px-3 me-2";
+                } else {
+                    statusToggleBtn.textContent = "Activate";
+                    statusToggleBtn.className = "btn btn-success rounded-pill btn-sm px-3 me-2";
+                }
+            });
+        });
+
+        // View Profile button data transfer
+        document.querySelectorAll(".view-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                document.getElementById("viewCode").textContent = this.getAttribute("data-code");
+                document.getElementById("viewName").textContent = this.getAttribute("data-name");
+                document.getElementById("viewEmail").textContent = this.getAttribute("data-email");
+                document.getElementById("viewMobile").textContent = this.getAttribute("data-mobile") || "N/A";
+                document.getElementById("viewRole").textContent = this.getAttribute("data-role");
+                document.getElementById("viewDate").textContent = this.getAttribute("data-date");
+
+                var photoUrl = this.getAttribute("data-photo");
+                var img = document.getElementById("viewPhoto");
+                var circle = document.getElementById("viewAvatarCircle");
+
+                if (photoUrl) {
+                    img.src = photoUrl;
+                    img.style.display = "block";
+                    circle.style.display = "none";
+                } else {
+                    img.style.display = "none";
+                    circle.style.display = "flex";
+                    var nameStr = this.getAttribute("data-name");
+                    circle.textContent = nameStr ? nameStr.substring(0, Math.min(2, nameStr.length)).toUpperCase() : "EM";
+                }
+            });
+        });
+    });
+</script>

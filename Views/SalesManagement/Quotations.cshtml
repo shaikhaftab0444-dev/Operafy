@@ -1,6 +1,8 @@
+@model IEnumerable<ERP_System.Models.Quotation>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Quotations";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
 <div class="container-fluid py-4 text-start">
@@ -14,7 +16,9 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm"><i class="fa-solid fa-file-invoice me-1.5"></i>Create Quotation</button>
+        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createQuotationModal">
+            <i class="fa-solid fa-plus me-1.5"></i>Create Quotation
+        </button>
     </div>
 
     <!-- Quotations Table -->
@@ -31,29 +35,75 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">QTN-5011</td>
-                        <td>Rajesh Corp Ltd</td>
-                        <td class="text-muted">30 Aug 2026</td>
-                        <td class="fw-bold">₹1,50,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Approved</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">QTN-5012</td>
-                        <td>Mehta Logistics</td>
-                        <td class="text-muted">15 Sep 2026</td>
-                        <td class="fw-bold">₹3,20,000</td>
-                        <td><span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Sent</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">QTN-5013</td>
-                        <td>Global Agencies Ltd</td>
-                        <td class="text-muted">25 Aug 2026</td>
-                        <td class="fw-bold">₹75,000</td>
-                        <td><span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1">Draft</span></td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var quote in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@quote.QuoteNo</td>
+                                <td>@quote.CustomerName</td>
+                                <td class="text-muted">@quote.ExpiryDate.ToString("dd MMM yyyy")</td>
+                                <td class="fw-bold">₹@quote.EstimatedAmount.ToString("N0", inCulture)</td>
+                                <td>
+                                    @{
+                                        var badgeClass = quote.Status == "Approved" ? "bg-success-subtle text-success" :
+                                                         quote.Status == "Sent" ? "bg-warning-subtle text-warning" :
+                                                         "bg-secondary-subtle text-secondary";
+                                    }
+                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@quote.Status</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No quotations found in database.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Quotation Modal -->
+<div class="modal fade text-start" id="createQuotationModal" tabindex="-1" aria-labelledby="createQuotationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/SalesManagement/CreateQuotation" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="createQuotationModalLabel">Create New Quotation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Customer Name</label>
+                        <input type="text" name="CustomerName" class="form-control" placeholder="e.g. Rajesh Corp Ltd" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Estimated Amount (INR)</label>
+                        <input type="number" name="EstimatedAmount" class="form-control" placeholder="e.g. 150000" min="0" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Expiry Date</label>
+                        <input type="date" name="ExpiryDate" class="form-control" value="@DateTime.Now.AddDays(10).ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Status</label>
+                        <select name="Status" class="form-select" required>
+                            <option value="Draft">Draft</option>
+                            <option value="Sent">Sent</option>
+                            <option value="Approved">Approved</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Quotation</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

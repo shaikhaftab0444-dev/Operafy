@@ -1,0 +1,140 @@
+@model IEnumerable<ERP_System.Models.HROnboarding>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Onboarding & KYC Verification";
+}
+
+<div class="container-fluid py-4 text-start">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-plus text-primary me-2"></i>Onboarding & KYC</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Onboarding & KYC</li>
+                </ol>
+            </nav>
+        </div>
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#initiateOnboardingModal">
+            <i class="fa-solid fa-plus me-1.5"></i>Initiate Onboarding
+        </button>
+    </div>
+
+    <!-- Onboarding Tracker Table -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Position</th>
+                        <th>Documents Status</th>
+                        <th>Background Check</th>
+                        <th>KYC Progress</th>
+                        <th>Orientation Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var o in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@o.CandidateName</td>
+                                <td>@o.Position</td>
+                                <td>
+                                    @{
+                                        var docClass = o.DocumentsStatus.Contains("Uploaded") ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning";
+                                    }
+                                    <span class="badge @docClass rounded-pill">@o.DocumentsStatus</span>
+                                </td>
+                                <td>
+                                    @{
+                                        var bgClass = o.BackgroundCheck == "Verified" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning";
+                                    }
+                                    <span class="badge @bgClass rounded-pill">@o.BackgroundCheck</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-2" style="height: 6px; width: 80px;">
+                                            <div class="progress-bar @(o.KycProgress == 100 ? "bg-success" : "bg-warning")" role="progressbar" style="width: @(o.KycProgress)%;" aria-valuenow="@o.KycProgress" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="small fw-semibold">@o.KycProgress%</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @{
+                                        var orientClass = o.OrientationStatus == "Completed" ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary";
+                                    }
+                                    <span class="badge @orientClass rounded-pill">@o.OrientationStatus</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No onboarding records found in database.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Initiate Onboarding Modal -->
+<div class="modal fade text-start" id="initiateOnboardingModal" tabindex="-1" aria-labelledby="initiateOnboardingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/HREmployee/CreateOnboarding" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="initiateOnboardingModalLabel">Initiate Onboarding Checklist</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Candidate Name</label>
+                        <input type="text" name="CandidateName" class="form-control" placeholder="e.g. Amit Patel" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Position Offered</label>
+                        <input type="text" name="Position" class="form-control" placeholder="e.g. Senior Software Engineer" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Documents Submission Status</label>
+                        <select name="DocumentsStatus" class="form-select" required>
+                            <option value="Uploaded (4/4)">Uploaded (4/4)</option>
+                            <option value="Pending (2/4)">Pending (2/4)</option>
+                            <option value="Pending (0/4)">Pending (0/4)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Background Check Status</label>
+                        <select name="BackgroundCheck" class="form-select" required>
+                            <option value="Verified">Verified</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">KYC Verification Progress (%)</label>
+                        <input type="number" name="KycProgress" class="form-control" min="0" max="100" value="50" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Orientation Status</label>
+                        <select name="OrientationStatus" class="form-select" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Initiate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

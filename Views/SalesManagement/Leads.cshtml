@@ -1,3 +1,4 @@
+@model IEnumerable<ERP_System.Models.Lead>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Leads Management";
@@ -14,7 +15,9 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm"><i class="fa-solid fa-plus me-1.5"></i>Create Lead</button>
+        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createLeadModal">
+            <i class="fa-solid fa-plus me-1.5"></i>Create Lead
+        </button>
     </div>
 
     <!-- Leads Cards -->
@@ -22,25 +25,25 @@
         <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
                 <div class="text-muted fw-semibold small">New Leads</div>
-                <h3 class="fw-bold text-primary mb-0 mt-1">45</h3>
+                <h3 class="fw-bold text-primary mb-0 mt-1">@Model.Count(l => l.Status == "New")</h3>
             </div>
         </div>
         <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
                 <div class="text-muted fw-semibold small">Contacted</div>
-                <h3 class="fw-bold text-warning mb-0 mt-1">28</h3>
+                <h3 class="fw-bold text-warning mb-0 mt-1">@Model.Count(l => l.Status == "Contacted")</h3>
             </div>
         </div>
         <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
                 <div class="text-muted fw-semibold small">Qualified</div>
-                <h3 class="fw-bold text-success mb-0 mt-1">15</h3>
+                <h3 class="fw-bold text-success mb-0 mt-1">@Model.Count(l => l.Status == "Qualified")</h3>
             </div>
         </div>
         <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Conversion Rate</div>
-                <h3 class="fw-bold text-dark mb-0 mt-1">18.4%</h3>
+                <div class="text-muted fw-semibold small">Total Leads</div>
+                <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Count()</h3>
             </div>
         </div>
     </div>
@@ -60,40 +63,84 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">LD-2041</td>
-                        <td>Rajesh Kumar</td>
-                        <td>Rajesh Corp Ltd</td>
-                        <td>Website Referral</td>
-                        <td class="text-muted">20 Aug 2026</td>
-                        <td><span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1">New</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">LD-2042</td>
-                        <td>Sarah Jenkins</td>
-                        <td>Jenkins Q2 Auditing</td>
-                        <td>Cold Email</td>
-                        <td class="text-muted">19 Aug 2026</td>
-                        <td><span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Contacted</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">LD-2043</td>
-                        <td>Sunil Mehta</td>
-                        <td>Mehta Logistics</td>
-                        <td>Direct Call</td>
-                        <td class="text-muted">18 Aug 2026</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Qualified</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">LD-2044</td>
-                        <td>Vikram Singh</td>
-                        <td>Singh & Sons</td>
-                        <td>LinkedIn</td>
-                        <td class="text-muted">15 Aug 2026</td>
-                        <td><span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">Lost</span></td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var lead in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">LD-@lead.LeadId</td>
+                                <td>@lead.ContactName</td>
+                                <td>@lead.Company</td>
+                                <td>@lead.Source</td>
+                                <td class="text-muted">@lead.CreatedAt.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    @{
+                                        var badgeClass = lead.Status == "New" ? "bg-primary-subtle text-primary" :
+                                                         lead.Status == "Contacted" ? "bg-warning-subtle text-warning" :
+                                                         lead.Status == "Qualified" ? "bg-success-subtle text-success" :
+                                                         "bg-danger-subtle text-danger";
+                                    }
+                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@lead.Status</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No leads found in database.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Lead Modal -->
+<div class="modal fade text-start" id="createLeadModal" tabindex="-1" aria-labelledby="createLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/SalesManagement/CreateLead" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="createLeadModalLabel">Create New Lead</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Contact Name</label>
+                        <input type="text" name="ContactName" class="form-control" placeholder="e.g. Rajesh Kumar" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Company Name</label>
+                        <input type="text" name="Company" class="form-control" placeholder="e.g. Rajesh Corp Ltd" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Lead Source</label>
+                        <select name="Source" class="form-select" required>
+                            <option value="Website Referral">Website Referral</option>
+                            <option value="Cold Email">Cold Email</option>
+                            <option value="Direct Call">Direct Call</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Status</label>
+                        <select name="Status" class="form-select" required>
+                            <option value="New">New</option>
+                            <option value="Contacted">Contacted</option>
+                            <option value="Qualified">Qualified</option>
+                            <option value="Lost">Lost</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Lead</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
