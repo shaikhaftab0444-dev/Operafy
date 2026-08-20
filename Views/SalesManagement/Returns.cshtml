@@ -1,6 +1,8 @@
+@model IEnumerable<ERP_System.Models.SalesReturn>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales Returns";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
 <div class="container-fluid py-4 text-start">
@@ -14,7 +16,9 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm"><i class="fa-solid fa-clock-rotate-left me-1.5"></i>Log Return</button>
+        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createReturnModal">
+            <i class="fa-solid fa-clock-rotate-left me-1.5"></i>Log Return
+        </button>
     </div>
 
     <!-- Sales Returns Table -->
@@ -32,24 +36,76 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">SR-7001</td>
-                        <td>INV-10022</td>
-                        <td>Rahul Enterprises</td>
-                        <td class="text-muted">15 Aug 2026</td>
-                        <td class="fw-bold text-danger">₹12,500</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Refunded</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">SR-7002</td>
-                        <td>INV-10034</td>
-                        <td>Mehta Logistics</td>
-                        <td class="text-muted">18 Aug 2026</td>
-                        <td class="fw-bold text-danger">₹25,000</td>
-                        <td><span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Inspecting</span></td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var ret in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@ret.ReturnNo</td>
+                                <td>@ret.OriginalInvoiceNo</td>
+                                <td>@ret.CustomerName</td>
+                                <td class="text-muted">@ret.ReturnDate.ToString("dd MMM yyyy")</td>
+                                <td class="fw-bold text-danger">₹@ret.RefundValue.ToString("N0", inCulture)</td>
+                                <td>
+                                    @{
+                                        var badgeClass = ret.Status == "Refunded" ? "bg-success-subtle text-success" :
+                                                         ret.Status == "Inspecting" ? "bg-warning-subtle text-warning" :
+                                                         "bg-danger-subtle text-danger";
+                                    }
+                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@ret.Status</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No returns found in database.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Log Return Modal -->
+<div class="modal fade text-start" id="createReturnModal" tabindex="-1" aria-labelledby="createReturnModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/SalesManagement/CreateReturn" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="createReturnModalLabel">Log Customer Sales Return</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Original Invoice No</label>
+                        <input type="text" name="OriginalInvoiceNo" class="form-control" placeholder="e.g. INV-10022" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Customer Name</label>
+                        <input type="text" name="CustomerName" class="form-control" placeholder="e.g. Rahul Enterprises" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Refund Value (INR)</label>
+                        <input type="number" name="RefundValue" class="form-control" placeholder="e.g. 12500" min="0" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Return Status</label>
+                        <select name="Status" class="form-select" required>
+                            <option value="Inspecting">Inspecting</option>
+                            <option value="Refunded">Refunded</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log Return</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

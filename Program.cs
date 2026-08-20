@@ -31,6 +31,8 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
         await SeedData.InitializePermissionsAsync(context);
+        await SeedData.InitializeSalesManagementTablesAsync(context);
+        await SeedData.InitializeHRManagementTablesAsync(context);
     }
     catch (Exception ex)
     {

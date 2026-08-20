@@ -27,6 +27,15 @@ namespace ERP_System.Data
         public DbSet<AccountHead> AccountHeads { get; set; }
         public DbSet<StockAdjustment> StockAdjustments { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<Lead> Leads { get; set; }
+        public DbSet<Quotation> Quotations { get; set; }
+        public DbSet<SalesOrder> SalesOrders { get; set; }
+        public DbSet<SalesReturn> SalesReturns { get; set; }
+        public DbSet<PaymentReceipt> PaymentReceipts { get; set; }
+        public DbSet<HROnboarding> Onboardings { get; set; }
+        public DbSet<HRContract> Contracts { get; set; }
+        public DbSet<HRTransfer> Transfers { get; set; }
+        public DbSet<HROffboarding> Offboardings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -51,6 +60,15 @@ namespace ERP_System.Data
             modelBuilder.Entity<AccountHead>().ToTable("erp_AccountHeads");
             modelBuilder.Entity<RolePermission>().ToTable("erp_RolePermissions");
             modelBuilder.Entity<StockAdjustment>().ToTable("erp_StockAdjustments");
+            modelBuilder.Entity<Lead>().ToTable("erp_Leads");
+            modelBuilder.Entity<Quotation>().ToTable("erp_Quotations");
+            modelBuilder.Entity<SalesOrder>().ToTable("erp_SalesOrders");
+            modelBuilder.Entity<SalesReturn>().ToTable("erp_SalesReturns");
+            modelBuilder.Entity<PaymentReceipt>().ToTable("erp_PaymentReceipts");
+            modelBuilder.Entity<HROnboarding>().ToTable("erp_Onboardings");
+            modelBuilder.Entity<HRContract>().ToTable("erp_Contracts");
+            modelBuilder.Entity<HRTransfer>().ToTable("erp_Transfers");
+            modelBuilder.Entity<HROffboarding>().ToTable("erp_Offboardings");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

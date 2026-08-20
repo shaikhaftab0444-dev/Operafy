@@ -1,0 +1,124 @@
+@model IEnumerable<ERP_System.Models.HRTransfer>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Transfers & Promotions";
+}
+
+<div class="container-fluid py-4 text-start">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-arrows-spin text-primary me-2"></i>Transfers & Promotions</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Transfers & Promotions</li>
+                </ol>
+            </nav>
+        </div>
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#logTransferModal">
+            <i class="fa-solid fa-plus me-1.5"></i>Log Transaction
+        </button>
+    </div>
+
+    <!-- Log List -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>From (Dept/Desg)</th>
+                        <th>To (Dept/Desg)</th>
+                        <th>Effective Date</th>
+                        <th>Approval Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var t in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@t.EmployeeName</td>
+                                <td>
+                                    @{
+                                        var typeClass = t.Type == "Promotion" ? "bg-success-subtle text-success" : "bg-info-subtle text-info";
+                                    }
+                                    <span class="badge @typeClass rounded-pill">@t.Type</span>
+                                </td>
+                                <td>@t.FromDeptOrDesg</td>
+                                <td>@t.ToDeptOrDesg</td>
+                                <td class="text-muted">@t.EffectiveDate.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    @{
+                                        var statusClass = t.ApprovalStatus == "Approved" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning";
+                                    }
+                                    <span class="badge @statusClass rounded-pill">@t.ApprovalStatus</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No transfers logged in database.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Log Transfer Modal -->
+<div class="modal fade text-start" id="logTransferModal" tabindex="-1" aria-labelledby="logTransferModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/HREmployee/CreateTransfer" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="logTransferModalLabel">Log Promotion / Transfer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Employee Name</label>
+                        <input type="text" name="EmployeeName" class="form-control" placeholder="e.g. Sunil Mehta" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Transaction Type</label>
+                        <select name="Type" class="form-select" required>
+                            <option value="Promotion">Promotion</option>
+                            <option value="Transfer">Transfer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Source Branch/Dept/Role</label>
+                        <input type="text" name="FromDeptOrDesg" class="form-control" placeholder="e.g. Sales Executive" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Destination Branch/Dept/Role</label>
+                        <input type="text" name="ToDeptOrDesg" class="form-control" placeholder="e.g. Sales Manager" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Effective Date</label>
+                        <input type="date" name="EffectiveDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Approval Status</label>
+                        <select name="ApprovalStatus" class="form-select" required>
+                            <option value="Pending Approval">Pending Approval</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

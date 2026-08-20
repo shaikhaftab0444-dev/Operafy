@@ -1,6 +1,8 @@
+@model IEnumerable<ERP_System.Models.SalesOrder>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales Orders";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
 <div class="container-fluid py-4 text-start">
@@ -14,7 +16,9 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm"><i class="fa-solid fa-cart-plus me-1.5"></i>Create Sales Order</button>
+        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createOrderModal">
+            <i class="fa-solid fa-cart-plus me-1.5"></i>Create Sales Order
+        </button>
     </div>
 
     <!-- Sales Orders Table -->
@@ -31,22 +35,71 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">SO-9041</td>
-                        <td>Rahul Enterprises</td>
-                        <td class="text-muted">18 Aug 2026</td>
-                        <td class="fw-bold">₹1,80,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Dispatched</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">SO-9042</td>
-                        <td>Sunil Mehta</td>
-                        <td class="text-muted">19 Aug 2026</td>
-                        <td class="fw-bold">₹4,25,000</td>
-                        <td><span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Processing</span></td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var order in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@order.OrderNo</td>
+                                <td>@order.CustomerName</td>
+                                <td class="text-muted">@order.OrderDate.ToString("dd MMM yyyy")</td>
+                                <td class="fw-bold">₹@order.OrderTotal.ToString("N0", inCulture)</td>
+                                <td>
+                                    @{
+                                        var badgeClass = order.DeliveryStatus == "Delivered" ? "bg-success-subtle text-success" :
+                                                         order.DeliveryStatus == "Dispatched" ? "bg-info-subtle text-info" :
+                                                         "bg-warning-subtle text-warning";
+                                    }
+                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@order.DeliveryStatus</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No sales orders found in database.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Sales Order Modal -->
+<div class="modal fade text-start" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/SalesManagement/CreateOrder" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="createOrderModalLabel">Create New Sales Order</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Customer Name</label>
+                        <input type="text" name="CustomerName" class="form-control" placeholder="e.g. Rahul Enterprises" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Order Total (INR)</label>
+                        <input type="number" name="OrderTotal" class="form-control" placeholder="e.g. 180000" min="0" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Delivery Status</label>
+                        <select name="DeliveryStatus" class="form-select" required>
+                            <option value="Processing">Processing</option>
+                            <option value="Dispatched">Dispatched</option>
+                            <option value="Delivered">Delivered</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Order</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

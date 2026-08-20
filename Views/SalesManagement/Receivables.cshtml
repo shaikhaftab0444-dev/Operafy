@@ -1,6 +1,8 @@
+@model IEnumerable<ERP_System.Models.PaymentReceipt>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Payments & Receivables";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
 <div class="container-fluid py-4 text-start">
@@ -14,7 +16,9 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm"><i class="fa-solid fa-hand-holding-dollar me-1.5"></i>Log Payment Receipt</button>
+        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createReceivableModal">
+            <i class="fa-solid fa-hand-holding-dollar me-1.5"></i>Log Payment Receipt
+        </button>
     </div>
 
     <!-- Payments Table -->
@@ -32,24 +36,80 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">INV-10041</td>
-                        <td>Rajesh Corp Ltd</td>
-                        <td class="text-muted">10 Aug 2026</td>
-                        <td class="text-muted">25 Aug 2026</td>
-                        <td class="fw-bold">₹75,000</td>
-                        <td><span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Pending</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">INV-10042</td>
-                        <td>Mehta Logistics</td>
-                        <td class="text-muted">05 Aug 2026</td>
-                        <td class="text-muted">20 Aug 2026</td>
-                        <td class="fw-bold">₹55,250</td>
-                        <td><span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">Overdue</span></td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var rec in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@rec.InvoiceNo</td>
+                                <td>@rec.CustomerName</td>
+                                <td class="text-muted">@rec.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                <td class="text-muted">@rec.DueDate.ToString("dd MMM yyyy")</td>
+                                <td class="fw-bold">₹@rec.PendingBalance.ToString("N0", inCulture)</td>
+                                <td>
+                                    @{
+                                        var badgeClass = rec.Status == "Paid" ? "bg-success-subtle text-success" :
+                                                         rec.Status == "Overdue" ? "bg-danger-subtle text-danger" :
+                                                         "bg-warning-subtle text-warning";
+                                    }
+                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@rec.Status</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No receivables log found in database.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Log Payment Receipt Modal -->
+<div class="modal fade text-start" id="createReceivableModal" tabindex="-1" aria-labelledby="createReceivableModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/SalesManagement/CreateReceivable" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="createReceivableModalLabel">Log Payment Receivable Receipt</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Invoice No</label>
+                        <input type="text" name="InvoiceNo" class="form-control" placeholder="e.g. INV-10041" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Customer Name</label>
+                        <input type="text" name="CustomerName" class="form-control" placeholder="e.g. Rajesh Corp Ltd" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Due Date</label>
+                        <input type="date" name="DueDate" class="form-control" value="@DateTime.Now.AddDays(15).ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Pending Balance (INR)</label>
+                        <input type="number" name="PendingBalance" class="form-control" placeholder="e.g. 75000" min="0" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Status</label>
+                        <select name="Status" class="form-select" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Overdue">Overdue</option>
+                            <option value="Paid">Paid</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log Payment</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
