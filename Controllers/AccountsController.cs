@@ -303,7 +303,7 @@ namespace ERP_System.Controllers
                 new AccountHead { HeadCode = "AC-3001", HeadName = "Shareholders Share Capital", AccountType = "Equity", Description = "Paid-in equity capital.", IsActive = true, CreatedAt = DateTime.UtcNow },
                 new AccountHead { HeadCode = "AC-3002", HeadName = "Retained Earnings", AccountType = "Equity", Description = "Accumulated earnings retained in company.", IsActive = true, CreatedAt = DateTime.UtcNow },
 
-                // Revenue
+                // Revenue  
                 new AccountHead { HeadCode = "AC-4001", HeadName = "Product Sales Revenue", AccountType = "Revenue", Description = "Income generated from inventory goods sold.", IsActive = true, CreatedAt = DateTime.UtcNow },
                 new AccountHead { HeadCode = "AC-4002", HeadName = "Service & Consulting Income", AccountType = "Revenue", Description = "Revenue from software & maintenance contracts.", IsActive = true, CreatedAt = DateTime.UtcNow },
 
