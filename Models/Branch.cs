@@ -13,12 +13,8 @@ namespace ERP_System.Models
         [Required]
         public int CompanyId { get; set; }
 
-        [Required(ErrorMessage = "Branch name is required")]
-        [StringLength(150)]
-        [Display(Name = "Branch Name")]
         public string BranchName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Branch code is required")]
         [StringLength(20)]
         [Display(Name = "Branch Code")]
         public string BranchCode { get; set; } = string.Empty;

@@ -18,7 +18,7 @@ namespace ERP_System.Models
 
         [Required]
         [StringLength(50)]
-        public string PayPeriod { get; set; } = string.Empty; // e.g. "August 2026"
+        public string PayPeriod { get; set; } = string.Empty;
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal BasicSalary { get; set; }
@@ -47,6 +47,6 @@ namespace ERP_System.Models
 
         [Required]
         [StringLength(30)]
-        public string Status { get; set; } = "Paid"; // Paid, Pending
+        public string Status { get; set; } = "Paid";
     }
 }

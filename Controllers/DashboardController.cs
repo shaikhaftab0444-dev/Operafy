@@ -51,7 +51,7 @@ namespace ERP_System.Controllers
             // Resolve company/branch context
             int companyId = 1;
             int branchId = 3;
-            
+
             var companyClaim = User.FindFirst("Company")?.Value;
             if (int.TryParse(companyClaim, out int cId))
             {
@@ -192,7 +192,7 @@ namespace ERP_System.Controllers
             var totalSalesAllTime = await _context.Transactions.Where(t => t.Type == "Sales Invoice" && t.Status == "Paid").SumAsync(t => t.Amount);
             var totalPurchaseAllTime = await _context.Transactions.Where(t => t.Type == "Purchase Order" && t.Status == "Paid").SumAsync(t => t.Amount);
             var totalExpenseAllTime = await _context.Transactions.Where(t => t.Type == "Expense Entry").SumAsync(t => t.Amount);
-            
+
             decimal cashBankBalance = ownerCapital + totalSalesAllTime - totalPurchaseAllTime - totalExpenseAllTime;
             if (cashBankBalance <= ownerCapital) cashBankBalance = 639131; // fallback to screenshot value if empty
 
@@ -265,7 +265,7 @@ namespace ERP_System.Controllers
                 TotalEmployees = totalEmployees,
                 TotalProducts = totalProducts,
                 StockValue = stockValue,
-                
+
                 InStockQty = inStockQty,
                 LowStockQty = lowStockQty,
                 OutOfStockQty = outOfStockQty,
