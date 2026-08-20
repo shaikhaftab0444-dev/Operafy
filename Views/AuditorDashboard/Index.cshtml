@@ -1,387 +1,803 @@
 @model ERP_System.Models.AuditorDashboardViewModel
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Auditor Dashboard";
+    ViewData["Title"] = "Auditor Control Center";
     var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
 <style>
-    .dashboard-title-bar {
-        text-align: left;
-        margin-bottom: 1.5rem;
+    .auditor-dash {
+        --aud-bg: #f8fafc;
+        --aud-card: #ffffff;
+        --aud-border: #e2e8f0;
+        --aud-navy: #0f172a;
+        --aud-navy-light: #1e293b;
+        --aud-accent: #2563eb;
+        --aud-accent-light: #eff6ff;
+        --aud-success: #10b981;
+        --aud-warning: #f59e0b;
+        --aud-danger: #ef4444;
+        --aud-info: #06b6d4;
+        --aud-purple: #8b5cf6;
+        --aud-text: #1e293b;
+        --aud-muted: #64748b;
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     }
 
-    .dashboard-title {
-        font-size: 1.8rem;
-        font-weight: 500;
-        color: #555555;
-        margin: 0;
-    }
-
-    /* 4 KPI Cards Grid Layout */
-    .kpi-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1.25rem;
+    /* Header Banner */
+    .aud-header-banner {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%);
+        color: #ffffff;
+        border-radius: 20px;
+        padding: 2rem 2.25rem;
         margin-bottom: 2rem;
-    }
-
-    @@media (max-width: 1200px) {
-        .kpi-row {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @@media (max-width: 600px) {
-        .kpi-row {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* KPI Card Style */
-    .screenshot-card {
-        border-radius: 6px;
-        color: #ffffff !important;
-        display: flex;
-        align-items: stretch;
-        min-height: 100px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.25), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+        position: relative;
         overflow: hidden;
-        text-align: left;
     }
 
-    .card-left-block {
-        width: 34%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        border-right: 1px solid rgba(255, 255, 255, 0.25);
-        background: rgba(0, 0, 0, 0.08);
-        padding: 0.5rem;
-        text-align: center;
+    .aud-header-banner::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 350px;
+        height: 350px;
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
     }
 
-    .card-left-icon {
-        font-size: 1.8rem;
-        opacity: 0.85;
-    }
-
-    .card-right-block {
-        width: 66%;
-        padding: 0.75rem 1rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-    }
-
-    .card-val {
-        font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+    .aud-badge {
+        background: rgba(37, 99, 235, 0.25);
+        color: #93c5fd;
+        border: 1px solid rgba(147, 197, 253, 0.3);
+        padding: 0.4rem 0.95rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
         font-weight: 700;
-        margin: 0;
-        line-height: 1.25;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
     }
 
-    .card-label {
-        font-size: 0.72rem;
-        font-weight: 500;
-        opacity: 0.95;
-        margin-top: 3px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Card Background Colors */
-    .bg-kpi-blue {
-        background-color: #3b82f6;
-    }
-
-    .bg-kpi-indigo {
-        background-color: #6366f1;
-    }
-
-    .bg-kpi-purple {
-        background-color: #a855f7;
-    }
-
-    .bg-kpi-teal-dark {
-        background-color: #0d9488;
-    }
-
-    .bg-kpi-green {
-        background-color: #10b981;
-    }
-
-    .bg-kpi-slate {
-        background-color: #475569;
-    }
-
-    .bg-kpi-violet {
-        background-color: #8b5cf6;
-    }
-
-    .bg-kpi-teal-light {
-        background-color: #14b8a6;
-    }
-
-    /* Summary Modules (Grid Tables) */
-    .summary-module {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 8px;
-        margin-bottom: 2rem;
-        text-align: left;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-    }
-
-    .summary-header {
-        background-color: #fafafa;
-        border-bottom: 1px solid var(--border-warm);
-        padding: 0.75rem 1.25rem;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #666666;
-    }
-
-    .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        border-collapse: collapse;
-    }
-
-    @@media (max-width: 900px) {
-        .summary-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    .summary-box {
-        text-align: center;
-        padding: 1.25rem 0.5rem;
-        border-right: 1px solid var(--border-warm);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-
-    .summary-box:last-child {
-        border-right: none;
-    }
-
-    .summary-title {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #3b82f6;
-        margin-bottom: 0.5rem;
-    }
-
-    .summary-val {
-        font-size: 1.15rem;
+    .aud-score-badge {
+        background: rgba(16, 185, 129, 0.18);
+        color: #6ee7b7;
+        border: 1px solid rgba(110, 231, 183, 0.3);
+        padding: 0.4rem 0.95rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
         font-weight: 700;
-        color: #333333;
     }
 
-    .detail-card {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        padding: 1.5rem;
+    /* KPI Cards */
+    .aud-kpi-card {
+        background: var(--aud-card);
+        border: 1px solid var(--aud-border);
+        border-radius: 16px;
+        padding: 1.35rem 1.5rem;
+        transition: all 0.25s ease-in-out;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+        position: relative;
         height: 100%;
-        text-align: left;
+    }
+
+    .aud-kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px -3px rgba(15, 23, 42, 0.08);
+        border-color: #cbd5e1;
+    }
+
+    .aud-kpi-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        flex-shrink: 0;
+    }
+
+    /* Quick Telemetry Cards */
+    .aud-telemetry-chip {
+        background: var(--aud-card);
+        border: 1px solid var(--aud-border);
+        border-radius: 14px;
+        padding: 0.85rem 1.15rem;
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Table Cards */
+    .aud-table-card {
+        background: var(--aud-card);
+        border: 1px solid var(--aud-border);
+        border-radius: 18px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    .aud-table-header {
+        padding: 1.25rem 1.75rem;
+        background: #ffffff;
+        border-bottom: 1px solid var(--aud-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .aud-table {
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+    .aud-table th {
+        background: #f8fafc;
+        color: var(--aud-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 0.9rem 1.25rem;
+        border-bottom: 1px solid var(--aud-border);
+    }
+
+    .aud-table td {
+        padding: 1.05rem 1.25rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--aud-border);
+        color: var(--aud-text);
+        font-size: 0.875rem;
+    }
+
+    .aud-table tr:hover td {
+        background-color: #f8fafc;
+    }
+
+    /* Nav Tabs */
+    .aud-nav-pills .nav-link {
+        color: var(--aud-muted);
+        font-weight: 600;
+        font-size: 0.875rem;
+        border-radius: 10px;
+        padding: 0.55rem 1.15rem;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    .aud-nav-pills .nav-link.active {
+        background-color: var(--aud-navy);
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+    }
+
+    .aud-nav-pills .nav-link:hover:not(.active) {
+        background-color: #f1f5f9;
+        color: var(--aud-text);
+    }
+
+    .chart-container {
+        position: relative;
+        min-height: 280px;
+        width: 100%;
     }
 </style>
 
-<!-- Header & Context Area -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
-    <div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Dashboard</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Auditor Console</li>
-            </ol>
-        </nav>
-    </div>
-    
-    <div class="d-flex flex-column flex-sm-row gap-2">
-        <div class="px-3 py-2 bg-white border rounded-3 text-start small shadow-sm">
-            <div class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Active Role</div>
-            <div class="fw-bold text-dark"><i class="fa-solid fa-building-shield me-1.5 text-primary"></i>@Model.CurrentUserRole</div>
-        </div>
-        <div class="px-3 py-2 bg-white border rounded-3 text-start small shadow-sm">
-            <div class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Scope Context</div>
-            <div class="fw-bold text-dark"><i class="fa-solid fa-building me-1.5 text-info"></i>@Model.CurrentCompany</div>
-        </div>
-    </div>
-</div>
-
-<!-- 4 KPI Cards Grid -->
-<div class="kpi-row">
-    <!-- Total Companies -->
-    <div class="screenshot-card bg-kpi-blue">
-        <div class="card-left-block">
-            <i class="fa-solid fa-building card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@Model.RegisteredCompaniesCount</h4>
-            <span class="card-label">Registered Companies</span>
-        </div>
-    </div>
-
-    <!-- Active Users -->
-    <div class="screenshot-card bg-kpi-indigo">
-        <div class="card-left-block">
-            <i class="fa-solid fa-user-gear card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@Model.RegisteredUsersCount</h4>
-            <span class="card-label">Active Users</span>
-        </div>
-    </div>
-
-    <!-- Account Heads -->
-    <div class="screenshot-card bg-kpi-green">
-        <div class="card-left-block">
-            <i class="fa-solid fa-scale-balanced card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@Model.AccountHeadsCount</h4>
-            <span class="card-label">Account Head Classifications</span>
-        </div>
-    </div>
-
-    <!-- Transactions -->
-    <div class="screenshot-card bg-kpi-purple">
-        <div class="card-left-block">
-            <i class="fa-solid fa-file-invoice-dollar card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@Model.TotalTransactionsCount</h4>
-            <span class="card-label">System Transaction Records</span>
-        </div>
-    </div>
-</div>
-
-<!-- System Statistics Summary Module -->
-<div class="summary-module">
-    <div class="summary-header">
-        <i class="fa-solid fa-shield-halved me-2 text-primary"></i> Auditor System Metrics Verification
-    </div>
-    <div class="summary-grid">
-        <div class="summary-box">
-            <span class="summary-title">Total System Roles</span>
-            <span class="summary-val">@Model.TotalRolesCount</span>
-        </div>
-        <div class="summary-box">
-            <span class="summary-title">Total Registered Companies</span>
-            <span class="summary-val">@Model.RegisteredCompaniesCount</span>
-        </div>
-        <div class="summary-box">
-            <span class="summary-title">Registered Active Users</span>
-            <span class="summary-val">@Model.RegisteredUsersCount</span>
-        </div>
-        <div class="summary-box">
-            <span class="summary-title">Audit Ledger Records</span>
-            <span class="summary-val">@Model.TotalTransactionsCount</span>
-        </div>
-    </div>
-</div>
-
-<!-- Details Grid -->
-<div class="row g-4 mb-5">
-    <!-- Left Column: Audit Transactions -->
-    <div class="col-lg-7">
-        <div class="detail-card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-receipt me-2 text-primary"></i>Audit Transaction Log</h5>
+<div class="auditor-dash">
+    <!-- Executive Header Banner -->
+    <div class="aud-header-banner d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div class="position-relative z-1">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="aud-badge"><i class="fa-solid fa-shield-halved me-1"></i> Executive Compliance Center</span>
+                <span class="aud-score-badge"><i class="fa-solid fa-circle-check me-1"></i> ISO Audit Score: @Model.ComplianceScore%</span>
+                <span class="text-white-50 small">• Real-Time Telemetry</span>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Tx No</th>
-                            <th>Type</th>
-                            <th>Party</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.AuditTransactions != null && Model.AuditTransactions.Any())
-                        {
-                            @foreach (var tx in Model.AuditTransactions)
+            <h2 class="fw-bold mb-1 text-white">Auditor Control Dashboard</h2>
+            <p class="text-white-50 mb-0 small">Independent real-time oversight for system access logs, financial ledger verification, inventory audits, and security telemetry.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 position-relative z-1">
+            <a href="/Reports" class="btn btn-light text-dark fw-bold px-3 py-2 btn-sm rounded-3 shadow-sm">
+                <i class="fa-solid fa-chart-line text-primary me-1"></i> Audit Reports
+            </a>
+            <button type="button" onclick="printAuditSummary()" class="btn btn-outline-light fw-bold px-3 py-2 btn-sm rounded-3">
+                <i class="fa-solid fa-print me-1"></i> Print Summary
+            </button>
+            <button type="button" onclick="location.reload()" class="btn btn-primary fw-bold px-3 py-2 btn-sm rounded-3 shadow-sm" style="background-color: var(--aud-accent); border: none;">
+                <i class="fa-solid fa-rotate me-1"></i> Refresh Data
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Metric Cards Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="aud-kpi-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold text-uppercase tracking-wide">Total Audit Trail Logs</span>
+                    <h3 class="fw-extrabold my-1 text-dark">@Model.TotalActivityLogsCount</h3>
+                    <span class="text-success small fw-semibold"><i class="fa-solid fa-bolt me-1"></i> @Model.ActivityLogsTodayCount Activity Events Today</span>
+                </div>
+                <div class="aud-kpi-icon" style="background-color: #eff6ff; color: #2563eb;">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="aud-kpi-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold text-uppercase tracking-wide">Net Audited Ledger Margin</span>
+                    <h3 class="fw-extrabold my-1 text-dark">₹@Model.NetMargin.ToString("N2", inCulture)</h3>
+                    <span class="text-info small fw-semibold"><i class="fa-solid fa-receipt me-1"></i> @Model.TotalTransactionsCount Total Transactions</span>
+                </div>
+                <div class="aud-kpi-icon" style="background-color: #ecfdf5; color: #10b981;">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="aud-kpi-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold text-uppercase tracking-wide">Inventory Adjustments</span>
+                    <h3 class="fw-extrabold my-1 text-dark">@Model.StockAdjustmentsCount</h3>
+                    <span class="text-warning small fw-semibold"><i class="fa-solid fa-boxes-packing me-1"></i> +@Model.StockIncreaseCount / -@Model.StockDecreaseCount Changes</span>
+                </div>
+                <div class="aud-kpi-icon" style="background-color: #fffbeb; color: #f59e0b;">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="aud-kpi-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold text-uppercase tracking-wide">Access Control Rules</span>
+                    <h3 class="fw-extrabold my-1 text-dark">@Model.TotalRolePermissionsCount</h3>
+                    <span class="text-purple small fw-semibold" style="color: #8b5cf6;"><i class="fa-solid fa-lock me-1"></i> @Model.TotalRolesCount Configured System Roles</span>
+                </div>
+                <div class="aud-kpi-icon" style="background-color: #f3e8ff; color: #8b5cf6;">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick System Telemetry Strip -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="aud-telemetry-chip">
+                <div class="rounded-circle p-2 bg-primary bg-opacity-10 text-primary">
+                    <i class="fa-solid fa-users fs-6"></i>
+                </div>
+                <div>
+                    <span class="d-block text-muted extra-small font-uppercase fw-bold">Active Users</span>
+                    <span class="fw-bold text-dark fs-6">@Model.TotalUsersCount</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="aud-telemetry-chip">
+                <div class="rounded-circle p-2 bg-info bg-opacity-10 text-info">
+                    <i class="fa-solid fa-building fs-6"></i>
+                </div>
+                <div>
+                    <span class="d-block text-muted extra-small font-uppercase fw-bold">Companies</span>
+                    <span class="fw-bold text-dark fs-6">@Model.TotalCompaniesCount</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="aud-telemetry-chip">
+                <div class="rounded-circle p-2 bg-success bg-opacity-10 text-success">
+                    <i class="fa-solid fa-code-branch fs-6"></i>
+                </div>
+                <div>
+                    <span class="d-block text-muted extra-small font-uppercase fw-bold">Branches</span>
+                    <span class="fw-bold text-dark fs-6">@Model.TotalBranchesCount</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="aud-telemetry-chip">
+                <div class="rounded-circle p-2 bg-warning bg-opacity-10 text-warning">
+                    <i class="fa-solid fa-truck-field fs-6"></i>
+                </div>
+                <div>
+                    <span class="d-block text-muted extra-small font-uppercase fw-bold">Suppliers</span>
+                    <span class="fw-bold text-dark fs-6">@Model.TotalSuppliersCount</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="aud-telemetry-chip">
+                <div class="rounded-circle p-2 bg-purple bg-opacity-10 style-purple" style="color: #8b5cf6;">
+                    <i class="fa-solid fa-address-book fs-6"></i>
+                </div>
+                <div>
+                    <span class="d-block text-muted extra-small font-uppercase fw-bold">Customers</span>
+                    <span class="fw-bold text-dark fs-6">@Model.TotalCustomersCount</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="aud-telemetry-chip">
+                <div class="rounded-circle p-2 bg-danger bg-opacity-10 text-danger">
+                    <i class="fa-solid fa-hourglass-half fs-6"></i>
+                </div>
+                <div>
+                    <span class="d-block text-muted extra-small font-uppercase fw-bold">Pending Txns</span>
+                    <span class="fw-bold text-danger fs-6">@Model.PendingTransactionsCount</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Financial Ledger Audit Trend Chart -->
+        <div class="col-12 col-xl-7">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chart-bar text-primary me-2"></i>Financial Audited Revenue & Expenses Overview</h6>
+                        <small class="text-muted">Comparative ledger summary of audited income vs expenses</small>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary fw-semibold">Audited Ledger</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="financialAuditChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit Event Category Breakdown Doughnut Chart -->
+        <div class="col-12 col-xl-5">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chart-pie text-purple me-2" style="color: #8b5cf6;"></i>Audit Trail Event Categories</h6>
+                        <small class="text-muted">Distribution of activity logs across system modules</small>
+                    </div>
+                    <span class="badge bg-purple-subtle text-purple fw-semibold" style="color: #8b5cf6;">Category Breakdown</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="auditCategoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Audited Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="fw-bold text-dark"><i class="fa-solid fa-arrow-trend-up text-success me-2"></i>Audited Total Sales / Revenue</span>
+                    <span class="badge bg-success-subtle text-success">Income</span>
+                </div>
+                <h4 class="fw-bold text-success mb-0">₹@Model.TotalRevenue.ToString("N2", inCulture)</h4>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-danger">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="fw-bold text-dark"><i class="fa-solid fa-arrow-trend-down text-danger me-2"></i>Audited Total Purchases / Expenses</span>
+                    <span class="badge bg-danger-subtle text-danger">Expenses</span>
+                </div>
+                <h4 class="fw-bold text-danger mb-0">₹@Model.TotalPurchases.ToString("N2", inCulture)</h4>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-info">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="fw-bold text-dark"><i class="fa-solid fa-scale-balanced text-info me-2"></i>Audited Net Margin Balance</span>
+                    <span class="badge bg-info-subtle text-info">Net Margin</span>
+                </div>
+                <h4 class="fw-bold text-dark mb-0">₹@Model.NetMargin.ToString("N2", inCulture)</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Audit Data Center (Tabbed Tables) -->
+    <div class="aud-table-card">
+        <!-- Header with Tabs and Controls -->
+        <div class="aud-table-header">
+            <ul class="nav nav-pills aud-nav-pills gap-2" id="auditTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activityTabContent" type="button" role="tab">
+                        <i class="fa-solid fa-list-check me-1.5"></i> Activity Audit Trail
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactionsTabContent" type="button" role="tab">
+                        <i class="fa-solid fa-file-invoice-dollar me-1.5"></i> Financial Ledger Verification
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stockTabContent" type="button" role="tab">
+                        <i class="fa-solid fa-boxes-packing me-1.5"></i> Stock Adjustments Log
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#rolesTabContent" type="button" role="tab">
+                        <i class="fa-solid fa-user-lock me-1.5"></i> Access Matrix Rules
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Search Form -->
+            <form method="get" action="/AuditorDashboard" class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" name="search" value="@Model.SearchQuery" class="form-control form-control-sm border-start-0 ps-0" placeholder="Search audit logs..." style="width: 180px;">
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary rounded-2 px-3" style="background-color: var(--aud-navy); border: none;">Filter</button>
+                @if (!string.IsNullOrEmpty(Model.SearchQuery))
+                {
+                    <a href="/AuditorDashboard" class="btn btn-sm btn-outline-secondary rounded-2"><i class="fa-solid fa-xmark"></i></a>
+                }
+            </form>
+        </div>
+
+        <div class="tab-content" id="auditTabContent">
+            <!-- TAB 1: Activity Audit Trail -->
+            <div class="tab-pane fade show active" id="activityTabContent" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table aud-table align-middle">
+                        <thead>
+                            <tr>
+                                <th># ID</th>
+                                <th>Event Title</th>
+                                <th>Description / Details</th>
+                                <th>Timestamp (UTC)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentActivityLogs.Any())
+                            {
+                                foreach (var log in Model.RecentActivityLogs)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-muted">#@log.ActivityLogId</td>
+                                        <td class="fw-bold">
+                                            <i class="fa-solid @(string.IsNullOrEmpty(log.IconClass) ? "fa-info-circle" : log.IconClass) @(string.IsNullOrEmpty(log.ColorClass) ? "text-primary" : log.ColorClass) me-2 fs-6"></i>
+                                            @log.Title
+                                        </td>
+                                        <td class="text-muted">@log.Description</td>
+                                        <td class="text-nowrap small text-muted">
+                                            <i class="fa-regular fa-clock me-1"></i>@log.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-light border rounded-2 text-dark" onclick="viewLogDetail('@log.Title', '@log.Description', '@log.CreatedAt.ToString("MMM dd, yyyy HH:mm")')">
+                                                <i class="fa-solid fa-eye me-1 text-primary"></i>Inspect
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
                             {
                                 <tr>
-                                    <td class="fw-bold text-dark">@tx.TransactionNo</td>
-                                    <td>
-                                        <span class="badge @(tx.Type == "Sales Invoice" ? "bg-primary-subtle text-primary" : tx.Type == "Purchase Order" ? "bg-indigo-subtle text-indigo" : "bg-purple-subtle text-purple") px-2 py-0.5">
-                                            @tx.Type
-                                        </span>
-                                    </td>
-                                    <td>@tx.PartyName</td>
-                                    <td class="fw-bold">₹@tx.Amount.ToString("N0", inCulture)</td>
-                                    <td>
-                                        <span class="badge rounded-pill @(tx.Status == "Paid" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning") px-2.5 py-1">
-                                            @tx.Status
-                                        </span>
+                                    <td colspan="5" class="text-center text-muted py-5">
+                                        <i class="fa-solid fa-clipboard-question fs-3 d-block mb-2 text-muted"></i>
+                                        No activity log entries found for the selected query.
                                     </td>
                                 </tr>
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No transactions registered.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Right Column: System Activity Logs -->
-    <div class="col-lg-5">
-        <div class="detail-card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-clock-rotate-left me-2 text-success"></i>Auditor Operations Feed</h5>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Operation</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.RecentActivities != null && Model.RecentActivities.Any())
-                        {
-                            @foreach (var act in Model.RecentActivities)
+            <!-- TAB 2: Financial Ledger Verification -->
+            <div class="tab-pane fade" id="transactionsTabContent" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table aud-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Txn No</th>
+                                <th>Party Name</th>
+                                <th>Transaction Type</th>
+                                <th>Audited Amount</th>
+                                <th>Ledger Status</th>
+                                <th>Transaction Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentTransactions.Any())
+                            {
+                                foreach (var item in Model.RecentTransactions)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-dark">
+                                            <i class="fa-solid fa-file-invoice text-muted me-1.5"></i>@item.TransactionNo
+                                        </td>
+                                        <td class="fw-semibold">@item.PartyName</td>
+                                        <td>
+                                            <span class="badge bg-secondary-subtle text-dark border">@item.Type</span>
+                                        </td>
+                                        <td class="fw-bold text-dark">₹@item.Amount.ToString("N2", inCulture)</td>
+                                        <td>
+                                            @if (item.Status == "Completed" || item.Status == "Paid" || item.Status == "Approved")
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-check me-1"></i>@item.Status</span>
+                                            }
+                                            else if (item.Status == "Pending")
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="fa-solid fa-clock me-1"></i>@item.Status</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-dark border">@item.Status</span>
+                                            }
+                                        </td>
+                                        <td class="text-muted small">@item.Date.ToString("MMM dd, yyyy")</td>
+                                    </tr>
+                                }
+                            }
+                            else
                             {
                                 <tr>
-                                    <td class="fw-bold text-dark">
-                                        <i class="fa-solid @act.IconClass me-1.5 @act.ColorClass"></i>@act.Title
+                                    <td colspan="6" class="text-center text-muted py-5">
+                                        <i class="fa-solid fa-receipt fs-3 d-block mb-2 text-muted"></i>
+                                        No recent financial transactions found.
                                     </td>
-                                    <td class="text-muted small">@act.Description</td>
                                 </tr>
                             }
-                        }
-                        else
-                        {
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 3: Stock Adjustments Log -->
+            <div class="tab-pane fade" id="stockTabContent" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table aud-table align-middle">
+                        <thead>
                             <tr>
-                                <td colspan="2" class="text-center py-4 text-muted">No system activity logged.</td>
+                                <th>Product Name</th>
+                                <th>Adjustment Type</th>
+                                <th>Prev Qty</th>
+                                <th>Change Delta</th>
+                                <th>New Qty</th>
+                                <th>Reason / Notes</th>
+                                <th>Audited By</th>
+                                <th>Date</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentStockAdjustments.Any())
+                            {
+                                foreach (var adj in Model.RecentStockAdjustments)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-dark">
+                                            <i class="fa-solid fa-box text-warning me-1.5"></i>@adj.ProductName
+                                        </td>
+                                        <td>
+                                            <span class="badge @(adj.AdjustmentType == "Increase" || adj.AdjustmentType == "Addition" ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle")">
+                                                @adj.AdjustmentType
+                                            </span>
+                                        </td>
+                                        <td>@adj.PreviousQty</td>
+                                        <td class="fw-bold @(adj.QuantityChange > 0 ? "text-success" : "text-danger")">
+                                            @(adj.QuantityChange > 0 ? "+" + adj.QuantityChange : adj.QuantityChange.ToString())
+                                        </td>
+                                        <td class="fw-bold">@adj.NewQty</td>
+                                        <td class="text-muted small">@adj.Reason</td>
+                                        <td><span class="badge bg-light text-dark border"><i class="fa-solid fa-user me-1 text-secondary"></i>@adj.PerformedBy</span></td>
+                                        <td class="text-muted small">@adj.CreatedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-5">
+                                        <i class="fa-solid fa-boxes-stacked fs-3 d-block mb-2 text-muted"></i>
+                                        No inventory stock adjustments recorded.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: Access Matrix Rules -->
+            <div class="tab-pane fade" id="rolesTabContent" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table aud-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Role ID</th>
+                                <th>Role Name</th>
+                                <th>Module / Feature Name</th>
+                                <th>Access Rule Status</th>
+                                <th>Audit Classification</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.SystemRolePermissions.Any())
+                            {
+                                foreach (var perm in Model.SystemRolePermissions)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-muted">#@perm.RoleId</td>
+                                        <td class="fw-bold text-dark">
+                                            <span class="badge bg-dark-subtle text-dark border me-1">@(perm.Role?.RoleName ?? "Role #" + perm.RoleId)</span>
+                                        </td>
+                                        <td class="fw-semibold">@perm.ModuleName</td>
+                                        <td>
+                                            @if (perm.IsAllowed)
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-lock-open me-1"></i>Allowed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="fa-solid fa-lock me-1"></i>Restricted</span>
+                                            }
+                                        </td>
+                                        <td><span class="text-muted small">System Security Matrix</span></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-5">
+                                        <i class="fa-solid fa-user-shield fs-3 d-block mb-2 text-muted"></i>
+                                        No role permission rules defined in database.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal for Inspecting Audit Log Entry -->
+<div class="modal fade" id="auditDetailModal" tabindex="-1" aria-labelledby="auditDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white rounded-top-4">
+                <h6 class="modal-title fw-bold" id="auditDetailModalLabel"><i class="fa-solid fa-shield-halved text-info me-2"></i>Audit Log Telemetry Inspection</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label text-muted extra-small text-uppercase font-weight-bold">Event Title</label>
+                    <h5 class="fw-bold text-dark mb-0" id="modalLogTitle">-</h5>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted extra-small text-uppercase font-weight-bold">Description / Payload</label>
+                    <p class="p-3 bg-light rounded-3 text-dark mb-0 font-monospace small" id="modalLogDescription">-</p>
+                </div>
+                <div>
+                    <label class="form-label text-muted extra-small text-uppercase font-weight-bold">Timestamp</label>
+                    <div class="fw-semibold text-muted" id="modalLogTime">-</div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-secondary btn-sm rounded-3 fw-semibold" data-bs-dismiss="modal">Close Inspection</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Render Financial Audit Chart
+            const finCtx = document.getElementById('financialAuditChart').getContext('2d');
+            new Chart(finCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Audited Sales / Income', 'Audited Purchases / Expense', 'Audited Net Balance'],
+                    datasets: [{
+                        label: 'Amount (₹)',
+                        data: [@Model.TotalRevenue, @Model.TotalPurchases, @Model.NetMargin],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.85)',
+                            'rgba(239, 68, 68, 0.85)',
+                            'rgba(37, 99, 235, 0.85)'
+                        ],
+                        borderRadius: 8,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' Amount: ₹' + context.parsed.y.toLocaleString('en-IN');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value.toLocaleString('en-IN');
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Render Audit Event Category Breakdown Chart
+            const catCtx = document.getElementById('auditCategoryChart').getContext('2d');
+            new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Security & Users', 'Financial Ledger', 'Inventory Stock', 'System Events'],
+                    datasets: [{
+                        data: [
+                            @Math.Max(1, Model.SecurityLogsCount),
+                            @Math.Max(1, Model.FinancialLogsCount),
+                            @Math.Max(1, Model.InventoryLogsCount),
+                            @Math.Max(1, Model.SystemLogsCount)
+                        ],
+                        backgroundColor: [
+                            '#8b5cf6',
+                            '#10b981',
+                            '#f59e0b',
+                            '#2563eb'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: { size: 12, family: "'Plus Jakarta Sans', sans-serif" }
+                            }
+                        }
+                    },
+                    cutout: '68%'
+                }
+            });
+        });
+
+        function viewLogDetail(title, desc, time) {
+            document.getElementById('modalLogTitle').innerText = title;
+            document.getElementById('modalLogDescription').innerText = desc || 'No detailed description available for this log entry.';
+            document.getElementById('modalLogTime').innerText = time;
+            var modal = new bootstrap.Modal(document.getElementById('auditDetailModal'));
+            modal.show();
+        }
+
+        function printAuditSummary() {
+            window.print();
+        }
+    </script>
+}

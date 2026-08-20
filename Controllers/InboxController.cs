@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERP_System.Data;
@@ -6,6 +6,7 @@ using ERP_System.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace ERP_System.Controllers
@@ -25,11 +26,52 @@ namespace ERP_System.Controllers
             EnsureMessagesInitialized();
         }
 
+        // Helper to resolve current logged-in user profile
+        private async Task<(string name, string email, string role, int id)> GetCurrentUserAsync()
+        {
+            var userName = User.Identity?.Name ?? "admin";
+            var userEmailClaim = User.FindFirst(ClaimTypes.Email)?.Value;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userRoleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            User? dbUser = null;
+            if (!string.IsNullOrEmpty(userEmailClaim))
+            {
+                dbUser = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Email == userEmailClaim);
+            }
+            if (dbUser == null && !string.IsNullOrEmpty(userName))
+            {
+                dbUser = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserName == userName || u.Email == userName || u.FullName == userName);
+            }
+            if (dbUser == null && int.TryParse(userIdClaim, out int uid))
+            {
+                dbUser = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == uid);
+            }
+
+            if (dbUser != null)
+            {
+                return (
+                    name: !string.IsNullOrEmpty(dbUser.FullName) ? dbUser.FullName : dbUser.UserName,
+                    email: dbUser.Email,
+                    role: dbUser.Role?.RoleName ?? userRoleClaim ?? "User",
+                    id: dbUser.UserId
+                );
+            }
+
+            return (
+                name: !string.IsNullOrEmpty(userName) ? userName : "Admin User",
+                email: !string.IsNullOrEmpty(userEmailClaim) ? userEmailClaim : (userName.Contains("@") ? userName : userName + "@erp.com"),
+                role: userRoleClaim ?? "Super Admin",
+                id: 1
+            );
+        }
+
         // GET: /Inbox
         [HttpGet]
         public async Task<IActionResult> Index(string? folder, int? id, string? search)
         {
             string currentFolder = string.IsNullOrWhiteSpace(folder) ? "inbox" : folder.ToLower();
+            var currentUser = await GetCurrentUserAsync();
 
             List<MessageItem> all;
             lock (_lock)
@@ -37,13 +79,23 @@ namespace ERP_System.Controllers
                 all = _messageStore!.ToList();
             }
 
-            // Filter by folder
+            // Helper matches
+            bool IsRecipient(MessageItem m) =>
+                m.RecipientEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase) ||
+                m.RecipientName.Equals(currentUser.name, StringComparison.OrdinalIgnoreCase) ||
+                m.RecipientName.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase);
+
+            bool IsSender(MessageItem m) =>
+                m.SenderEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase) ||
+                m.SenderName.Equals(currentUser.name, StringComparison.OrdinalIgnoreCase);
+
+            // Filter by folder for current user ID
             IEnumerable<MessageItem> filtered = currentFolder switch
             {
-                "starred" => all.Where(m => m.IsStarred && !m.IsTrash),
-                "sent" => all.Where(m => m.RecipientName != "Admin User" && !m.IsTrash),
-                "trash" => all.Where(m => m.IsTrash),
-                _ => all.Where(m => !m.IsTrash && m.RecipientName == "Admin User") // default inbox
+                "starred" => all.Where(m => (IsRecipient(m) || IsSender(m)) && m.IsStarred && !m.IsTrash),
+                "sent" => all.Where(m => IsSender(m) && !m.IsTrash),
+                "trash" => all.Where(m => (IsRecipient(m) || IsSender(m)) && m.IsTrash),
+                _ => all.Where(m => IsRecipient(m) && !m.IsTrash) // default inbox
             };
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -51,6 +103,7 @@ namespace ERP_System.Controllers
                 string query = search.Trim().ToLower();
                 filtered = filtered.Where(m => m.Subject.ToLower().Contains(query) ||
                                                m.SenderName.ToLower().Contains(query) ||
+                                               m.RecipientName.ToLower().Contains(query) ||
                                                m.BodyContent.ToLower().Contains(query));
             }
 
@@ -72,7 +125,7 @@ namespace ERP_System.Controllers
                 lock (_lock)
                 {
                     var storeMsg = _messageStore?.FirstOrDefault(m => m.MessageId == selectedMsg.MessageId);
-                    if (storeMsg != null)
+                    if (storeMsg != null && IsRecipient(storeMsg))
                     {
                         storeMsg.IsRead = true;
                         selectedMsg.IsRead = true;
@@ -80,7 +133,7 @@ namespace ERP_System.Controllers
                 }
             }
 
-            // Counters
+            // Counters personalized per user
             int unreadCount;
             int starredCount;
             int sentCount;
@@ -88,13 +141,22 @@ namespace ERP_System.Controllers
 
             lock (_lock)
             {
-                unreadCount = _messageStore!.Count(m => !m.IsTrash && !m.IsRead && m.RecipientName == "Admin User");
-                starredCount = _messageStore!.Count(m => !m.IsTrash && m.IsStarred);
-                sentCount = _messageStore!.Count(m => !m.IsTrash && m.RecipientName != "Admin User");
-                trashCount = _messageStore!.Count(m => m.IsTrash);
+                unreadCount = _messageStore!.Count(m => !m.IsTrash && !m.IsRead && IsRecipient(m));
+                starredCount = _messageStore!.Count(m => !m.IsTrash && m.IsStarred && (IsRecipient(m) || IsSender(m)));
+                sentCount = _messageStore!.Count(m => !m.IsTrash && IsSender(m));
+                trashCount = _messageStore!.Count(m => m.IsTrash && (IsRecipient(m) || IsSender(m)));
             }
 
-            var availableUsers = await _context.Users.Where(u => u.IsActive).ToListAsync();
+            var availableUsers = await _context.Users
+                .Where(u => u.IsActive && u.Email != currentUser.email)
+                .Include(u => u.Role)
+                .ToListAsync();
+
+            // Fallback if no other users found
+            if (!availableUsers.Any())
+            {
+                availableUsers = await _context.Users.Include(u => u.Role).ToListAsync();
+            }
 
             var viewModel = new InboxViewModel
             {
@@ -123,8 +185,14 @@ namespace ERP_System.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var recipientUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == recipientEmail || u.UserName == recipientEmail);
-            string recipientName = recipientUser?.FullName ?? recipientEmail;
+            var currentUser = await GetCurrentUserAsync();
+
+            var recipientUser = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email == recipientEmail || u.UserName == recipientEmail);
+
+            string recipientName = recipientUser?.FullName ?? recipientUser?.UserName ?? recipientEmail;
+            string actualRecipientEmail = recipientUser?.Email ?? recipientEmail;
 
             lock (_lock)
             {
@@ -132,18 +200,18 @@ namespace ERP_System.Controllers
                 var newMsg = new MessageItem
                 {
                     MessageId = maxId,
-                    SenderName = User.Identity?.Name ?? "Admin User",
-                    SenderEmail = "admin@erp.com",
-                    SenderRole = "Super Admin",
+                    SenderName = currentUser.name,
+                    SenderEmail = currentUser.email,
+                    SenderRole = currentUser.role,
                     SenderAvatar = "/profile_images/admin-avatar.jpg",
                     RecipientName = recipientName,
-                    RecipientEmail = recipientEmail,
+                    RecipientEmail = actualRecipientEmail,
                     Subject = subject.Trim(),
                     BodyContent = body.Trim(),
                     Category = string.IsNullOrWhiteSpace(category) ? "General" : category,
                     Priority = string.IsNullOrWhiteSpace(priority) ? "Normal" : priority,
                     SentAt = DateTime.Now,
-                    IsRead = true,
+                    IsRead = false,
                     IsStarred = false,
                     IsTrash = false
                 };
@@ -152,15 +220,22 @@ namespace ERP_System.Controllers
             }
 
             // Log activity
-            _context.ActivityLogs.Add(new ActivityLog
+            try
             {
-                Title = "Internal Message Sent",
-                Description = $"Message '{subject}' sent to {recipientName} ({recipientEmail}).",
-                IconClass = "fa-paper-plane",
-                ColorClass = "text-primary",
-                CreatedAt = DateTime.UtcNow
-            });
-            await _context.SaveChangesAsync();
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    Title = "Internal Message Sent",
+                    Description = $"Message '{subject}' sent from {currentUser.name} to {recipientName} ({actualRecipientEmail}).",
+                    IconClass = "fa-paper-plane",
+                    ColorClass = "text-primary",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                // Non-critical logging catch
+            }
 
             TempData["SuccessMessage"] = $"Message sent successfully to {recipientName}.";
             return RedirectToAction(nameof(Index), new { folder = "sent" });
@@ -217,6 +292,7 @@ namespace ERP_System.Controllers
                 {
                     _messageStore = new List<MessageItem>
                     {
+                        // Messages targeted to Admin User
                         new MessageItem
                         {
                             MessageId = 1,
@@ -285,6 +361,44 @@ namespace ERP_System.Controllers
                             Category = "Task",
                             SentAt = DateTime.Now.AddDays(-1),
                             IsRead = true,
+                            IsStarred = true,
+                            IsTrash = false,
+                            Priority = "Normal"
+                        },
+
+                        // Messages targeted to other user accounts (e.g. Sales, Auditor, Manager)
+                        new MessageItem
+                        {
+                            MessageId = 5,
+                            SenderName = "Admin User",
+                            SenderEmail = "admin@erp.com",
+                            SenderRole = "Super Admin",
+                            SenderAvatar = "/profile_images/admin-avatar.jpg",
+                            RecipientName = "Sales Executive",
+                            RecipientEmail = "sales@erp.com",
+                            Subject = "Q3 Sales Performance Targets",
+                            BodyContent = "Hello Sales Team,\n\nPlease prepare your quarterly revenue forecast by Friday. We need to align inventory stock with expected customer purchase orders.\n\nRegards,\nAdmin",
+                            Category = "General",
+                            SentAt = DateTime.Now.AddHours(-3),
+                            IsRead = false,
+                            IsStarred = false,
+                            IsTrash = false,
+                            Priority = "High"
+                        },
+                        new MessageItem
+                        {
+                            MessageId = 6,
+                            SenderName = "Admin User",
+                            SenderEmail = "admin@erp.com",
+                            SenderRole = "Super Admin",
+                            SenderAvatar = "/profile_images/admin-avatar.jpg",
+                            RecipientName = "System Auditor",
+                            RecipientEmail = "auditor@erp.com",
+                            Subject = "Compliance Telemetry Verification Request",
+                            BodyContent = "Hi Auditor,\n\nThe new Auditor Control Center dashboard has been configured. Please verify the stock adjustment logs and financial ledgers for Q2.\n\nThanks,\nAdmin",
+                            Category = "Payroll",
+                            SentAt = DateTime.Now.AddHours(-1),
+                            IsRead = false,
                             IsStarred = true,
                             IsTrash = false,
                             Priority = "Normal"
