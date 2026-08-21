@@ -36,6 +36,16 @@ namespace ERP_System.Data
         public DbSet<HRContract> Contracts { get; set; }
         public DbSet<HRTransfer> Transfers { get; set; }
         public DbSet<HROffboarding> Offboardings { get; set; }
+        public DbSet<ESSPunch> ESSPunches { get; set; }
+        public DbSet<ESSLeaveApplication> ESSLeaveApplications { get; set; }
+        public DbSet<ESSTask> ESSTasks { get; set; }
+        public DbSet<ESSExpenseClaim> ESSExpenseClaims { get; set; }
+        public DbSet<ESSSupportTicket> ESSSupportTickets { get; set; }
+        public DbSet<InvWarehouse> InvWarehouses { get; set; }
+        public DbSet<InvGrn> InvGrns { get; set; }
+        public DbSet<InvTransfer> InvTransfers { get; set; }
+        public DbSet<InvStockAudit> InvStockAudits { get; set; }
+        public DbSet<InvScrapWriteOff> InvScrapWriteOffs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -69,6 +79,16 @@ namespace ERP_System.Data
             modelBuilder.Entity<HRContract>().ToTable("erp_Contracts");
             modelBuilder.Entity<HRTransfer>().ToTable("erp_Transfers");
             modelBuilder.Entity<HROffboarding>().ToTable("erp_Offboardings");
+            modelBuilder.Entity<ESSPunch>().ToTable("erp_ESSPunches");
+            modelBuilder.Entity<ESSLeaveApplication>().ToTable("erp_ESSLeaveApplications");
+            modelBuilder.Entity<ESSTask>().ToTable("erp_ESSTasks");
+            modelBuilder.Entity<ESSExpenseClaim>().ToTable("erp_ESSExpenseClaims");
+            modelBuilder.Entity<ESSSupportTicket>().ToTable("erp_ESSSupportTickets");
+            modelBuilder.Entity<InvWarehouse>().ToTable("erp_InvWarehouses");
+            modelBuilder.Entity<InvGrn>().ToTable("erp_InvGrns");
+            modelBuilder.Entity<InvTransfer>().ToTable("erp_InvTransfers");
+            modelBuilder.Entity<InvStockAudit>().ToTable("erp_InvStockAudits");
+            modelBuilder.Entity<InvScrapWriteOff>().ToTable("erp_InvScrapWriteOffs");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

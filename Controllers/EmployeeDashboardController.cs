@@ -46,9 +46,16 @@ namespace ERP_System.Controllers
                 .Take(5)
                 .ToListAsync();
 
+            var myPayslips = await _context.Payslips
+                .Where(p => p.UserId == userId)
+                .OrderByDescending(p => p.PayslipId)
+                .Take(5)
+                .ToListAsync();
+
             ViewBag.CurrentUser = currentUser;
             ViewBag.ActivityLogs = activityLogs;
             ViewBag.Transactions = transactions;
+            ViewBag.MyPayslips = myPayslips;
 
             return View();
         }

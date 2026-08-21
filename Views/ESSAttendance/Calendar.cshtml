@@ -1,0 +1,91 @@
+@model IEnumerable<ERP_System.Models.ESSPunch>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "My Monthly Attendance Calendar";
+}
+
+<div class="container-fluid py-4 text-start">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-calendar-days text-primary me-2"></i>Attendance Calendar</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Attendance Calendar</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Calendar View -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <h5 class="fw-bold mb-3">@DateTime.Today.ToString("MMMM yyyy")</h5>
+        <div class="row g-2 text-center fw-bold text-muted small mb-2 border-bottom pb-2">
+            <div class="col">Sun</div>
+            <div class="col">Mon</div>
+            <div class="col">Tue</div>
+            <div class="col">Wed</div>
+            <div class="col">Thu</div>
+            <div class="col">Fri</div>
+            <div class="col">Sat</div>
+        </div>
+
+        @{
+            var firstDayOfMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var startDayOfWeek = (int)firstDayOfMonth.DayOfWeek;
+            var daysInMonth = DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month);
+        }
+
+        <div class="row g-2 text-center">
+            @for (int i = 0; i < startDayOfWeek; i++)
+            {
+                <div class="col p-3 border bg-light-subtle rounded-3 text-muted"></div>
+            }
+
+            @for (int day = 1; day <= daysInMonth; day++)
+            {
+                var currentDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, day);
+                var punch = Model.FirstOrDefault(p => p.Date == currentDate);
+                var isWeekend = currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday;
+
+                <div class="col p-3 border rounded-3 text-start position-relative" style="min-height: 80px;">
+                    <span class="fw-bold text-muted small">@day</span>
+                    <div class="mt-1">
+                        @if (punch != null)
+                        {
+                            <span class="badge bg-success-subtle text-success d-block small mb-1">Present</span>
+                            <span class="small text-muted" style="font-size: 0.7rem;">In: @punch.CheckInTime.Value.ToString("HH:mm")</span>
+                        }
+                        else if (isWeekend)
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary d-block small">Weekend</span>
+                        }
+                        else if (currentDate < DateTime.Today)
+                        {
+                            <span class="badge bg-danger-subtle text-danger d-block small">Absent</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-light text-dark border d-block small">-</span>
+                        }
+                    </div>
+                </div>
+
+                if ((day + startDayOfWeek) % 7 == 0 && day < daysInMonth)
+                {
+                    @:</div><div class="row g-2 text-center mt-2">
+                }
+            }
+
+            @* Fill remaining column spaces of last week *@
+            @{
+                var totalGridSlots = startDayOfWeek + daysInMonth;
+                var remainingSlots = (7 - (totalGridSlots % 7)) % 7;
+            }
+            @for (int i = 0; i < remainingSlots; i++)
+            {
+                <div class="col p-3 border bg-light-subtle rounded-3 text-muted"></div>
+            }
+        </div>
+    </div>
+</div>

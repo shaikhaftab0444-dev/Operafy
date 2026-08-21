@@ -1,0 +1,114 @@
+@model IEnumerable<ERP_System.Models.InvTransfer>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Inter-Warehouse Transfers";
+    var warehouses = ViewBag.Warehouses as IEnumerable<ERP_System.Models.InvWarehouse> ?? new List<ERP_System.Models.InvWarehouse>();
+}
+
+<div class="container-fluid py-4 text-start">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-right-left text-primary me-2"></i>Inter-Warehouse Transfers</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/InventoryDashboard" class="text-decoration-none">Inventory Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Warehouse Transfers</li>
+                </ol>
+            </nav>
+        </div>
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#transferModal">
+            <i class="fa-solid fa-plus me-1.5"></i>Log Inter-WH Transfer
+        </button>
+    </div>
+
+    <!-- Transfers List -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <h5 class="fw-bold mb-3">Transfer Transactions</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Transfer Number</th>
+                        <th>From Warehouse</th>
+                        <th>To Warehouse</th>
+                        <th>Transfer Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var t in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@t.TransferNo</td>
+                                <td>@t.FromWarehouse</td>
+                                <td>@t.ToWarehouse</td>
+                                <td class="text-muted">@t.TransferDate.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    @if (t.Status == "Transferred")
+                                    {
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Transferred</span>
+                                    }
+                                    else if (t.Status == "In Transit")
+                                    {
+                                        <span class="badge bg-info-subtle text-info rounded-pill px-2.5 py-1">In Transit</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Pending</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No transfers logged.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal fade text-start" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/InvWarehouse/CreateTransfer" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="transferModalLabel">Log Stock Transfer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Source Warehouse</label>
+                        <select name="FromWarehouse" class="form-select" required>
+                            @foreach (var w in warehouses)
+                            {
+                                <option value="@w.Name">@w.Name (@w.Code)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Destination Warehouse</label>
+                        <select name="ToWarehouse" class="form-select" required>
+                            @foreach (var w in warehouses)
+                            {
+                                <option value="@w.Name">@w.Name (@w.Code)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log Transfer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
