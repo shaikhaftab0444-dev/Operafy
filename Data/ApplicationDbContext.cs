@@ -36,6 +36,7 @@ namespace ERP_System.Data
         public DbSet<HRContract> Contracts { get; set; }
         public DbSet<HRTransfer> Transfers { get; set; }
         public DbSet<HROffboarding> Offboardings { get; set; }
+        public DbSet<HRHoliday> Holidays { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -69,6 +70,7 @@ namespace ERP_System.Data
             modelBuilder.Entity<HRContract>().ToTable("erp_Contracts");
             modelBuilder.Entity<HRTransfer>().ToTable("erp_Transfers");
             modelBuilder.Entity<HROffboarding>().ToTable("erp_Offboardings");
+            modelBuilder.Entity<HRHoliday>().ToTable("erp_Holidays");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

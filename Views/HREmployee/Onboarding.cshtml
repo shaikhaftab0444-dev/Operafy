@@ -4,6 +4,143 @@
     ViewData["Title"] = "Onboarding & KYC Verification";
 }
 
+<style>
+    .onb-row {
+        animation: onbFadeIn 0.45s ease both;
+    }
+
+        .onb-row:nth-child(1) {
+            animation-delay: 0.03s;
+        }
+
+        .onb-row:nth-child(2) {
+            animation-delay: 0.09s;
+        }
+
+        .onb-row:nth-child(3) {
+            animation-delay: 0.15s;
+        }
+
+        .onb-row:nth-child(4) {
+            animation-delay: 0.21s;
+        }
+
+        .onb-row:nth-child(5) {
+            animation-delay: 0.27s;
+        }
+
+        .onb-row:nth-child(n+6) {
+            animation-delay: 0.3s;
+        }
+
+    @@keyframes onbFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .onb-row td {
+        transition: background-color 0.2s ease;
+    }
+
+    .onb-row:hover td {
+        background-color: #f8faff;
+    }
+
+    .progress-anim {
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .doc-check-card {
+        border: 1px solid #e2e6ed;
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        background: #fff;
+    }
+
+        .doc-check-card:hover {
+            border-color: #86b7fe;
+            background: #f6f9ff;
+        }
+
+        .doc-check-card.checked {
+            border-color: #0d6efd;
+            background: #eef4ff;
+            box-shadow: 0 0 0 1px #0d6efd inset;
+        }
+
+        .doc-check-card input {
+            cursor: pointer;
+        }
+
+    .bg-radio-card {
+        border: 1px solid #e2e6ed;
+        border-radius: 10px;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        flex: 1;
+        text-align: center;
+        background: #fff;
+    }
+
+        .bg-radio-card:hover {
+            border-color: #86b7fe;
+            background: #f6f9ff;
+        }
+
+        .bg-radio-card.checked {
+            border-color: #0d6efd;
+            background: #eef4ff;
+            box-shadow: 0 0 0 1px #0d6efd inset;
+            font-weight: 600;
+        }
+
+    .kyc-live-bar {
+        height: 10px;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #eef0f3;
+    }
+
+        .kyc-live-bar .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffc107, #28a745);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+    .orient-badge {
+        transition: all 0.25s ease;
+    }
+
+    .modal-content {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+    }
+
+    .modal.fade .modal-dialog {
+        transform: translateY(20px);
+        transition: transform 0.3s ease-out;
+    }
+
+    .modal.show .modal-dialog {
+        transform: translateY(0);
+    }
+
+    .table-hover tbody tr {
+        transition: transform 0.15s ease;
+    }
+</style>
+
 <div class="container-fluid py-4 text-start">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -39,7 +176,7 @@
                     {
                         @foreach (var o in Model)
                         {
-                            <tr>
+                            <tr class="onb-row">
                                 <td class="fw-bold text-dark">@o.CandidateName</td>
                                 <td>@o.Position</td>
                                 <td>
@@ -50,14 +187,14 @@
                                 </td>
                                 <td>
                                     @{
-                                        var bgClass = o.BackgroundCheck == "Verified" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning";
+                                        var bgClass = o.BackgroundCheck == "Verified" ? "bg-success-subtle text-success" : (o.BackgroundCheck == "In Progress" ? "bg-info-subtle text-info" : "bg-warning-subtle text-warning");
                                     }
                                     <span class="badge @bgClass rounded-pill">@o.BackgroundCheck</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="progress flex-grow-1 me-2" style="height: 6px; width: 80px;">
-                                            <div class="progress-bar @(o.KycProgress == 100 ? "bg-success" : "bg-warning")" role="progressbar" style="width: @(o.KycProgress)%;" aria-valuenow="@o.KycProgress" aria-valuemin="0" aria-valuemax="100"></div>
+                                            <div class="progress-bar progress-anim @(o.KycProgress == 100 ? "bg-success" : "bg-warning")" role="progressbar" style="width: @(o.KycProgress)%;" aria-valuenow="@o.KycProgress" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                         <span class="small fw-semibold">@o.KycProgress%</span>
                                     </div>
@@ -66,7 +203,7 @@
                                     @{
                                         var orientClass = o.OrientationStatus == "Completed" ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary";
                                     }
-                                    <span class="badge @orientClass rounded-pill">@o.OrientationStatus</span>
+                                    <span class="badge @orientClass rounded-pill orient-badge">@o.OrientationStatus</span>
                                 </td>
                             </tr>
                         }
@@ -87,7 +224,7 @@
 <div class="modal fade text-start" id="initiateOnboardingModal" tabindex="-1" aria-labelledby="initiateOnboardingModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="/HREmployee/CreateOnboarding" method="post">
+            <form action="/HREmployee/CreateOnboarding" method="post" id="onboardingForm">
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold" id="initiateOnboardingModalLabel">Initiate Onboarding Checklist</h5>
@@ -102,33 +239,80 @@
                         <label class="form-label small fw-semibold">Position Offered</label>
                         <input type="text" name="Position" class="form-control" placeholder="e.g. Senior Software Engineer" required />
                     </div>
+
+                    <!-- Documents Submission - Checkboxes -->
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Documents Submission Status</label>
-                        <select name="DocumentsStatus" class="form-select" required>
-                            <option value="Uploaded (4/4)">Uploaded (4/4)</option>
-                            <option value="Pending (2/4)">Pending (2/4)</option>
-                            <option value="Pending (0/4)">Pending (0/4)</option>
-                        </select>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="doc-check-card d-flex align-items-center gap-2 mb-0">
+                                    <input type="checkbox" class="form-check-input doc-check m-0" value="Aadhar Card" />
+                                    <span class="small">Aadhar Card</span>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <label class="doc-check-card d-flex align-items-center gap-2 mb-0">
+                                    <input type="checkbox" class="form-check-input doc-check m-0" value="PAN Card" />
+                                    <span class="small">PAN Card</span>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <label class="doc-check-card d-flex align-items-center gap-2 mb-0">
+                                    <input type="checkbox" class="form-check-input doc-check m-0" value="Resume" />
+                                    <span class="small">Resume</span>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <label class="doc-check-card d-flex align-items-center gap-2 mb-0">
+                                    <input type="checkbox" class="form-check-input doc-check m-0" value="Offer Letter Signed" />
+                                    <span class="small">Offer Letter Signed</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Background Check - Radio Buttons -->
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Background Check Status</label>
-                        <select name="BackgroundCheck" class="form-select" required>
-                            <option value="Verified">Verified</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Pending">Pending</option>
-                        </select>
+                        <div class="d-flex gap-2">
+                            <label class="bg-radio-card mb-0 small">
+                                <input type="radio" class="form-check-input d-none bg-radio" name="BackgroundCheck" value="Pending" checked />
+                                Pending
+                            </label>
+                            <label class="bg-radio-card mb-0 small">
+                                <input type="radio" class="form-check-input d-none bg-radio" name="BackgroundCheck" value="In Progress" />
+                                In Progress
+                            </label>
+                            <label class="bg-radio-card mb-0 small">
+                                <input type="radio" class="form-check-input d-none bg-radio" name="BackgroundCheck" value="Verified" />
+                                Verified
+                            </label>
+                        </div>
                     </div>
+
+                    <!-- KYC Progress - Auto calculated -->
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">KYC Verification Progress (%)</label>
-                        <input type="number" name="KycProgress" class="form-control" min="0" max="100" value="50" required />
+                        <label class="form-label small fw-semibold d-flex justify-content-between">
+                            <span>KYC Verification Progress</span>
+                            <span id="kycPercentLabel" class="text-primary fw-bold">0%</span>
+                        </label>
+                        <div class="kyc-live-bar">
+                            <div id="kycBarFill" class="bar-fill" style="width: 0%;"></div>
+                        </div>
                     </div>
-                    <div class="mb-3">
+
+                    <!-- Orientation Status - Auto derived -->
+                    <div class="mb-1">
                         <label class="form-label small fw-semibold">Orientation Status</label>
-                        <select name="OrientationStatus" class="form-select" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Completed">Completed</option>
-                        </select>
+                        <div>
+                            <span id="orientationBadge" class="badge bg-secondary-subtle text-secondary rounded-pill orient-badge px-3 py-2">Pending</span>
+                        </div>
                     </div>
+
+                    <!-- Hidden fields actually submitted to the controller -->
+                    <input type="hidden" name="DocumentsStatus" id="hiddenDocumentsStatus" value="Pending (0/4)" />
+                    <input type="hidden" name="KycProgress" id="hiddenKycProgress" value="0" />
+                    <input type="hidden" name="OrientationStatus" id="hiddenOrientationStatus" value="Pending" />
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
@@ -138,3 +322,91 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var docChecks = document.querySelectorAll(".doc-check");
+        var bgRadios = document.querySelectorAll(".bg-radio");
+
+        var kycPercentLabel = document.getElementById("kycPercentLabel");
+        var kycBarFill = document.getElementById("kycBarFill");
+        var orientationBadge = document.getElementById("orientationBadge");
+
+        var hiddenDocumentsStatus = document.getElementById("hiddenDocumentsStatus");
+        var hiddenKycProgress = document.getElementById("hiddenKycProgress");
+        var hiddenOrientationStatus = document.getElementById("hiddenOrientationStatus");
+
+        function updateProgress() {
+            var checkedCount = 0;
+            docChecks.forEach(function (chk) {
+                var card = chk.closest(".doc-check-card");
+                if (chk.checked) {
+                    checkedCount++;
+                    card.classList.add("checked");
+                } else {
+                    card.classList.remove("checked");
+                }
+            });
+
+            var percent = checkedCount * 25;
+
+            // Documents status text
+            var docsText = checkedCount === 4
+                ? "Uploaded (4/4)"
+                : "Pending (" + checkedCount + "/4)";
+            hiddenDocumentsStatus.value = docsText;
+
+            // KYC progress bar + label
+            hiddenKycProgress.value = percent;
+            kycPercentLabel.textContent = percent + "%";
+            kycBarFill.style.width = percent + "%";
+
+            // Orientation status auto-derived
+            if (percent === 100) {
+                hiddenOrientationStatus.value = "Completed";
+                orientationBadge.textContent = "Completed";
+                orientationBadge.className = "badge bg-success-subtle text-success rounded-pill orient-badge px-3 py-2";
+            } else {
+                hiddenOrientationStatus.value = "Pending";
+                orientationBadge.textContent = "Pending";
+                orientationBadge.className = "badge bg-secondary-subtle text-secondary rounded-pill orient-badge px-3 py-2";
+            }
+        }
+
+        docChecks.forEach(function (chk) {
+            chk.addEventListener("change", updateProgress);
+        });
+
+        bgRadios.forEach(function (radio) {
+            radio.addEventListener("change", function () {
+                document.querySelectorAll(".bg-radio-card").forEach(function (card) {
+                    card.classList.remove("checked");
+                });
+                this.closest(".bg-radio-card").classList.add("checked");
+            });
+        });
+
+        // Initialize default radio highlight
+        var checkedRadio = document.querySelector(".bg-radio:checked");
+        if (checkedRadio) {
+            checkedRadio.closest(".bg-radio-card").classList.add("checked");
+        }
+
+        // Reset form state cleanly whenever modal is closed/reopened
+        var modalEl = document.getElementById("initiateOnboardingModal");
+        modalEl.addEventListener("hidden.bs.modal", function () {
+            document.getElementById("onboardingForm").reset();
+            updateProgress();
+            document.querySelectorAll(".bg-radio-card").forEach(function (card) {
+                card.classList.remove("checked");
+            });
+            var defaultRadio = document.querySelector(".bg-radio[value='Pending']");
+            if (defaultRadio) {
+                defaultRadio.checked = true;
+                defaultRadio.closest(".bg-radio-card").classList.add("checked");
+            }
+        });
+
+        updateProgress();
+    });
+</script>
