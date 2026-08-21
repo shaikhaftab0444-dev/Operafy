@@ -1,0 +1,105 @@
+@model IEnumerable<ERP_System.Models.ESSTask>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Daily Timesheet Entry";
+}
+
+<div class="container-fluid py-4 text-start">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-business-time text-primary me-2"></i>Daily Timesheet Entry</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Timesheet Entry</li>
+                </ol>
+            </nav>
+        </div>
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#timesheetModal">
+            <i class="fa-solid fa-plus me-1.5"></i>Log Task / Hours
+        </button>
+    </div>
+
+    <!-- Logged Tasks Grid -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <h5 class="fw-bold mb-3">Logged Work Tasks</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Work Item</th>
+                        <th>Details / Description</th>
+                        <th>Logged Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var t in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@t.TaskTitle</td>
+                                <td class="text-muted" style="max-width: 350px;">@t.Description</td>
+                                <td class="text-muted">@t.DueDate.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    @if (t.Status == "Completed")
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Completed</span>
+                                    }
+                                    else if (t.Status == "In Progress")
+                                    {
+                                        <span class="badge bg-info-subtle text-info">In Progress</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning">Pending</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No timesheets logged.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Timesheet Modal -->
+<div class="modal fade text-start" id="timesheetModal" tabindex="-1" aria-labelledby="timesheetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/ESSTasks/AddTimesheetTask" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="timesheetModalLabel">Log Daily Work Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Task/Work Title</label>
+                        <input type="text" name="TaskTitle" class="form-control" placeholder="e.g. Fixed bug in billing pipeline" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Work Date</label>
+                        <input type="date" name="DueDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Work Details (Hours Spent/Notes)</label>
+                        <textarea name="Description" class="form-control" rows="3" placeholder="e.g. Spent 4 hours debugging the payment mapping module." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

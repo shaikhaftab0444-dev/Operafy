@@ -332,5 +332,263 @@ namespace ERP_System.Data
 
             await context.SaveChangesAsync();
         }
+
+        public static async Task InitializeESSManagementTablesAsync(ApplicationDbContext context)
+        {
+            // Ensure erp_ESSPunches table exists
+            string createESSPunchesSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSPunches', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_ESSPunches (
+                        PunchId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        Date DATETIME NOT NULL,
+                        CheckInTime DATETIME NULL,
+                        CheckOutTime DATETIME NULL,
+                        PunchSource NVARCHAR(50) NOT NULL DEFAULT 'Web Clock'
+                    );
+                END";
+
+            // Ensure erp_ESSLeaveApplications table exists
+            string createESSLeaveApplicationsSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSLeaveApplications', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_ESSLeaveApplications (
+                        LeaveApplicationId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        LeaveType NVARCHAR(50) NOT NULL DEFAULT 'Casual Leave',
+                        StartDate DATETIME NOT NULL,
+                        EndDate DATETIME NOT NULL,
+                        TotalDays INT NOT NULL,
+                        Reason NVARCHAR(255) NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending'
+                    );
+                END";
+
+            // Ensure erp_ESSTasks table exists
+            string createESSTasksSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSTasks', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_ESSTasks (
+                        TaskId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        TaskTitle NVARCHAR(150) NOT NULL,
+                        Description NVARCHAR(500) NOT NULL,
+                        DueDate DATETIME NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending'
+                    );
+                END";
+
+            // Ensure erp_ESSExpenseClaims table exists
+            string createESSExpenseClaimsSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSExpenseClaims', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_ESSExpenseClaims (
+                        ExpenseClaimId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        ExpenseType NVARCHAR(100) NOT NULL DEFAULT 'Travel',
+                        Amount DECIMAL(18,2) NOT NULL,
+                        ClaimDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        ReceiptFileName NVARCHAR(255) NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending'
+                    );
+                END";
+
+            // Ensure erp_ESSSupportTickets table exists
+            string createESSSupportTicketsSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSSupportTickets', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_ESSSupportTickets (
+                        TicketId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        Department NVARCHAR(50) NOT NULL DEFAULT 'IT Support',
+                        Subject NVARCHAR(150) NOT NULL,
+                        Description NVARCHAR(1000) NOT NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Open'
+                    );
+                END";
+
+            // Execute scripts
+            await context.Database.ExecuteSqlRawAsync(createESSPunchesSql);
+            await context.Database.ExecuteSqlRawAsync(createESSLeaveApplicationsSql);
+            await context.Database.ExecuteSqlRawAsync(createESSTasksSql);
+            await context.Database.ExecuteSqlRawAsync(createESSExpenseClaimsSql);
+            await context.Database.ExecuteSqlRawAsync(createESSSupportTicketsSql);
+
+            // Seed initial records if empty
+            if (!await context.ESSPunches.AnyAsync())
+            {
+                await context.ESSPunches.AddRangeAsync(new List<ESSPunch>
+                {
+                    new ESSPunch { UserId = 1, Date = DateTime.Today.AddDays(-1), CheckInTime = DateTime.Today.AddDays(-1).AddHours(9), CheckOutTime = DateTime.Today.AddDays(-1).AddHours(18) },
+                    new ESSPunch { UserId = 1, Date = DateTime.Today, CheckInTime = DateTime.Today.AddHours(9) }
+                });
+            }
+
+            if (!await context.ESSLeaveApplications.AnyAsync())
+            {
+                await context.ESSLeaveApplications.AddRangeAsync(new List<ESSLeaveApplication>
+                {
+                    new ESSLeaveApplication { UserId = 1, LeaveType = "Casual Leave", StartDate = DateTime.Today.AddDays(5), EndDate = DateTime.Today.AddDays(6), TotalDays = 2, Reason = "Family function", Status = "Pending" },
+                    new ESSLeaveApplication { UserId = 1, LeaveType = "Sick Leave", StartDate = DateTime.Today.AddDays(-10), EndDate = DateTime.Today.AddDays(-9), TotalDays = 2, Reason = "Fever", Status = "Approved" }
+                });
+            }
+
+            if (!await context.ESSTasks.AnyAsync())
+            {
+                await context.ESSTasks.AddRangeAsync(new List<ESSTask>
+                {
+                    new ESSTask { UserId = 1, TaskTitle = "Implement ESS Clock-In/Out UI", Description = "Develop the frontend templates for clock-in/out web punch form.", DueDate = DateTime.Today.AddDays(2), Status = "In Progress" },
+                    new ESSTask { UserId = 1, TaskTitle = "Fix database seeds", Description = "Seed roles and branches for newly created database catalogs.", DueDate = DateTime.Today.AddDays(-1), Status = "Completed" }
+                });
+            }
+
+            if (!await context.ESSExpenseClaims.AnyAsync())
+            {
+                await context.ESSExpenseClaims.AddRangeAsync(new List<ESSExpenseClaim>
+                {
+                    new ESSExpenseClaim { UserId = 1, ExpenseType = "Internet", Amount = 1500, ClaimDate = DateTime.Today.AddDays(-5), ReceiptFileName = "broadband_bill.pdf", Status = "Approved" },
+                    new ESSExpenseClaim { UserId = 1, ExpenseType = "Travel", Amount = 3500, ClaimDate = DateTime.Today, ReceiptFileName = "taxi_receipt.pdf", Status = "Pending" }
+                });
+            }
+
+            if (!await context.ESSSupportTickets.AnyAsync())
+            {
+                await context.ESSSupportTickets.AddRangeAsync(new List<ESSSupportTicket>
+                {
+                    new ESSSupportTicket { UserId = 1, Department = "IT Support", Subject = "Laptop Charger Replacement", Description = "My current laptop charger is overheating. Requesting a replacement charger.", Status = "Open" }
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        public static async Task InitializeInventoryManagementTablesAsync(ApplicationDbContext context)
+        {
+            // Ensure erp_InvWarehouses table exists
+            string createInvWarehousesSql = @"
+                IF OBJECT_ID('AITStudent.erp_InvWarehouses', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_InvWarehouses (
+                        WarehouseId INT IDENTITY(1,1) PRIMARY KEY,
+                        Code NVARCHAR(20) NOT NULL,
+                        Name NVARCHAR(100) NOT NULL,
+                        Location NVARCHAR(150) NOT NULL,
+                        IsActive BIT NOT NULL DEFAULT 1
+                    );
+                END";
+
+            // Ensure erp_InvGrns table exists
+            string createInvGrnsSql = @"
+                IF OBJECT_ID('AITStudent.erp_InvGrns', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_InvGrns (
+                        GrnId INT IDENTITY(1,1) PRIMARY KEY,
+                        GrnNo NVARCHAR(50) NOT NULL,
+                        SupplierName NVARCHAR(150) NOT NULL,
+                        ReceivedDate DATETIME NOT NULL,
+                        ReceivedBy NVARCHAR(100) NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Completed'
+                    );
+                END";
+
+            // Ensure erp_InvTransfers table exists
+            string createInvTransfersSql = @"
+                IF OBJECT_ID('AITStudent.erp_InvTransfers', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_InvTransfers (
+                        TransferId INT IDENTITY(1,1) PRIMARY KEY,
+                        TransferNo NVARCHAR(50) NOT NULL,
+                        FromWarehouse NVARCHAR(100) NOT NULL,
+                        ToWarehouse NVARCHAR(100) NOT NULL,
+                        TransferDate DATETIME NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Transferred'
+                    );
+                END";
+
+            // Ensure erp_InvStockAudits table exists
+            string createInvStockAuditsSql = @"
+                IF OBJECT_ID('AITStudent.erp_InvStockAudits', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_InvStockAudits (
+                        AuditId INT IDENTITY(1,1) PRIMARY KEY,
+                        AuditNo NVARCHAR(50) NOT NULL,
+                        AuditDate DATETIME NOT NULL,
+                        AuditorName NVARCHAR(100) NOT NULL,
+                        DiscrepancyFound BIT NOT NULL DEFAULT 0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Reconciled'
+                    );
+                END";
+
+            // Ensure erp_InvScrapWriteOffs table exists
+            string createInvScrapWriteOffsSql = @"
+                IF OBJECT_ID('AITStudent.erp_InvScrapWriteOffs', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_InvScrapWriteOffs (
+                        ScrapId INT IDENTITY(1,1) PRIMARY KEY,
+                        ScrapNo NVARCHAR(50) NOT NULL,
+                        ItemName NVARCHAR(150) NOT NULL,
+                        QtyScrapped INT NOT NULL,
+                        Reason NVARCHAR(255) NOT NULL,
+                        WriteOffDate DATETIME NOT NULL
+                    );
+                END";
+
+            // Execute scripts
+            await context.Database.ExecuteSqlRawAsync(createInvWarehousesSql);
+            await context.Database.ExecuteSqlRawAsync(createInvGrnsSql);
+            await context.Database.ExecuteSqlRawAsync(createInvTransfersSql);
+            await context.Database.ExecuteSqlRawAsync(createInvStockAuditsSql);
+            await context.Database.ExecuteSqlRawAsync(createInvScrapWriteOffsSql);
+
+            // Seed initial records if empty
+            if (!await context.InvWarehouses.AnyAsync())
+            {
+                await context.InvWarehouses.AddRangeAsync(new List<InvWarehouse>
+                {
+                    new InvWarehouse { Code = "WH-001", Name = "Main Central Warehouse", Location = "Plot 24, Industrial Area, Sector 5", IsActive = true },
+                    new InvWarehouse { Code = "WH-002", Name = "Transit Logistics Hub", Location = "Freight Terminal A, Airport Road", IsActive = true }
+                });
+            }
+
+            if (!await context.InvGrns.AnyAsync())
+            {
+                await context.InvGrns.AddRangeAsync(new List<InvGrn>
+                {
+                    new InvGrn { GrnNo = "GRN-2026-0001", SupplierName = "Global Electronics Ltd", ReceivedDate = DateTime.Today.AddDays(-5), ReceivedBy = "Numan Sales Man", Status = "Completed" },
+                    new InvGrn { GrnNo = "GRN-2026-0002", SupplierName = "Reliable Parts Inc", ReceivedDate = DateTime.Today.AddDays(-2), ReceivedBy = "Aftab Shaik", Status = "Pending Verification" }
+                });
+            }
+
+            if (!await context.InvTransfers.AnyAsync())
+            {
+                await context.InvTransfers.AddRangeAsync(new List<InvTransfer>
+                {
+                    new InvTransfer { TransferNo = "TR-90081", FromWarehouse = "Main Central Warehouse", ToWarehouse = "Transit Logistics Hub", TransferDate = DateTime.Today.AddDays(-3), Status = "Transferred" },
+                    new InvTransfer { TransferNo = "TR-90082", FromWarehouse = "Transit Logistics Hub", ToWarehouse = "Main Central Warehouse", TransferDate = DateTime.Today, Status = "In Transit" }
+                });
+            }
+
+            if (!await context.InvStockAudits.AnyAsync())
+            {
+                await context.InvStockAudits.AddRangeAsync(new List<InvStockAudit>
+                {
+                    new InvStockAudit { AuditNo = "AUD-60021", AuditDate = DateTime.Today.AddDays(-10), AuditorName = "Sarah Jenkins", DiscrepancyFound = false, Status = "Reconciled" },
+                    new InvStockAudit { AuditNo = "AUD-60022", AuditDate = DateTime.Today.AddDays(-1), AuditorName = "Numan Sales Man", DiscrepancyFound = true, Status = "Pending Review" }
+                });
+            }
+
+            if (!await context.InvScrapWriteOffs.AnyAsync())
+            {
+                await context.InvScrapWriteOffs.AddRangeAsync(new List<InvScrapWriteOff>
+                {
+                    new InvScrapWriteOff { ScrapNo = "SCR-3041", ItemName = "Broken Dell Keyboard", QtyScrapped = 5, Reason = "Liquid damage during handling", WriteOffDate = DateTime.Today.AddDays(-4) },
+                    new InvScrapWriteOff { ScrapNo = "SCR-3042", ItemName = "Defective Logistics Box", QtyScrapped = 12, Reason = "Crushed during unloading", WriteOffDate = DateTime.Today.AddDays(-1) }
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
     }
 }
