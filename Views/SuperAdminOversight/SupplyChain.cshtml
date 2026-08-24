@@ -1,0 +1,98 @@
+@model IEnumerable<ERP_System.Models.SuperAdminPriceOverride>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Supply Chain & Procurement Oversight";
+    var products = ViewBag.Products as IEnumerable<ERP_System.Models.Product> ?? new List<ERP_System.Models.Product>();
+}
+
+<div class="container-fluid py-4 text-start">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-truck-field text-primary me-2"></i>Supply Chain & Procurement Oversight</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/SuperAdminDashboard" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Procurement Oversight</li>
+                </ol>
+            </nav>
+        </div>
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#overrideModal">
+            <i class="fa-solid fa-plus me-1.5"></i>Log Price Override
+        </button>
+    </div>
+
+    <!-- Overrides List -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm mb-4" style="max-width: 800px;">
+        <h5 class="fw-bold mb-3">Supplier Price Overrides</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Supplier / Vendor</th>
+                        <th>Override Unit Cost</th>
+                        <th>Approved By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var o in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@(o.Product != null ? o.Product.ProductName : "Standard Product")</td>
+                                <td>@o.VendorName</td>
+                                <td class="fw-bold text-success">₹@o.CustomPrice.ToString("N2")</td>
+                                <td>@o.ApprovedBy</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No custom price overrides mapped.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Override Modal -->
+<div class="modal fade text-start" id="overrideModal" tabindex="-1" aria-labelledby="overrideModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/SuperAdminOversight/CreateOverride" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="overrideModalLabel">Create Supplier Price Override</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Select Target Product</label>
+                        <select name="ProductId" class="form-select" required>
+                            @foreach (var prod in products)
+                            {
+                                <option value="@prod.ProductId">@prod.ProductName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Supplier / Vendor Name</label>
+                        <input type="text" name="VendorName" class="form-control" placeholder="e.g. Reliable Parts Inc" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Custom Unit Cost (₹)</label>
+                        <input type="number" step="0.01" name="CustomPrice" class="form-control" placeholder="e.g. 750.00" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log Override</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
