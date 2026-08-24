@@ -1,10 +1,20 @@
+@model ERP_System.Models.BiometricViewModel
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Biometric & Geo-Punches";
 }
 
 <div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header & Action Controls -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <h4 class="fw-bold mb-1"><i class="fa-solid fa-fingerprint text-primary me-2"></i>Biometric & Geo-Punches</h4>
             <nav aria-label="breadcrumb">
@@ -14,11 +24,68 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-outline-primary btn-sm rounded-pill"><i class="fa-solid fa-arrows-rotate me-1.5"></i>Sync Logs Now</button>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+                <i class="fa-solid fa-plus me-1"></i>Add Device
+            </button>
+            <form asp-action="SyncNow" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary rounded-pill btn-sm px-3 shadow-sm">
+                    <i class="fa-solid fa-arrows-rotate me-1.5"></i>Sync Logs Now
+                </button>
+            </form>
+        </div>
     </div>
 
-    <!-- Punch Sync Status Card -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
+    <!-- Top Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Active Devices</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.ActiveDevicesCount / @Model.Devices.Count</h3>
+                    </div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+                        <i class="fa-solid fa-network-wired fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Today's Synced Punches</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.TotalPunchesToday</h3>
+                    </div>
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
+                        <i class="fa-solid fa-id-card-clip fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-info">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Geo-Punch Gateway</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">Active (GPS)</h3>
+                    </div>
+                    <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info">
+                        <i class="fa-solid fa-location-dot fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Devices Status Grid -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0 text-secondary">Configured Biometric & Geo Hardware Terminals</h6>
+            <span class="badge bg-light text-dark border">@Model.Devices.Count Devices</span>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="table-light">
@@ -28,32 +95,110 @@
                         <th>Connection Status</th>
                         <th>Last Log Sync</th>
                         <th>Synced Count Today</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Floor 1 Fingerprint Reader</td>
-                        <td>192.168.10.45</td>
-                        <td><span class="badge bg-success-subtle text-success">Connected</span></td>
-                        <td>20 Aug 2026 08:30 PM</td>
-                        <td>145 Punches</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Floor 2 Facial Scanner</td>
-                        <td>192.168.10.46</td>
-                        <td><span class="badge bg-success-subtle text-success">Connected</span></td>
-                        <td>20 Aug 2026 08:35 PM</td>
-                        <td>88 Punches</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Mobile Geo-Punch Gateway</td>
-                        <td>Cloud Services (GPS Bound)</td>
-                        <td><span class="badge bg-success-subtle text-success">Connected</span></td>
-                        <td>20 Aug 2026 08:45 PM</td>
-                        <td>54 Punches</td>
-                    </tr>
+                    @foreach (var device in Model.Devices)
+                    {
+                        <tr>
+                            <td class="fw-bold text-dark">
+                                <i class="fa-solid fa-microchip text-primary me-2"></i>@device.DeviceName
+                            </td>
+                            <td><code>@device.IpOrLocation</code></td>
+                            <td>
+                                @if (device.ConnectionStatus == "Connected")
+                                {
+                                    <span class="badge bg-success-subtle text-success rounded-pill px-2.5">Connected</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5">Offline</span>
+                                }
+                            </td>
+                            <td class="text-muted">@device.LastSyncTime.ToString("dd MMM yyyy hh:mm tt")</td>
+                            <td class="fw-semibold text-dark">@device.TodaySyncCount Punches</td>
+                            <td>
+                                <form asp-action="ToggleDeviceStatus" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="deviceId" value="@device.DeviceId" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-xs rounded-pill px-2.5">
+                                        @(device.IsActive ? "Set Offline" : "Set Online")
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Live Punch Activity Log Stream -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <h6 class="fw-bold mb-3 text-secondary"><i class="fa-solid fa-list-ol text-primary me-2"></i>Live Employee Punch Stream Today</h6>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Employee</th>
+                        <th>Check-in Time</th>
+                        <th>Check-out Time</th>
+                        <th>Punch Source Terminal</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.LivePunches.Any())
+                    {
+                        foreach (var punch in Model.LivePunches)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@punch.EmployeeName</td>
+                                <td>@(punch.CheckInTime.HasValue ? punch.CheckInTime.Value.ToString("hh:mm tt") : "--:--")</td>
+                                <td>@(punch.CheckOutTime.HasValue ? punch.CheckOutTime.Value.ToString("hh:mm tt") : "--:--")</td>
+                                <td><span class="badge bg-light text-secondary border">@punch.PunchSource</span></td>
+                                <td><span class="badge bg-success-subtle text-success rounded-pill">@punch.Status</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-3 text-muted">No live punches recorded yet today. Click "Sync Logs Now" above to fetch latest punches.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Device Modal -->
+<div class="modal fade" id="addDeviceModal" tabindex="-1" aria-labelledby="addDeviceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 border-0 shadow">
+            <div class="modal-header bg-light border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold" id="addDeviceModalLabel"><i class="fa-solid fa-plus-circle text-primary me-2"></i>Add Biometric Terminal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="AddDevice" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Device Name</label>
+                        <input type="text" name="deviceName" class="form-control" placeholder="e.g. Reception Facial Terminal" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Device IP or Location Endpoint</label>
+                        <input type="text" name="ipOrLocation" class="form-control" placeholder="e.g. 192.168.10.55 or Cloud API Gateway" required />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top px-4 py-2">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4"><i class="fa-solid fa-save me-1"></i>Connect Device</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

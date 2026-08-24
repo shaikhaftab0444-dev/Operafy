@@ -58,7 +58,11 @@ namespace ERP_System.Data
         public DbSet<SuperAdminIntegration> SuperAdminIntegrations { get; set; }
         public DbSet<SuperAdminRestorePoint> SuperAdminRestorePoints { get; set; }
         public DbSet<SuperAdminPriceOverride> SuperAdminPriceOverrides { get; set; }
-
+        public DbSet<HRAttendanceLog> HRAttendanceLogs { get; set; }
+        public DbSet<HRBiometricDevice> HRBiometricDevices { get; set; }
+        public DbSet<HRShiftRoster> HRShiftRosters { get; set; }
+        public DbSet<HROvertimeRecord> HROvertimeRecords { get; set; }
+        public DbSet<HRAttendanceRegularization> HRAttendanceRegularizations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -93,6 +97,11 @@ namespace ERP_System.Data
             modelBuilder.Entity<HRTransfer>().ToTable("erp_Transfers");
             modelBuilder.Entity<HROffboarding>().ToTable("erp_Offboardings");
             modelBuilder.Entity<HRHoliday>().ToTable("erp_Holidays");
+            modelBuilder.Entity<HRAttendanceLog>().ToTable("erp_HRAttendanceLogs");
+            modelBuilder.Entity<HRBiometricDevice>().ToTable("erp_HRBiometricDevices");
+            modelBuilder.Entity<HRShiftRoster>().ToTable("erp_HRShiftRosters");
+            modelBuilder.Entity<HROvertimeRecord>().ToTable("erp_HROvertimeRecords");
+            modelBuilder.Entity<HRAttendanceRegularization>().ToTable("erp_HRAttendanceRegularizations");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

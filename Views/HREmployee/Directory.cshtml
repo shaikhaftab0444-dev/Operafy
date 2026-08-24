@@ -1,393 +1,2744 @@
 @model IEnumerable<ERP_System.Models.User>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Employee Directory";
-    var roles = ViewBag.Roles as IEnumerable<ERP_System.Models.Role> ?? new List<ERP_System.Models.Role>();
+
+    var roles = ViewBag.Roles as IEnumerable<ERP_System.Models.Role>
+                 ?? new List<ERP_System.Models.Role>();
+
+    var employees = Model?.ToList()
+                     ?? new List<ERP_System.Models.User>();
+
+    var totalEmployees = employees.Count;
+    var activeEmployees = employees.Count(e => e.IsActive);
+    var inactiveEmployees = employees.Count(e => !e.IsActive);
+    var assignedEmployees = employees.Count(e => e.Role != null);
+
+    var activePercentage = totalEmployees > 0
+        ? Math.Round((decimal)activeEmployees / totalEmployees * 100, 0)
+        : 0;
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+
+    /* =========================================================
+       EMPLOYEE DIRECTORY - PREMIUM UI
+       ========================================================= */
+
+    .employee-directory-page {
+        animation: directoryPageIn .65s ease both;
+    }
+
+    @@keyframes directoryPageIn {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* =========================================================
+       PAGE HEADER
+       ========================================================= */
+
+    .directory-header {
+        margin-bottom: 24px;
+    }
+
+    .directory-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .directory-title-icon {
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+        box-shadow: 0 10px 25px rgba(37, 99, 235, .22);
+        flex-shrink: 0;
+    }
+
+    .directory-title {
+        margin: 0;
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -.5px;
+        color: #172033;
+    }
+
+    .directory-subtitle {
+        margin: 3px 0 0;
+        font-size: .78rem;
+        color: #64748b;
+    }
+
+    .directory-breadcrumb {
+        margin-top: 9px;
+    }
+
+    .directory-breadcrumb .breadcrumb {
+        margin-bottom: 0;
+    }
+
+    .directory-breadcrumb .breadcrumb-item {
+        font-size: .75rem;
+    }
+
+    .directory-breadcrumb a {
+        color: #2563eb;
+        font-weight: 600;
+    }
+
+    /* =========================================================
+       ADD BUTTON
+       ========================================================= */
+
+    .add-employee-btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 17px;
+        font-size: .78rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, .20);
+        transition: all .25s ease;
+    }
+
+    .add-employee-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 26px rgba(37, 99, 235, .28);
+    }
+
+    /* =========================================================
+       STAT CARDS
+       ========================================================= */
+
+    .employee-stat-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #e8edf3;
+        border-radius: 17px;
+        background: #fff;
+        padding: 18px;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .055);
+        transition: all .3s ease;
+        animation: statCardIn .55s ease both;
+    }
+
+    .employee-stat-card:nth-child(1) {
+        animation-delay: .05s;
+    }
+
+    .employee-stat-card:nth-child(2) {
+        animation-delay: .1s;
+    }
+
+    .employee-stat-card:nth-child(3) {
+        animation-delay: .15s;
+    }
+
+    .employee-stat-card:nth-child(4) {
+        animation-delay: .2s;
+    }
+
+    @@keyframes statCardIn {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .employee-stat-card::after {
+        content: "";
+        position: absolute;
+        width: 85px;
+        height: 85px;
+        border-radius: 50%;
+        right: -30px;
+        top: -35px;
+        background: rgba(37, 99, 235, .045);
+    }
+
+    .employee-stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(15, 23, 42, .09);
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        font-size: .9rem;
+    }
+
+    .stat-icon-blue {
+        color: #2563eb;
+        background: #eff6ff;
+    }
+
+    .stat-icon-green {
+        color: #16a34a;
+        background: #f0fdf4;
+    }
+
+    .stat-icon-red {
+        color: #dc2626;
+        background: #fef2f2;
+    }
+
+    .stat-icon-purple {
+        color: #7c3aed;
+        background: #f5f3ff;
+    }
+
+    .stat-number {
+        display: block;
+        color: #172033;
+        font-size: 1.45rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .stat-label {
+        display: block;
+        color: #64748b;
+        font-size: .7rem;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+
+    .stat-meta {
+        display: block;
+        color: #94a3b8;
+        font-size: .63rem;
+        margin-top: 6px;
+    }
+
+    /* =========================================================
+       FILTER CARD
+       ========================================================= */
+
+    .directory-filter-card {
+        border: 1px solid #e8edf3;
+        border-radius: 18px;
+        background: #fff;
+        padding: 15px;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .045);
+    }
+
+    .filter-label {
+        display: block;
+        margin-bottom: 6px;
+        color: #64748b;
+        font-size: .67rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .search-wrapper {
+        position: relative;
+    }
+
+    .search-wrapper i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: .78rem;
+        pointer-events: none;
+        transition: color .2s ease;
+    }
+
+    .search-wrapper:focus-within i {
+        color: #2563eb;
+    }
+
+    .directory-filter-card .form-control,
+    .directory-filter-card .form-select {
+        height: 42px;
+        border-radius: 11px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        font-size: .76rem;
+        padding-left: 39px;
+        transition: all .2s ease;
+    }
+
+    .directory-filter-card .form-select {
+        padding-left: 12px;
+    }
+
+    .directory-filter-card .form-control:focus,
+    .directory-filter-card .form-select:focus {
+        background: #fff;
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, .08);
+    }
+
+    .filter-reset-btn {
+        height: 42px;
+        border-radius: 11px;
+        font-size: .72rem;
+        font-weight: 700;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #64748b;
+        transition: all .2s ease;
+    }
+
+    .filter-reset-btn:hover {
+        color: #2563eb;
+        border-color: #bfdbfe;
+        background: #eff6ff;
+    }
+
+    /* =========================================================
+       DIRECTORY CARD
+       ========================================================= */
+
+    .directory-card {
+        border: 1px solid #e8edf3;
+        border-radius: 20px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, .055);
+    }
+
+    .directory-card-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf1f5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+    }
+
+    .directory-card-title {
+        margin: 0;
+        font-size: .92rem;
+        font-weight: 800;
+        color: #172033;
+    }
+
+    .directory-card-description {
+        margin: 3px 0 0;
+        color: #94a3b8;
+        font-size: .68rem;
+    }
+
+    .employee-count-badge {
+        padding: 7px 11px;
+        border-radius: 9px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: .67rem;
+        font-weight: 800;
+    }
+
+    /* =========================================================
+       TABLE
+       ========================================================= */
+
+    .directory-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .directory-table {
+        min-width: 1000px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .directory-table thead th {
+        padding: 12px 18px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e8edf3;
+        color: #64748b;
+        font-size: .64rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .55px;
+        white-space: nowrap;
+    }
+
+    .directory-table tbody td {
+        padding: 13px 18px;
+        border-bottom: 1px solid #f0f3f7;
+        color: #475569;
+        font-size: .73rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .directory-table tbody tr {
+        transition: all .2s ease;
+        animation: rowAppear .45s ease both;
+    }
+
+    .directory-table tbody tr:hover {
+        background: #f8fbff;
+    }
+
+    .directory-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    @@keyframes rowAppear {
+        from {
+            opacity: 0;
+            transform: translateY(7px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* =========================================================
+       EMPLOYEE PROFILE CELL
+       ========================================================= */
+
+    .employee-profile {
+        display: flex;
+        align-items: center;
+        min-width: 210px;
+    }
+
+    .employee-avatar {
+        width: 39px;
+        height: 39px;
+        min-width: 39px;
+        border-radius: 12px;
+        object-fit: cover;
+        margin-right: 11px;
+        border: 2px solid #fff;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, .10);
+    }
+
+    .employee-avatar-fallback {
+        width: 39px;
+        height: 39px;
+        min-width: 39px;
+        border-radius: 12px;
+        margin-right: 11px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #6366f1);
+        font-size: .7rem;
+        font-weight: 800;
+        box-shadow: 0 5px 14px rgba(37, 99, 235, .18);
+    }
+
+    .employee-name {
+        color: #172033;
+        font-size: .75rem;
+        font-weight: 800;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .employee-username {
+        margin-top: 2px;
+        color: #94a3b8;
+        font-size: .61rem;
+    }
+
+    .employee-code {
+        display: inline-flex;
+        padding: 5px 8px;
+        border-radius: 7px;
+        color: #475569;
+        background: #f1f5f9;
+        font-family: monospace;
+        font-size: .65rem;
+        font-weight: 700;
+    }
+
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border-radius: 8px;
+        color: #4f46e5;
+        background: #eef2ff;
+        font-size: .63rem;
+        font-weight: 700;
+    }
+
+    .employee-email {
+        color: #475569;
+        font-size: .69rem;
+    }
+
+    .employee-mobile {
+        color: #64748b;
+        font-size: .69rem;
+    }
+
+    .joining-date {
+        color: #64748b;
+        font-size: .68rem;
+    }
+
+    /* =========================================================
+       STATUS
+       ========================================================= */
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border-radius: 8px;
+        font-size: .63rem;
+        font-weight: 800;
+    }
+
+    .status-active {
+        color: #15803d;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+    }
+
+    .status-inactive {
+        color: #dc2626;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .status-active .status-dot {
+        animation: activePulse 1.8s infinite;
+    }
+
+    @@keyframes activePulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: .45;
+            transform: scale(.75);
+        }
+    }
+
+    /* =========================================================
+       ACTION BUTTONS
+       ========================================================= */
+
+    .employee-action-btn {
+        width: 33px;
+        height: 33px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #64748b;
+        transition: all .2s ease;
+    }
+
+    .employee-action-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .employee-view-btn:hover {
+        color: #2563eb;
+        border-color: #bfdbfe;
+        background: #eff6ff;
+    }
+
+    .employee-edit-btn:hover {
+        color: #7c3aed;
+        border-color: #ddd6fe;
+        background: #f5f3ff;
+    }
+
+    /* =========================================================
+       EMPTY STATE
+       ========================================================= */
+
+    .empty-directory {
+        padding: 55px 20px;
+        text-align: center;
+    }
+
+    .empty-icon {
+        width: 65px;
+        height: 65px;
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        background: #f8fafc;
+        color: #94a3b8;
+        font-size: 1.35rem;
+    }
+
+    .empty-title {
+        margin-bottom: 4px;
+        color: #334155;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .empty-text {
+        margin: 0;
+        color: #94a3b8;
+        font-size: .7rem;
+    }
+
+    /* =========================================================
+       MODALS
+       ========================================================= */
+
+    .premium-modal .modal-content {
+        border: 0;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, .20);
+    }
+
+    .premium-modal .modal-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf1f5;
+        background: #fff;
+    }
+
+    .premium-modal .modal-title {
+        color: #172033;
+        font-size: .95rem;
+        font-weight: 800;
+    }
+
+    .modal-title-icon {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        color: #2563eb;
+        background: #eff6ff;
+        margin-right: 8px;
+    }
+
+    .premium-modal .modal-body {
+        padding: 22px;
+    }
+
+    .premium-modal .modal-footer {
+        padding: 14px 20px;
+        background: #f8fafc;
+        border-top: 1px solid #edf1f5;
+    }
+
+    .premium-modal .form-label {
+        margin-bottom: 6px;
+        color: #475569;
+        font-size: .68rem;
+        font-weight: 800;
+    }
+
+    .premium-modal .form-control,
+    .premium-modal .form-select {
+        min-height: 42px;
+        border-radius: 10px;
+        border-color: #e2e8f0;
+        background: #f8fafc;
+        font-size: .74rem;
+    }
+
+    .premium-modal .form-control:focus,
+    .premium-modal .form-select:focus {
+        background: #fff;
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, .08);
+    }
+
+    .modal-save-btn {
+        border: 0;
+        border-radius: 10px;
+        padding: 9px 16px;
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+    /* =========================================================
+       PROFILE MODAL
+       ========================================================= */
+
+    .profile-modal-header {
+        padding: 28px 20px 20px;
+        text-align: center;
+        background:
+            radial-gradient(circle at 50% -20%, rgba(37, 99, 235, .14), transparent 45%),
+            #fff;
+    }
+
+    .profile-photo-wrapper {
+        position: relative;
+        width: 88px;
+        height: 88px;
+        margin: 0 auto 13px;
+    }
+
+    .profile-photo,
+    .profile-avatar {
+        width: 88px;
+        height: 88px;
+        border-radius: 24px;
+        object-fit: cover;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, .14);
+        border: 3px solid #fff;
+    }
+
+    .profile-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #6366f1);
+        font-size: 1.55rem;
+        font-weight: 800;
+    }
+
+    .profile-name {
+        color: #172033;
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+
+    .profile-role {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 8px;
+        color: #4f46e5;
+        background: #eef2ff;
+        font-size: .65rem;
+        font-weight: 700;
+    }
+
+    .profile-details {
+        padding: 0 20px 20px;
+    }
+
+    .profile-detail-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 0;
+        border-bottom: 1px solid #f0f3f7;
+    }
+
+    .profile-detail-item:last-child {
+        border-bottom: 0;
+    }
+
+    .profile-detail-icon {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: .68rem;
+        flex-shrink: 0;
+    }
+
+    .profile-detail-label {
+        color: #94a3b8;
+        font-size: .61rem;
+        font-weight: 700;
+        display: block;
+    }
+
+    .profile-detail-value {
+        color: #334155;
+        font-size: .7rem;
+        font-weight: 700;
+        display: block;
+        margin-top: 2px;
+        word-break: break-word;
+    }
+
+    /* =========================================================
+       NO SEARCH RESULT
+       ========================================================= */
+
+    .no-search-result {
+        display: none;
+        padding: 45px 20px;
+        text-align: center;
+    }
+
+    .no-search-result.show {
+        display: block;
+        animation: directoryPageIn .35s ease both;
+    }
+
+    .no-search-icon {
+        width: 55px;
+        height: 55px;
+        margin: 0 auto 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        color: #64748b;
+        background: #f1f5f9;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @@media (max-width: 768px) {
+
+        .directory-title {
+            font-size: 1.3rem;
+        }
+
+        .directory-title-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .directory-header {
+            align-items: flex-start !important;
+        }
+
+        .add-employee-btn {
+            padding: 9px 12px;
+        }
+
+        .directory-card-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+    }
+
+    @@media (max-width: 576px) {
+
+        .directory-title-wrapper {
+            gap: 9px;
+        }
+
+        .directory-subtitle {
+            font-size: .68rem;
+        }
+
+        .stat-number {
+            font-size: 1.25rem;
+        }
+
+        .directory-filter-card {
+            padding: 12px;
+        }
+
+    }
+
+</style>
+
+
+<div class="container-fluid py-4 text-start employee-directory-page">
+
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+    <div class="directory-header d-flex justify-content-between align-items-center">
+
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-users text-primary me-2"></i>Employee Directory</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Employee Directory</li>
-                </ol>
-            </nav>
+
+            <div class="directory-title-wrapper">
+
+                <div class="directory-title-icon">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+
+                <div>
+
+                    <h4 class="directory-title">
+                        Employee Directory
+                    </h4>
+
+                    <p class="directory-subtitle">
+                        Manage your organization's employees and workforce
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="directory-breadcrumb">
+
+                <nav aria-label="breadcrumb">
+
+                    <ol class="breadcrumb">
+
+                        <li class="breadcrumb-item">
+                            <a href="/HR" class="text-decoration-none">
+                                HR Dashboard
+                            </a>
+                        </li>
+
+                        <li class="breadcrumb-item active"
+                            aria-current="page">
+
+                            Employee Directory
+
+                        </li>
+
+                    </ol>
+
+                </nav>
+
+            </div>
+
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Add Employee
+
+
+        <button type="button"
+                class="btn btn-primary add-employee-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#addEmployeeModal">
+
+            <i class="fa-solid fa-user-plus me-2"></i>
+
+            Add Employee
+
         </button>
+
     </div>
 
-    <!-- Search & Filter Card -->
-    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search by name, email, or employee code..." />
+
+    <!-- =====================================================
+         STATISTICS
+         ===================================================== -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-6 col-xl-3">
+
+            <div class="employee-stat-card h-100">
+
+                <div class="stat-icon stat-icon-blue">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+
+                <span class="stat-number">
+                    @totalEmployees
+                </span>
+
+                <span class="stat-label">
+                    Total Employees
+                </span>
+
+                <span class="stat-meta">
+                    Complete workforce
+                </span>
+
             </div>
-            <div class="col-md-6">
-                <select id="roleSelect" class="form-select form-select-sm">
-                    <option value="">All Departments/Roles</option>
+
+        </div>
+
+
+        <div class="col-6 col-xl-3">
+
+            <div class="employee-stat-card h-100">
+
+                <div class="stat-icon stat-icon-green">
+                    <i class="fa-solid fa-user-check"></i>
+                </div>
+
+                <span class="stat-number">
+                    @activeEmployees
+                </span>
+
+                <span class="stat-label">
+                    Active Employees
+                </span>
+
+                <span class="stat-meta">
+                    @activePercentage% of workforce
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-6 col-xl-3">
+
+            <div class="employee-stat-card h-100">
+
+                <div class="stat-icon stat-icon-red">
+                    <i class="fa-solid fa-user-slash"></i>
+                </div>
+
+                <span class="stat-number">
+                    @inactiveEmployees
+                </span>
+
+                <span class="stat-label">
+                    Inactive Employees
+                </span>
+
+                <span class="stat-meta">
+                    Currently inactive
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-6 col-xl-3">
+
+            <div class="employee-stat-card h-100">
+
+                <div class="stat-icon stat-icon-purple">
+                    <i class="fa-solid fa-id-badge"></i>
+                </div>
+
+                <span class="stat-number">
+                    @assignedEmployees
+                </span>
+
+                <span class="stat-label">
+                    Role Assigned
+                </span>
+
+                <span class="stat-meta">
+                    Across @roles.Count() roles
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         SEARCH & FILTER
+         ===================================================== -->
+
+    <div class="directory-filter-card mb-4">
+
+        <div class="row g-3 align-items-end">
+
+            <div class="col-lg-6">
+
+                <label class="filter-label">
+                    Search Employees
+                </label>
+
+                <div class="search-wrapper">
+
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                    <input type="text"
+                           id="searchInput"
+                           class="form-control"
+                           autocomplete="off"
+                           placeholder="Search by name, email, employee code or mobile..." />
+
+                </div>
+
+            </div>
+            <div class="col-md-5 col-lg-3">
+
+                <label class="filter-label">
+                    Role / Designation
+                </label>
+
+                <select id="roleSelect"
+                        class="form-select">
+
+                    <option value="">
+                        All Roles
+                    </option>
+
                     @foreach (var role in roles)
                     {
-                        <option value="@role.RoleId">@role.RoleName</option>
+                        <option value="@role.RoleId">
+                            @role.RoleName
+                        </option>
                     }
+
                 </select>
+
             </div>
+
+
+            <div class="col-md-5 col-lg-2">
+
+                <label class="filter-label">
+                    Employee Status
+                </label>
+
+                <select id="statusSelect"
+                        class="form-select">
+
+                    <option value="">
+                        All Status
+                    </option>
+
+                    <option value="active">
+                        Active
+                    </option>
+
+                    <option value="inactive">
+                        Inactive
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="col-md-2 col-lg-1">
+
+                <button type="button"
+                        id="resetFilters"
+                        class="btn filter-reset-btn w-100"
+                        title="Reset Filters">
+
+                    <i class="fa-solid fa-rotate-left"></i>
+
+                </button>
+
+            </div>
+
         </div>
+
     </div>
 
-    <!-- Directory Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Role/Designation</th>
-                        <th>Email</th>
-                        <th>Mobile</th>
-                        <th>Join Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var emp in Model)
+
+    <!-- =====================================================
+         EMPLOYEE DIRECTORY
+         ===================================================== -->
+
+    <div class="directory-card">
+
+        <div class="directory-card-header">
+
+            <div>
+
+                <h5 class="directory-card-title">
+                    Employee Directory
+                </h5>
+
+                <p class="directory-card-description">
+                    View, manage and update employee information
+                </p>
+
+            </div>
+
+            <span class="employee-count-badge">
+
+                <i class="fa-solid fa-users me-1"></i>
+
+                <span id="visibleEmployeeCount">
+                    @totalEmployees
+                </span>
+
+                Employees
+
+            </span>
+
+        </div>
+
+
+        <div class="directory-table-wrapper">
+
+            @if (employees.Any())
+            {
+                <table class="table directory-table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Employee
+                            </th>
+
+                            <th>
+                                Code
+                            </th>
+
+                            <th>
+                                Role
+                            </th>
+
+                            <th>
+                                Email
+                            </th>
+
+                            <th>
+                                Mobile
+                            </th>
+
+                            <th>
+                                Joining Date
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th class="text-end">
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="employeeTableBody">
+
+                        @foreach (var emp in employees)
                         {
-                            <tr data-role-id="@emp.RoleId">
-                                <td class="fw-bold text-dark emp-code">@emp.UserCode</td>
+                            var initials =
+                            !string.IsNullOrWhiteSpace(emp.FullName)
+                            ? string.Join("",
+                            emp.FullName
+                            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                            .Take(2)
+                            .Select(x => x[0]))
+                            .ToUpper()
+                            : "EM";
+
+                            <tr class="employee-row"
+                                data-role-id="@emp.RoleId"
+                                data-status="@(emp.IsActive ? "active" : "inactive")">
+
+                                <!-- EMPLOYEE -->
+
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        @if (!string.IsNullOrEmpty(emp.ProfilePhoto))
+
+                                    <div class="employee-profile">
+
+                                        @if (!string.IsNullOrWhiteSpace(emp.ProfilePhoto))
                                         {
-                                            <img src="@emp.ProfilePhoto" class="rounded-circle me-2" style="width: 28px; height: 28px; object-fit: cover;" />
+                                            <img src="@emp.ProfilePhoto"
+                                                 alt="@emp.FullName"
+                                                 class="employee-avatar" />
                                         }
                                         else
                                         {
-                                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2 font-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">
-                                                @(!string.IsNullOrEmpty(emp.FullName) ? emp.FullName.Substring(0, Math.Min(2, emp.FullName.Length)).ToUpper() : "EM")
+                                            <div class="employee-avatar-fallback">
+                                                @initials
                                             </div>
                                         }
-                                        <div class="emp-name">@emp.FullName</div>
+
+                                    <div>
+
+                                        <div class="employee-name emp-name">
+                                            @emp.FullName
+                                        </div>
+
+                                        <div class="employee-username">
+                                            @@@emp.UserName
+                                        </div>
+
                                     </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- CODE -->
+
+                            <td>
+
+                                <span class="employee-code emp-code">
+                                    @emp.UserCode
+                                </span>
+
+                            </td>
+
+
+                            <!-- ROLE -->
+
+                            <td>
+
+                                <span class="role-badge">
+
+                                    <i class="fa-solid fa-briefcase"></i>
+
+                                    @(emp.Role != null
+                                                                    ? emp.Role.RoleName
+                                                                    : "Unassigned")
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- EMAIL -->
+
+                            <td>
+
+                                <span class="employee-email emp-email">
+
+                                    @emp.Email
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- MOBILE -->
+
+                            <td>
+
+                                <span class="employee-mobile emp-mobile">
+
+                                    @(string.IsNullOrWhiteSpace(emp.MobileNumber)
+                                                                    ? "N/A"
+                                                                    : emp.MobileNumber)
+
+                            </span>
+
                                 </td>
-                                <td>@(emp.Role != null ? emp.Role.RoleName : "Unassigned")</td>
-                                <td class="emp-email">@emp.Email</td>
-                                <td>@(string.IsNullOrEmpty(emp.MobileNumber) ? "N/A" : emp.MobileNumber)</td>
-                                <td class="text-muted">@emp.CreatedAt.ToString("dd MMM yyyy")</td>
+
+
+                                <!-- JOIN DATE -->
+
                                 <td>
-                                    @if (emp.IsActive)
+
+                                    <span class="joining-date">
+
+                                        @emp.CreatedAt.ToString("dd MMM yyyy")
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                            @if (emp.IsActive)
                                     {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span>
+                                        <span class="status-badge status-active">
+
+                                            <span class="status-dot"></span>
+
+                                            Active
+
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">Inactive</span>
-                                    }
-                                </td>
-                                <td>
-                                    <button class="btn btn-outline-primary btn-xs rounded-pill px-2.5 view-btn"
-                                            data-code="@emp.UserCode"
-                                            data-name="@emp.FullName"
-                                            data-email="@emp.Email"
-                                            data-mobile="@emp.MobileNumber"
-                                            data-role="@(emp.Role != null ? emp.Role.RoleName : "Unassigned")"
-                                            data-date="@emp.CreatedAt.ToString("dd MMM yyyy")"
-                                            data-photo="@emp.ProfilePhoto"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#viewProfileModal">
-                                        View Profile
-                                    </button>
+                                        <span class="status-badge status-inactive">
 
-                                    <button class="btn btn-outline-secondary btn-xs rounded-pill px-2.5 edit-btn"
-                                            data-id="@emp.UserId"
-                                            data-name="@emp.FullName"
-                                            data-user="@emp.UserName"
-                                            data-email="@emp.Email"
-                                            data-mobile="@emp.MobileNumber"
-                                            data-role="@emp.RoleId"
-                                            data-active="@emp.IsActive.ToString().ToLower()"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editEmployeeModal">
-                                        Edit
-                                    </button>
+                                            <span class="status-dot"></span>
+
+                                            Inactive
+
+                                        </span>
+                                    }
+
                                 </td>
+
+
+                                <!-- ACTIONS -->
+
+                                <td class="text-end">
+
+                                    <div class="d-flex justify-content-end gap-1">
+
+                                        <!-- VIEW -->
+
+                                        <button type="button"
+                                                class="employee-action-btn employee-view-btn view-btn"
+                                                title="View Profile"
+                                                data-code="@emp.UserCode"
+                                                data-name="@emp.FullName"
+                                                data-email="@emp.Email"
+                                                data-mobile="@emp.MobileNumber"
+                                                data-role="@(emp.Role != null ? emp.Role.RoleName : "Unassigned")"
+                                                data-date="@emp.CreatedAt.ToString("dd MMM yyyy")"
+                                                data-photo="@emp.ProfilePhoto"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#viewProfileModal">
+
+                                            <i class="fa-regular fa-eye"></i>
+
+                                        </button>
+
+
+                                        <!-- EDIT -->
+
+                                        <button type="button"
+                                                class="employee-action-btn employee-edit-btn edit-btn"
+                                                title="Edit Employee"
+                                                data-id="@emp.UserId"
+                                                data-name="@emp.FullName"
+                                                data-user="@emp.UserName"
+                                                data-email="@emp.Email"
+                                                data-mobile="@emp.MobileNumber"
+                                                data-role="@emp.RoleId"
+                                                data-active="@emp.IsActive.ToString().ToLower()"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editEmployeeModal">
+
+                                            <i class="fa-solid fa-pen"></i>
+
+                                        </button>
+
+                                    </div>
+
+                                </td>
+
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">No employees found in database.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+                    </tbody>
+
+                </table>
+
+
+                <!-- NO SEARCH RESULT -->
+
+                <div id="noSearchResult"
+                     class="no-search-result">
+
+                    <div class="no-search-icon">
+
+                        <i class="fa-solid fa-magnifying-glass"></i>
+
+                    </div>
+
+                    <div class="empty-title">
+                        No employees found
+                    </div>
+
+                    <p class="empty-text">
+                        Try changing your search or filter criteria.
+                    </p>
+
+                </div>
+            }
+            else
+            {
+                <div class="empty-directory">
+
+                    <div class="empty-icon">
+
+                        <i class="fa-solid fa-users-slash"></i>
+
+                    </div>
+
+                    <div class="empty-title">
+                        No employees found
+                    </div>
+
+                    <p class="empty-text">
+                        There are currently no employees in the directory.
+                    </p>
+
+                </div>
+            }
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Add Employee Modal -->
-<div class="modal fade text-start" id="addEmployeeModal" tabindex="-1" aria-labelledby="addEmployeeModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+
+<!-- =========================================================
+     ADD EMPLOYEE MODAL
+     ========================================================= -->
+
+<div class="modal fade premium-modal"
+     id="addEmployeeModal"
+     tabindex="-1"
+     aria-labelledby="addEmployeeModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+
         <div class="modal-content">
-            <form action="/HREmployee/CreateEmployee" method="post" enctype="multipart/form-data">
+
+            <form action="/HREmployee/CreateEmployee"
+                  method="post"
+                  enctype="multipart/form-data">
+
                 @Html.AntiForgeryToken()
+
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="addEmployeeModalLabel">Add New Employee</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    <h5 class="modal-title"
+                        id="addEmployeeModalLabel">
+
+                        <span class="modal-title-icon">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </span>
+
+                        Add New Employee
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
                 </div>
+
+
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Full Name</label>
-                        <input type="text" name="FullName" class="form-control" placeholder="e.g. Rajesh Kumar" required />
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Full Name
+                            </label>
+
+                            <input type="text"
+                                   name="FullName"
+                                   class="form-control"
+                                   placeholder="e.g. Rajesh Kumar"
+                                   required />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Username
+                            </label>
+
+                            <input type="text"
+                                   name="UserName"
+                                   class="form-control"
+                                   placeholder="e.g. rajeshk"
+                                   required />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Email Address
+                            </label>
+
+                            <input type="email"
+                                   name="Email"
+                                   class="form-control"
+                                   placeholder="e.g. rajesh@erp.com"
+                                   required />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Password
+                            </label>
+
+                            <input type="password"
+                                   name="Password"
+                                   class="form-control"
+                                   placeholder="Enter password" />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Mobile Number
+                            </label>
+
+                            <input type="text"
+                                   name="MobileNumber"
+                                   class="form-control"
+                                   placeholder="e.g. 9876543210" />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Role / Designation
+                            </label>
+
+                            <select name="SelectedRoleId"
+                                    class="form-select"
+                                    required>
+
+                                <option value="">
+                                    Select Role
+                                </option>
+
+                                @foreach (var role in roles)
+                                {
+                                    <option value="@role.RoleId">
+                                        @role.RoleName
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-12">
+
+                            <label class="form-label">
+                                Profile Photo
+                            </label>
+
+                            <input type="file"
+                                   name="ProfilePhotoFile"
+                                   class="form-control"
+                                   accept="image/*" />
+
+                            <div class="form-text small">
+                                JPG, PNG or WEBP image recommended.
+                            </div>
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Username</label>
-                        <input type="text" name="UserName" class="form-control" placeholder="e.g. rajeshk" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Email Address</label>
-                        <input type="email" name="Email" class="form-control" placeholder="e.g. rajesh@erp.com" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Password</label>
-                        <input type="password" name="Password" class="form-control" placeholder="Defaults to Monitor@2026" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Mobile Number</label>
-                        <input type="text" name="MobileNumber" class="form-control" placeholder="e.g. 9876543210" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Assign Role/Designation</label>
-                        <select name="SelectedRoleId" class="form-select" required>
-                            @foreach (var role in roles)
-                            {
-                                <option value="@role.RoleId">@role.RoleName</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Profile Photo</label>
-                        <input type="file" name="ProfilePhotoFile" class="form-control" accept="image/*" />
-                    </div>
+
                 </div>
+
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Employee</button>
+
+                    <button type="button"
+                            class="btn btn-outline-secondary rounded-3 btn-sm px-3"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary modal-save-btn">
+
+                        <i class="fa-solid fa-user-plus me-1"></i>
+
+                        Create Employee
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Edit Employee Modal -->
-<div class="modal fade text-start" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+
+<!-- =========================================================
+     EDIT EMPLOYEE MODAL
+     ========================================================= -->
+
+<div class="modal fade premium-modal"
+     id="editEmployeeModal"
+     tabindex="-1"
+     aria-labelledby="editEmployeeModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+
         <div class="modal-content">
-            <form action="/HREmployee/EditEmployee" method="post" enctype="multipart/form-data">
+
+            <!-- IMPORTANT:
+                 Only ONE form here.
+                 Status/Delete forms are outside this form.
+            -->
+
+            <form id="editEmployeeForm"
+                  action="/HREmployee/EditEmployee"
+                  method="post"
+                  enctype="multipart/form-data">
+
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="UserId" id="editUserId" />
+
+                <input type="hidden"
+                       name="UserId"
+                       id="editUserId" />
+
+
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="editEmployeeModalLabel">Edit Employee Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    <h5 class="modal-title"
+                        id="editEmployeeModalLabel">
+
+                        <span class="modal-title-icon">
+                            <i class="fa-solid fa-user-pen"></i>
+                        </span>
+
+                        Edit Employee
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
                 </div>
+
+
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Full Name</label>
-                        <input type="text" name="FullName" id="editFullName" class="form-control" required />
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Full Name
+                            </label>
+
+                            <input type="text"
+                                   name="FullName"
+                                   id="editFullName"
+                                   class="form-control"
+                                   required />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Username
+                            </label>
+
+                            <input type="text"
+                                   name="UserName"
+                                   id="editUserName"
+                                   class="form-control"
+                                   required />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Email Address
+                            </label>
+
+                            <input type="email"
+                                   name="Email"
+                                   id="editEmail"
+                                   class="form-control"
+                                   required />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Mobile Number
+                            </label>
+
+                            <input type="text"
+                                   name="MobileNumber"
+                                   id="editMobileNumber"
+                                   class="form-control" />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Role / Designation
+                            </label>
+
+                            <select name="SelectedRoleId"
+                                    id="editRoleId"
+                                    class="form-select"
+                                    required>
+
+                                <option value="">
+                                    Select Role
+                                </option>
+
+                                @foreach (var role in roles)
+                                {
+                                    <option value="@role.RoleId">
+                                        @role.RoleName
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                New Profile Photo
+                            </label>
+
+                            <input type="file"
+                                   name="NewProfilePhotoFile"
+                                   class="form-control"
+                                   accept="image/*" />
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Username</label>
-                        <input type="text" name="UserName" id="editUserName" class="form-control" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Email Address</label>
-                        <input type="email" name="Email" id="editEmail" class="form-control" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Mobile Number</label>
-                        <input type="text" name="MobileNumber" id="editMobileNumber" class="form-control" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Assign Role/Designation</label>
-                        <select name="SelectedRoleId" id="editRoleId" class="form-select" required>
-                            @foreach (var role in roles)
-                            {
-                                <option value="@role.RoleId">@role.RoleName</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">New Profile Photo</label>
-                        <input type="file" name="NewProfilePhotoFile" class="form-control" accept="image/*" />
-                    </div>
+
                 </div>
+
+
                 <div class="modal-footer d-flex justify-content-between">
+
                     <div>
-                        <!-- Status Toggle Form -->
-                        <form id="statusToggleForm" action="/HREmployee/ToggleStatus" method="post" class="d-inline-block">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="UserId" id="statusUserId" />
-                            <button type="submit" id="statusToggleBtn" class="btn btn-warning rounded-pill btn-sm px-3">Deactivate</button>
-                        </form>
-                        <!-- Delete Form -->
-                        <form id="deleteForm" action="/HREmployee/DeleteEmployee" method="post" class="d-inline-block" onsubmit="return confirm('Are you sure you want to delete this employee?');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="UserId" id="deleteUserId" />
-                            <button type="submit" class="btn btn-danger rounded-pill btn-sm px-3">Delete</button>
-                        </form>
+
+                        <button type="button"
+                                id="statusToggleBtn"
+                                class="btn btn-warning rounded-3 btn-sm px-3">
+
+                            <i class="fa-solid fa-user-slash me-1"></i>
+
+                            Deactivate
+
+                        </button>
+
+
+                        <button type="button"
+                                id="deleteEmployeeBtn"
+                                class="btn btn-outline-danger rounded-3 btn-sm px-3 ms-1">
+
+                            <i class="fa-solid fa-trash me-1"></i>
+
+                            Delete
+
+                        </button>
+
                     </div>
+
+
                     <div>
-                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Changes</button>
+
+                        <button type="button"
+                                class="btn btn-outline-secondary rounded-3 btn-sm px-3"
+                                data-bs-dismiss="modal">
+
+                            Cancel
+
+                        </button>
+
+
+                        <button type="submit"
+                                class="btn btn-primary modal-save-btn ms-1">
+
+                            <i class="fa-solid fa-floppy-disk me-1"></i>
+
+                            Save Changes
+
+                        </button>
+
                     </div>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- View Profile Modal -->
-<div class="modal fade text-start" id="viewProfileModal" tabindex="-1" aria-labelledby="viewProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+
+<!-- =========================================================
+     STATUS FORM
+     ========================================================= -->
+
+<form id="statusToggleForm"
+      action="/HREmployee/ToggleStatus"
+      method="post"
+      class="d-none">
+
+    @Html.AntiForgeryToken()
+
+    <input type="hidden"
+           name="UserId"
+           id="statusUserId" />
+
+</form>
+
+
+<!-- =========================================================
+     DELETE FORM
+     ========================================================= -->
+
+<form id="deleteForm"
+      action="/HREmployee/DeleteEmployee"
+      method="post"
+      class="d-none">
+
+    @Html.AntiForgeryToken()
+
+    <input type="hidden"
+           name="UserId"
+           id="deleteUserId" />
+
+</form>
+
+
+<!-- =========================================================
+     VIEW PROFILE MODAL
+     ========================================================= -->
+
+<div class="modal fade premium-modal"
+     id="viewProfileModal"
+     tabindex="-1"
+     aria-labelledby="viewProfileModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="viewProfileModalLabel">Employee Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <div class="mb-3 d-flex justify-content-center">
-                    <img id="viewPhoto" class="rounded-circle d-none" style="width: 100px; height: 100px; object-fit: cover;" />
-                    <div id="viewAvatarCircle" class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center font-bold" style="width: 100px; height: 100px; font-size: 2rem;">
-                        EM
-                    </div>
-                </div>
-                <h5 class="fw-bold mb-1" id="viewName">Numan Sales Man</h5>
-                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1.5 mb-4" id="viewRole">Sales Manager</span>
 
-                <div class="text-start border-top pt-3">
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted small fw-semibold">Employee Code:</div>
-                        <div class="col-7 small fw-bold text-dark" id="viewCode">EMP-001</div>
+
+            <div class="profile-modal-header">
+
+                <div class="profile-photo-wrapper">
+
+                    <img id="viewPhoto"
+                         class="profile-photo d-none"
+                         alt="Employee Photo" />
+
+                    <div id="viewAvatarCircle"
+                         class="profile-avatar">
+
+                        EM
+
                     </div>
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted small fw-semibold">Email:</div>
-                        <div class="col-7 small text-dark" id="viewEmail">numan@sales.com</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted small fw-semibold">Mobile Number:</div>
-                        <div class="col-7 small text-dark" id="viewMobile">9876543210</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted small fw-semibold">Joining Date:</div>
-                        <div class="col-7 small text-dark" id="viewDate">12 Jan 2024</div>
-                    </div>
+
                 </div>
+
+
+                <div class="profile-name"
+                     id="viewName">
+
+                    Employee Name
+
+                </div>
+
+
+                <span class="profile-role"
+                      id="viewRole">
+
+                    Role
+
+                </span>
+
             </div>
+
+
+            <div class="profile-details">
+
+
+                <div class="profile-detail-item">
+
+                    <div class="profile-detail-icon">
+
+                        <i class="fa-solid fa-id-card"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span class="profile-detail-label">
+                            Employee Code
+                        </span>
+
+                        <span class="profile-detail-value"
+                              id="viewCode">
+
+                            EMP-001
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-detail-item">
+
+                    <div class="profile-detail-icon">
+
+                        <i class="fa-solid fa-envelope"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span class="profile-detail-label">
+                            Email Address
+                        </span>
+
+                        <span class="profile-detail-value"
+                              id="viewEmail">
+
+                            employee@erp.com
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-detail-item">
+
+                    <div class="profile-detail-icon">
+
+                        <i class="fa-solid fa-phone"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span class="profile-detail-label">
+                            Mobile Number
+                        </span>
+
+                        <span class="profile-detail-value"
+                              id="viewMobile">
+
+                            N/A
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-detail-item">
+
+                    <div class="profile-detail-icon">
+
+                        <i class="fa-solid fa-calendar-days"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span class="profile-detail-label">
+                            Joining Date
+                        </span>
+
+                        <span class="profile-detail-value"
+                              id="viewDate">
+
+                            01 Jan 2026
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Close</button>
+
+                <button type="button"
+                        class="btn btn-outline-secondary rounded-3 btn-sm px-3"
+                        data-bs-dismiss="modal">
+
+                    Close
+
+                </button>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
+
 
 <script>
-    // Real-time Javascript automatic filtering
+
     document.addEventListener("DOMContentLoaded", function () {
-        var searchInput = document.getElementById("searchInput");
-        var roleSelect = document.getElementById("roleSelect");
 
-        function filterTable() {
-            var searchValue = searchInput.value.toLowerCase();
-            var roleValue = roleSelect.value;
-            var rows = document.querySelectorAll("tbody tr");
+        /* =====================================================
+           ELEMENTS
+           ===================================================== */
 
-            rows.forEach(function (row) {
-                var nameEl = row.querySelector(".emp-name");
-                var codeEl = row.querySelector(".emp-code");
-                var emailEl = row.querySelector(".emp-email");
+        const searchInput =
+            document.getElementById("searchInput");
 
-                if (!nameEl) return; // Skip empty message rows
+        const roleSelect =
+            document.getElementById("roleSelect");
 
-                var name = nameEl.textContent.toLowerCase();
-                var code = codeEl.textContent.toLowerCase();
-                var email = emailEl.textContent.toLowerCase();
-                var roleId = row.getAttribute("data-role-id");
+        const statusSelect =
+            document.getElementById("statusSelect");
 
-                var matchesSearch = name.includes(searchValue) || code.includes(searchValue) || email.includes(searchValue);
-                var matchesRole = !roleValue || roleId === roleValue;
+        const resetFilters =
+            document.getElementById("resetFilters");
 
-                if (matchesSearch && matchesRole) {
+        const employeeRows =
+            Array.from(document.querySelectorAll(".employee-row"));
+
+        const visibleEmployeeCount =
+            document.getElementById("visibleEmployeeCount");
+
+        const noSearchResult =
+            document.getElementById("noSearchResult");
+
+
+        /* =====================================================
+           FILTERING
+           ===================================================== */
+
+        function filterEmployees() {
+
+            const searchValue =
+                (searchInput?.value || "")
+                    .trim()
+                    .toLowerCase();
+
+            const roleValue =
+                roleSelect?.value || "";
+
+            const statusValue =
+                statusSelect?.value || "";
+
+            let visibleCount = 0;
+
+
+            employeeRows.forEach(function (row) {
+
+                const name =
+                    row.querySelector(".emp-name")
+                        ?.textContent
+                        .toLowerCase() || "";
+
+                const code =
+                    row.querySelector(".emp-code")
+                        ?.textContent
+                        .toLowerCase() || "";
+
+                const email =
+                    row.querySelector(".emp-email")
+                        ?.textContent
+                        .toLowerCase() || "";
+
+                const mobile =
+                    row.querySelector(".emp-mobile")
+                        ?.textContent
+                        .toLowerCase() || "";
+
+                const roleId =
+                    row.getAttribute("data-role-id") || "";
+
+                const status =
+                    row.getAttribute("data-status") || "";
+
+
+                const matchesSearch =
+                    !searchValue ||
+                    name.includes(searchValue) ||
+                    code.includes(searchValue) ||
+                    email.includes(searchValue) ||
+                    mobile.includes(searchValue);
+
+
+                const matchesRole =
+                    !roleValue ||
+                    roleId === roleValue;
+
+
+                const matchesStatus =
+                    !statusValue ||
+                    status === statusValue;
+
+
+                const shouldShow =
+                    matchesSearch &&
+                    matchesRole &&
+                    matchesStatus;
+
+
+                if (shouldShow) {
+
                     row.style.display = "";
-                } else {
-                    row.style.display = "none";
+
+                    visibleCount++;
+
                 }
+                else {
+
+                    row.style.display = "none";
+
+                }
+
             });
+
+
+            if (visibleEmployeeCount) {
+
+                visibleEmployeeCount.textContent =
+                    visibleCount;
+
+            }
+
+
+            if (noSearchResult) {
+
+                if (visibleCount === 0 && employeeRows.length > 0) {
+
+                    noSearchResult.classList.add("show");
+
+                }
+                else {
+
+                    noSearchResult.classList.remove("show");
+
+                }
+
+            }
+
         }
 
-        searchInput.addEventListener("keyup", filterTable);
-        roleSelect.addEventListener("change", filterTable);
 
-        // Edit button data transfer to inputs
-        document.querySelectorAll(".edit-btn").forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                document.getElementById("editUserId").value = this.getAttribute("data-id");
-                document.getElementById("editFullName").value = this.getAttribute("data-name");
-                document.getElementById("editUserName").value = this.getAttribute("data-user");
-                document.getElementById("editEmail").value = this.getAttribute("data-email");
-                document.getElementById("editMobileNumber").value = this.getAttribute("data-mobile");
-                document.getElementById("editRoleId").value = this.getAttribute("data-role");
+        /* =====================================================
+           SEARCH EVENTS
+           ===================================================== */
 
-                var isActive = this.getAttribute("data-active") === "true";
-                var statusToggleBtn = document.getElementById("statusToggleBtn");
+        if (searchInput) {
 
-                document.getElementById("statusUserId").value = this.getAttribute("data-id");
-                document.getElementById("deleteUserId").value = this.getAttribute("data-id");
+            searchInput.addEventListener(
+                "input",
+                filterEmployees
+            );
 
-                if (isActive) {
-                    statusToggleBtn.textContent = "Deactivate";
-                    statusToggleBtn.className = "btn btn-warning rounded-pill btn-sm px-3 me-2";
-                } else {
-                    statusToggleBtn.textContent = "Activate";
-                    statusToggleBtn.className = "btn btn-success rounded-pill btn-sm px-3 me-2";
+        }
+
+
+        if (roleSelect) {
+
+            roleSelect.addEventListener(
+                "change",
+                filterEmployees
+            );
+
+        }
+
+
+        if (statusSelect) {
+
+            statusSelect.addEventListener(
+                "change",
+                filterEmployees
+            );
+
+        }
+
+
+        /* =====================================================
+           RESET
+           ===================================================== */
+
+        if (resetFilters) {
+
+            resetFilters.addEventListener(
+                "click",
+                function () {
+
+                    if (searchInput) {
+                        searchInput.value = "";
+                    }
+
+                    if (roleSelect) {
+                        roleSelect.value = "";
+                    }
+
+                    if (statusSelect) {
+                        statusSelect.value = "";
+                    }
+
+                    filterEmployees();
+
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+
                 }
+            );
+
+        }
+
+
+        /* =====================================================
+           EDIT EMPLOYEE
+           ===================================================== */
+
+        document
+            .querySelectorAll(".edit-btn")
+            .forEach(function (button) {
+
+                button.addEventListener(
+                    "click",
+                    function () {
+
+                        const id =
+                            this.getAttribute("data-id");
+
+                        const name =
+                            this.getAttribute("data-name") || "";
+
+                        const username =
+                            this.getAttribute("data-user") || "";
+
+                        const email =
+                            this.getAttribute("data-email") || "";
+
+                        const mobile =
+                            this.getAttribute("data-mobile") || "";
+
+                        const role =
+                            this.getAttribute("data-role") || "";
+
+                        const active =
+                            this.getAttribute("data-active") === "true";
+
+
+                        document.getElementById("editUserId").value =
+                            id;
+
+                        document.getElementById("editFullName").value =
+                            name;
+
+                        document.getElementById("editUserName").value =
+                            username;
+
+                        document.getElementById("editEmail").value =
+                            email;
+
+                        document.getElementById("editMobileNumber").value =
+                            mobile;
+
+                        document.getElementById("editRoleId").value =
+                            role;
+
+
+                        document.getElementById("statusUserId").value =
+                            id;
+
+                        document.getElementById("deleteUserId").value =
+                            id;
+
+
+                        const statusButton =
+                            document.getElementById("statusToggleBtn");
+
+
+                        if (active) {
+
+                            statusButton.className =
+                                "btn btn-warning rounded-3 btn-sm px-3";
+
+                            statusButton.innerHTML =
+                                '<i class="fa-solid fa-user-slash me-1"></i> Deactivate';
+
+                        }
+                        else {
+
+                            statusButton.className =
+                                "btn btn-success rounded-3 btn-sm px-3";
+
+                            statusButton.innerHTML =
+                                '<i class="fa-solid fa-user-check me-1"></i> Activate';
+
+                        }
+
+                    }
+                );
+
             });
-        });
 
-        // View Profile button data transfer
-        document.querySelectorAll(".view-btn").forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                document.getElementById("viewCode").textContent = this.getAttribute("data-code");
-                document.getElementById("viewName").textContent = this.getAttribute("data-name");
-                document.getElementById("viewEmail").textContent = this.getAttribute("data-email");
-                document.getElementById("viewMobile").textContent = this.getAttribute("data-mobile") || "N/A";
-                document.getElementById("viewRole").textContent = this.getAttribute("data-role");
-                document.getElementById("viewDate").textContent = this.getAttribute("data-date");
 
-                var photoUrl = (this.getAttribute("data-photo") || "").trim();
-                var img = document.getElementById("viewPhoto");
-                var circle = document.getElementById("viewAvatarCircle");
-                var nameStr = this.getAttribute("data-name");
-                var initials = nameStr ? nameStr.substring(0, Math.min(2, nameStr.length)).toUpperCase() : "EM";
+        /* =====================================================
+           STATUS TOGGLE
+           ===================================================== */
 
-                if (photoUrl) {
-                    img.src = photoUrl;
-                    img.classList.remove("d-none");
-                    circle.classList.add("d-none");
-                } else {
-                    img.removeAttribute("src");
-                    img.classList.add("d-none");
-                    circle.classList.remove("d-none");
-                    circle.textContent = initials;
+        const statusToggleBtn =
+            document.getElementById("statusToggleBtn");
+
+        if (statusToggleBtn) {
+
+            statusToggleBtn.addEventListener(
+                "click",
+                function () {
+
+                    const employeeId =
+                        document.getElementById("statusUserId").value;
+
+                    if (!employeeId) {
+                        return;
+                    }
+
+
+                    const isActivate =
+                        this.classList.contains("btn-success");
+
+
+                    const message =
+                        isActivate
+                            ? "Are you sure you want to activate this employee?"
+                            : "Are you sure you want to deactivate this employee?";
+
+
+                    if (typeof Swal !== "undefined") {
+
+                        Swal.fire({
+
+                            title: isActivate
+                                ? "Activate Employee?"
+                                : "Deactivate Employee?",
+
+                            text: message,
+
+                            icon: "warning",
+
+                            showCancelButton: true,
+
+                            confirmButtonText: isActivate
+                                ? "Yes, Activate"
+                                : "Yes, Deactivate",
+
+                            cancelButtonText: "Cancel",
+
+                            reverseButtons: true
+
+                        }).then(function (result) {
+
+                            if (result.isConfirmed) {
+
+                                document
+                                    .getElementById("statusToggleForm")
+                                    .submit();
+
+                            }
+
+                        });
+
+                    }
+                    else {
+
+                        if (confirm(message)) {
+
+                            document
+                                .getElementById("statusToggleForm")
+                                .submit();
+
+                        }
+
+                    }
+
                 }
+            );
+
+        }
+
+
+        /* =====================================================
+           DELETE EMPLOYEE
+           ===================================================== */
+
+        const deleteEmployeeBtn =
+            document.getElementById("deleteEmployeeBtn");
+
+        if (deleteEmployeeBtn) {
+
+            deleteEmployeeBtn.addEventListener(
+                "click",
+                function () {
+
+                    const employeeId =
+                        document.getElementById("deleteUserId").value;
+
+                    if (!employeeId) {
+                        return;
+                    }
+
+
+                    function submitDelete() {
+
+                        document
+                            .getElementById("deleteForm")
+                            .submit();
+
+                    }
+
+
+                    if (typeof Swal !== "undefined") {
+
+                        Swal.fire({
+
+                            title: "Delete Employee?",
+
+                            text: "This action cannot be undone. Are you sure?",
+
+                            icon: "warning",
+
+                            showCancelButton: true,
+
+                            confirmButtonColor: "#dc2626",
+
+                            confirmButtonText: "Yes, Delete",
+
+                            cancelButtonText: "Cancel",
+
+                            reverseButtons: true
+
+                        }).then(function (result) {
+
+                            if (result.isConfirmed) {
+
+                                submitDelete();
+
+                            }
+
+                        });
+
+                    }
+                    else {
+
+                        if (confirm(
+                            "Are you sure you want to delete this employee?"
+                        )) {
+
+                            submitDelete();
+
+                        }
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* =====================================================
+           VIEW PROFILE
+           ===================================================== */
+
+        document
+            .querySelectorAll(".view-btn")
+            .forEach(function (button) {
+
+                button.addEventListener(
+                    "click",
+                    function () {
+
+                        const code =
+                            this.getAttribute("data-code") || "N/A";
+
+                        const name =
+                            this.getAttribute("data-name") || "Employee";
+
+                        const email =
+                            this.getAttribute("data-email") || "N/A";
+
+                        const mobile =
+                            this.getAttribute("data-mobile") || "N/A";
+
+                        const role =
+                            this.getAttribute("data-role") || "Unassigned";
+
+                        const date =
+                            this.getAttribute("data-date") || "N/A";
+
+                        const photo =
+                            (this.getAttribute("data-photo") || "").trim();
+
+
+                        document.getElementById("viewCode").textContent =
+                            code;
+
+                        document.getElementById("viewName").textContent =
+                            name;
+
+                        document.getElementById("viewEmail").textContent =
+                            email;
+
+                        document.getElementById("viewMobile").textContent =
+                            mobile;
+
+                        document.getElementById("viewRole").textContent =
+                            role;
+
+                        document.getElementById("viewDate").textContent =
+                            date;
+
+
+                        const image =
+                            document.getElementById("viewPhoto");
+
+                        const avatar =
+                            document.getElementById("viewAvatarCircle");
+
+
+                        const initials =
+                            name
+                                .split(" ")
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .map(function (word) {
+                                    return word.charAt(0);
+                                })
+                                .join("")
+                                .toUpperCase() || "EM";
+
+
+                        if (photo) {
+
+                            image.src = photo;
+
+                            image.classList.remove("d-none");
+
+                            avatar.classList.add("d-none");
+
+                        }
+                        else {
+
+                            image.removeAttribute("src");
+
+                            image.classList.add("d-none");
+
+                            avatar.classList.remove("d-none");
+
+                            avatar.textContent =
+                                initials;
+
+                        }
+
+                    }
+                );
+
             });
-        });
+
+
+        /* =====================================================
+           MODAL CLEANUP
+           ===================================================== */
+
+        const editModal =
+            document.getElementById("editEmployeeModal");
+
+        if (editModal) {
+
+            editModal.addEventListener(
+                "hidden.bs.modal",
+                function () {
+
+                    const form =
+                        document.getElementById("editEmployeeForm");
+
+                    if (form) {
+
+                        const fileInput =
+                            form.querySelector(
+                                'input[type="file"]'
+                            );
+
+                        if (fileInput) {
+                            fileInput.value = "";
+                        }
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* =====================================================
+           INITIAL FILTER
+           ===================================================== */
+
+        filterEmployees();
+
     });
+
 </script>

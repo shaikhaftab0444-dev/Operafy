@@ -1,12 +1,21 @@
+@model IEnumerable<ERP_System.Models.HRLeaveApplicationViewModel>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Leave Approvals";
 }
 
 <div class="container-fluid py-4 text-start">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-check-double text-primary me-2"></i>Leave Approvals</h4>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-check-double text-primary me-2"></i>Pending Leave Approvals</h4>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 small">
                     <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
@@ -18,6 +27,10 @@
 
     <!-- Leave Approvals Table -->
     <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0 text-secondary">Applications Awaiting HR Action</h6>
+            <span class="badge bg-warning-subtle text-warning border">@Model.Count() Pending Requests</span>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="table-light">
@@ -32,18 +45,45 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Numan Sales Man</td>
-                        <td>Casual Leave</td>
-                        <td>24 Aug 2026 - 25 Aug 2026</td>
-                        <td>2 Days</td>
-                        <td>Personal family function visit</td>
-                        <td><input type="text" class="form-control form-control-sm" placeholder="Optional comments..." /></td>
-                        <td>
-                            <button class="btn btn-success btn-xs rounded-pill px-2.5">Approve</button>
-                            <button class="btn btn-outline-danger btn-xs rounded-pill px-2.5">Reject</button>
-                        </td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var l in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@l.EmployeeName</td>
+                                <td><span class="badge bg-light text-dark border">@l.LeaveType</span></td>
+                                <td>@l.StartDate.ToString("dd MMM yyyy") - @l.EndDate.ToString("dd MMM yyyy")</td>
+                                <td class="fw-semibold">@l.TotalDays Days</td>
+                                <td class="text-muted small" style="max-width: 250px;">@l.Reason</td>
+                                <td>
+                                    <input type="text" form="approveForm_@l.LeaveApplicationId" name="remarks" class="form-control form-control-sm" placeholder="Optional comments..." />
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <form id="approveForm_@l.LeaveApplicationId" asp-action="ApproveLeave" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="leaveId" value="@l.LeaveApplicationId" />
+                                            <button type="submit" class="btn btn-success btn-xs rounded-pill px-2.5">Approve</button>
+                                        </form>
+                                        <form asp-action="RejectLeave" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="leaveId" value="@l.LeaveApplicationId" />
+                                            <button type="submit" class="btn btn-outline-danger btn-xs rounded-pill px-2.5">Reject</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="fa-solid fa-circle-check fa-2x mb-2 d-block text-success opacity-50"></i>
+                                Great news! No pending leave approval requests at this time.
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>

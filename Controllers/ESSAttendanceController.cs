@@ -110,11 +110,12 @@ namespace ERP_System.Controllers
         public async Task<IActionResult> Regularization()
         {
             int userId = GetCurrentUserId();
-            var punches = await _context.ESSPunches
-                .Where(p => p.UserId == userId)
-                .OrderByDescending(p => p.Date)
+            var requests = await _context.HRAttendanceRegularizations
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.RequestDate)
                 .ToListAsync();
-            return View(punches);
+
+            return View(requests);
         }
 
         // POST: /ESSAttendance/RequestRegularization
@@ -123,33 +124,28 @@ namespace ERP_System.Controllers
         public async Task<IActionResult> RequestRegularization(DateTime Date, TimeSpan CheckInTime, TimeSpan CheckOutTime, string Reason)
         {
             int userId = GetCurrentUserId();
-            var existingPunch = await _context.ESSPunches
-                .FirstOrDefaultAsync(p => p.UserId == userId && p.Date == Date.Date);
+            var user = await _context.Users.FindAsync(userId);
 
-            var checkInDateTime = Date.Date + CheckInTime;
-            var checkOutDateTime = Date.Date + CheckOutTime;
+            DateTime dummyDate = DateTime.Today;
+            string requestedTime = $"{dummyDate.Add(CheckInTime):hh:mm tt} - {dummyDate.Add(CheckOutTime):hh:mm tt}";
 
-            if (existingPunch == null)
+            var regularizationReq = new HRAttendanceRegularization
             {
-                var punch = new ESSPunch
-                {
-                    UserId = userId,
-                    Date = Date.Date,
-                    CheckInTime = checkInDateTime,
-                    CheckOutTime = checkOutDateTime,
-                    PunchSource = "Regularization Request"
-                };
-                _context.ESSPunches.Add(punch);
-            }
-            else
-            {
-                existingPunch.CheckInTime = checkInDateTime;
-                existingPunch.CheckOutTime = checkOutDateTime;
-                existingPunch.PunchSource = "Regularized";
-                _context.ESSPunches.Update(existingPunch);
-            }
+                UserId = userId,
+                EmployeeName = user?.FullName ?? User.Identity?.Name ?? "Employee",
+                CorrectionDate = Date.Date,
+                IncorrectPunch = "Missing Check-out / Punch Error",
+                RequestedCorrectTime = requestedTime,
+                Reason = Reason,
+                RequestDate = DateTime.Today,
+                Status = "Pending Review",
+                AdminRemarks = null
+            };
 
+            await _context.HRAttendanceRegularizations.AddAsync(regularizationReq);
             await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Attendance regularization request submitted to HR for review.";
             return RedirectToAction(nameof(Regularization));
         }
     }

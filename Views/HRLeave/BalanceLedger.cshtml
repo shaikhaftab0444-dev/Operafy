@@ -1,6 +1,8 @@
+@model IEnumerable<ERP_System.Models.User>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Leave Balance Ledger";
+    var approvedLeaves = ViewBag.ApprovedLeaves as List<ERP_System.Models.ESSLeaveApplication> ?? new List<ERP_System.Models.ESSLeaveApplication>();
 }
 
 <div class="container-fluid py-4 text-start">
@@ -18,38 +20,58 @@
 
     <!-- Balance Grid -->
     <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0 text-secondary">Employee Live Leave Entitlements & Consumption</h6>
+            <span class="badge bg-light text-dark border">@Model.Count() Active Staff</span>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="table-light">
                     <tr>
                         <th>Employee ID</th>
-                        <th>Employee</th>
+                        <th>Employee Name</th>
                         <th>Casual Leave (CL)</th>
                         <th>Sick Leave (SL)</th>
                         <th>Earned Leave (EL)</th>
-                        <th>Maternity/Paternity</th>
-                        <th>Comp-offs</th>
+                        <th>Total Days Used</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">EMP-001</td>
-                        <td>Numan Sales Man</td>
-                        <td>8 / 12 Days</td>
-                        <td>6 / 8 Days</td>
-                        <td>12 / 15 Days</td>
-                        <td>0 / 0</td>
-                        <td>2 Days</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">EMP-002</td>
-                        <td>Aftab Shaik</td>
-                        <td>10 / 12 Days</td>
-                        <td>7 / 8 Days</td>
-                        <td>14 / 15 Days</td>
-                        <td>0 / 0</td>
-                        <td>0</td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var u in Model)
+                        {
+                            var userLeaves = approvedLeaves.Where(l => l.UserId == u.UserId).ToList();
+                            int casualUsed = userLeaves.Where(l => l.LeaveType == "Casual Leave").Sum(l => l.TotalDays);
+                            int sickUsed = userLeaves.Where(l => l.LeaveType == "Sick Leave").Sum(l => l.TotalDays);
+                            int earnedUsed = userLeaves.Where(l => l.LeaveType == "Earned Leave").Sum(l => l.TotalDays);
+                            int casualRem = Math.Max(0, 12 - casualUsed);
+                            int sickRem = Math.Max(0, 8 - sickUsed);
+                            int earnedRem = Math.Max(0, 15 - earnedUsed);
+                            int totalUsed = casualUsed + sickUsed + earnedUsed;
+
+                            <tr>
+                                <td class="fw-bold text-dark">@(string.IsNullOrEmpty(u.UserCode) ? $"EMP-00{u.UserId}" : u.UserCode)</td>
+                                <td class="fw-semibold text-dark">@u.FullName</td>
+                                <td>
+                                    <span class="fw-bold text-primary">@casualRem / 12</span> <small class="text-muted">(Used: @casualUsed)</small>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-info">@sickRem / 8</span> <small class="text-muted">(Used: @sickUsed)</small>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-success">@earnedRem / 15</span> <small class="text-muted">(Used: @earnedUsed)</small>
+                                </td>
+                                <td><span class="badge bg-light text-dark border">@totalUsed Days</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No employees found.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
