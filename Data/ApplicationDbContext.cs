@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using ERP_System.Models;
 using System;
+using ERP_System.Controllers;
 
 namespace ERP_System.Data
 {
@@ -37,6 +38,27 @@ namespace ERP_System.Data
         public DbSet<HRTransfer> Transfers { get; set; }
         public DbSet<HROffboarding> Offboardings { get; set; }
         public DbSet<HRHoliday> Holidays { get; set; }
+        public DbSet<ESSPunch> ESSPunches { get; set; }
+        public DbSet<ESSLeaveApplication> ESSLeaveApplications { get; set; }
+        public DbSet<ESSTask> ESSTasks { get; set; }
+        public DbSet<ESSExpenseClaim> ESSExpenseClaims { get; set; }
+        public DbSet<ESSSupportTicket> ESSSupportTickets { get; set; }
+        public DbSet<InvWarehouse> InvWarehouses { get; set; }
+        public DbSet<InvGrn> InvGrns { get; set; }
+        public DbSet<InvTransfer> InvTransfers { get; set; }
+        public DbSet<InvStockAudit> InvStockAudits { get; set; }
+        public DbSet<InvScrapWriteOff> InvScrapWriteOffs { get; set; }
+        public DbSet<AdminPasswordReset> AdminPasswordResets { get; set; }
+        public DbSet<AdminBranchHour> AdminBranchHours { get; set; }
+        public DbSet<AdminBackupLog> AdminBackupLogs { get; set; }
+        public DbSet<AdminLoginAudit> AdminLoginAudits { get; set; }
+        public DbSet<AdminAnnouncement> AdminAnnouncements { get; set; }
+        public DbSet<SuperAdminErrorLog> SuperAdminErrorLogs { get; set; }
+        public DbSet<SuperAdminMaintenance> SuperAdminMaintenances { get; set; }
+        public DbSet<SuperAdminIntegration> SuperAdminIntegrations { get; set; }
+        public DbSet<SuperAdminRestorePoint> SuperAdminRestorePoints { get; set; }
+        public DbSet<SuperAdminPriceOverride> SuperAdminPriceOverrides { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

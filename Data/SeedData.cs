@@ -590,5 +590,246 @@ namespace ERP_System.Data
 
             await context.SaveChangesAsync();
         }
+
+        public static async Task InitializeAdminManagementTablesAsync(ApplicationDbContext context)
+        {
+            // Ensure erp_AdminPasswordResets table exists
+            string createAdminPasswordResetsSql = @"
+                IF OBJECT_ID('AITStudent.erp_AdminPasswordResets', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_AdminPasswordResets (
+                        ResetId INT IDENTITY(1,1) PRIMARY KEY,
+                        Username NVARCHAR(100) NOT NULL,
+                        Email NVARCHAR(100) NOT NULL,
+                        RequestDate DATETIME NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending'
+                    );
+                END";
+
+            // Ensure erp_AdminBranchHours table exists
+            string createAdminBranchHoursSql = @"
+                IF OBJECT_ID('AITStudent.erp_AdminBranchHours', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_AdminBranchHours (
+                        HourId INT IDENTITY(1,1) PRIMARY KEY,
+                        BranchName NVARCHAR(100) NOT NULL,
+                        OpeningTime NVARCHAR(20) NOT NULL,
+                        ClosingTime NVARCHAR(20) NOT NULL,
+                        OffDay NVARCHAR(50) NOT NULL
+                    );
+                END";
+
+            // Ensure erp_AdminBackupLogs table exists
+            string createAdminBackupLogsSql = @"
+                IF OBJECT_ID('AITStudent.erp_AdminBackupLogs', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_AdminBackupLogs (
+                        BackupId INT IDENTITY(1,1) PRIMARY KEY,
+                        Filename NVARCHAR(255) NOT NULL,
+                        BackupSize NVARCHAR(50) NOT NULL,
+                        CreatedAt DATETIME NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Success'
+                    );
+                END";
+
+            // Ensure erp_AdminLoginAudits table exists
+            string createAdminLoginAuditsSql = @"
+                IF OBJECT_ID('AITStudent.erp_AdminLoginAudits', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_AdminLoginAudits (
+                        AuditId INT IDENTITY(1,1) PRIMARY KEY,
+                        Username NVARCHAR(100) NOT NULL,
+                        IpAddress NVARCHAR(50) NOT NULL,
+                        LoginTime DATETIME NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Success'
+                    );
+                END";
+
+            // Ensure erp_AdminAnnouncements table exists
+            string createAdminAnnouncementsSql = @"
+                IF OBJECT_ID('AITStudent.erp_AdminAnnouncements', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_AdminAnnouncements (
+                        AnnouncementId INT IDENTITY(1,1) PRIMARY KEY,
+                        Title NVARCHAR(150) NOT NULL,
+                        Content NVARCHAR(MAX) NOT NULL,
+                        CreatedAt DATETIME NOT NULL,
+                        PostedBy NVARCHAR(100) NOT NULL DEFAULT 'System Admin'
+                    );
+                END";
+
+            // Execute scripts
+            await context.Database.ExecuteSqlRawAsync(createAdminPasswordResetsSql);
+            await context.Database.ExecuteSqlRawAsync(createAdminBranchHoursSql);
+            await context.Database.ExecuteSqlRawAsync(createAdminBackupLogsSql);
+            await context.Database.ExecuteSqlRawAsync(createAdminLoginAuditsSql);
+            await context.Database.ExecuteSqlRawAsync(createAdminAnnouncementsSql);
+
+            // Seed initial records if empty
+            if (!await context.AdminPasswordResets.AnyAsync())
+            {
+                await context.AdminPasswordResets.AddRangeAsync(new List<AdminPasswordReset>
+                {
+                    new AdminPasswordReset { Username = "shaikhaftab", Email = "aftab@erp.com", RequestDate = DateTime.Today.AddDays(-1), Status = "Pending" },
+                    new AdminPasswordReset { Username = "numan", Email = "numan@erp.com", RequestDate = DateTime.Today.AddDays(-3), Status = "Completed" }
+                });
+            }
+
+            if (!await context.AdminBranchHours.AnyAsync())
+            {
+                await context.AdminBranchHours.AddRangeAsync(new List<AdminBranchHour>
+                {
+                    new AdminBranchHour { BranchName = "Head Office", OpeningTime = "09:00 AM", ClosingTime = "06:00 PM", OffDay = "Sunday" },
+                    new AdminBranchHour { BranchName = "Transit Logistics Hub", OpeningTime = "08:00 AM", ClosingTime = "08:00 PM", OffDay = "Sunday" }
+                });
+            }
+
+            if (!await context.AdminBackupLogs.AnyAsync())
+            {
+                await context.AdminBackupLogs.AddRangeAsync(new List<AdminBackupLog>
+                {
+                    new AdminBackupLog { Filename = "backup_db_20260820.bak", BackupSize = "45.2 MB", CreatedAt = DateTime.Today.AddDays(-4), Status = "Success" },
+                    new AdminBackupLog { Filename = "backup_db_20260823.bak", BackupSize = "45.8 MB", CreatedAt = DateTime.Today.AddDays(-1), Status = "Success" }
+                });
+            }
+
+            if (!await context.AdminLoginAudits.AnyAsync())
+            {
+                await context.AdminLoginAudits.AddRangeAsync(new List<AdminLoginAudit>
+                {
+                    new AdminLoginAudit { Username = "admin@erp.com", IpAddress = "192.168.1.15", LoginTime = DateTime.Now.AddHours(-2), Status = "Success" },
+                    new AdminLoginAudit { Username = "hiring@erp.com", IpAddress = "192.168.1.18", LoginTime = DateTime.Now.AddHours(-5), Status = "Success" }
+                });
+            }
+
+            if (!await context.AdminAnnouncements.AnyAsync())
+            {
+                await context.AdminAnnouncements.AddRangeAsync(new List<AdminAnnouncement>
+                {
+                    new AdminAnnouncement { Title = "Statutory Compliance Updates", Content = "All employees are requested to submit tax declaration forms by end of the month.", CreatedAt = DateTime.Today.AddDays(-2), PostedBy = "System Admin" },
+                    new AdminAnnouncement { Title = "System Maintenance Notice", Content = "ERP portal will undergo routine database backup and maintenance this Sunday at 2 AM.", CreatedAt = DateTime.Today, PostedBy = "System Admin" }
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        public static async Task InitializeSuperAdminManagementTablesAsync(ApplicationDbContext context)
+        {
+            // Ensure erp_SuperAdminErrorLogs table exists
+            string createSuperAdminErrorLogsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SuperAdminErrorLogs', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SuperAdminErrorLogs (
+                        ErrorLogId INT IDENTITY(1,1) PRIMARY KEY,
+                        ErrorMessage NVARCHAR(255) NOT NULL,
+                        StackTrace NVARCHAR(MAX) NOT NULL,
+                        CreatedAt DATETIME NOT NULL
+                    );
+                END";
+
+            // Ensure erp_SuperAdminMaintenances table exists
+            string createSuperAdminMaintenancesSql = @"
+                IF OBJECT_ID('AITStudent.erp_SuperAdminMaintenances', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SuperAdminMaintenances (
+                        MaintenanceId INT IDENTITY(1,1) PRIMARY KEY,
+                        IsMaintenanceMode BIT NOT NULL DEFAULT 0,
+                        CustomMessage NVARCHAR(255) NOT NULL,
+                        SetBy NVARCHAR(100) NOT NULL DEFAULT 'Super Admin'
+                    );
+                END";
+
+            // Ensure erp_SuperAdminIntegrations table exists
+            string createSuperAdminIntegrationsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SuperAdminIntegrations', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SuperAdminIntegrations (
+                        IntegrationId INT IDENTITY(1,1) PRIMARY KEY,
+                        ProviderName NVARCHAR(100) NOT NULL,
+                        ApiKey NVARCHAR(255) NOT NULL,
+                        ApiUrl NVARCHAR(255) NOT NULL
+                    );
+                END";
+
+            // Ensure erp_SuperAdminRestorePoints table exists
+            string createSuperAdminRestorePointsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SuperAdminRestorePoints', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SuperAdminRestorePoints (
+                        RestorePointId INT IDENTITY(1,1) PRIMARY KEY,
+                        PointName NVARCHAR(100) NOT NULL,
+                        CreatedAt DATETIME NOT NULL,
+                        Description NVARCHAR(255) NOT NULL
+                    );
+                END";
+
+            // Ensure erp_SuperAdminPriceOverrides table exists
+            string createSuperAdminPriceOverridesSql = @"
+                IF OBJECT_ID('AITStudent.erp_SuperAdminPriceOverrides', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SuperAdminPriceOverrides (
+                        OverrideId INT IDENTITY(1,1) PRIMARY KEY,
+                        ProductId INT NOT NULL,
+                        VendorName NVARCHAR(100) NOT NULL,
+                        CustomPrice DECIMAL(18,2) NOT NULL,
+                        ApprovedBy NVARCHAR(100) NOT NULL DEFAULT 'Super Admin'
+                    );
+                END";
+
+            // Execute scripts
+            await context.Database.ExecuteSqlRawAsync(createSuperAdminErrorLogsSql);
+            await context.Database.ExecuteSqlRawAsync(createSuperAdminMaintenancesSql);
+            await context.Database.ExecuteSqlRawAsync(createSuperAdminIntegrationsSql);
+            await context.Database.ExecuteSqlRawAsync(createSuperAdminRestorePointsSql);
+            await context.Database.ExecuteSqlRawAsync(createSuperAdminPriceOverridesSql);
+
+            // Seed initial records if empty
+            if (!await context.SuperAdminErrorLogs.AnyAsync())
+            {
+                await context.SuperAdminErrorLogs.AddRangeAsync(new List<SuperAdminErrorLog>
+                {
+                    new SuperAdminErrorLog { ErrorMessage = "NullReferenceException in Payroll Process", StackTrace = "at ERP_System.Controllers.PayrollController.RunPayroll(Int32 id) in C:\\PayrollController.cs:line 227", CreatedAt = DateTime.Now.AddHours(-1) },
+                    new SuperAdminErrorLog { ErrorMessage = "InvalidOperationException: Database Timeout", StackTrace = "at Microsoft.EntityFrameworkCore.DbContext.SaveChanges() in DBContext.cs:line 120", CreatedAt = DateTime.Now.AddDays(-2) }
+                });
+            }
+
+            if (!await context.SuperAdminMaintenances.AnyAsync())
+            {
+                await context.SuperAdminMaintenances.AddRangeAsync(new List<SuperAdminMaintenance>
+                {
+                    new SuperAdminMaintenance { IsMaintenanceMode = false, CustomMessage = "ERP portal is currently undergoing scheduled platform updates. Please check back in 30 minutes.", SetBy = "Super Admin" }
+                });
+            }
+
+            if (!await context.SuperAdminIntegrations.AnyAsync())
+            {
+                await context.SuperAdminIntegrations.AddRangeAsync(new List<SuperAdminIntegration>
+                {
+                    new SuperAdminIntegration { ProviderName = "SendGrid SMTP Mailer", ApiKey = "SG.A1B2C3D4E5F6G7H8I9J0", ApiUrl = "smtp.sendgrid.net" },
+                    new SuperAdminIntegration { ProviderName = "Twilio WhatsApp API Gateway", ApiKey = "SK.a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6", ApiUrl = "api.twilio.com" }
+                });
+            }
+
+            if (!await context.SuperAdminRestorePoints.AnyAsync())
+            {
+                await context.SuperAdminRestorePoints.AddRangeAsync(new List<SuperAdminRestorePoint>
+                {
+                    new SuperAdminRestorePoint { PointName = "Pre-Compliance Seed RP", CreatedAt = DateTime.Today.AddDays(-5), Description = "Database snapshot before statutory compliance tables seeding." },
+                    new SuperAdminRestorePoint { PointName = "Logistics Launch RP", CreatedAt = DateTime.Today.AddDays(-1), Description = "Database snapshot before logistics branch activation." }
+                });
+            }
+
+            if (!await context.SuperAdminPriceOverrides.AnyAsync())
+            {
+                await context.SuperAdminPriceOverrides.AddRangeAsync(new List<SuperAdminPriceOverride>
+                {
+                    new SuperAdminPriceOverride { ProductId = 1, VendorName = "Global Supplies Ltd", CustomPrice = 42000.00m, ApprovedBy = "Super Admin" },
+                    new SuperAdminPriceOverride { ProductId = 4, VendorName = "Reliable Spares Inc", CustomPrice = 750.00m, ApprovedBy = "Super Admin" }
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
     }
 }
