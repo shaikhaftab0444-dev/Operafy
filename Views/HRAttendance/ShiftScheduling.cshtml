@@ -1,10 +1,20 @@
+@model ERP_System.Models.ShiftSchedulingViewModel
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Shift Scheduling & Rosters";
 }
 
 <div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header & Action Controls -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <h4 class="fw-bold mb-1"><i class="fa-solid fa-clock text-primary me-2"></i>Shift Scheduling & Rosters</h4>
             <nav aria-label="breadcrumb">
@@ -14,11 +24,73 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm"><i class="fa-solid fa-calendar-plus me-1.5"></i>Assign Shift</button>
+        <button type="button" class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#assignShiftModal">
+            <i class="fa-solid fa-calendar-plus me-1.5"></i>Assign Shift Roster
+        </button>
+    </div>
+
+    <!-- Roster Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Total Active Rosters</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Rosters.Count</h3>
+                    </div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+                        <i class="fa-solid fa-users fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">General Shift (Day)</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Rosters.Count(r => r.ShiftName.Contains("General"))</h3>
+                    </div>
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
+                        <i class="fa-solid fa-sun fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-dark">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Night Shift</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Rosters.Count(r => r.ShiftName.Contains("Night"))</h3>
+                    </div>
+                    <div class="rounded-circle bg-dark bg-opacity-10 p-3 text-dark">
+                        <i class="fa-solid fa-moon fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-info">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Morning/Evening Shift</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Rosters.Count(r => r.ShiftName.Contains("Morning") || r.ShiftName.Contains("Evening"))</h3>
+                    </div>
+                    <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info">
+                        <i class="fa-solid fa-cloud-sun fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Shifts Table -->
     <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0 text-secondary">Employee Shift Roster Assignments</h6>
+            <span class="badge bg-light text-dark border">@Model.Rosters.Count Assigned</span>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="table-light">
@@ -28,28 +100,114 @@
                         <th>Timings</th>
                         <th>Weekly Offs</th>
                         <th>Roster Effective Date</th>
+                        <th>Notes</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Numan Sales Man</td>
-                        <td>General Shift (Day)</td>
-                        <td>09:00 AM - 06:00 PM</td>
-                        <td>Sunday</td>
-                        <td>01 Aug 2026</td>
-                        <td><button class="btn btn-outline-secondary btn-xs rounded-pill px-2.5">Edit Roster</button></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Rajesh Kumar</td>
-                        <td>Night Shift</td>
-                        <td>10:00 PM - 07:00 AM</td>
-                        <td>Saturday, Sunday</td>
-                        <td>15 Aug 2026</td>
-                        <td><button class="btn btn-outline-secondary btn-xs rounded-pill px-2.5">Edit Roster</button></td>
-                    </tr>
+                    @if (Model.Rosters.Any())
+                    {
+                        foreach (var roster in Model.Rosters)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@roster.EmployeeName</td>
+                                <td>
+                                    @if (roster.ShiftName.Contains("Night"))
+                                    {
+                                        <span class="badge bg-dark text-white rounded-pill px-2.5"><i class="fa-solid fa-moon me-1"></i>@roster.ShiftName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5"><i class="fa-solid fa-sun me-1"></i>@roster.ShiftName</span>
+                                    }
+                                </td>
+                                <td><code>@roster.Timings</code></td>
+                                <td><span class="badge bg-light text-secondary border">@roster.WeeklyOffs</span></td>
+                                <td>@roster.EffectiveDate.ToString("dd MMM yyyy")</td>
+                                <td class="text-muted small">@(string.IsNullOrEmpty(roster.Notes) ? "-" : roster.Notes)</td>
+                                <td>
+                                    <form asp-action="DeleteRoster" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="rosterId" value="@roster.RosterId" />
+                                        <button type="submit" class="btn btn-outline-danger btn-xs rounded-pill px-2.5" onclick="return confirm('Remove shift roster assignment for @roster.EmployeeName?')">
+                                            <i class="fa-solid fa-trash me-1"></i>Remove
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">No shift rosters assigned yet. Click "Assign Shift Roster" to add an assignment.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Shift Modal -->
+<div class="modal fade" id="assignShiftModal" tabindex="-1" aria-labelledby="assignShiftModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 border-0 shadow">
+            <div class="modal-header bg-light border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold" id="assignShiftModalLabel"><i class="fa-solid fa-user-gear text-primary me-2"></i>Assign Employee Shift Roster</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="AssignShift" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Select Employee</label>
+                        <select name="userId" class="form-select" required>
+                            <option value="">-- Choose Employee --</option>
+                            @foreach (var emp in Model.Employees)
+                            {
+                                <option value="@emp.UserId">@emp.FullName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Shift Schedule Name</label>
+                        <select name="shiftName" class="form-select" required>
+                            <option value="General Shift (Day)">General Shift (Day)</option>
+                            <option value="Morning Shift">Morning Shift</option>
+                            <option value="Evening Shift">Evening Shift</option>
+                            <option value="Night Shift">Night Shift</option>
+                            <option value="Flexible Shift">Flexible Shift</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-secondary">Shift Timings</label>
+                            <input type="text" name="timings" class="form-control" value="09:00 AM - 06:00 PM" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-secondary">Weekly Off Day(s)</label>
+                            <input type="text" name="weeklyOffs" class="form-control" value="Sunday" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Effective Roster Date</label>
+                        <input type="date" name="effectiveDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-secondary">Notes / Comments</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Special rotation shift assignment"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top px-4 py-2">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4"><i class="fa-solid fa-save me-1"></i>Save Roster</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

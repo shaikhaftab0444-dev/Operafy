@@ -37,6 +37,7 @@ using (var scope = app.Services.CreateScope())
         await SeedData.InitializeInventoryManagementTablesAsync(context);
         await SeedData.InitializeAdminManagementTablesAsync(context);
         await SeedData.InitializeSuperAdminManagementTablesAsync(context);
+        //await SeedData.InitializeHRAttendanceTablesAsync(context);
     }
     catch (Exception ex)
     {
