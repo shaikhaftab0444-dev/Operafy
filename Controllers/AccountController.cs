@@ -42,6 +42,12 @@ namespace ERP_System.Controllers
 
                 if (user != null)
                 {
+                    if (!user.IsActive)
+                    {
+                        ModelState.AddModelError(string.Empty, "Your account has been locked. Please contact the administrator.");
+                        return View(model);
+                    }
+
                     var hasher = new PasswordHasher<User>();
                     var verificationResult = hasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
 

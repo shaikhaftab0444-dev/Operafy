@@ -829,6 +829,92 @@ namespace ERP_System.Data
                 });
             }
 
+            // Ensure erp_Currencies table exists
+            string createCurrenciesSql = @"
+                IF OBJECT_ID('AITStudent.erp_Currencies', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_Currencies (
+                        CurrencyId INT IDENTITY(1,1) PRIMARY KEY,
+                        CurrencyCode NVARCHAR(3) NOT NULL,
+                        CurrencyName NVARCHAR(100) NOT NULL,
+                        Symbol NVARCHAR(10) NOT NULL,
+                        ExchangeRate DECIMAL(18,6) NOT NULL DEFAULT 1.000000,
+                        DecimalPlaces INT NOT NULL DEFAULT 2,
+                        IsActive BIT NOT NULL DEFAULT 1,
+                        IsBaseCurrency BIT NOT NULL DEFAULT 0,
+                        LastUpdated DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END";
+
+            // Ensure erp_CurrencyRateHistories table exists
+            string createCurrencyRateHistoriesSql = @"
+                IF OBJECT_ID('AITStudent.erp_CurrencyRateHistories', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_CurrencyRateHistories (
+                        HistoryId INT IDENTITY(1,1) PRIMARY KEY,
+                        CurrencyId INT NOT NULL,
+                        ExchangeRate DECIMAL(18,6) NOT NULL,
+                        ChangedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END";
+
+            await context.Database.ExecuteSqlRawAsync(createCurrenciesSql);
+            await context.Database.ExecuteSqlRawAsync(createCurrencyRateHistoriesSql);
+
+            // Seed currencies if empty
+            if (!await context.Currencies.AnyAsync())
+            {
+                var inr = new Currency { CurrencyCode = "INR", CurrencyName = "Indian Rupee", Symbol = "₹", ExchangeRate = 1.000000m, DecimalPlaces = 2, IsActive = true, IsBaseCurrency = true, LastUpdated = DateTime.Now };
+                var usd = new Currency { CurrencyCode = "USD", CurrencyName = "US Dollar", Symbol = "$", ExchangeRate = 83.450000m, DecimalPlaces = 2, IsActive = true, IsBaseCurrency = false, LastUpdated = DateTime.Now };
+                var eur = new Currency { CurrencyCode = "EUR", CurrencyName = "Euro", Symbol = "€", ExchangeRate = 90.200000m, DecimalPlaces = 2, IsActive = true, IsBaseCurrency = false, LastUpdated = DateTime.Now };
+                var gbp = new Currency { CurrencyCode = "GBP", CurrencyName = "British Pound", Symbol = "£", ExchangeRate = 105.600000m, DecimalPlaces = 2, IsActive = true, IsBaseCurrency = false, LastUpdated = DateTime.Now };
+
+                await context.Currencies.AddRangeAsync(new List<Currency> { inr, usd, eur, gbp });
+                await context.SaveChangesAsync(); // save to generate IDs for history
+
+                await context.CurrencyRateHistories.AddRangeAsync(new List<CurrencyRateHistory>
+                {
+                    new CurrencyRateHistory { CurrencyId = usd.CurrencyId, ExchangeRate = 83.100000m, ChangedAt = DateTime.Now.AddDays(-5) },
+                    new CurrencyRateHistory { CurrencyId = usd.CurrencyId, ExchangeRate = 83.300000m, ChangedAt = DateTime.Now.AddDays(-2) },
+                    new CurrencyRateHistory { CurrencyId = usd.CurrencyId, ExchangeRate = 83.450000m, ChangedAt = DateTime.Now },
+                    new CurrencyRateHistory { CurrencyId = eur.CurrencyId, ExchangeRate = 89.900000m, ChangedAt = DateTime.Now.AddDays(-4) },
+                    new CurrencyRateHistory { CurrencyId = eur.CurrencyId, ExchangeRate = 90.200000m, ChangedAt = DateTime.Now }
+                });
+            }
+
+            // Ensure erp_TaxSlabs table exists
+            string createTaxSlabsSql = @"
+                IF OBJECT_ID('AITStudent.erp_TaxSlabs', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_TaxSlabs (
+                        TaxSlabId INT IDENTITY(1,1) PRIMARY KEY,
+                        TaxCode NVARCHAR(50) NOT NULL,
+                        Description NVARCHAR(250) NOT NULL,
+                        CombinedRate DECIMAL(18,2) NOT NULL,
+                        CGST DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        SGST DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        IGST DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Category NVARCHAR(50) NOT NULL,
+                        Regime NVARCHAR(50) NOT NULL,
+                        IsRcmActive BIT NOT NULL DEFAULT 0,
+                        EffectiveDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        IsActive BIT NOT NULL DEFAULT 1
+                    );
+                END";
+
+            await context.Database.ExecuteSqlRawAsync(createTaxSlabsSql);
+
+            // Seed tax slabs if empty
+            if (!await context.TaxSlabs.AnyAsync())
+            {
+                await context.TaxSlabs.AddRangeAsync(new List<TaxSlab>
+                {
+                    new TaxSlab { TaxCode = "GST-18", Description = "Goods & Services Tax (Standard)", CombinedRate = 18.00m, CGST = 9.00m, SGST = 9.00m, IGST = 18.00m, Category = "GST", Regime = "GST India", IsRcmActive = false, EffectiveDate = DateTime.Today.AddYears(-1) },
+                    new TaxSlab { TaxCode = "GST-5", Description = "Goods & Services Tax (Reduced)", CombinedRate = 5.00m, CGST = 2.50m, SGST = 2.50m, IGST = 5.00m, Category = "GST", Regime = "GST India", IsRcmActive = false, EffectiveDate = DateTime.Today.AddYears(-1) },
+                    new TaxSlab { TaxCode = "VAT-15", Description = "Value Added Tax Standard", CombinedRate = 15.00m, CGST = 0.00m, SGST = 0.00m, IGST = 0.00m, Category = "VAT", Regime = "VAT", IsRcmActive = false, EffectiveDate = DateTime.Today.AddYears(-1) }
+                });
+            }
+
             await context.SaveChangesAsync();
         }
     }
