@@ -1,50 +1,319 @@
-@model IEnumerable<ERP_System.Models.Branch>
+@model ERP_System.Models.BranchSummaryReportViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Branch Summary Report";
 }
 
+<!-- Premium Alert & Notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    }
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+    }
+    .pulse-green {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #10b981;
+        box-shadow: 0 0 8px #10b981;
+        animation: pulse 1.5s infinite;
+        margin-right: 6px;
+    }
+    @@keyframes pulse {
+        0% { transform: scale(0.9); opacity: 0.8; }
+        50% { transform: scale(1.15); opacity: 1; }
+        100% { transform: scale(0.9); opacity: 0.8; }
+    }
+</style>
+
 <div class="container-fluid py-4 text-start">
+
+    <!-- Top Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-column text-primary me-2"></i>Branch Summary Report</h4>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
+                <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Branch Summary</li>
+                    <li class="breadcrumb-item text-secondary">Reports</li>
+                    <li class="breadcrumb-item active" aria-current="page">Branch Performance</li>
                 </ol>
             </nav>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-chart-line text-primary me-2"></i>Multi-Branch Performance Summary</h4>
+            <p class="text-secondary small mb-0">Consolidate corporate branch performance indices, staff allocations, and operational revenues.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-success fw-bold text-nowrap" onclick="exportReport('xlsx')">
+                <i class="fa-solid fa-file-excel me-1.5"></i>Export Excel
+            </button>
+            <button type="button" class="btn btn-outline-danger fw-bold text-nowrap" onclick="exportReport('csv')">
+                Export CSV
+            </button>
         </div>
     </div>
 
-    <!-- Branch Summary Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm" style="max-width: 800px;">
-        <h5 class="fw-bold mb-3">Active Branch Summary</h5>
+    <!-- Top Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm text-start">
+                <span class="text-secondary small fw-bold">Operating Branches</span>
+                <h4 class="fw-bold text-dark font-monospace mt-1 mb-0">@Model.TotalBranches Active</h4>
+                <span class="text-muted small" style="font-size: 0.75rem;">Consolidated locations</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm text-start">
+                <span class="text-secondary small fw-bold">Total Group Headcount</span>
+                <h4 class="fw-bold text-dark font-monospace mt-1 mb-0">@Model.TotalHeadcount Staff</h4>
+                <span class="text-muted small" style="font-size: 0.75rem;">Active workforce roster</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm text-start">
+                <span class="text-secondary small fw-bold">Consolidated Group Revenue</span>
+                <h4 class="fw-bold text-success font-monospace mt-1 mb-0">@Model.ConsolidatedRevenue.ToOrgCurrency()</h4>
+                <span class="text-muted small" style="font-size: 0.75rem;">Aggregated branch billings</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm text-start">
+                <span class="text-secondary small fw-bold">Top Performing Branch</span>
+                <h6 class="fw-bold text-primary mt-2 mb-1 text-truncate">@Model.TopPerformingBranch</h6>
+                <span class="text-muted small" style="font-size: 0.75rem;">Highest billing contributor</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visual Analytics Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Revenue vs Expense Comparison Bar Chart -->
+        <div class="col-lg-8">
+            <div class="glass-panel p-4 h-100">
+                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-column text-primary me-2"></i>Revenue vs Operational Expenses</h6>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="revExpBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Headcount Distribution Donut Chart -->
+        <div class="col-lg-4">
+            <div class="glass-panel p-4 h-100">
+                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Staff Distribution</h6>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="staffDonutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comprehensive Branch Performance Table -->
+    <div class="glass-panel p-4">
+        <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
+            <i class="fa-solid fa-table-list text-primary me-2"></i>Operational Performance Grid
+        </h5>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <table class="table align-middle table-hover text-start mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Branch Name</th>
-                        <th>Branch Code</th>
-                        <th>Associated Employees</th>
-                        <th>Total Asset Transactions</th>
+                        <th>Branch Details</th>
+                        <th>Location & State</th>
+                        <th class="text-center">Staff Headcount</th>
+                        <th>Monthly Revenue</th>
+                        <th>Monthly Expenses</th>
+                        <th>Inventory Valuation</th>
+                        <th class="text-center">Transactions</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model != null && Model.Any())
+                    @foreach (var summary in Model.BranchSummaries)
                     {
-                        @foreach (var b in Model)
-                        {
-                            <tr>
-                                <td class="fw-bold text-dark">@b.BranchName</td>
-                                <td><code>@b.BranchCode</code></td>
-                                <td>3 Staff Members</td>
-                                <td>15 Logs</td>
-                            </tr>
-                        }
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="fs-4 text-primary me-2.5"><i class="fa-solid fa-building-shield"></i></span>
+                                    <div>
+                                        <span class="fw-bold text-dark d-block" style="font-size: 0.85rem;">@summary.BranchName</span>
+                                        <span class="badge bg-light text-secondary border font-monospace mt-0.5" style="font-size: 0.65rem;">@summary.BranchCode</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-secondary small">
+                                @summary.Location
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1 fw-bold">@summary.StaffCount Staff</span>
+                            </td>
+                            <td class="fw-bold text-success font-monospace">
+                                @summary.Revenue.ToOrgCurrency()
+                            </td>
+                            <td class="text-dark font-monospace">
+                                @summary.Expenses.ToOrgCurrency()
+                            </td>
+                            <td class="text-secondary font-monospace small">
+                                @summary.StockValuation.ToOrgCurrency()
+                            </td>
+                            <td class="text-center font-monospace text-dark fw-bold">
+                                @summary.TransactionCount Logs
+                            </td>
+                            <td>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 text-uppercase small">
+                                    <span class="pulse-green"></span>@summary.Status
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center align-items-center gap-1.5">
+                                    <button class="btn btn-sm btn-outline-primary border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" onclick="toastr.info('Loading branch visual analytics panel...')" title="Branch Analytics">
+                                        <i class="fa-solid fa-chart-line"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" onclick="toastr.info('Opening general ledger stream...')" title="Detailed Ledger">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                     }
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
+
+<!-- Visualizations Chart.js configurations -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Parse models chart values lists safely
+        const branchNames = @Html.Raw(Json.Serialize(Model.BranchNames));
+        const revenues = @Html.Raw(Json.Serialize(Model.MonthlyRevenues));
+        const expenses = @Html.Raw(Json.Serialize(Model.MonthlyExpenses));
+        const staffCounts = @Html.Raw(Json.Serialize(Model.StaffCounts));
+
+        // 1. Revenue vs Expense Comparison Bar Chart
+        const barCtx = document.getElementById('revExpBarChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: branchNames,
+                datasets: [
+                    {
+                        label: 'Monthly Revenue',
+                        data: revenues,
+                        backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                        borderColor: '#10b981',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Monthly Expenses',
+                        data: expenses,
+                        backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#f1f5f9'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Staff Headcount Distribution Donut Chart
+        const donutCtx = document.getElementById('staffDonutChart').getContext('2d');
+        new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: branchNames,
+                datasets: [{
+                    data: staffCounts,
+                    backgroundColor: [
+                        '#2563eb',
+                        '#0ea5e9',
+                        '#10b981',
+                        '#f59e0b',
+                        '#ef4444'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 10,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    });
+
+    // Trigger report exporter
+    function exportReport(format) {
+        toastr.info(`Preparing branch summary report in ${format.toUpperCase()} format...`);
+        window.location.href = `/AdminReports/ExportBranchSummary?format=${format}`;
+        
+        setTimeout(() => {
+            toastr.success("Report file download triggered.");
+        }, 1200);
+    }
+</script>

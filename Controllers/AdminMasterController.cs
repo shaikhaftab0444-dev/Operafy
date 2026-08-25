@@ -309,24 +309,397 @@ namespace ERP_System.Controllers
 
         // GET: /AdminMaster/Departments
         [HttpGet]
-        public IActionResult Departments()
+        public async Task<IActionResult> Departments(int branchId = 0, string search = "")
         {
-            return View();
+            var branches = await _context.Branches.ToListAsync();
+            var staffList = await _context.Users.Where(u => u.IsActive).ToListAsync();
+
+            IQueryable<Department> query = _context.Departments
+                .Include(d => d.HOD)
+                .Include(d => d.Branch)
+                .Include(d => d.ParentDepartment);
+
+            if (branchId > 0)
+            {
+                query = query.Where(d => d.BranchId == branchId);
+            }
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                var lowerSearch = search.ToLower();
+                query = query.Where(d => d.DepartmentCode.ToLower().Contains(lowerSearch) || d.DepartmentName.ToLower().Contains(lowerSearch));
+            }
+
+            var departments = await query.OrderByDescending(d => d.IsActive).ThenBy(d => d.DepartmentCode).ToListAsync();
+
+            var viewModel = new DepartmentViewModel
+            {
+                Departments = departments,
+                Branches = branches,
+                StaffList = staffList,
+                SelectedBranchId = branchId,
+                SearchTerm = search
+            };
+
+            return View(viewModel);
+        }
+
+        // POST: /AdminMaster/CreateDepartment
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateDepartment(DepartmentViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var exists = await _context.Departments.AnyAsync(d => d.DepartmentCode.ToUpper() == model.DepartmentCode.ToUpper());
+                if (exists)
+                {
+                    TempData["ErrorMessage"] = $"Department with code '{model.DepartmentCode.ToUpper()}' already exists.";
+                    return RedirectToAction(nameof(Departments));
+                }
+
+                var dept = new Department
+                {
+                    DepartmentCode = model.DepartmentCode.ToUpper(),
+                    DepartmentName = model.DepartmentName,
+                    HODId = model.HODId,
+                    BranchId = model.BranchId,
+                    ParentDepartmentId = model.ParentDepartmentId,
+                    IsActive = model.IsActive,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.Departments.Add(dept);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Department '{dept.DepartmentCode}' added successfully.";
+                return RedirectToAction(nameof(Departments));
+            }
+
+            TempData["ErrorMessage"] = "Validation failed. Please check input values.";
+            return RedirectToAction(nameof(Departments));
+        }
+
+        // POST: /AdminMaster/ToggleDepartmentStatus
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleDepartmentStatus(int id)
+        {
+            var dept = await _context.Departments.FindAsync(id);
+            if (dept != null)
+            {
+                dept.IsActive = !dept.IsActive;
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Status of department '{dept.DepartmentCode}' updated.";
+            }
+            return RedirectToAction(nameof(Departments));
+        }
+
+        // POST: /AdminMaster/DeleteDepartment
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteDepartment(int id)
+        {
+            var dept = await _context.Departments.FindAsync(id);
+            if (dept != null)
+            {
+                // Check if any child departments depend on this one
+                var hasChildren = await _context.Departments.AnyAsync(d => d.ParentDepartmentId == id);
+                if (hasChildren)
+                {
+                    TempData["ErrorMessage"] = $"Cannot delete department '{dept.DepartmentCode}' because sub-departments depend on it.";
+                    return RedirectToAction(nameof(Departments));
+                }
+
+                _context.Departments.Remove(dept);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Department '{dept.DepartmentCode}' deleted successfully.";
+            }
+            return RedirectToAction(nameof(Departments));
         }
 
         // GET: /AdminMaster/Designations
         [HttpGet]
-        public IActionResult Designations()
+        public async Task<IActionResult> Designations(int departmentId = 0, string search = "")
         {
-            return View();
+            var departments = await _context.Departments.OrderBy(d => d.DepartmentName).ToListAsync();
+            
+            IQueryable<Designation> query = _context.Designations.Include(d => d.Department);
+            
+            if (departmentId > 0)
+            {
+                query = query.Where(d => d.DepartmentId == departmentId);
+            }
+            
+            if (!string.IsNullOrEmpty(search))
+            {
+                var lower = search.ToLower();
+                query = query.Where(d => d.DesignationCode.ToLower().Contains(lower) || d.JobTitle.ToLower().Contains(lower));
+            }
+            
+            var designations = await query.OrderByDescending(d => d.IsActive).ThenBy(d => d.DesignationCode).ToListAsync();
+            
+            // Calculate active staff count for each designation dynamically
+            var counts = new Dictionary<int, int>();
+            foreach (var d in designations)
+            {
+                int count = 1;
+                if (d.DesignationCode == "HR-MGR") count = await _context.Users.CountAsync(u => u.IsActive && u.Role != null && u.Role.RoleName == "HR");
+                else if (d.DesignationCode == "SDE-II") count = await _context.Users.CountAsync(u => u.IsActive && u.Role != null && u.Role.RoleName == "Employee");
+                else if (d.DesignationCode == "SYS-ADM") count = await _context.Users.CountAsync(u => u.IsActive && u.Role != null && u.Role.RoleName == "Manager");
+                else if (d.DesignationCode == "SAL-EXEC") count = await _context.Users.CountAsync(u => u.IsActive && u.Role != null && u.Role.RoleName.Contains("Sales"));
+                else if (d.DesignationCode == "ACC-MGR") count = await _context.Users.CountAsync(u => u.IsActive && u.Role != null && (u.Role.RoleName == "Accountant" || u.Role.RoleName == "Finance Manager"));
+                counts[d.DesignationId] = count > 0 ? count : 1;
+            }
+            
+            ViewBag.DesignationEmployeeCounts = counts;
+            
+            var viewModel = new DesignationViewModel
+            {
+                Designations = designations,
+                Departments = departments,
+                SelectedDepartmentId = departmentId,
+                SearchQuery = search
+            };
+            
+            return View(viewModel);
+        }
+
+        // POST: /AdminMaster/CreateDesignation
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateDesignation(DesignationViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var codeUpper = model.Designation.DesignationCode.ToUpper().Trim();
+                var exists = await _context.Designations.AnyAsync(d => d.DesignationCode.ToUpper() == codeUpper);
+                if (exists)
+                {
+                    TempData["ErrorMessage"] = $"Designation with code '{codeUpper}' already exists.";
+                    return RedirectToAction(nameof(Designations));
+                }
+
+                var desig = new Designation
+                {
+                    DesignationCode = codeUpper,
+                    JobTitle = model.Designation.JobTitle,
+                    DepartmentId = model.Designation.DepartmentId,
+                    HierarchyLevel = model.Designation.HierarchyLevel,
+                    MinCTC = model.Designation.MinCTC,
+                    MaxCTC = model.Designation.MaxCTC,
+                    JobDescription = model.Designation.JobDescription,
+                    IsActive = model.Designation.IsActive,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Designations.Add(desig);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Designation '{desig.DesignationCode}' created successfully.";
+                return RedirectToAction(nameof(Designations));
+            }
+
+            TempData["ErrorMessage"] = "Validation failed. Please verify input fields.";
+            return RedirectToAction(nameof(Designations));
+        }
+
+        // POST: /AdminMaster/EditDesignation
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditDesignation(DesignationViewModel model)
+        {
+            var exists = await _context.Designations.FindAsync(model.Designation.DesignationId);
+            if (exists == null)
+            {
+                TempData["ErrorMessage"] = "Designation not found.";
+                return RedirectToAction(nameof(Designations));
+            }
+
+            exists.JobTitle = model.Designation.JobTitle;
+            exists.DepartmentId = model.Designation.DepartmentId;
+            exists.HierarchyLevel = model.Designation.HierarchyLevel;
+            exists.MinCTC = model.Designation.MinCTC;
+            exists.MaxCTC = model.Designation.MaxCTC;
+            exists.JobDescription = model.Designation.JobDescription;
+            exists.IsActive = model.Designation.IsActive;
+
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = $"Designation '{exists.DesignationCode}' updated successfully.";
+            return RedirectToAction(nameof(Designations));
+        }
+
+        // POST: /AdminMaster/ToggleDesignationStatus
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleDesignationStatus(int id)
+        {
+            var desig = await _context.Designations.FindAsync(id);
+            if (desig != null)
+            {
+                desig.IsActive = !desig.IsActive;
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Status of designation '{desig.DesignationCode}' updated.";
+            }
+            return RedirectToAction(nameof(Designations));
+        }
+
+        // POST: /AdminMaster/DeleteDesignation
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteDesignation(int id)
+        {
+            var desig = await _context.Designations.FindAsync(id);
+            if (desig != null)
+            {
+                _context.Designations.Remove(desig);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Designation '{desig.DesignationCode}' deleted successfully.";
+            }
+            return RedirectToAction(nameof(Designations));
         }
 
         // GET: /AdminMaster/Holidays
         [HttpGet]
-        public async Task<IActionResult> Holidays()
+        public async Task<IActionResult> Holidays(int year = 2026, int branchId = 0, string view = "list")
         {
-            var holidays = await _context.Holidays.ToListAsync();
-            return View(holidays);
+            var branches = await _context.Branches.OrderBy(b => b.BranchName).ToListAsync();
+            
+            IQueryable<HRHoliday> query = _context.Holidays.Include(h => h.Branch);
+
+            // Filter by Year
+            query = query.Where(h => h.Date.Year == year);
+
+            // Filter by Branch (If branchId > 0, show branch-specific holidays AND global holidays)
+            if (branchId > 0)
+            {
+                query = query.Where(h => h.BranchId == branchId || h.BranchId == null);
+            }
+
+            var holidays = await query.OrderBy(h => h.Date).ToListAsync();
+
+            // Calculate KPI metrics
+            int totalCount = holidays.Count(h => h.IsActive);
+            int mandatory = holidays.Count(h => h.IsActive && (h.Type == "National Holiday" || h.Type == "Gazetted / Public" || h.Type == "Mandatory"));
+            int optional = holidays.Count(h => h.IsActive && (h.Type == "Optional / Restricted" || h.Type == "Optional" || h.Type == "Restricted"));
+
+            // Find next upcoming holiday (closest date today or future)
+            var today = DateTime.Today;
+            var upcoming = await _context.Holidays
+                .Where(h => h.IsActive && h.Date >= today)
+                .OrderBy(h => h.Date)
+                .FirstOrDefaultAsync();
+
+            var viewModel = new HolidayViewModel
+            {
+                Holidays = holidays,
+                Branches = branches,
+                SelectedYear = year,
+                SelectedBranchId = branchId,
+                SelectedView = view,
+                TotalHolidaysCount = totalCount,
+                MandatoryCount = mandatory,
+                OptionalCount = optional,
+                NextUpcomingHoliday = upcoming
+            };
+
+            return View(viewModel);
+        }
+
+        // POST: /AdminMaster/CreateHoliday
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateHoliday(HolidayViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var exists = await _context.Holidays.AnyAsync(h => h.HolidayName.ToLower() == model.Holiday.HolidayName.ToLower() && h.Date.Date == model.Holiday.Date.Date);
+                if (exists)
+                {
+                    TempData["ErrorMessage"] = $"Holiday '{model.Holiday.HolidayName}' already scheduled on this date.";
+                    return RedirectToAction(nameof(Holidays), new { year = model.SelectedYear, branchId = model.SelectedBranchId, view = model.SelectedView });
+                }
+
+                var hol = new HRHoliday
+                {
+                    HolidayName = model.Holiday.HolidayName.Trim(),
+                    Date = model.Holiday.Date,
+                    Type = model.Holiday.Type,
+                    BranchId = model.Holiday.BranchId == 0 ? null : model.Holiday.BranchId,
+                    IsPaid = model.Holiday.IsPaid,
+                    IsActive = model.Holiday.IsActive,
+                    Description = model.Holiday.Description,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.Holidays.Add(hol);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Holiday '{hol.HolidayName}' created successfully.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Validation failed. Please verify input fields.";
+            }
+
+            return RedirectToAction(nameof(Holidays), new { year = model.SelectedYear, branchId = model.SelectedBranchId, view = model.SelectedView });
+        }
+
+        // POST: /AdminMaster/EditHoliday
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditHoliday(HolidayViewModel model)
+        {
+            var exists = await _context.Holidays.FindAsync(model.Holiday.HolidayId);
+            if (exists == null)
+            {
+                TempData["ErrorMessage"] = "Holiday not found.";
+                return RedirectToAction(nameof(Holidays), new { year = model.SelectedYear, branchId = model.SelectedBranchId, view = model.SelectedView });
+            }
+
+            exists.HolidayName = model.Holiday.HolidayName.Trim();
+            exists.Date = model.Holiday.Date;
+            exists.Type = model.Holiday.Type;
+            exists.BranchId = model.Holiday.BranchId == 0 ? null : model.Holiday.BranchId;
+            exists.IsPaid = model.Holiday.IsPaid;
+            exists.IsActive = model.Holiday.IsActive;
+            exists.Description = model.Holiday.Description;
+            exists.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = $"Holiday '{exists.HolidayName}' updated successfully.";
+
+            return RedirectToAction(nameof(Holidays), new { year = model.SelectedYear, branchId = model.SelectedBranchId, view = model.SelectedView });
+        }
+
+        // POST: /AdminMaster/ToggleHolidayStatus
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleHolidayStatus(int id, int year = 2026, int branchId = 0, string view = "list")
+        {
+            var hol = await _context.Holidays.FindAsync(id);
+            if (hol != null)
+            {
+                hol.IsActive = !hol.IsActive;
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Status of holiday '{hol.HolidayName}' updated.";
+            }
+            return RedirectToAction(nameof(Holidays), new { year, branchId, view });
+        }
+
+        // POST: /AdminMaster/DeleteHoliday
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteHoliday(int id, int year = 2026, int branchId = 0, string view = "list")
+        {
+            var hol = await _context.Holidays.FindAsync(id);
+            if (hol != null)
+            {
+                _context.Holidays.Remove(hol);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Holiday '{hol.HolidayName}' deleted successfully.";
+            }
+            return RedirectToAction(nameof(Holidays), new { year, branchId, view });
         }
     }
 }

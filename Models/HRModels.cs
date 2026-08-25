@@ -97,15 +97,30 @@ namespace ERP_System.Models
     {
         [Key]
         public int HolidayId { get; set; }
-        [Required]
+
+        [Required(ErrorMessage = "Holiday Name is required")]
         [StringLength(150)]
         public string HolidayName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Holiday Date is required")]
         public DateTime Date { get; set; }
+
         [Required]
         [StringLength(50)]
-        public string Type { get; set; } = "Mandatory"; // Mandatory, Optional, Restricted
+        public string Type { get; set; } = "National Holiday";
+
+        public int? BranchId { get; set; }
+
+        [ForeignKey("BranchId")]
+        public Branch? Branch { get; set; }
+
+        public bool IsPaid { get; set; } = true;
+
+        public bool IsActive { get; set; } = true;
+
         [StringLength(300)]
         public string? Description { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
     }

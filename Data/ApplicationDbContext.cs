@@ -28,6 +28,11 @@ namespace ERP_System.Data
         public DbSet<AccountHead> AccountHeads { get; set; }
         public DbSet<StockAdjustment> StockAdjustments { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<Designation> Designations { get; set; }
+        public DbSet<RegionalConfiguration> RegionalConfigurations { get; set; }
+        public DbSet<ImportLog> ImportLogs { get; set; }
+        public DbSet<ExportAuditLog> ExportAuditLogs { get; set; }
+        public DbSet<AuditLogEntry> AuditLogs { get; set; }
         public DbSet<Lead> Leads { get; set; }
         public DbSet<Quotation> Quotations { get; set; }
         public DbSet<SalesOrder> SalesOrders { get; set; }
@@ -61,6 +66,7 @@ namespace ERP_System.Data
         public DbSet<Currency> Currencies { get; set; }
         public DbSet<CurrencyRateHistory> CurrencyRateHistories { get; set; }
         public DbSet<TaxSlab> TaxSlabs { get; set; }
+        public DbSet<Department> Departments { get; set; }
         public DbSet<HRAttendanceLog> HRAttendanceLogs { get; set; }
         public DbSet<HRBiometricDevice> HRBiometricDevices { get; set; }
         public DbSet<HRShiftRoster> HRShiftRosters { get; set; }
@@ -105,6 +111,11 @@ namespace ERP_System.Data
             modelBuilder.Entity<HRShiftRoster>().ToTable("erp_HRShiftRosters");
             modelBuilder.Entity<HROvertimeRecord>().ToTable("erp_HROvertimeRecords");
             modelBuilder.Entity<HRAttendanceRegularization>().ToTable("erp_HRAttendanceRegularizations");
+            modelBuilder.Entity<Designation>().ToTable("erp_Designations");
+            modelBuilder.Entity<RegionalConfiguration>().ToTable("erp_RegionalConfigurations");
+            modelBuilder.Entity<ImportLog>().ToTable("erp_ImportLogs");
+            modelBuilder.Entity<ExportAuditLog>().ToTable("erp_ExportAuditLogs");
+            modelBuilder.Entity<AuditLogEntry>().ToTable("erp_AuditLogs");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

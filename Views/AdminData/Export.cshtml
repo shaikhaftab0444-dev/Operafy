@@ -1,35 +1,443 @@
+@model ERP_System.Models.MasterExportViewModel
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Master Data Export";
+    ViewData["Title"] = "Master Data Export Studio";
 }
 
-<div class="container-fluid py-4 text-start" style="max-width: 700px;">
-    <div class="mb-4">
-        <h4 class="fw-bold mb-1"><i class="fa-solid fa-file-export text-primary me-2"></i>Master Data Export</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Data Export</li>
-            </ol>
-        </nav>
+<!-- Premium Alert & Notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    }
+    .export-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .export-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.08);
+        border-color: rgba(37, 99, 235, 0.3);
+    }
+    .card-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+</style>
+
+<div class="container-fluid py-4 text-start">
+
+    <!-- Top Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
+                    <li class="breadcrumb-item text-secondary">Data Operations</li>
+                    <li class="breadcrumb-item active" aria-current="page">Export Studio</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-file-export text-primary me-2"></i>Master Data Export Studio</h4>
+            <p class="text-secondary small mb-0">Securely export enterprise catalogs, rosters, and operational sheets in multiple file formats.</p>
+        </div>
     </div>
 
-    <!-- Export Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Download Master Data</h5>
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="p-3 border rounded text-center bg-light">
-                    <h6 class="fw-bold mb-2">Employee Master</h6>
-                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="alert('Exporting Employee Master database records as Excel...')"><i class="fa-solid fa-download me-1"></i> Export Excel</button>
+    <!-- Hidden Form for Anti-Forgery Token -->
+    <form id="antiForgeryForm" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <!-- Global Filter Bar -->
+    <div class="glass-panel p-3.5 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3 text-start">
+                <label class="form-label small fw-bold text-secondary">Branch Context Filter</label>
+                <select class="form-select" id="branchFilter">
+                    <option value="0">All Branches</option>
+                    @foreach (var br in Model.Branches)
+                    {
+                        <option value="@br.BranchId">@br.BranchName</option>
+                    }
+                </select>
+            </div>
+            
+            <div class="col-md-3 text-start">
+                <label class="form-label small fw-bold text-secondary">Date Range Preset</label>
+                <select class="form-select" id="dateRangePreset" onchange="toggleCustomDates()">
+                    <option value="All Time">All Time</option>
+                    <option value="Current FY 2026-27">Current FY 2026-27</option>
+                    <option value="This Month">This Month</option>
+                    <option value="Custom Date Range">Custom Date Range</option>
+                </select>
+            </div>
+
+            <!-- Custom Dates (Hidden by Default) -->
+            <div class="col-md-4 d-none text-start" id="customDateRangeInputs">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary">From Date</label>
+                        <input type="date" class="form-control" id="customFromDate" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary">To Date</label>
+                        <input type="date" class="form-control" id="customToDate" />
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="p-3 border rounded text-center bg-light">
-                    <h6 class="fw-bold mb-2">Items & Catalog Master</h6>
-                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="alert('Exporting Items Catalog database records as Excel...')"><i class="fa-solid fa-download me-1"></i> Export Excel</button>
+
+            <div class="col-md-3 ms-auto text-start">
+                <label class="form-label small fw-bold text-secondary">Search Dataset Cards</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0 ps-1" placeholder="Filter directories..." id="cardSearch" onkeyup="filterCards()" />
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Exportable Master Data Cards Grid -->
+    <div class="row g-3" id="cardsGrid">
+        
+        <!-- Card 1: Employee Directory Master -->
+        <div class="col-md-4 card-item" data-title="employee directory master staff profiles kyc">
+            <div class="export-card p-3.5 shadow-sm d-flex flex-column h-100 justify-content-between">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="card-icon-wrapper bg-primary-subtle text-primary">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <span class="badge bg-light text-secondary border font-monospace px-2.5 py-1">@Model.EmployeeCount.ToString("N0") Records</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">Employee Directory Master</h6>
+                    <p class="text-secondary small mb-3">Staff directories, designations, joining dates, and payroll structures.</p>
+                </div>
+                <div class="d-flex gap-1.5 mt-auto">
+                    <button class="btn btn-sm btn-outline-primary fw-semibold flex-fill py-1.5" onclick="triggerExport('Employee Directory Master', 'xlsx')">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary fw-semibold flex-fill py-1.5" onclick="triggerExport('Employee Directory Master', 'csv')">
+                        CSV
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger fw-semibold flex-fill py-1.5" onclick="triggerExport('Employee Directory Master', 'pdf')">
+                        PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Items & SKUs Catalog -->
+        <div class="col-md-4 card-item" data-title="items skus catalog inventory products price">
+            <div class="export-card p-3.5 shadow-sm d-flex flex-column h-100 justify-content-between">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="card-icon-wrapper bg-success-subtle text-success">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <span class="badge bg-light text-secondary border font-monospace px-2.5 py-1">@Model.ItemCount.ToString("N0") Items</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">Items & SKUs Catalog</h6>
+                    <p class="text-secondary small mb-3">Material stocks list, selling/purchase catalogs, categories, units, and codes.</p>
+                </div>
+                <div class="d-flex gap-1.5 mt-auto">
+                    <button class="btn btn-sm btn-outline-primary fw-semibold flex-fill py-1.5" onclick="triggerExport('Items & SKUs Catalog', 'xlsx')">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary fw-semibold flex-fill py-1.5" onclick="triggerExport('Items & SKUs Catalog', 'csv')">
+                        CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Customers & Clients Directory -->
+        <div class="col-md-4 card-item" data-title="customers clients directory bills accounts">
+            <div class="export-card p-3.5 shadow-sm d-flex flex-column h-100 justify-content-between">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="card-icon-wrapper bg-info-subtle text-info">
+                            <i class="fa-solid fa-building-user"></i>
+                        </div>
+                        <span class="badge bg-light text-secondary border font-monospace px-2.5 py-1">@Model.CustomerCount.ToString("N0") Clients</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">Customers & Clients Directory</h6>
+                    <p class="text-secondary small mb-3">Customer contact records, registered billings addresses, and active GSTIN keys.</p>
+                </div>
+                <div class="d-flex gap-1.5 mt-auto">
+                    <button class="btn btn-sm btn-outline-primary fw-semibold flex-fill py-1.5" onclick="triggerExport('Customers & Clients Directory', 'xlsx')">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary fw-semibold flex-fill py-1.5" onclick="triggerExport('Customers & Clients Directory', 'csv')">
+                        CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Vendors & Suppliers List -->
+        <div class="col-md-4 card-item" data-title="vendors suppliers list purchase payment codes">
+            <div class="export-card p-3.5 shadow-sm d-flex flex-column h-100 justify-content-between">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="card-icon-wrapper bg-warning-subtle text-warning">
+                            <i class="fa-solid fa-truck-field"></i>
+                        </div>
+                        <span class="badge bg-light text-secondary border font-monospace px-2.5 py-1">@Model.VendorCount.ToString("N0") Suppliers</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">Vendors & Suppliers List</h6>
+                    <p class="text-secondary small mb-3">Supplier code profiles, contact persons, payment terms, and email indexes.</p>
+                </div>
+                <div class="d-flex gap-1.5 mt-auto">
+                    <button class="btn btn-sm btn-outline-primary fw-semibold flex-fill py-1.5" onclick="triggerExport('Vendors & Suppliers List', 'xlsx')">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary fw-semibold flex-fill py-1.5" onclick="triggerExport('Vendors & Suppliers List', 'csv')">
+                        CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 5: Chart of Accounts & Daybook -->
+        <div class="col-md-4 card-item" data-title="chart of accounts daybook balance ledger transactions">
+            <div class="export-card p-3.5 shadow-sm d-flex flex-column h-100 justify-content-between">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="card-icon-wrapper bg-indigo-subtle text-indigo">
+                            <i class="fa-solid fa-book-bookmark"></i>
+                        </div>
+                        <span class="badge bg-light text-secondary border font-monospace px-2.5 py-1">@Model.AccountEntryCount.ToString("N0") Entries</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">Chart of Accounts & Daybook</h6>
+                    <p class="text-secondary small mb-3">Consolidated daybook ledgers, transaction histories, types, and amounts.</p>
+                </div>
+                <div class="d-flex gap-1.5 mt-auto">
+                    <button class="btn btn-sm btn-outline-primary fw-semibold flex-fill py-1.5" onclick="triggerExport('Chart of Accounts & Daybook', 'xlsx')">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger fw-semibold flex-fill py-1.5" onclick="triggerExport('Chart of Accounts & Daybook', 'pdf')">
+                        PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 6: Tax & GST HSN Master -->
+        <div class="col-md-4 card-item" data-title="tax gst hsn master sgst cgst rates slabs">
+            <div class="export-card p-3.5 shadow-sm d-flex flex-column h-100 justify-content-between">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="card-icon-wrapper bg-danger-subtle text-danger">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                        <span class="badge bg-light text-secondary border font-monospace px-2.5 py-1">@Model.TaxSlabCount.ToString("N0") Slabs</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">Tax & GST HSN Master</h6>
+                    <p class="text-secondary small mb-3">Tax slab codes, rates percentage details, and IGST/CGST split variables.</p>
+                </div>
+                <div class="d-flex gap-1.5 mt-auto">
+                    <button class="btn btn-sm btn-outline-primary fw-semibold flex-fill py-1.5" onclick="triggerExport('Tax & GST HSN Master', 'xlsx')">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary fw-semibold flex-fill py-1.5" onclick="triggerExport('Tax & GST HSN Master', 'csv')">
+                        CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Recent Data Export Audit Trail (Bottom Table) -->
+    <div class="glass-panel p-4 mt-4">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check text-primary me-2"></i>Recent Data Export Audit Logs</h5>
+        <div class="table-responsive">
+            <table class="table align-middle table-hover text-start mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Exported Dataset</th>
+                        <th>File Format</th>
+                        <th class="text-center">Records Count</th>
+                        <th>Exported By</th>
+                        <th>Timestamp Details</th>
+                        <th>Source IP Address</th>
+                        <th>Process Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.AuditLogs.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fa-solid fa-magnifying-glass-chart fs-3 d-block mb-1.5"></i>
+                                No export log records logged in the database audit trail yet.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var log in Model.AuditLogs)
+                        {
+                            var formatBadge = log.FileFormat switch
+                            {
+                                "XLSX" => "bg-success-subtle text-success border-success-subtle",
+                                "CSV" => "bg-info-subtle text-info-emphasis border-info-subtle",
+                                "PDF" => "bg-danger-subtle text-danger-emphasis border-danger-subtle",
+                                _ => "bg-light text-secondary border"
+                            };
+
+                            <tr>
+                                <td class="fw-bold text-dark">
+                                    <i class="fa-solid fa-file-export text-primary me-1.5"></i>@log.DatasetName
+                                </td>
+                                <td>
+                                    <span class="badge @formatBadge border px-2.5 py-0.5 text-uppercase font-monospace small">@log.FileFormat</span>
+                                </td>
+                                <td class="text-center font-monospace fw-bold text-dark">@log.RecordsCount.ToString("N0") Rows</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2 font-monospace small fw-bold" style="width:26px; height:26px; font-size: 0.65rem;">
+                                            @log.ExportedBy.Substring(0, Math.Min(2, log.ExportedBy.Length)).ToUpper()
+                                        </div>
+                                        <span class="small fw-semibold text-dark">@log.ExportedBy</span>
+                                    </div>
+                                </td>
+                                <td class="text-secondary small font-monospace">@log.ExportedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</td>
+                                <td class="text-muted font-monospace small">@log.IpAddress</td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 small text-uppercase font-monospace">@log.Status</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    // Toggle Visibility of Custom Dates fields
+    function toggleCustomDates() {
+        const preset = document.getElementById("dateRangePreset").value;
+        const customDiv = document.getElementById("customDateRangeInputs");
+        if (preset === "Custom Date Range") {
+            customDiv.classList.replace("d-none", "col-md-3");
+        } else {
+            customDiv.classList.replace("col-md-3", "d-none");
+        }
+    }
+
+    // Real-time card search filter
+    function filterCards() {
+        const query = document.getElementById("cardSearch").value.toLowerCase().trim();
+        const items = document.querySelectorAll(".card-item");
+
+        items.forEach(item => {
+            const keys = item.getAttribute("data-title");
+            if (keys.includes(query)) {
+                item.style.display = "block";
+            } else {
+                item.style.display = "none";
+            }
+        });
+    }
+
+    // Dynamically post export configurations form parameters
+    function triggerExport(entityType, format) {
+        toastr.info(`Staging ${entityType} in ${format.toUpperCase()} format...`);
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/AdminData/ExportDataset";
+
+        // Anti-forgery verification
+        const tokenInput = document.createElement("input");
+        tokenInput.type = "hidden";
+        tokenInput.name = "__RequestVerificationToken";
+        tokenInput.value = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]').value;
+        form.appendChild(tokenInput);
+
+        const entityInput = document.createElement("input");
+        entityInput.type = "hidden";
+        entityInput.name = "entityType";
+        entityInput.value = entityType;
+        form.appendChild(entityInput);
+
+        const formatInput = document.createElement("input");
+        formatInput.type = "hidden";
+        formatInput.name = "format";
+        formatInput.value = format;
+        form.appendChild(formatInput);
+
+        // Filter Branch
+        const branchInput = document.createElement("input");
+        branchInput.type = "hidden";
+        branchInput.name = "branchId";
+        branchInput.value = document.getElementById("branchFilter").value;
+        form.appendChild(branchInput);
+
+        // Date Range preset
+        const dateRangePreset = document.getElementById("dateRangePreset").value;
+        let fromDate = "";
+        let toDate = "";
+
+        if (dateRangePreset === "Current FY 2026-27") {
+            fromDate = "2026-04-01";
+            toDate = "2027-03-31";
+        } else if (dateRangePreset === "This Month") {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = String(today.getMonth() + 1).padStart(2, '0');
+            fromDate = `${y}-${m}-01`;
+
+            const lastDay = new Date(y, today.getMonth() + 1, 0).getDate();
+            toDate = `${y}-${m}-${lastDay}`;
+        } else if (dateRangePreset === "Custom Date Range") {
+            fromDate = document.getElementById("customFromDate").value;
+            toDate = document.getElementById("customToDate").value;
+        }
+
+        if (fromDate) {
+            const fromInput = document.createElement("input");
+            fromInput.type = "hidden";
+            fromInput.name = "fromDate";
+            fromInput.value = fromDate;
+            form.appendChild(fromInput);
+        }
+
+        if (toDate) {
+            const toInput = document.createElement("input");
+            toInput.type = "hidden";
+            toInput.name = "toDate";
+            toInput.value = toDate;
+            form.appendChild(toInput);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+
+        setTimeout(() => {
+            toastr.success(`Processing dataset download.`);
+        }, 1000);
+    }
+</script>
