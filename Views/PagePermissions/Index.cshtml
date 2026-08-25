@@ -1,0 +1,450 @@
+@model ERP_System.Models.RolePermissionMatrixViewModel
+
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Access Rights Matrix";
+}
+
+<!-- Inject SweetAlert2 & D365 Stylesheet -->
+<link rel="stylesheet" href="~/css/rbac-matrix-3d.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container-fluid py-4 text-start">
+
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item text-secondary">Security & Control Center</li>
+                    <li class="breadcrumb-item active" aria-current="page">Access Matrix</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-user-shield text-primary me-2"></i>Access Rights Matrix</h4>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border px-3 py-2 font-monospace">
+                <span class="pulse-dot me-1.5"></span>3D GLASSMORPHISM ENABLED
+            </span>
+        </div>
+    </div>
+
+    <!-- Active Status Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Permissions Saved',
+                    text: '@TempData["SuccessMessage"]',
+                    confirmButtonColor: '#2563eb'
+                });
+            });
+        </script>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'System Error',
+                    text: '@TempData["ErrorMessage"]',
+                    confirmButtonColor: '#dc2626'
+                });
+            });
+        </script>
+    }
+
+    <!-- Top Role Context Selector (Pill grid) -->
+    <div class="d365-glass-container mb-4">
+        <h6 class="fw-bold text-secondary mb-3 small text-uppercase" style="letter-spacing: 0.6px;"><i class="fa-solid fa-users me-1.5"></i>Select Active Role Context</h6>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            @foreach (var role in Model.Roles)
+            {
+                <button type="button" 
+                        onclick="switchRole(@role.RoleId, this)"
+                        class="btn btn-sm d365-role-pill rounded-pill px-3 py-1.5 @(Model.SelectedRoleId == role.RoleId ? "active" : "")">
+                    <i class="fa-solid fa-user-gear me-1"></i>@role.RoleName
+                </button>
+            }
+        </div>
+
+        <div class="row align-items-center g-3 pt-3 border-top">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light text-secondary border-end-0"><i class="fa-solid fa-sliders"></i></span>
+                    <select class="form-select border-start-0" id="roleIdSelect" onchange="switchRoleDropdown(this)">
+                        @foreach (var r in Model.Roles)
+                        {
+                            <option value="@r.RoleId" selected="@(Model.SelectedRoleId == r.RoleId ? "selected" : null)">
+                                Role Context: @r.RoleName
+                            </option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="glass-search-wrap">
+                    <input type="text" id="moduleFilter" class="form-control glass-search-input" placeholder="Search operational screens, modules or categories..." onkeyup="filterMatrixRows()" />
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Batch Actions & Grid Table -->
+    <div class="d365-glass-container mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h5 class="fw-bold mb-1 text-dark">Grant Operational Access: <span id="role-title-display" class="text-primary">@Model.SelectedRoleName</span></h5>
+                <span class="text-muted small">Manage screen visibility, records addition, modification, removal, and approval workflows.</span>
+            </div>
+            <div class="d-flex flex-wrap gap-1.5">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="batchGrantAll('view')"><i class="fa-solid fa-eye me-1.5"></i>Grant All View</button>
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="batchGrantAll('create')"><i class="fa-solid fa-plus me-1.5"></i>Grant All Create</button>
+                <button type="button" class="btn btn-sm btn-outline-indigo" onclick="batchGrantAll('edit')"><i class="fa-solid fa-pen me-1.5"></i>Grant All Edit</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="batchClearAll()"><i class="fa-solid fa-trash-can me-1.5"></i>Clear All</button>
+            </div>
+        </div>
+
+        <form method="post" action="/PagePermissions/SavePermissions" id="permissionsForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="SelectedRoleId" id="SelectedRoleId" />
+            <input type="hidden" asp-for="SelectedRoleName" id="SelectedRoleName" />
+
+            <div class="table-responsive">
+                <table class="table align-middle d365-table text-start mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 32%;">Operational Screen / Description</th>
+                            <th style="width: 15%;">Access Group</th>
+                            <th class="text-center" style="width: 10%;">
+                                <input type="checkbox" class="form-check-input" id="colHeaderView" onclick="toggleColumnCheckboxes('view', this.checked)" />
+                                <label class="form-check-label d-block text-secondary small mt-1" for="colHeaderView">View</label>
+                            </th>
+                            <th class="text-center" style="width: 10%;">
+                                <input type="checkbox" class="form-check-input" id="colHeaderCreate" onclick="toggleColumnCheckboxes('create', this.checked)" />
+                                <label class="form-check-label d-block text-secondary small mt-1" for="colHeaderCreate">Create</label>
+                            </th>
+                            <th class="text-center" style="width: 10%;">
+                                <input type="checkbox" class="form-check-input" id="colHeaderEdit" onclick="toggleColumnCheckboxes('edit', this.checked)" />
+                                <label class="form-check-label d-block text-secondary small mt-1" for="colHeaderEdit">Edit</label>
+                            </th>
+                            <th class="text-center" style="width: 10%;">
+                                <input type="checkbox" class="form-check-input" id="colHeaderDelete" onclick="toggleColumnCheckboxes('delete', this.checked)" />
+                                <label class="form-check-label d-block text-secondary small mt-1" for="colHeaderDelete">Delete</label>
+                            </th>
+                            <th class="text-center" style="width: 10%;">
+                                <input type="checkbox" class="form-check-input" id="colHeaderApprove" onclick="toggleColumnCheckboxes('approve', this.checked)" />
+                                <label class="form-check-label d-block text-secondary small mt-1" for="colHeaderApprove">Approve</label>
+                            </th>
+                            <th class="text-center" style="width: 6%;">Toggle Row</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.ModulePermissions.Count; i++)
+                        {
+                            var row = Model.ModulePermissions[i];
+                            var categoryLabel = row.Category;
+                            
+                            // Map icon
+                            var iconClass = "fa-window-maximize";
+                            var descText = "Operational screen settings";
+                            
+                            if (row.ModuleName == "UserManagement") { iconClass = "fa-user-shield"; descText = "Configure user access, password policies & role-based rights"; }
+                            else if (row.ModuleName == "Company") { iconClass = "fa-building"; descText = "Manage base profile, tax registration details & fiscal year setup"; }
+                            else if (row.ModuleName == "BranchManagement") { iconClass = "fa-code-fork"; descText = "Configure active branches, working schedules & locations"; }
+                            else if (row.ModuleName == "Settings") { iconClass = "fa-gears"; descText = "Manage email triggers, backup frequencies & localization parameters"; }
+                            
+                            else if (row.ModuleName == "HRManagement_DailyAttendance") { iconClass = "fa-calendar-check"; descText = "Track staff clock-in/out, biometric logs & overtime"; }
+                            else if (row.ModuleName == "HRManagement_EmployeeDirectory") { iconClass = "fa-address-book"; descText = "Manage staff profiles, contracts & onboarding files"; }
+                            else if (row.ModuleName == "HRManagement_LeaveRequests") { iconClass = "fa-umbrella-beach"; descText = "Process employee leave applications & balances"; }
+                            else if (row.ModuleName == "HRManagement_MonthlyPayroll") { iconClass = "fa-file-invoice-dollar"; descText = "Generate salary sheets, allowances & tax deductions"; }
+                            
+                            else if (row.ModuleName == "SupplyChain_InventoryStock") { iconClass = "fa-cubes"; descText = "Manage item master, low stock alerts & warehouse count"; }
+                            else if (row.ModuleName == "SupplyChain_PurchaseOrders") { iconClass = "fa-file-signature"; descText = "Issue POs to suppliers, review quotes & track deliveries"; }
+                            else if (row.ModuleName == "SupplyChain_GoodsReceipt") { iconClass = "fa-clipboard-check"; descText = "Acknowledge material inward & inspect shipment status"; }
+                            
+                            else if (row.ModuleName == "SalesCRM_CustomerDirectory") { iconClass = "fa-users-rectangle"; descText = "Manage client database, contacts & credit limits"; }
+                            else if (row.ModuleName == "SalesCRM_QuotationsEstimates") { iconClass = "fa-calculator"; descText = "Create price offers & discount proposals"; }
+                            else if (row.ModuleName == "SalesCRM_OrdersInvoicing") { iconClass = "fa-receipt"; descText = "Confirm client orders & generate GST/VAT invoices"; }
+                            
+                            else if (row.ModuleName == "FinanceAccounts_GeneralLedger") { iconClass = "fa-book-open"; descText = "View double-entry journals & financial transactions"; }
+                            else if (row.ModuleName == "FinanceAccounts_ReportsTax") { iconClass = "fa-chart-pie"; descText = "Access Trial Balance, P&L and GST/VAT returns"; }
+
+                            <tr class="permission-row" 
+                                data-module-name="@row.ModuleName"
+                                data-search-text="@(row.DisplayName.ToLower() + " " + row.Category.ToLower())">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-light text-primary rounded p-2.5 me-3 border text-center" style="width: 40px; height:40px; display:inline-flex; align-items:center; justify-content:center;">
+                                            <i class="fa-solid @iconClass fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark screen-name-title">@row.DisplayName</div>
+                                            <div class="text-muted small font-monospace" style="font-size: 0.72rem;">@descText</div>
+                                            <input type="hidden" asp-for="ModulePermissions[i].ModuleName" />
+                                            <input type="hidden" asp-for="ModulePermissions[i].DisplayName" />
+                                            <input type="hidden" asp-for="ModulePermissions[i].Category" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="category-indicator indicator-@row.Category">
+                                        <i class="fa-solid fa-folder-open me-1 small"></i>@categoryLabel
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d365-switch d-inline-block">
+                                        <input class="form-check-input permission-checkbox view-cb" type="checkbox" asp-for="ModulePermissions[i].CanView" onchange="syncRowHeaderStates()" />
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d365-switch d-inline-block">
+                                        <input class="form-check-input permission-checkbox create-cb" type="checkbox" asp-for="ModulePermissions[i].CanCreate" onchange="syncRowHeaderStates()" />
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d365-switch d-inline-block">
+                                        <input class="form-check-input permission-checkbox edit-cb" type="checkbox" asp-for="ModulePermissions[i].CanEdit" onchange="syncRowHeaderStates()" />
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d365-switch d-inline-block">
+                                        <input class="form-check-input permission-checkbox delete-cb" type="checkbox" asp-for="ModulePermissions[i].CanDelete" onchange="syncRowHeaderStates()" />
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d365-switch d-inline-block">
+                                        <input class="form-check-input permission-checkbox approve-cb" type="checkbox" asp-for="ModulePermissions[i].CanApprove" onchange="syncRowHeaderStates()" />
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="d365-spin-btn" onclick="toggleEntireRow(this)" title="Toggle Entire Row">
+                                        <i class="fa-solid fa-arrows-spin"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Sticky Bottom Save Bar -->
+            <div class="d365-floating-bar d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center text-secondary small">
+                    <i class="fa-solid fa-triangle-exclamation text-warning fs-5 me-2.5"></i>
+                    <span>Ensure permissions align with organizational policy before saving.</span>
+                </div>
+                <div class="d-flex gap-2 w-100 w-md-auto justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" onclick="resetFormToInitial()">
+                        <i class="fa-solid fa-arrow-rotate-left me-2"></i>Reset to Defaults
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4 py-2" id="btnSavePermissions">
+                        <span id="btnText"><i class="fa-solid fa-floppy-disk me-2"></i>Save Permissions Matrix</span>
+                        <span id="btnSpinner" class="spinner-border spinner-border-sm me-2" role="status" style="display:none;"></span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<!-- Interactive Access Control script -->
+<script>
+    let currentRoleId = @Model.SelectedRoleId;
+    let currentRoleName = '@Model.SelectedRoleName';
+
+    document.addEventListener("DOMContentLoaded", function () {
+        syncRowHeaderStates();
+        updateDynamicTooltips(currentRoleName);
+
+        // Spinner loader on submit
+        const form = document.getElementById("permissionsForm");
+        form.addEventListener("submit", function () {
+            document.getElementById("btnText").style.display = "none";
+            document.getElementById("btnSpinner").style.display = "inline-block";
+            document.getElementById("btnSavePermissions").disabled = true;
+        });
+    });
+
+    // Refresh-Free context switcher
+    function switchRole(roleId, btnElement) {
+        if (roleId === currentRoleId) return;
+
+        // Visual active status class swap
+        const pills = document.querySelectorAll(".d365-role-pill");
+        pills.forEach(p => p.classList.remove("active"));
+        btnElement.classList.add("active");
+
+        currentRoleId = roleId;
+        currentRoleName = btnElement.textContent.trim();
+        
+        document.getElementById("SelectedRoleId").value = roleId;
+        document.getElementById("SelectedRoleName").value = currentRoleName;
+        document.getElementById("role-title-display").textContent = currentRoleName;
+
+        const selectEl = document.getElementById("roleIdSelect");
+        if (selectEl) selectEl.value = roleId;
+
+        toastr.info(`Switching permissions context to: ${currentRoleName}...`);
+
+        // AJAX Fetch permissions
+        fetch(`/PagePermissions/GetRolePermissionsJson?roleId=${roleId}`)
+            .then(res => res.json())
+            .then(data => {
+                // Reset all to false first
+                const checkboxes = document.querySelectorAll(".permission-checkbox");
+                checkboxes.forEach(cb => cb.checked = false);
+
+                // Populate checks
+                data.forEach(perm => {
+                    const row = document.querySelector(`.permission-row[data-module-name="${perm.moduleName}"]`);
+                    if (row) {
+                        row.querySelector(".view-cb").checked = perm.canView;
+                        row.querySelector(".create-cb").checked = perm.canCreate;
+                        row.querySelector(".edit-cb").checked = perm.canEdit;
+                        row.querySelector(".delete-cb").checked = perm.canDelete;
+                        row.querySelector(".approve-cb").checked = perm.canApprove;
+                    }
+                });
+
+                syncRowHeaderStates();
+                updateDynamicTooltips(currentRoleName);
+                toastr.success(`Permissions for '${currentRoleName}' loaded successfully.`);
+            })
+            .catch(err => {
+                console.error("AJAX role switch failed", err);
+                toastr.error("Could not load role permissions from the server.");
+            });
+    }
+
+    // Keep dropdown select indicator in sync
+    function switchRoleDropdown(selectEl) {
+        const roleId = selectEl.value;
+        // Find corresponding pill and click it to trigger the switch
+        const pills = document.querySelectorAll(".d365-role-pill");
+        pills.forEach(p => {
+            if (p.outerHTML.includes(`switchRole(${roleId}`)) {
+                p.click();
+            }
+        });
+    }
+
+    // Dynamic HTML5 tooltip title attributes
+    function updateDynamicTooltips(roleName) {
+        const rows = document.querySelectorAll(".permission-row");
+        rows.forEach(row => {
+            const screenName = row.querySelector(".screen-name-title").textContent.trim();
+            
+            row.querySelector(".view-cb").setAttribute("title", `Allow ${roleName} to view ${screenName}`);
+            row.querySelector(".create-cb").setAttribute("title", `Allow ${roleName} to create/add new items in ${screenName}`);
+            row.querySelector(".edit-cb").setAttribute("title", `Allow ${roleName} to edit/modify items in ${screenName}`);
+            row.querySelector(".delete-cb").setAttribute("title", `Allow ${roleName} to delete/remove items in ${screenName}`);
+            row.querySelector(".approve-cb").setAttribute("title", `Allow ${roleName} to authorize/approve actions in ${screenName}`);
+        });
+    }
+
+    // Toggle entire row callback
+    function toggleEntireRow(btn) {
+        const tr = btn.closest(".permission-row");
+        const checkboxes = tr.querySelectorAll(".permission-checkbox");
+        
+        let anyUnchecked = false;
+        checkboxes.forEach(cb => {
+            if (!cb.checked) anyUnchecked = true;
+        });
+
+        checkboxes.forEach(cb => {
+            cb.checked = anyUnchecked;
+        });
+
+        syncRowHeaderStates();
+    }
+
+    // Column Level Toggles
+    function toggleColumnCheckboxes(permissionType, value) {
+        const checkboxes = document.querySelectorAll(`.${permissionType}-cb`);
+        checkboxes.forEach(cb => {
+            if (cb.closest(".permission-row").style.display !== "none") {
+                cb.checked = value;
+            }
+        });
+        syncRowHeaderStates();
+    }
+
+    // Batch Action Helpers
+    function batchGrantAll(permissionType) {
+        toggleColumnCheckboxes(permissionType, true);
+        toastr.success(`Granted all filtered '${permissionType}' actions.`);
+    }
+
+    function batchClearAll() {
+        const rows = document.querySelectorAll(".permission-row");
+        rows.forEach(row => {
+            if (row.style.display !== "none") {
+                row.querySelectorAll(".permission-checkbox").forEach(cb => cb.checked = false);
+            }
+        });
+        syncRowHeaderStates();
+        toastr.warning("Cleared all permissions for filtered row matrix.");
+    }
+
+    // Search query filter
+    function filterMatrixRows() {
+        const query = document.getElementById("moduleFilter").value.toLowerCase().trim();
+        const rows = document.querySelectorAll(".permission-row");
+
+        rows.forEach(row => {
+            const text = row.getAttribute("data-search-text") || "";
+            if (text.includes(query)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+        syncRowHeaderStates();
+    }
+
+    // Synchronize column header master checkboxes
+    function syncRowHeaderStates() {
+        const types = ['view', 'create', 'edit', 'delete', 'approve'];
+        types.forEach(t => {
+            const checkboxes = document.querySelectorAll(`.${t}-cb`);
+            const header = document.getElementById(`colHeader${t.charAt(0).toUpperCase() + t.slice(1)}`);
+            if (checkboxes.length > 0) {
+                let allChecked = true;
+                checkboxes.forEach(cb => {
+                    // Check only visible rows to make batch checks feel natural
+                    if (cb.closest(".permission-row").style.display !== "none" && !cb.checked) {
+                        allChecked = false;
+                    }
+                });
+                header.checked = allChecked;
+            }
+        });
+    }
+
+    // Reset Defaults
+    function resetFormToInitial() {
+        Swal.fire({
+            title: 'Reset changes?',
+            text: "All unsaved permissions changes for this role context will be discarded.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, reset'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.reload();
+            }
+        });
+    }
+</script>

@@ -1,71 +1,500 @@
-@model IEnumerable<ERP_System.Models.AdminBackupLog>
+@model ERP_System.Models.BackupHistoryViewModel
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Data Backup History";
+    ViewData["Title"] = "Disaster Recovery & Backup Studio";
 }
 
-<div class="container-fluid py-4 text-start">
+<!-- Premium Alert & Notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    }
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+    }
+    .dot-glow {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #10b981;
+        box-shadow: 0 0 8px #10b981;
+        margin-right: 6px;
+    }
+    .dot-glow-red {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #ef4444;
+        box-shadow: 0 0 8px #ef4444;
+        margin-right: 6px;
+    }
+    .ios-switch .form-check-input {
+        width: 2.8em;
+        height: 1.55em;
+        background-color: #cbd5e1;
+        border: none;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+        transition: background-position 0.2s ease, background-color 0.2s ease;
+    }
+    .ios-switch .form-check-input:checked {
+        background-color: #10b981;
+        background-position: right center;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    }
+</style>
+
+<div class="container-fluid py-4 text-start" id="backupStudioContainer">
+
+    <!-- Header Section -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-database text-primary me-2"></i>Data Backup History</h4>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
+                <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Backup History</li>
+                    <li class="breadcrumb-item text-secondary">Data Operations</li>
+                    <li class="breadcrumb-item active" aria-current="page">Backup Studio</li>
                 </ol>
             </nav>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-shield-halved text-primary me-2"></i>Disaster Recovery & Backup Studio</h4>
+            <p class="text-secondary small mb-0">Establish local snapshots, rollback database states, and configure automated retention timelines.</p>
         </div>
-        <form action="/AdminData/CreateBackup" method="post">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm">
-                <i class="fa-solid fa-rotate me-1.5"></i>Trigger Manual Backup
+        <div>
+            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" onclick="triggerManualBackup(this)">
+                <i class="fa-solid fa-rotate-right me-2" id="backupBtnSpinner"></i>Trigger Manual Backup
             </button>
-        </form>
+        </div>
     </div>
 
-    <!-- Backup List -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm" style="max-width: 800px;">
-        <h5 class="fw-bold mb-3">Backup Archive Catalog</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Backup Filename</th>
-                        <th>File Size</th>
-                        <th>Created At</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var log in Model)
-                        {
-                            <tr>
-                                <td class="fw-bold text-dark">@log.Filename</td>
-                                <td>@log.BackupSize</td>
-                                <td class="text-muted">@log.CreatedAt.ToString("dd MMM yyyy hh:mm tt")</td>
-                                <td>
-                                    @if (log.Status == "Success")
-                                    {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">Success</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1">Failed</span>
-                                    }
-                                </td>
-                            </tr>
+    <!-- Alert Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Action Completed',
+                    text: '@Html.Raw(TempData["SuccessMessage"])',
+                    confirmButtonColor: '#2563eb'
+                });
+            });
+        </script>
+    }
+
+    <!-- Top KPI Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card p-3 text-start shadow-sm h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <span class="text-secondary small fw-bold">Backup Storage Used</span>
+                    <h4 class="fw-bold text-dark font-monospace mt-1 mb-2">@Model.StorageUsedMb MB</h4>
+                </div>
+                <div>
+                    <div class="progress mb-1" style="height: 6px;">
+                        @{
+                            double storagePct = (Model.StorageUsedMb / Model.StorageLimitMb) * 100;
+                            if (storagePct > 100) storagePct = 100;
                         }
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: @storagePct.ToString("F0")%"></div>
+                    </div>
+                    <span class="text-secondary small" style="font-size: 0.75rem;">Limit: @Model.StorageLimitMb MB (1 GB)</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 text-start shadow-sm h-100">
+                <span class="text-secondary small fw-bold">Active Snapshots</span>
+                <h4 class="fw-bold text-dark font-monospace mt-1">@Model.TotalSnapshots Available</h4>
+                <span class="badge bg-success-subtle text-success border border-success-subtle mt-1 small">Optimal Retention</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 text-start shadow-sm h-100">
+                <span class="text-secondary small fw-bold">Last Snapshot Status</span>
+                <h4 class="fw-bold text-dark font-monospace mt-1">
+                    @if (Model.LastBackupStatus == "Success")
+                    {
+                        <span class="dot-glow"></span><span>Success</span>
                     }
                     else
                     {
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No database backup logs found.</td>
-                        </tr>
+                        <span class="dot-glow-red"></span><span>Failed</span>
                     }
-                </tbody>
-            </table>
+                </h4>
+                <span class="text-secondary small d-block font-monospace mt-1" style="font-size: 0.75rem;">@Model.LastBackupTime</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 text-start shadow-sm h-100">
+                <span class="text-secondary small fw-bold">Scheduled Backup Engine</span>
+                <h4 class="fw-bold text-primary font-monospace mt-1">Daily @@ 12 AM</h4>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle mt-1 small">Schedule: Active</span>
+            </div>
         </div>
     </div>
+
+    <div class="row g-4">
+        
+        <!-- Left Side: Backups Archive Catalog -->
+        <div class="col-lg-8">
+            <div class="glass-panel p-4">
+                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
+                    <i class="fa-solid fa-boxes-packing text-primary me-2"></i>Backup Archive Catalog
+                </h5>
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover text-start mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 35%;">Backup Filename</th>
+                                <th style="width: 15%;">Backup Type</th>
+                                <th style="width: 10%;">File Size</th>
+                                <th style="width: 20%;">Metadata Details</th>
+                                <th style="width: 10%;">Status</th>
+                                <th class="text-center" style="width: 10%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Backups.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-5">
+                                        <i class="fa-solid fa-database fs-3 d-block mb-2"></i>
+                                        No database backup files found in this archive.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                            @foreach (var b in Model.Backups)
+                            {
+                                var typeClass = b.BackupType == "Auto Schedule" ? "bg-info-subtle text-info-emphasis border-info-subtle" : "bg-indigo-subtle text-indigo-emphasis border-indigo-subtle";
+                                var statusClass = b.Status == "Success" ? "bg-success-subtle text-success-emphasis border-success-subtle" : "bg-danger-subtle text-danger border-danger-subtle";
+
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="fs-4 text-primary me-2.5"><i class="fa-solid fa-file-zipper"></i></span>
+                                            <div>
+                                                <span class="fw-bold text-dark d-block">@b.Filename</span>
+                                                <span class="badge bg-light text-secondary border font-monospace mt-0.5" style="font-size: 0.7rem;">Storage: @b.StorageLocation</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge @typeClass border px-2 py-1 small">@b.BackupType</span>
+                                    </td>
+                                    <td class="font-monospace fw-bold text-dark">@b.BackupSize</td>
+                                    <td>
+                                        <span class="d-block text-secondary small">@b.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</span>
+                                        <span class="d-block small text-muted font-monospace">By: @b.TriggeredBy</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @statusClass border px-2 py-1 small">
+                                            @if (b.Status == "Success")
+                                            {
+                                                <span class="dot-glow"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="dot-glow-red"></span>
+                                            }
+                                            @b.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center align-items-center gap-1.5">
+                                            <!-- Download -->
+                                            <a href="/AdminData/DownloadBackup?filename=@b.Filename" class="btn btn-sm btn-outline-primary border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Download Backup">
+                                                <i class="fa-solid fa-download"></i>
+                                            </a>
+                                            <!-- Restore -->
+                                            <button type="button" onclick="confirmRestore('@b.Filename')" class="btn btn-sm btn-outline-warning border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Restore Rollback">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                            <!-- Delete -->
+                                            <button type="button" onclick="confirmDelete('@b.Filename')" class="btn btn-sm btn-outline-danger border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Delete File">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Automated Backup Configuration Card -->
+        <div class="col-lg-4">
+            <div class="glass-panel p-4 h-100 text-start">
+                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
+                    <i class="fa-solid fa-gears text-primary me-2"></i>Schedule Timings Setup
+                </h5>
+
+                <form id="scheduleForm" onsubmit="event.preventDefault(); saveSchedule();">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
+                            <input class="form-check-input" type="checkbox" role="switch" id="scheduleEnabled" checked="@(Model.Schedule.Enabled ? "checked" : null)" />
+                            <label class="form-check-label fw-bold small text-secondary" for="scheduleEnabled">Enable Backup Scheduler</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Backup Frequency</label>
+                        <select class="form-select" id="scheduleFrequency" required>
+                            <option value="Daily" checked="@(Model.Schedule.Frequency == "Daily" ? "checked" : null)">Daily</option>
+                            <option value="Weekly" checked="@(Model.Schedule.Frequency == "Weekly" ? "checked" : null)">Weekly</option>
+                            <option value="Monthly" checked="@(Model.Schedule.Frequency == "Monthly" ? "checked" : null)">Monthly</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Execution Start Time</label>
+                        <input type="time" class="form-control font-monospace" id="scheduleTime" value="@Model.Schedule.ExecutionTime" required />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-secondary">Retention Keep Count (Days)</label>
+                        <input type="number" class="form-control" id="scheduleRetention" value="@Model.Schedule.RetentionDays" min="7" max="365" required />
+                        <div class="form-text small text-muted">Delete local database backup files older than specified days automatically.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2.5" id="btnSaveSchedule">
+                        <i class="fa-solid fa-save me-1.5" id="scheduleBtnSpinner"></i>Apply Schedule Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
 </div>
+
+<!-- CRITICAL SECURITY VERIFICATION TOKEN FORM FOR AJAX -->
+<form id="securityTokenForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
+
+<script>
+    // Trigger dynamic SQL Server Database Backup
+    function triggerManualBackup(btn) {
+        btn.disabled = true;
+        const spinner = document.getElementById("backupBtnSpinner");
+        spinner.className = "fa-solid fa-circle-notch fa-spin me-2";
+        toastr.info("Initializing SQL Server database backup archive...");
+
+        const token = document.querySelector('#securityTokenForm input[name="__RequestVerificationToken"]').value;
+        const formData = new FormData();
+        formData.append("__RequestVerificationToken", token);
+
+        fetch("/AdminData/TriggerManualBackup", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            spinner.className = "fa-solid fa-rotate-right me-2";
+            btn.disabled = false;
+            
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Backup Successful',
+                    text: data.message,
+                    confirmButtonColor: '#2563eb'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Execution Error',
+                    text: data.message,
+                    confirmButtonColor: '#ef4444'
+                });
+            }
+        })
+        .catch(err => {
+            spinner.className = "fa-solid fa-rotate-right me-2";
+            btn.disabled = false;
+            console.error(err);
+            toastr.error("Database backup server command failed.");
+        });
+    }
+
+    // Save automated backup schedules configs
+    function saveSchedule() {
+        const btn = document.getElementById("btnSaveSchedule");
+        const spinner = document.getElementById("scheduleBtnSpinner");
+        
+        btn.disabled = true;
+        spinner.className = "fa-solid fa-circle-notch fa-spin me-1.5";
+
+        const enabled = document.getElementById("scheduleEnabled").checked;
+        const freq = document.getElementById("scheduleFrequency").value;
+        const time = document.getElementById("scheduleTime").value;
+        const retention = document.getElementById("scheduleRetention").value;
+        const token = document.querySelector('#securityTokenForm input[name="__RequestVerificationToken"]').value;
+
+        const formData = new FormData();
+        formData.append("Enabled", enabled);
+        formData.append("Frequency", freq);
+        formData.append("ExecutionTime", time);
+        formData.append("RetentionDays", retention);
+        formData.append("__RequestVerificationToken", token);
+
+        fetch("/AdminData/SaveSchedule", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            spinner.className = "fa-solid fa-save me-1.5";
+
+            if (data.success) {
+                toastr.success(data.message);
+            } else {
+                toastr.error(data.message);
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            spinner.className = "fa-solid fa-save me-1.5";
+            console.error(err);
+            toastr.error("Failed to apply backup scheduler timings.");
+        });
+    }
+
+    // Delete backup archive snapshot
+    function confirmDelete(filename) {
+        Swal.fire({
+            title: 'Delete Backup Snapshot?',
+            text: `This will permanently delete the snapshot file '${filename}' from the server disk storage.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete file'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const token = document.querySelector('#securityTokenForm input[name="__RequestVerificationToken"]').value;
+                const formData = new FormData();
+                formData.append("filename", filename);
+                formData.append("__RequestVerificationToken", token);
+
+                fetch("/AdminData/DeleteBackup", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted',
+                            text: data.message,
+                            confirmButtonColor: '#2563eb'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        toastr.error(data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    toastr.error("Failed to complete file deletion.");
+                });
+            }
+        });
+    }
+
+    // Restore Rollback recovery with password validation checks
+    function confirmRestore(filename) {
+        Swal.fire({
+            title: 'Restore Database Rollback?',
+            text: `Warning: This will overwrite active database records and roll system state back to '${filename}'.`,
+            icon: 'warning',
+            input: 'password',
+            inputPlaceholder: 'Enter administrator password',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off'
+            },
+            showCancelButton: true,
+            confirmButtonColor: '#eab308',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Initiate Restore',
+            showLoaderOnConfirm: true,
+            preConfirm: (confirmPassword) => {
+                if (!confirmPassword) {
+                    Swal.showValidationMessage('Administrator verification password is required.');
+                    return false;
+                }
+
+                const token = document.querySelector('#securityTokenForm input[name="__RequestVerificationToken"]').value;
+                const formData = new FormData();
+                formData.append("filename", filename);
+                formData.append("confirmPassword", confirmPassword);
+                formData.append("__RequestVerificationToken", token);
+
+                return fetch("/AdminData/RestoreBackup", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(response.statusText);
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(`Restore Request Failed: ${error}`);
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (result.value.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Database Restored',
+                        text: result.value.message,
+                        confirmButtonColor: '#2563eb'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Access Denied',
+                        text: result.value.message,
+                        confirmButtonColor: '#ef4444'
+                    });
+                }
+            }
+        });
+    }
+</script>

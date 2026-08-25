@@ -1,54 +1,642 @@
-@model IEnumerable<ERP_System.Models.HRHoliday>
+@model ERP_System.Models.HolidayViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Company Holiday Calendar";
 }
 
+<!-- Premium Alert & FullCalendar Controls -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .kpi-card {
+        border-radius: 14px;
+        border: 1px solid rgba(226, 232, 240, 0.7);
+        background: #ffffff;
+        transition: all 0.3s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+    }
+    .holiday-table tbody tr {
+        transition: all 0.25s ease;
+    }
+    .holiday-table tbody tr:hover {
+        transform: translateY(-2px);
+        background: #ffffff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.035);
+    }
+    .badge-type {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        letter-spacing: 0.3px;
+    }
+    
+    /* Calendar styling tweaks */
+    #calendar {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
+    }
+    .fc-header-toolbar {
+        margin-bottom: 1.2rem !important;
+    }
+    .fc-theme-standard td, .fc-theme-standard th {
+        border: 1px solid #f1f5f9 !important;
+    }
+    .fc-day-today {
+        background-color: #f0fdf4 !important;
+    }
+    .fc-event {
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        border: none !important;
+    }
+
+    /* Custom iOS toggle switch */
+    .ios-switch .form-check-input {
+        width: 2.8em;
+        height: 1.55em;
+        background-color: #cbd5e1;
+        border: none;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+        transition: background-position 0.2s ease, background-color 0.2s ease;
+    }
+    .ios-switch .form-check-input:checked {
+        background-color: #10b981;
+        background-position: right center;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    }
+
+    /* Modal Animation */
+    .modal.fade .modal-dialog {
+        transform: scale(0.95);
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .modal.show .modal-dialog {
+        transform: scale(1);
+    }
+</style>
+
 <div class="container-fluid py-4 text-start">
+
+    <!-- Header Actions Section -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-calendar-days text-primary me-2"></i>Company Holiday Calendar</h4>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
+                <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Holiday Calendar</li>
+                    <li class="breadcrumb-item text-secondary">Master Setup</li>
+                    <li class="breadcrumb-item active" aria-current="page">Company Holiday Calendar</li>
                 </ol>
             </nav>
+            <h4 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-calendar-check text-primary me-2"></i>Company Holiday Calendar</h4>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#addHolidayModal">
+                <i class="fa-solid fa-plus me-2"></i>Add New Holiday
+            </button>
         </div>
     </div>
 
-    <!-- Holidays Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm" style="max-width: 700px;">
-        <h5 class="fw-bold mb-3">Holiday Calendar</h5>
+    <!-- Alert Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Action Completed',
+                    text: '@Html.Raw(TempData["SuccessMessage"])',
+                    confirmButtonColor: '#2563eb'
+                });
+            });
+        </script>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'System Error',
+                    text: '@Html.Raw(TempData["ErrorMessage"])',
+                    confirmButtonColor: '#ef4444'
+                });
+            });
+        </script>
+    }
+
+    <!-- KPI Summary Section -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm border-0 d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width:52px; height:52px; font-size:1.4rem;">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <div>
+                    <span class="text-secondary small fw-semibold">Total Holidays</span>
+                    <h4 class="fw-bold mb-0 text-dark">@Model.TotalHolidaysCount Days</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm border-0 d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:52px; height:52px; font-size:1.4rem;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <span class="text-secondary small fw-semibold">Mandatory / Public</span>
+                    <h4 class="fw-bold mb-0 text-dark">@Model.MandatoryCount Days</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm border-0 d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width:52px; height:52px; font-size:1.4rem;">
+                    <i class="fa-solid fa-hand-holding-heart"></i>
+                </div>
+                <div>
+                    <span class="text-secondary small fw-semibold">Restricted / Optional</span>
+                    <h4 class="fw-bold mb-0 text-dark">@Model.OptionalCount Days</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm border-0 d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width:52px; height:52px; font-size:1.4rem;">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+                <div>
+                    <span class="text-secondary small fw-semibold">Next Upcoming</span>
+                    <h6 class="fw-bold mb-0 text-dark mt-1" style="font-size:0.8rem;">
+                        @(Model.NextUpcomingHoliday != null ? $"{Model.NextUpcomingHoliday.HolidayName} ({Model.NextUpcomingHoliday.Date:MMM dd})" : "No Scheduled Holidays")
+                    </h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Filtering Controls -->
+    <div class="glass-panel p-4 mb-4">
+        <form method="get" action="/AdminMaster/Holidays" id="filterForm" class="row g-3 align-items-end">
+            <input type="hidden" name="view" id="currentViewParam" value="@Model.SelectedView" />
+            <div class="col-md-3">
+                <label class="form-label fw-semibold text-secondary small">Filter Year</label>
+                <select class="form-select" name="year" onchange="this.form.submit()">
+                    <!option value="2026" @(Model.SelectedYear == 2026 ? "selected" : "")>2026</!option>
+                    <!option value="2027" @(Model.SelectedYear == 2027 ? "selected" : "")>2027</!option>
+                    <!option value="2028" @(Model.SelectedYear == 2028 ? "selected" : "")>2028</!option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold text-secondary small">Applicable Branch</label>
+                <select class="form-select" name="branchId" onchange="this.form.submit()">
+                    <option value="0">All Locations</option>
+                    @foreach (var b in Model.Branches)
+                    {
+                        <!option value="@b.BranchId" @(Model.SelectedBranchId == b.BranchId ? "selected" : "")>@b.BranchName</!option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6 d-flex justify-content-end align-items-center">
+                <div class="btn-group shadow-sm" role="group" aria-label="Toggle Layout Grid">
+                    <button type="button" class="btn btn-outline-primary fw-semibold @(Model.SelectedView == "list" ? "active" : "")" id="btnListView" onclick="toggleLayout('list')">
+                        <i class="fa-solid fa-list-ul me-1.5"></i>List View
+                    </button>
+                    <button type="button" class="btn btn-outline-primary fw-semibold @(Model.SelectedView == "calendar" ? "active" : "")" id="btnCalendarView" onclick="toggleLayout('calendar')">
+                        <i class="fa-solid fa-calendar-days me-1.5"></i>Calendar View
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Content Displays (Conditional View Panels) -->
+    
+    <!-- 1. List Table View -->
+    <div id="listViewContainer" style="display: @(Model.SelectedView == "list" ? "block" : "none");" class="glass-panel p-4">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <table class="table align-middle holiday-table mb-0 text-start">
                 <thead class="table-light">
                     <tr>
-                        <th>Holiday Name</th>
-                        <th>Holiday Date</th>
-                        <th>Type</th>
+                        <th style="width: 15%;">Date & Day</th>
+                        <th style="width: 25%;">Holiday Description Name</th>
+                        <th style="width: 18%;">Holiday Category</th>
+                        <th style="width: 15%;">Branches Mapped</th>
+                        <th style="width: 15%;">Salary Type</th>
+                        <th style="width: 12%;">Status</th>
+                        <th class="text-center" style="width: 10%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model != null && Model.Any())
+                    @if (Model.Holidays.Count == 0)
                     {
-                        @foreach (var h in Model)
-                        {
-                            <tr>
-                                <td class="fw-bold text-dark">@h.HolidayName</td>
-                                <td class="text-muted">@h.Date.ToString("dd MMM yyyy")</td>
-                                <td><span class="badge bg-secondary-subtle text-secondary">National Holiday</span></td>
-                            </tr>
-                        }
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-folder-open fs-3 d-block mb-2"></i>
+                                No holidays registered for the selected filters.
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        <tr>
-                            <td colspan="3" class="text-center py-4 text-muted">No holidays seeded.</td>
-                        </tr>
+                        @foreach (var h in Model.Holidays)
+                        {
+                            var flagClass = "bg-primary-subtle text-primary border-primary-subtle";
+                            if (h.Type.Contains("Restricted") || h.Type.Contains("Optional")) flagClass = "bg-warning-subtle text-warning-emphasis border-warning-subtle";
+                            else if (h.Type.Contains("Gazetted") || h.Type.Contains("Public")) flagClass = "bg-success-subtle text-success-emphasis border-success-subtle";
+                            else if (h.Type.Contains("Foundation") || h.Type.Contains("Event")) flagClass = "bg-purple-subtle text-purple-emphasis border-purple-subtle";
+
+                            // Icon mapping
+                            var icon = "fa-calendar-check";
+                            if (h.HolidayName.Contains("Republic") || h.HolidayName.Contains("Independence") || h.HolidayName.Contains("Gandhi")) icon = "fa-flag-usa";
+                            else if (h.HolidayName.Contains("Diwali") || h.HolidayName.Contains("Laxmi")) icon = "fa-fire";
+                            else if (h.HolidayName.Contains("Christmas")) icon = "fa-tree";
+                            else if (h.HolidayName.Contains("Maharashtra") || h.HolidayName.Contains("Labour")) icon = "fa-hammer";
+                            else if (h.HolidayName.Contains("New Year")) icon = "fa-champagne-glasses";
+
+                            <tr class="holiday-row">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2 text-primary fs-5"><i class="fa-regular fa-calendar-days"></i></div>
+                                        <div>
+                                            <div class="fw-bold text-dark text-nowrap">@h.Date.ToString("dd MMM yyyy")</div>
+                                            <span class="badge bg-light text-secondary border font-monospace mt-0.5">@h.Date.ToString("dddd")</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="text-secondary text-center me-2" style="width: 24px;"><i class="fa-solid @icon text-warning fs-5"></i></span>
+                                        <div>
+                                            <div class="fw-bold text-dark">@h.HolidayName</div>
+                                            <span class="small text-secondary">@h.Description</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-type @flagClass">@h.Type</span>
+                                </td>
+                                <td>
+                                    <span class="text-secondary small fw-semibold">
+                                        <i class="fa-solid fa-map-location-dot text-primary-subtle me-1"></i>
+                                        @(h.Branch?.BranchName ?? "All Locations")
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (h.IsPaid)
+                                    {
+                                        <span class="badge bg-emerald-subtle text-emerald-emphasis border border-success-subtle"><i class="fa-solid fa-wallet me-1 small"></i>Paid Leave</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-secondary border"><i class="fa-solid fa-hourglass me-1 small"></i>Unpaid Leave</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (h.IsActive)
+                                    {
+                                        <span class="badge bg-emerald-subtle text-emerald-emphasis border border-success-subtle rounded-pill px-2.5 py-1 small">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1 small">Inactive</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center align-items-center gap-1.5">
+                                        <button type="button" 
+                                                onclick="openEditModal({
+                                                    id: @h.HolidayId,
+                                                    name: '@h.HolidayName',
+                                                    date: '@h.Date.ToString("yyyy-MM-dd")',
+                                                    type: '@h.Type',
+                                                    branchId: @(h.BranchId ?? 0),
+                                                    isPaid: '@h.IsPaid',
+                                                    isActive: '@h.IsActive',
+                                                    desc: '@Html.Raw(h.Description ?? "")'
+                                                })"
+                                                class="btn btn-sm btn-outline-primary border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Edit Holiday Details">
+                                            <i class="fa-solid fa-pencil"></i>
+                                        </button>
+                                        
+                                        <form method="post" action="/AdminMaster/ToggleHolidayStatus" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@h.HolidayId" />
+                                            <input type="hidden" name="year" value="@Model.SelectedYear" />
+                                            <input type="hidden" name="branchId" value="@Model.SelectedBranchId" />
+                                            <input type="hidden" name="view" value="@Model.SelectedView" />
+                                            <div class="form-check form-switch ios-switch d-inline-block ms-1">
+                                                <input class="form-check-input" type="checkbox" role="switch" checked="@(h.IsActive ? "checked" : null)" onchange="this.form.submit()" />
+                                            </div>
+                                        </form>
+
+                                        <form method="post" action="/AdminMaster/DeleteHoliday" class="d-inline delete-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@h.HolidayId" />
+                                            <input type="hidden" name="year" value="@Model.SelectedYear" />
+                                            <input type="hidden" name="branchId" value="@Model.SelectedBranchId" />
+                                            <input type="hidden" name="view" value="@Model.SelectedView" />
+                                            <button type="button" onclick="confirmDelete(this)" class="btn btn-sm btn-outline-danger border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Delete Holiday">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- 2. Visual Calendar View -->
+    <div id="calendarViewContainer" style="display: @(Model.SelectedView == "calendar" ? "block" : "none");" class="glass-panel p-4">
+        <div id="calendar"></div>
+    </div>
+
 </div>
+
+<!-- ========================================== -->
+<!--       ADD NEW HOLIDAY BOOTSTRAP MODAL      -->
+<!-- ========================================== -->
+<div class="modal fade" id="addHolidayModal" tabindex="-1" aria-labelledby="addModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header bg-light border-bottom p-3">
+                <h5 class="modal-title fw-bold text-dark" id="addModalTitle"><i class="fa-solid fa-circle-plus text-primary me-2"></i>Schedule Company Holiday</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="/AdminMaster/CreateHoliday" id="addForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="SelectedYear" value="@Model.SelectedYear" />
+                <input type="hidden" name="SelectedBranchId" value="@Model.SelectedBranchId" />
+                <input type="hidden" name="SelectedView" value="@Model.SelectedView" />
+                <div class="modal-body p-4 text-start">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold small text-secondary">Holiday Name / Occasion</label>
+                            <input type="text" asp-for="Holiday.HolidayName" class="form-control" placeholder="e.g. Independence Day" required />
+                            <span asp-validation-for="Holiday.HolidayName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Holiday Date</label>
+                            <input type="date" asp-for="Holiday.Date" class="form-control" required />
+                            <span asp-validation-for="Holiday.Date" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Holiday Category Type</label>
+                            <select asp-for="Holiday.Type" class="form-select" required>
+                                <option value="National Holiday">National Holiday</option>
+                                <option value="Gazetted / Public">Gazetted / Public</option>
+                                <option value="Optional / Restricted">Optional / Restricted</option>
+                                <option value="Company Foundation Day">Company Foundation Day</option>
+                            </select>
+                            <span asp-validation-for="Holiday.Type" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Applicable Branch Location</label>
+                            <select asp-for="Holiday.BranchId" class="form-select">
+                                <option value="0">All Locations (Global)</option>
+                                @foreach (var b in Model.Branches)
+                                {
+                                    <option value="@b.BranchId">@b.BranchName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Holiday.BranchId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check form-check-inline form-switch ios-switch d-flex align-items-center gap-2 mb-3">
+                                <input class="form-check-input" type="checkbox" asp-for="Holiday.IsPaid" checked />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Holiday.IsPaid">Paid Holiday (Syncs with payroll calculation)</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-secondary">Description / Special Notes</label>
+                            <textarea asp-for="Holiday.Description" class="form-control" rows="3" placeholder="Additional details, celebration parameters, or office log expectations..."></textarea>
+                            <span asp-validation-for="Holiday.Description" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
+                                <input class="form-check-input" type="checkbox" asp-for="Holiday.IsActive" checked />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Holiday.IsActive">Publish to Corporate calendar feed</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top p-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fa-solid fa-save me-1.5"></i>Save Holiday</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!--       EDIT HOLIDAY BOOTSTRAP MODAL         -->
+<!-- ========================================== -->
+<div class="modal fade" id="editHolidayModal" tabindex="-1" aria-labelledby="editModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header bg-light border-bottom p-3">
+                <h5 class="modal-title fw-bold text-dark" id="editModalTitle"><i class="fa-solid fa-calendar-minus text-primary me-2"></i>Modify Holiday Parameters</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="/AdminMaster/EditHoliday" id="editForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Holiday.HolidayId" id="editHolidayId" />
+                <input type="hidden" name="SelectedYear" value="@Model.SelectedYear" />
+                <input type="hidden" name="SelectedBranchId" value="@Model.SelectedBranchId" />
+                <input type="hidden" name="SelectedView" value="@Model.SelectedView" />
+                <div class="modal-body p-4 text-start">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold small text-secondary">Holiday Name / Occasion</label>
+                            <input type="text" asp-for="Holiday.HolidayName" id="editHolidayName" class="form-control" placeholder="e.g. Independence Day" required />
+                            <span asp-validation-for="Holiday.HolidayName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Holiday Date</label>
+                            <input type="date" asp-for="Holiday.Date" id="editHolidayDate" class="form-control" required />
+                            <span asp-validation-for="Holiday.Date" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Holiday Category Type</label>
+                            <select asp-for="Holiday.Type" id="editHolidayType" class="form-select" required>
+                                <option value="National Holiday">National Holiday</option>
+                                <option value="Gazetted / Public">Gazetted / Public</option>
+                                <option value="Optional / Restricted">Optional / Restricted</option>
+                                <option value="Company Foundation Day">Company Foundation Day</option>
+                            </select>
+                            <span asp-validation-for="Holiday.Type" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Applicable Branch Location</label>
+                            <select asp-for="Holiday.BranchId" id="editBranchId" class="form-select">
+                                <option value="0">All Locations (Global)</option>
+                                @foreach (var b in Model.Branches)
+                                {
+                                    <option value="@b.BranchId">@b.BranchName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Holiday.BranchId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check form-check-inline form-switch ios-switch d-flex align-items-center gap-2 mb-3">
+                                <input class="form-check-input" type="checkbox" asp-for="Holiday.IsPaid" id="editIsPaid" />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Holiday.IsPaid">Paid Holiday (Syncs with payroll calculation)</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-secondary">Description / Special Notes</label>
+                            <textarea asp-for="Holiday.Description" id="editDescription" class="form-control" rows="3" placeholder="Additional details, celebration parameters, or office log expectations..."></textarea>
+                            <span asp-validation-for="Holiday.Description" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
+                                <input class="form-check-input" type="checkbox" asp-for="Holiday.IsActive" id="editIsActive" />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Holiday.IsActive">Publish to Corporate calendar feed</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top p-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fa-solid fa-save me-1.5"></i>Apply Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let calendar = null;
+
+    // Toggle view layout (Table vs Calendar Grid)
+    function toggleLayout(view) {
+        document.getElementById("currentViewParam").value = view;
+        document.getElementById("btnListView").classList.toggle("active", view === "list");
+        document.getElementById("btnCalendarView").classList.toggle("active", view === "calendar");
+        
+        document.getElementById("listViewContainer").style.display = view === "list" ? "block" : "none";
+        document.getElementById("calendarViewContainer").style.display = view === "calendar" ? "block" : "none";
+
+        if (view === "calendar") {
+            setTimeout(() => {
+                initializeCalendar();
+            }, 100);
+        }
+    }
+
+    // Initialize FullCalendar interactive grid
+    function initializeCalendar() {
+        if (calendar) {
+            calendar.render();
+            return;
+        }
+
+        const calendarEl = document.getElementById('calendar');
+        
+        const holidayEvents = [
+            @foreach (var h in Model.Holidays)
+            {
+                var color = "#3b82f6";
+                if (h.Type.Contains("Restricted") || h.Type.Contains("Optional")) color = "#d97706";
+                else if (h.Type.Contains("Gazetted") || h.Type.Contains("Public")) color = "#10b981";
+                else if (h.Type.Contains("Foundation") || h.Type.Contains("Event")) color = "#8b5cf6";
+
+                @:{
+                @:  id: '@h.HolidayId',
+                @:  title: '@Html.Raw(h.HolidayName)',
+                @:  start: '@h.Date.ToString("yyyy-MM-dd")',
+                @:  color: '@color',
+                @:  description: '@Html.Raw(h.Description ?? "")'
+                @:},
+            }
+        ];
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            initialDate: '@(Model.SelectedYear)-01-01',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listYear'
+            },
+            themeSystem: 'standard',
+            events: holidayEvents,
+            eventClick: function(info) {
+                Swal.fire({
+                    title: info.event.title,
+                    text: info.event.extendedProps.description || "No notes registered.",
+                    icon: 'info',
+                    confirmButtonColor: '#2563eb'
+                });
+            }
+        });
+
+        calendar.render();
+    }
+
+    // Auto-initialize calendar on load if default view is set to calendar
+    document.addEventListener("DOMContentLoaded", function() {
+        if ("@Model.SelectedView" === "calendar") {
+            initializeCalendar();
+        }
+    });
+
+    // Populate and open edit modal
+    function openEditModal(h) {
+        document.getElementById("editHolidayId").value = h.id;
+        document.getElementById("editHolidayName").value = h.name;
+        document.getElementById("editHolidayDate").value = h.date;
+        document.getElementById("editHolidayType").value = h.type;
+        document.getElementById("editBranchId").value = h.branchId;
+        document.getElementById("editIsPaid").checked = (h.isPaid === 'True' || h.isPaid === 'true');
+        document.getElementById("editIsActive").checked = (h.isActive === 'True' || h.isActive === 'true');
+        document.getElementById("editDescription").value = h.desc;
+
+        const editModal = new bootstrap.Modal(document.getElementById("editHolidayModal"));
+        editModal.show();
+    }
+
+    // Confirm deletion swal alert
+    function confirmDelete(btn) {
+        Swal.fire({
+            title: 'Delete Company Holiday?',
+            text: "This date will be removed from the corporate calendar and payroll processing feeds.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, remove it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.closest('.delete-form').submit();
+            }
+        });
+    }
+</script>

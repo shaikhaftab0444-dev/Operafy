@@ -1,37 +1,475 @@
+@model ERP_System.Models.BulkImportViewModel
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Bulk Data Import";
+    ViewData["Title"] = "Bulk Data Import Studio";
 }
 
-<div class="container-fluid py-4 text-start" style="max-width: 700px;">
-    <div class="mb-4">
-        <h4 class="fw-bold mb-1"><i class="fa-solid fa-file-import text-primary me-2"></i>Bulk Data Import (Excel / CSV)</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Bulk Import</li>
-            </ol>
-        </nav>
+<!-- Premium Alert & Notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    }
+    .upload-zone {
+        border: 2px dashed #cbd5e1;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: #2563eb;
+        background: #f0fdf4;
+    }
+    .rules-card {
+        border-left: 4px solid #2563eb;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+</style>
+
+<div class="container-fluid py-4 text-start">
+
+    <!-- Top Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
+                    <li class="breadcrumb-item text-secondary">Data Operations</li>
+                    <li class="breadcrumb-item active" aria-current="page">Bulk Import</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-file-import text-primary me-2"></i>Enterprise Bulk Data Import Studio</h4>
+            <p class="text-secondary small mb-0">Bulk upload master data from Excel/CSV files with pre-validation schema checkers.</p>
+        </div>
     </div>
 
-    <!-- Import Form -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Upload Data Sheet</h5>
-        <form>
-            <div class="mb-3">
-                <label class="form-label small fw-semibold">Select Target Module</label>
-                <select class="form-select">
-                    <option>Items & SKUs Catalog</option>
-                    <option>Employee Directory</option>
-                    <option>Customer Catalog</option>
-                </select>
+    <div class="row g-4">
+        
+        <!-- Left Panel: Upload Zone & Form -->
+        <div class="col-lg-7">
+            <div class="glass-panel p-4 h-100">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Import Wizard</h5>
+                
+                <form id="importForm" onsubmit="event.preventDefault(); startValidation();">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Select Target Import Module</label>
+                        <div class="d-flex gap-2">
+                            <select id="moduleSelect" class="form-select" onchange="updateGuidelines()">
+                                <option value="Items & SKUs Catalog">📦 Items & SKUs Catalog</option>
+                                <option value="Customer Directory">👥 Customer Directory</option>
+                                <option value="Vendor / Supplier Directory">🏢 Vendor / Supplier Directory</option>
+                                <option value="Employee Profiles & KYC">💼 Employee Profiles & KYC</option>
+                                <option value="Opening Stock Balances">📊 Opening Stock Balances</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary fw-bold text-nowrap" onclick="downloadActiveTemplate()">
+                                <i class="fa-solid fa-download me-1.5"></i>Get Template
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Drag-and-Drop Area -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Choose Data File (.csv, .xlsx)</label>
+                        <div class="upload-zone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+                            <div class="fs-1 text-secondary mb-2"><i class="fa-solid fa-file-excel"></i></div>
+                            <h6 class="fw-semibold text-dark mb-1">Drag and drop file here, or click to browse</h6>
+                            <p class="text-muted small mb-0">Supports Excel (.xlsx, .xls) and CSV files. Max file size: 10 MB.</p>
+                            <input type="file" id="fileInput" style="display: none;" accept=".csv, .xlsx, .xls" onchange="handleFileSelected(this.files[0])" />
+                        </div>
+                        <div id="fileSelectedDisplay" class="bg-light border rounded-3 p-2.5 mt-2 d-none align-items-center justify-content-between">
+                            <span class="text-dark fw-semibold small font-monospace" id="fileNameText">filename.csv</span>
+                            <button type="button" class="btn-close btn-sm" onclick="clearFileSelected()"></button>
+                        </div>
+                    </div>
+
+                    <!-- Duplicate Strategy Selection -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-secondary d-block">Duplicate Record Strategy</label>
+                        <div class="btn-group w-100" role="group" aria-label="Strategy selection">
+                            <input type="radio" class="btn-check" name="strategy" id="strategySkip" value="Skip Existing" checked />
+                            <label class="btn btn-outline-secondary small py-2 fw-semibold" for="strategySkip">Skip Existing</label>
+
+                            <input type="radio" class="btn-check" name="strategy" id="strategyOverwrite" value="Overwrite Existing" />
+                            <label class="btn btn-outline-secondary small py-2 fw-semibold" for="strategyOverwrite">Overwrite Existing</label>
+
+                            <input type="radio" class="btn-check" name="strategy" id="strategyReject" value="Reject Entire File" />
+                            <label class="btn btn-outline-secondary small py-2 fw-semibold" for="strategyReject">Reject Entire File</label>
+                        </div>
+                    </div>
+
+                    <!-- Action Button & Progress Bar -->
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2.5" id="btnValidate" disabled>
+                            <i class="fa-solid fa-magnifying-glass-chart me-1.5"></i>Start Validation & Preview
+                        </button>
+                    </div>
+
+                    <div class="progress d-none mb-3" style="height: 8px;" id="progressContainer">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%" id="progressBar"></div>
+                    </div>
+                </form>
+
+                <!-- Validation Preview Console (Initially Hidden) -->
+                <div class="border rounded-3 p-3 bg-light d-none" id="previewConsole">
+                    <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-list-check text-primary me-1.5"></i>Pre-Validation Result</h6>
+                    <div class="row g-2 text-center mb-3">
+                        <div class="col-4 border-end">
+                            <span class="text-secondary small d-block">Total Rows</span>
+                            <span class="fw-bold text-dark fs-5" id="previewTotal">0</span>
+                        </div>
+                        <div class="col-4 border-end">
+                            <span class="text-secondary small d-block text-success">Valid Rows</span>
+                            <span class="fw-bold text-success fs-5" id="previewValid">0</span>
+                        </div>
+                        <div class="col-4">
+                            <span class="text-secondary small d-block text-danger">Error Rows</span>
+                            <span class="fw-bold text-danger fs-5" id="previewErrors">0</span>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger d-none py-2 px-3 small text-start" id="errorsContainer">
+                        <div class="fw-semibold text-danger mb-1">Pre-Validation Warning Logs:</div>
+                        <ul class="mb-0 ps-3 font-monospace" id="errorsList" style="font-size: 0.75rem;"></ul>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="resetPreview()">Cancel</button>
+                        <button type="button" class="btn btn-sm btn-success fw-bold px-3" id="btnCommit" onclick="commitImport()">
+                            <i class="fa-solid fa-circle-check me-1.5"></i>Commit & Write Records
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="mb-4">
-                <label class="form-label small fw-semibold">Choose Excel / CSV File</label>
-                <input type="file" class="form-control" accept=".csv, .xls, .xlsx" />
-                <div class="form-text small text-muted">Max file size allowed is 5 MB. Supported formats: .csv, .xlsx</div>
+        </div>
+
+        <!-- Right Panel: Rules & Guidelines -->
+        <div class="col-lg-5">
+            <div class="glass-panel p-4 h-100 text-start">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-book-bookmark text-primary me-2"></i>Import Guidelines</h5>
+                <div class="rules-card p-3 mb-3">
+                    <div class="fw-bold text-dark small mb-1.5">Formatting Instructions</div>
+                    <ul class="small mb-0 ps-3 text-secondary">
+                        <li><strong>File Formats:</strong> Must be plain CSV or validated Excel sheets.</li>
+                        <li><strong>Max Limits:</strong> Files are capped at <strong>10,000 rows</strong> per run.</li>
+                        <li><strong>Date Fields:</strong> Must be in ISO <code>YYYY-MM-DD</code> schema.</li>
+                        <li><strong>Codes:</strong> Codes and primary keys must be unique.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-light border rounded-3 p-3">
+                    <div class="fw-bold text-dark small mb-2"><i class="fa-solid fa-code text-primary me-1.5"></i>Required Columns Schema</div>
+                    <div class="font-monospace small text-secondary p-2 bg-white border rounded" id="guidelinesBox" style="font-size: 0.75rem;">
+                        ItemCode, ItemName, Category, Unit, PurchasePrice, SellingPrice, HSN, ReorderLevel
+                    </div>
+                </div>
             </div>
-            <button type="button" class="btn btn-primary rounded-pill px-4" onclick="alert('File uploaded. Processing bulk import in background...')">Start Data Import</button>
-        </form>
+        </div>
+
     </div>
+
+    <!-- Bottom Panel: Recent Import History -->
+    <div class="glass-panel p-4 mt-4">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Recent Bulk Import Logs</h5>
+        <div class="table-responsive">
+            <table class="table align-middle table-hover text-start">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Module Area</th>
+                        <th>Imported File Name</th>
+                        <th class="text-center">Total Rows</th>
+                        <th class="text-center text-success">Successful</th>
+                        <th class="text-center text-danger">Failed</th>
+                        <th>Process Status</th>
+                        <th class="text-center">Error Logs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ImportLogs.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fa-solid fa-box-open fs-3 d-block mb-1.5"></i>
+                                No bulk import log history found.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var log in Model.ImportLogs)
+                        {
+                            var badgeClass = log.Status switch
+                            {
+                                "Success" => "bg-success-subtle text-success border-success-subtle",
+                                "Failed" => "bg-danger-subtle text-danger border-danger-subtle",
+                                "Partial" => "bg-warning-subtle text-warning-emphasis border-warning-subtle",
+                                _ => "bg-light text-secondary border"
+                            };
+
+                            <tr>
+                                <td class="font-monospace text-secondary small">@log.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="fw-bold text-dark">@log.ModuleType</td>
+                                <td class="font-monospace small">@log.Filename</td>
+                                <td class="text-center font-monospace fw-bold">@log.TotalRows</td>
+                                <td class="text-center font-monospace text-success fw-bold">@log.SuccessRows</td>
+                                <td class="text-center font-monospace text-danger fw-bold">@log.FailedRows</td>
+                                <td>
+                                    <span class="badge @badgeClass border px-2.5 py-1 text-uppercase small">@log.Status</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (!string.IsNullOrEmpty(log.LogFileUrl))
+                                    {
+                                        <a href="@log.LogFileUrl" target="_blank" class="btn btn-sm btn-outline-danger px-2.5 py-1">
+                                            <i class="fa-solid fa-file-circle-exclamation me-1"></i>View Log
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">No Errors</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    let activeFile = null;
+    let preValidationData = null;
+
+    // Initialize dropzone drag-and-drop
+    const dropzone = document.getElementById("dropzone");
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.add("dragover");
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove("dragover");
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            handleFileSelected(file);
+        }, false);
+    }
+
+    // Dynamic Guidelines mapping based on dropdown Target Module
+    function updateGuidelines() {
+        const mod = document.getElementById("moduleSelect").value;
+        const box = document.getElementById("guidelinesBox");
+        
+        let schemaText = "";
+        switch (mod) {
+            case "Items & SKUs Catalog":
+                schemaText = "ItemCode, ItemName, Category, Unit, PurchasePrice, SellingPrice, HSN, ReorderLevel";
+                break;
+            case "Customer Directory":
+                schemaText = "CustomerCode, CompanyName, ContactPerson, Email, Phone, GSTIN, BillingAddress";
+                break;
+            case "Vendor / Supplier Directory":
+                schemaText = "VendorCode, VendorName, ContactPerson, Email, Phone, PaymentTerms";
+                break;
+            case "Employee Profiles & KYC":
+                schemaText = "EmployeeCode, FullName, Email, Phone, Department, Designation, DateOfJoining";
+                break;
+            case "Opening Stock Balances":
+                schemaText = "ItemCode, WarehouseCode, BatchNo, Quantity, UnitCost";
+                break;
+        }
+        box.textContent = schemaText;
+    }
+
+    // Trigger download template via C# controller template builder
+    function downloadActiveTemplate() {
+        const mod = document.getElementById("moduleSelect").value;
+        window.location.href = `/AdminData/DownloadTemplate?moduleType=${encodeURIComponent(mod)}`;
+    }
+
+    // Validate size and handle selected file
+    function handleFileSelected(file) {
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'error',
+                title: 'File Too Large',
+                text: 'The uploaded file exceeds the 10 MB maximum file size limit.',
+                confirmButtonColor: '#ef4444'
+            });
+            return;
+        }
+
+        activeFile = file;
+        document.getElementById("fileNameText").textContent = file.name;
+        document.getElementById("fileSelectedDisplay").classList.replace("d-none", "d-flex");
+        document.getElementById("btnValidate").disabled = false;
+        toastr.info(`File '${file.name}' staged for import pre-validation.`);
+    }
+
+    function clearFileSelected() {
+        activeFile = null;
+        document.getElementById("fileInput").value = "";
+        document.getElementById("fileSelectedDisplay").classList.replace("d-flex", "d-none");
+        document.getElementById("btnValidate").disabled = true;
+        resetPreview();
+    }
+
+    function resetPreview() {
+        preValidationData = null;
+        document.getElementById("previewConsole").classList.add("d-none");
+        document.getElementById("errorsContainer").classList.add("d-none");
+        document.getElementById("errorsList").innerHTML = "";
+    }
+
+    // Execute validate & preview AJAX transaction
+    function startValidation() {
+        if (!activeFile) return;
+
+        const mod = document.getElementById("moduleSelect").value;
+        const form = document.getElementById("importForm");
+        const token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        const formData = new FormData();
+        formData.append("file", activeFile);
+        formData.append("moduleType", mod);
+        formData.append("__RequestVerificationToken", token);
+
+        document.getElementById("progressContainer").classList.remove("d-none");
+        const bar = document.getElementById("progressBar");
+        bar.style.width = "20%";
+
+        let progressInterval = setInterval(() => {
+            let width = parseInt(bar.style.width);
+            if (width < 80) bar.style.width = (width + 15) + "%";
+        }, 150);
+
+        fetch("/AdminData/ValidateAndPreview", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            clearInterval(progressInterval);
+            bar.style.width = "100%";
+            
+            setTimeout(() => {
+                document.getElementById("progressContainer").classList.add("d-none");
+                bar.style.width = "0%";
+                
+                if (data.success) {
+                    preValidationData = data;
+                    document.getElementById("previewTotal").textContent = data.totalRows;
+                    document.getElementById("previewValid").textContent = data.validRows;
+                    document.getElementById("previewErrors").textContent = data.errorRows;
+
+                    if (data.errorRows > 0) {
+                        const list = document.getElementById("errorsList");
+                        list.innerHTML = "";
+                        data.errors.forEach(err => {
+                            const li = document.createElement("li");
+                            li.textContent = err;
+                            list.appendChild(li);
+                        });
+                        document.getElementById("errorsContainer").classList.remove("d-none");
+                    } else {
+                        document.getElementById("errorsContainer").classList.add("d-none");
+                    }
+
+                    document.getElementById("previewConsole").classList.remove("d-none");
+                    toastr.success("Validation checklist completed.");
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Failed',
+                        text: data.message,
+                        confirmButtonColor: '#ef4444'
+                    });
+                }
+            }, 300);
+        })
+        .catch(err => {
+            clearInterval(progressInterval);
+            document.getElementById("progressContainer").classList.add("d-none");
+            console.error(err);
+            toastr.error("Server validation parser failed.");
+        });
+    }
+
+    // Commit records database transaction
+    function commitImport() {
+        if (!preValidationData) return;
+
+        const mod = document.getElementById("moduleSelect").value;
+        const strategy = document.querySelector('input[name="strategy"]:checked').value;
+        const form = document.getElementById("importForm");
+        const token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        const formData = new FormData();
+        formData.append("sessionKey", preValidationData.sessionKey);
+        formData.append("moduleType", mod);
+        formData.append("duplicateStrategy", strategy);
+        formData.append("totalRows", preValidationData.totalRows);
+        formData.append("validRows", preValidationData.validRows);
+        formData.append("errorRows", preValidationData.errorRows);
+        formData.append("__RequestVerificationToken", token);
+
+        document.getElementById("btnCommit").disabled = true;
+        toastr.info("Committing batch data transaction...");
+
+        fetch("/AdminData/CommitImport", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Import Completed',
+                    text: data.message,
+                    confirmButtonColor: '#2563eb'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                document.getElementById("btnCommit").disabled = false;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Commit Failed',
+                    text: data.message,
+                    confirmButtonColor: '#ef4444'
+                });
+            }
+        })
+        .catch(err => {
+            document.getElementById("btnCommit").disabled = false;
+            console.error(err);
+            toastr.error("Failed to commit batch records.");
+        });
+    }
+</script>

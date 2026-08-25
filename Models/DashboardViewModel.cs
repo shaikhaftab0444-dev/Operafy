@@ -25,7 +25,10 @@ namespace ERP_System.Models
 
         // Custom properties for screenshot KPI cards
         public string ActiveMonthName { get; set; } = "February 2023";
-        public string CurrencySymbol { get; set; } = "PKR";
+        public string CurrencySymbol { get; set; } = "₹";
+        public string CurrencyCode { get; set; } = "INR";
+        public string NumberFormattingStyle { get; set; } = "Lakhs/Crores";
+        public string DateFormat { get; set; } = "DD/MM/YYYY";
         public decimal CurrentMonthRevenue { get; set; } = 0;
         public decimal CurrentMonthExpenses { get; set; } = 0;
         public decimal CurrentMonthRecovery { get; set; } = 0;

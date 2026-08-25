@@ -12,6 +12,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<ERP_System.Helpers.ICurrencyService, ERP_System.Helpers.CurrencyService>();
+
 // Configure Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -37,6 +39,13 @@ using (var scope = app.Services.CreateScope())
         await SeedData.InitializeInventoryManagementTablesAsync(context);
         await SeedData.InitializeAdminManagementTablesAsync(context);
         await SeedData.InitializeSuperAdminManagementTablesAsync(context);
+        await SeedData.InitializeTransactionsAsync(context);
+        await SeedData.InitializeDesignationsAsync(context);
+        await SeedData.InitializeHolidaysAsync(context);
+        await SeedData.InitializeRegionalSettingsAsync(context);
+        await SeedData.InitializeImportLogsAsync(context);
+        await SeedData.InitializeExportLogsAsync(context);
+        await SeedData.InitializeAuditLogsAsync(context);
         //await SeedData.InitializeHRAttendanceTablesAsync(context);
     }
     catch (Exception ex)

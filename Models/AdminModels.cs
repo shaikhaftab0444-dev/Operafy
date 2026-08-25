@@ -37,6 +37,12 @@ namespace ERP_System.Models
         public string BranchName { get; set; } = string.Empty;
 
         [Required]
+        public int BranchId { get; set; }
+
+        [ForeignKey("BranchId")]
+        public Branch? Branch { get; set; }
+
+        [Required]
         [StringLength(20)]
         public string OpeningTime { get; set; } = "09:00 AM";
 
@@ -47,6 +53,18 @@ namespace ERP_System.Models
         [Required]
         [StringLength(50)]
         public string OffDay { get; set; } = "Sunday";
+
+        public int GracePeriod { get; set; } = 15;
+
+        public int BreakDuration { get; set; } = 45;
+
+        public decimal HalfDayMinHours { get; set; } = 4.5m;
+
+        public bool IsContinuousShift { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime EffectiveDate { get; set; } = DateTime.Today;
     }
 
     [Table("erp_AdminBackupLogs")]
@@ -69,6 +87,18 @@ namespace ERP_System.Models
         [Required]
         [StringLength(50)]
         public string Status { get; set; } = "Success"; // Success, Failed
+
+        [Required]
+        [StringLength(50)]
+        public string BackupType { get; set; } = "Manual Trigger"; // Manual Trigger, Auto Schedule
+
+        [Required]
+        [StringLength(100)]
+        public string TriggeredBy { get; set; } = "Super Admin";
+
+        [Required]
+        [StringLength(100)]
+        public string StorageLocation { get; set; } = "Local Disk"; // Local Disk, Azure Storage
     }
 
     [Table("erp_AdminLoginAudits")]
@@ -112,5 +142,31 @@ namespace ERP_System.Models
         [Required]
         [StringLength(100)]
         public string PostedBy { get; set; } = "System Admin";
+
+        [Required]
+        [StringLength(50)]
+        public string Priority { get; set; } = "Normal"; // Normal, High, Urgent / Broadcast
+
+        [Required]
+        [StringLength(100)]
+        public string Category { get; set; } = "General"; // Maintenance, HR Policy, Compliance, Holiday & Events, Corporate News, IT Infrastructure
+
+        public bool IsPinned { get; set; } = false;
+
+        [StringLength(255)]
+        public string? AttachmentName { get; set; }
+
+        [StringLength(255)]
+        public string? AttachmentUrl { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string TargetAudience { get; set; } = "All Staff"; // All Staff, Managers & Admins, Sales Department, Accounts Team
+
+        [Required]
+        [StringLength(100)]
+        public string TargetBranch { get; set; } = "All Branches";
+
+        public DateTime? ExpiryDate { get; set; }
     }
 }

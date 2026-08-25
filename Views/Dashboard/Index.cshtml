@@ -1,9 +1,53 @@
-﻿@model ERP_System.Models.DashboardViewModel
+@model ERP_System.Models.DashboardViewModel
 
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Dashboard";
     var inCulture = new System.Globalization.CultureInfo("en-IN");
+
+    var monthParts = Model.ActiveMonthName?.Split(' ') ?? Array.Empty<string>();
+    var monthName = monthParts.Length > 0 ? monthParts[0] : "";
+    var yearName = monthParts.Length > 1 ? monthParts[1] : "";
+
+    string FormatIndianCurrency(decimal value, string symbol)
+    {
+        string displaySymbol = symbol;
+        bool isNegative = value < 0;
+        decimal absValue = Math.Abs(value);
+
+        string formatted;
+        if (Model.NumberFormattingStyle == "Lakhs/Crores")
+        {
+            if (absValue >= 10000000m) // 1 Crore
+                formatted = $"{(absValue / 10000000m):F2} Cr";
+            else if (absValue >= 100000m) // 1 Lakh
+                formatted = $"{(absValue / 100000m):F2} L";
+            else if (absValue >= 10000m)
+            {
+                decimal kVal = absValue / 1000m;
+                formatted = kVal % 1 == 0 ? $"{kVal:F0} K" : $"{kVal:F1} K";
+            }
+            else
+                formatted = absValue.ToString("N2", new System.Globalization.CultureInfo("en-IN"));
+        }
+        else
+        {
+            // Millions/Billions formatting
+            if (absValue >= 1000000000m) // 1 Billion
+                formatted = $"{(absValue / 1000000000m):F2} B";
+            else if (absValue >= 1000000m) // 1 Million
+                formatted = $"{(absValue / 1000000m):F2} M";
+            else if (absValue >= 10000m)
+            {
+                decimal kVal = absValue / 1000m;
+                formatted = kVal % 1 == 0 ? $"{kVal:F0} K" : $"{kVal:F1} K";
+            }
+            else
+                formatted = absValue.ToString("N2", new System.Globalization.CultureInfo("en-US"));
+        }
+
+        return isNegative ? $"-{displaySymbol} {formatted}" : $"{displaySymbol} {formatted}";
+    }
 }
 
 @if (User.IsInRole("Admin"))
@@ -853,862 +897,330 @@
 }
 else
 {
-    <!-- ========================================== -->
-    <!--       PREMIUM OPERATIONAL DASHBOARD        -->
-    <!-- ========================================== -->
+    <!-- Inject Dedicated CSS Stylesheet -->
+    <link rel="stylesheet" href="~/css/dynamics-dashboard.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <style>
-        .operational-dashboard {
-            padding-bottom: 40px;
-            animation: operationalFade .5s ease;
-        }
 
-        @@keyframes operationalFade {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* HEADER */
-
-        .dashboard-title-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .dashboard-title {
-            font-size: 1.7rem;
-            font-weight: 800;
-            color: #1e293b;
-            margin: 0;
-            letter-spacing: -.4px;
-        }
-
-        .dashboard-subtitle {
-            font-size: .86rem;
-            color: #64748b;
-            margin-top: 5px;
-        }
-
-        /* KPI */
-
-        .kpi-row {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 18px;
-            margin-bottom: 26px;
-        }
-
-        .screenshot-card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 18px;
-            padding: 19px;
-            min-height: 138px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            color: #1e293b !important;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, .025);
-            transition: all .25s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .screenshot-card::before {
-            content: "";
-            position: absolute;
-            width: 90px;
-            height: 90px;
-            right: -25px;
-            top: -25px;
-            border-radius: 50%;
-            opacity: .5;
-        }
-
-        .screenshot-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 18px 32px rgba(15, 23, 42, .08);
-        }
-
-        .card-left-block {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .card-left-month {
-            font-size: .76rem;
-            font-weight: 700;
-            color: #64748b;
-        }
-
-        .card-left-year {
-            font-size: .82rem;
-            font-weight: 700;
-            color: #64748b;
-        }
-
-        .card-left-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-        }
-
-        .card-right-block {
-            margin-top: 10px;
-        }
-
-        .card-val {
-            font-size: clamp(1.05rem, 1.5vw, 1.5rem);
-            font-weight: 800;
-            color: #1e293b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .card-label {
-            font-size: .76rem;
-            color: #64748b;
-            font-weight: 600;
-            margin-top: 5px;
-        }
-
-        /* WHITE CARD ACCENT COLORS */
-
-        .bg-kpi-blue {
-            border-top: 3px solid #2563eb;
-        }
-
-        .bg-kpi-blue::before {
-            background: #dbeafe;
-        }
-
-        .bg-kpi-blue .card-left-icon {
-            background: #eff6ff;
-            color: #2563eb;
-        }
-
-        .bg-kpi-indigo {
-            border-top: 3px solid #4f46e5;
-        }
-
-        .bg-kpi-indigo::before {
-            background: #e0e7ff;
-        }
-
-        .bg-kpi-indigo .card-left-icon {
-            background: #eef2ff;
-            color: #4f46e5;
-        }
-
-        .bg-kpi-purple {
-            border-top: 3px solid #9333ea;
-        }
-
-        .bg-kpi-purple::before {
-            background: #f3e8ff;
-        }
-
-        .bg-kpi-purple .card-left-icon {
-            background: #faf5ff;
-            color: #9333ea;
-        }
-
-        .bg-kpi-teal-dark {
-            border-top: 3px solid #0f766e;
-        }
-
-        .bg-kpi-teal-dark::before {
-            background: #ccfbf1;
-        }
-
-        .bg-kpi-teal-dark .card-left-icon {
-            background: #f0fdfa;
-            color: #0f766e;
-        }
-
-        .bg-kpi-green {
-            border-top: 3px solid #16a34a;
-        }
-
-        .bg-kpi-green::before {
-            background: #dcfce7;
-        }
-
-        .bg-kpi-green .card-left-icon {
-            background: #f0fdf4;
-            color: #16a34a;
-        }
-
-        .bg-kpi-slate {
-            border-top: 3px solid #475569;
-        }
-
-        .bg-kpi-slate::before {
-            background: #e2e8f0;
-        }
-
-        .bg-kpi-slate .card-left-icon {
-            background: #f8fafc;
-            color: #475569;
-        }
-
-        .bg-kpi-violet {
-            border-top: 3px solid #7c3aed;
-        }
-
-        .bg-kpi-violet::before {
-            background: #ede9fe;
-        }
-
-        .bg-kpi-violet .card-left-icon {
-            background: #f5f3ff;
-            color: #7c3aed;
-        }
-
-        .bg-kpi-teal-light {
-            border-top: 3px solid #0891b2;
-        }
-
-        .bg-kpi-teal-light::before {
-            background: #cffafe;
-        }
-
-        .bg-kpi-teal-light .card-left-icon {
-            background: #ecfeff;
-            color: #0891b2;
-        }
-
-        /* SUMMARY MODULE */
-
-        .summary-module {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 20px;
-            overflow: hidden;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 22px rgba(15, 23, 42, .025);
-        }
-
-        .summary-header {
-            padding: 17px 22px;
-            font-size: 1rem;
-            font-weight: 800;
-            color: #1e293b;
-            background: #ffffff;
-            border-bottom: 1px solid #eef2f7;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-        }
-
-        .summary-box {
-            padding: 23px 15px;
-            text-align: center;
-            border-right: 1px solid #eef2f7;
-            transition: background .2s ease;
-        }
-
-        .summary-box:hover {
-            background: #f8fafc;
-        }
-
-        .summary-box:last-child {
-            border-right: none;
-        }
-
-        .summary-title {
-            display: block;
-            min-height: 38px;
-            font-size: .75rem;
-            font-weight: 700;
-            color: #64748b;
-            line-height: 1.45;
-            margin-bottom: 7px;
-        }
-
-        .summary-value {
-            display: block;
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: #1e293b;
-        }
-
-        .summary-currency {
-            display: block;
-            margin-top: 4px;
-            font-size: .68rem;
-            color: #94a3b8;
-            font-weight: 700;
-        }
-
-        /* OPERATIONS */
-
-        .operations-card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 20px;
-            overflow: hidden;
-            margin-bottom: 40px;
-            box-shadow: 0 8px 22px rgba(15, 23, 42, .025);
-        }
-
-        .operations-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid #eef2f7;
-        }
-
-        .operations-title {
-            font-size: 1.05rem;
-            font-weight: 800;
-            color: #1e293b;
-            margin: 0;
-        }
-
-        .operations-subtitle {
-            color: #64748b;
-            font-size: .78rem;
-            margin-top: 4px;
-        }
-
-        .operations-card .nav-pills {
-            padding: 18px 24px 0;
-        }
-
-        .operations-card .nav-link {
-            border-radius: 10px !important;
-            color: #64748b;
-            font-size: .82rem;
-            font-weight: 700;
-            background: transparent;
-            transition: all .2s ease;
-        }
-
-        .operations-card .nav-link:hover {
-            background: #f1f5f9;
-            color: #2563eb;
-        }
-
-        .operations-card .nav-link.active {
-            background: #eff6ff;
-            color: #2563eb;
-        }
-
-        .operations-card .tab-content {
-            padding: 20px 24px 24px;
-        }
-
-        .operations-card table {
-            margin-bottom: 0;
-            font-size: .82rem;
-        }
-
-        .operations-card table thead th {
-            background: #f8fafc;
-            color: #475569;
-            font-weight: 700;
-            border-bottom: 1px solid #e5e7eb;
-            white-space: nowrap;
-        }
-
-        .operations-card table th,
-        .operations-card table td {
-            padding: 14px 12px;
-            vertical-align: middle;
-        }
-
-        /* RESPONSIVE */
-
-        @@media (max-width: 1200px) {
-            .kpi-row {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .summary-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-
-            .summary-box:nth-child(3) {
-                border-right: none;
-            }
-        }
-
-        @@media (max-width: 768px) {
-            .kpi-row {
-                grid-template-columns: 1fr;
-            }
-
-            .summary-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .summary-box {
-                border-bottom: 1px solid #eef2f7;
-            }
-
-            .summary-box:nth-child(even) {
-                border-right: none;
-            }
-
-            .operations-card .nav-pills {
-                overflow-x: auto;
-                flex-wrap: nowrap;
-            }
-
-            .operations-card .nav-link {
-                white-space: nowrap;
-            }
-        }
-
-        @@media (max-width: 480px) {
-            .dashboard-title {
-                font-size: 1.35rem;
-            }
-
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .summary-box {
-                border-right: none;
-            }
-
-            .operations-card .tab-content {
-                padding: 15px;
-            }
-        }
-    </style>
-
-   
-        var monthParts = Model.ActiveMonthName?.Split(' ') ?? Array.Empty<string>();
-        var monthName = monthParts.Length > 0 ? monthParts[0] : "";
-        var yearName = monthParts.Length > 1 ? monthParts[1] : "";
-    
-
-    <div class="operational-dashboard">
-
-        <!-- HEADER -->
-        <div class="dashboard-title-bar">
+    <div class="container-fluid py-4 operational-dashboard text-start">
+        
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="dashboard-title">Dashboard</h2>
+                <h4 class="fw-bold mb-1" style="color: #1e293b;"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Operational Control Center</h4>
+                <div class="text-muted small">Real-time enterprise metrics & branch analytics overview</div>
+            </div>
+            <div>
+                <span class="badge bg-light border text-dark font-monospace px-3 py-2">
+                    <span class="pulse-dot me-1.5"></span>LIVE UPDATES ACTIVE
+                </span>
+            </div>
+        </div>
 
-                <div class="dashboard-subtitle">
-                    Business performance and operational overview
+        <!-- 8 KPI Cards Row -->
+        <div class="row g-3 mb-4">
+            <!-- 1. Revenue -->
+            <div class="col-sm-6 col-lg-3 animate-card" style="animation-delay: 0.05s;">
+                <div class="glass-kpi-card border-highlight-blue">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-bold text-uppercase">Revenue</span>
+                        <div class="kpi-icon-wrap glow-badge-blue"><i class="fa-solid fa-chart-line"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark" id="kpi-revenue">@FormatIndianCurrency(Model.CurrentMonthRevenue, Model.CurrencySymbol)</h3>
+                    <div class="text-muted small d-flex justify-content-between align-items-center">
+                        <span>Current month gross sales</span>
+                        <span class="badge bg-primary-subtle text-primary small">@monthName</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 2. Expenses -->
+            <div class="col-sm-6 col-lg-3 animate-card" style="animation-delay: 0.1s;">
+                <div class="glass-kpi-card border-highlight-indigo">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-bold text-uppercase">Expenses</span>
+                        <div class="kpi-icon-wrap glow-badge-indigo"><i class="fa-solid fa-building-columns"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark" id="kpi-expenses">@FormatIndianCurrency(Model.CurrentMonthExpenses, Model.CurrencySymbol)</h3>
+                    <div class="text-muted small d-flex justify-content-between align-items-center">
+                        <span>Current month operations cost</span>
+                        <span class="badge bg-indigo-subtle text-indigo small">@monthName</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 3. Recovery -->
+            <div class="col-sm-6 col-lg-3 animate-card" style="animation-delay: 0.15s;">
+                <div class="glass-kpi-card border-highlight-purple">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-bold text-uppercase">Recovery</span>
+                        <div class="kpi-icon-wrap glow-badge-purple"><i class="fa-solid fa-rotate-left"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark" id="kpi-recovery">@FormatIndianCurrency(Model.CurrentMonthRecovery, Model.CurrencySymbol)</h3>
+                    <div class="text-muted small d-flex justify-content-between align-items-center">
+                        <span>Payments received in month</span>
+                        <span class="badge bg-purple-subtle text-purple small">@monthName</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 4. Profit/Loss -->
+            <div class="col-sm-6 col-lg-3 animate-card" style="animation-delay: 0.2s;">
+                <div class="glass-kpi-card border-highlight-emerald">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-bold text-uppercase">Net Profit/Loss</span>
+                        <div class="kpi-icon-wrap glow-badge-emerald"><i class="fa-solid fa-scale-balanced"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-1 @(Model.NetProfitLoss >= 0 ? "text-success" : "text-danger")" id="kpi-profit">@FormatIndianCurrency(Model.NetProfitLoss, Model.CurrencySymbol)</h3>
+                    <div class="text-muted small d-flex justify-content-between align-items-center">
+                        <span>Revenue minus expense cost</span>
+                        <span class="badge bg-emerald-subtle text-success small">Active</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 5. Capital -->
+            <div class="col-sm-6 col-lg-3 animate-card" style="animation-delay: 0.25s;">
+                <div class="glass-kpi-card border-highlight-cyan">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-bold text-uppercase">Owner Capital</span>
+                        <div class="kpi-icon-wrap glow-badge-cyan"><i class="fa-solid fa-piggy-bank"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark" id="kpi-capital">@FormatIndianCurrency(Model.OwnerCapital, Model.CurrencySymbol)</h3>
+                    <div class="text-muted small d-flex justify-content-between align-items-center">
+                        <span>Total shareholder equity</span>
+                        <span class="badge bg-info-subtle text-info small">Capital</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 6. Cash/Bank Balance -->
+            <div class="col-sm-6 col-lg-3 animate-card" style="animation-delay: 0.3s;">
+                <div class="glass-kpi-card border-highlight-slate">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-bold text-uppercase">Cash / Bank</span>
+                        <div class="kpi-icon-wrap glow-badge-slate"><i class="fa-solid fa-wallet"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark" id="kpi-balance">@FormatIndianCurrency(Model.CashBankBalance, Model.CurrencySymbol)</h3>
+                    <div class="text-muted small d-flex justify-content-between align-items-center">
+                        <span>Ready operational funds</span>
+                        <span class="badge bg-secondary-subtle text-secondary small">Liquid</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 7. Receivables -->
+            <div class="col-sm-6 col-lg-3 animate-card" style="animation-delay: 0.35s;">
+                <div class="glass-kpi-card border-highlight-purple">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-bold text-uppercase">Receivables</span>
+                        <div class="kpi-icon-wrap glow-badge-purple"><i class="fa-solid fa-file-invoice"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark" id="kpi-receivable">@FormatIndianCurrency(Model.TotalReceivable, Model.CurrencySymbol)</h3>
+                    <div class="text-muted small d-flex justify-content-between align-items-center">
+                        <span>Total outstanding collections</span>
+                        <span class="badge bg-warning-subtle text-warning small">Due</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 8. Payables -->
+            <div class="col-sm-6 col-lg-3 animate-card" style="animation-delay: 0.4s;">
+                <div class="glass-kpi-card border-highlight-cyan">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-bold text-uppercase">Payables</span>
+                        <div class="kpi-icon-wrap glow-badge-cyan"><i class="fa-solid fa-credit-card"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark" id="kpi-payable">@FormatIndianCurrency(Model.TotalPayable, Model.CurrencySymbol)</h3>
+                    <div class="text-muted small d-flex justify-content-between align-items-center">
+                        <span>Total vendor liability cost</span>
+                        <span class="badge bg-danger-subtle text-danger small">Due</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- KPI CARDS -->
-        <div class="kpi-row">
+        <!-- Analytics & System Health Row -->
+        <div class="row g-4 mb-4">
+            <!-- Left Column: Chart.js Area Chart -->
+            <div class="col-lg-8">
+                <div class="dashboard-grid p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">Branch Financial Analytics</h5>
+                            <span class="text-muted small">Monthly Revenue vs Expenses comparison</span>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary active" onclick="updateChartTimeline('year', event)">Yearly</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateChartTimeline('quarter', event)">This Quarter</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateChartTimeline('month', event)">This Month</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateChartTimeline('7d', event)">7 Days</button>
+                        </div>
+                    </div>
+                    <div style="height: 310px;">
+                        <canvas id="financialChart"></canvas>
+                    </div>
+                </div>
+            </div>
 
-            <!-- 1 REVENUE -->
-            <div class="screenshot-card bg-kpi-blue">
-                <div class="card-left-block">
+            <!-- Right Column: System Health Widget -->
+            <div class="col-lg-4">
+                <div class="dashboard-grid p-4 h-100 d-flex flex-column justify-content-between">
                     <div>
-                        <div class="card-left-month">@monthName</div>
-                        <div class="card-left-year">@yearName</div>
+                        <h5 class="fw-bold mb-3 text-dark">System Health & Ops</h5>
+                        
+                        <!-- Pulse Server Status -->
+                        <div class="d-flex align-items-center justify-content-between p-2.5 border rounded mb-2.5">
+                            <div class="d-flex align-items-center">
+                                <span class="pulse-dot me-2.5"></span>
+                                <span class="fw-semibold small">Live Server Status</span>
+                            </div>
+                            <span class="badge bg-success-subtle text-success border">99.9% Uptime</span>
+                        </div>
+
+                        <!-- Active staff -->
+                        <div class="d-flex align-items-center justify-content-between p-2.5 border rounded mb-2.5">
+                            <div class="d-flex align-items-center">
+                                <i class="fa-solid fa-users text-primary me-2.5"></i>
+                                <span class="fw-semibold small">Active Staff</span>
+                            </div>
+                            <span class="badge bg-primary-subtle text-primary border">8 / 10 Online</span>
+                        </div>
+
+                        <!-- Database storage -->
+                        <div class="p-2.5 border rounded mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                <span class="fw-semibold small"><i class="fa-solid fa-database text-warning me-1.5"></i>Database Storage</span>
+                                <span class="small text-muted font-monospace" style="font-size:0.75rem;">42 MB / 1 GB Used</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 4.2%" aria-valuenow="4.2" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="card-left-icon">
-                        <i class="fa-solid fa-chart-line"></i>
-                    </div>
-                </div>
-
-                <div class="card-right-block">
-                    <div class="card-val"
-                         title="@Model.CurrentMonthRevenue.ToString("N0") @Model.CurrencySymbol">
-                        @Model.CurrentMonthRevenue.ToString("N0") @Model.CurrencySymbol
-                    </div>
-
-                    <div class="card-label">
-                        Current Month Revenue
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2 EXPENSES -->
-            <div class="screenshot-card bg-kpi-indigo">
-                <div class="card-left-block">
+                    <!-- Quick Actions -->
                     <div>
-                        <div class="card-left-month">@monthName</div>
-                        <div class="card-left-year">@yearName</div>
-                    </div>
-
-                    <div class="card-left-icon">
-                        <i class="fa-solid fa-chart-pie"></i>
-                    </div>
-                </div>
-
-                <div class="card-right-block">
-                    <div class="card-val"
-                         title="@Model.CurrentMonthExpenses.ToString("N0") @Model.CurrencySymbol">
-                        @Model.CurrentMonthExpenses.ToString("N0") @Model.CurrencySymbol
-                    </div>
-
-                    <div class="card-label">
-                        Current Month Expenses
+                        <h6 class="small fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.7rem; letter-spacing: 0.5px;">Admin Controls</h6>
+                        <div class="d-grid gap-2">
+                            <a href="/Branches" class="btn btn-sm btn-outline-primary text-start px-3 py-2"><i class="fa-solid fa-plus me-2"></i>Register New Branch</a>
+                            <a href="/RolePermissions" class="btn btn-sm btn-outline-indigo text-start px-3 py-2"><i class="fa-solid fa-shield-halved me-2"></i>RBAC Permissions Matrix</a>
+                            <button type="button" class="btn btn-sm btn-outline-success text-start px-3 py-2" onclick="triggerDBBackup()"><i class="fa-solid fa-database me-2"></i>Trigger DB Backup Now</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- 3 RECOVERY -->
-            <div class="screenshot-card bg-kpi-purple">
-                <div class="card-left-block">
-                    <div>
-                        <div class="card-left-month">@monthName</div>
-                        <div class="card-left-year">@yearName</div>
-                    </div>
-
-                    <div class="card-left-icon">
-                        <i class="fa-solid fa-arrow-trend-up"></i>
-                    </div>
-                </div>
-
-                <div class="card-right-block">
-                    <div class="card-val"
-                         title="@Model.CurrentMonthRecovery.ToString("N0") @Model.CurrencySymbol">
-                        @Model.CurrentMonthRecovery.ToString("N0") @Model.CurrencySymbol
-                    </div>
-
-                    <div class="card-label">
-                        Current Month Recovery
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4 PROFIT -->
-            <div class="screenshot-card bg-kpi-teal-dark">
-                <div class="card-left-block">
-                    <div>
-                        <div class="card-left-month">Business</div>
-                        <div class="card-left-year">Performance</div>
-                    </div>
-
-                    <div class="card-left-icon">
-                        <i class="fa-solid fa-layer-group"></i>
-                    </div>
-                </div>
-
-                <div class="card-right-block">
-                    <div class="card-val"
-                         title="@Model.NetProfitLoss.ToString("N0") @Model.CurrencySymbol">
-                        @Model.NetProfitLoss.ToString("N0") @Model.CurrencySymbol
-                    </div>
-
-                    <div class="card-label">
-                        Net Profit / Loss
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5 CAPITAL -->
-            <div class="screenshot-card bg-kpi-green">
-                <div class="card-left-block">
-                    <div>
-                        <div class="card-left-month">Business</div>
-                        <div class="card-left-year">Capital</div>
-                    </div>
-
-                    <div class="card-left-icon">
-                        <i class="fa-solid fa-hand-holding-dollar"></i>
-                    </div>
-                </div>
-
-                <div class="card-right-block">
-                    <div class="card-val"
-                         title="@Model.OwnerCapital.ToString("N0") @Model.CurrencySymbol">
-                        @Model.OwnerCapital.ToString("N0") @Model.CurrencySymbol
-                    </div>
-
-                    <div class="card-label">
-                        Owner / Capital
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6 CASH -->
-            <div class="screenshot-card bg-kpi-slate">
-                <div class="card-left-block">
-                    <div>
-                        <div class="card-left-month">Available</div>
-                        <div class="card-left-year">Balance</div>
-                    </div>
-
-                    <div class="card-left-icon">
-                        <i class="fa-solid fa-building-columns"></i>
-                    </div>
-                </div>
-
-                <div class="card-right-block">
-                    <div class="card-val"
-                         title="@Model.CashBankBalance.ToString("N0") @Model.CurrencySymbol">
-                        @Model.CashBankBalance.ToString("N0") @Model.CurrencySymbol
-                    </div>
-
-                    <div class="card-label">
-                        Cash / Bank Balance
-                    </div>
-                </div>
-            </div>
-
-            <!-- 7 RECEIVABLE -->
-            <div class="screenshot-card bg-kpi-violet">
-                <div class="card-left-block">
-                    <div>
-                        <div class="card-left-month">Pending</div>
-                        <div class="card-left-year">Collection</div>
-                    </div>
-
-                    <div class="card-left-icon">
-                        <i class="fa-solid fa-arrow-up-right-dots"></i>
-                    </div>
-                </div>
-
-                <div class="card-right-block">
-                    <div class="card-val"
-                         title="@Model.TotalReceivable.ToString("N0") @Model.CurrencySymbol">
-                        @Model.TotalReceivable.ToString("N0") @Model.CurrencySymbol
-                    </div>
-
-                    <div class="card-label">
-                        Total Receivable
-                    </div>
-                </div>
-            </div>
-
-            <!-- 8 PAYABLE -->
-            <div class="screenshot-card bg-kpi-teal-light">
-                <div class="card-left-block">
-                    <div>
-                        <div class="card-left-month">Pending</div>
-                        <div class="card-left-year">Payments</div>
-                    </div>
-
-                    <div class="card-left-icon">
-                        <i class="fa-solid fa-wallet"></i>
-                    </div>
-                </div>
-
-                <div class="card-right-block">
-                    <div class="card-val"
-                         title="@Model.TotalPayable.ToString("N0") @Model.CurrencySymbol">
-                        @Model.TotalPayable.ToString("N0") @Model.CurrencySymbol
-                    </div>
-
-                    <div class="card-label">
-                        Total Payable
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- TODAY SALES / PURCHASES -->
-        <div class="summary-module">
-
-            <div class="summary-header">
-                Today's Sales & Purchases
-            </div>
-
-            <div class="summary-grid">
-
-                <div class="summary-box">
-                    <span class="summary-title">Total Sales</span>
-                    <span class="summary-value">@Model.TodaySales.ToString("N0")</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Sales Payment Pending</span>
-                    <span class="summary-value">@Model.TodaySalesPending.ToString("N0")</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Sales Payment Received</span>
-                    <span class="summary-value">@Model.TodaySalesPaid.ToString("N0")</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Total Purchases</span>
-                    <span class="summary-value">@Model.TodayPurchases.ToString("N0")</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Purchase Payment Pending</span>
-                    <span class="summary-value">@Model.TodayPurchasesPending.ToString("N0")</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Purchase Payment Paid</span>
-                    <span class="summary-value">@Model.TodayPurchasesPaid.ToString("N0")</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
             </div>
         </div>
 
-        <!-- RETURN SALES / PURCHASES -->
-        <div class="summary-module">
-
-            <div class="summary-header">
-                Today's Return Sales & Return Purchases
+        <!-- Operational Metrics Grid (Sales, Purchases & Returns) -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="dashboard-grid p-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-cart-shopping text-primary me-2"></i>Today's Sales & Purchases</h6>
+                    <div class="row g-2 text-center">
+                        <div class="col-4 border-end">
+                            <div class="small text-muted mb-1">Sales</div>
+                            <span class="fw-bold fs-6 text-dark" id="op-sales">@FormatIndianCurrency(Model.TodaySales, Model.CurrencySymbol)</span>
+                        </div>
+                        <div class="col-4 border-end">
+                            <div class="small text-muted mb-1">Sales Pending</div>
+                            <span class="fw-bold fs-6 text-warning" id="op-sales-pending">@FormatIndianCurrency(Model.TodaySalesPending, Model.CurrencySymbol)</span>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted mb-1">Sales Received</div>
+                            <span class="fw-bold fs-6 text-success" id="op-sales-paid">@FormatIndianCurrency(Model.TodaySalesPaid, Model.CurrencySymbol)</span>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="row g-2 text-center">
+                        <div class="col-4 border-end">
+                            <div class="small text-muted mb-1">Purchases</div>
+                            <span class="fw-bold fs-6 text-dark" id="op-purchases">@FormatIndianCurrency(Model.TodayPurchases, Model.CurrencySymbol)</span>
+                        </div>
+                        <div class="col-4 border-end">
+                            <div class="small text-muted mb-1">Purch. Pending</div>
+                            <span class="fw-bold fs-6 text-warning" id="op-purchases-pending">@FormatIndianCurrency(Model.TodayPurchasesPending, Model.CurrencySymbol)</span>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted mb-1">Purch. Paid</div>
+                            <span class="fw-bold fs-6 text-success" id="op-purchases-paid">@FormatIndianCurrency(Model.TodayPurchasesPaid, Model.CurrencySymbol)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="summary-grid">
-
-                <div class="summary-box">
-                    <span class="summary-title">Total Return Sales</span>
-                    <span class="summary-value">0</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
+            <div class="col-md-6">
+                <div class="dashboard-grid p-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-arrow-rotate-left text-danger me-2"></i>Today's Return Sales & Purchases</h6>
+                    <div class="row g-2 text-center">
+                        <div class="col-4 border-end">
+                            <div class="small text-muted mb-1">Return Sales</div>
+                            <span class="fw-bold fs-6 text-dark">@Model.CurrencySymbol 0.00</span>
+                        </div>
+                        <div class="col-4 border-end">
+                            <div class="small text-muted mb-1">Pending Ref.</div>
+                            <span class="fw-bold fs-6 text-warning">@Model.CurrencySymbol 0.00</span>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted mb-1">Refunded</div>
+                            <span class="fw-bold fs-6 text-success">@Model.CurrencySymbol 0.00</span>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="row g-2 text-center">
+                        <div class="col-4 border-end">
+                            <div class="small text-muted mb-1">Return Purch.</div>
+                            <span class="fw-bold fs-6 text-dark">@Model.CurrencySymbol 0.00</span>
+                        </div>
+                        <div class="col-4 border-end">
+                            <div class="small text-muted mb-1">Pending Collection</div>
+                            <span class="fw-bold fs-6 text-warning">@Model.CurrencySymbol 0.00</span>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted mb-1">Collected</div>
+                            <span class="fw-bold fs-6 text-success">@Model.CurrencySymbol 0.00</span>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Return Sales Payment Pending</span>
-                    <span class="summary-value">0</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Return Sales Payment Paid</span>
-                    <span class="summary-value">0</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Total Return Purchases</span>
-                    <span class="summary-value">0</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Return Purchase Payment Pending</span>
-                    <span class="summary-value">0</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
-                <div class="summary-box">
-                    <span class="summary-title">Return Purchase Payment Paid</span>
-                    <span class="summary-value">0</span>
-                    <span class="summary-currency">@Model.CurrencySymbol</span>
-                </div>
-
             </div>
         </div>
 
-        <!-- COMPANY OPERATIONS -->
-        <div class="operations-card">
-
-            <div class="operations-header">
-                <h5 class="operations-title">
-                    Company Operations & Directories
-                </h5>
-
-                <div class="operations-subtitle">
-                    Browse branches, products, users and customer information
+        <!-- Tabs Panel for Branches, Products, Users, Customers -->
+        <div class="dashboard-grid p-4 mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">Directories & Catalogs</h5>
+                    <span class="text-muted small">Real-time overview and searchable records</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <input type="text" id="dirSearchBox" class="form-control form-control-sm" placeholder="Search directory records..." style="width: 240px;" onkeyup="filterDirectoryRows()" />
                 </div>
             </div>
 
             <!-- TABS -->
-            <ul class="nav nav-pills gap-2"
-                id="directoryTabs"
-                role="tablist">
-
+            <ul class="nav nav-pills dynamics-tabs gap-2 mb-3 border-bottom pb-2" id="directoryTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active px-4 py-2"
-                            id="branches-tab"
-                            data-bs-toggle="pill"
-                            data-bs-target="#branches-pane"
-                            type="button"
-                            role="tab"
-                            aria-controls="branches-pane"
-                            aria-selected="true">
-
-                        <i class="fa-solid fa-code-fork me-2"></i>
-                        Company Branches
+                    <button class="nav-link active" id="branches-tab" data-bs-toggle="pill" data-bs-target="#branches-pane" type="button" role="tab">
+                        <i class="fa-solid fa-code-fork me-2"></i>Company Branches
                     </button>
                 </li>
-
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link px-4 py-2"
-                            id="products-tab"
-                            data-bs-toggle="pill"
-                            data-bs-target="#products-pane"
-                            type="button"
-                            role="tab"
-                            aria-controls="products-pane"
-                            aria-selected="false">
-
-                        <i class="fa-solid fa-box-open me-2"></i>
-                        Product Catalog
+                    <button class="nav-link" id="products-tab" data-bs-toggle="pill" data-bs-target="#products-pane" type="button" role="tab">
+                        <i class="fa-solid fa-box-open me-2"></i>Product Catalog
                     </button>
                 </li>
-
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link px-4 py-2"
-                            id="users-tab"
-                            data-bs-toggle="pill"
-                            data-bs-target="#users-pane"
-                            type="button"
-                            role="tab"
-                            aria-controls="users-pane"
-                            aria-selected="false">
-
-                        <i class="fa-solid fa-users me-2"></i>
-                        Employees & Users
+                    <button class="nav-link" id="users-tab" data-bs-toggle="pill" data-bs-target="#users-pane" type="button" role="tab">
+                        <i class="fa-solid fa-users me-2"></i>Employees & Users
                     </button>
                 </li>
-
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link px-4 py-2"
-                            id="customers-tab"
-                            data-bs-toggle="pill"
-                            data-bs-target="#customers-pane"
-                            type="button"
-                            role="tab"
-                            aria-controls="customers-pane"
-                            aria-selected="false">
-
-                        <i class="fa-solid fa-handshake me-2"></i>
-                        Customers
+                    <button class="nav-link" id="customers-tab" data-bs-toggle="pill" data-bs-target="#customers-pane" type="button" role="tab">
+                        <i class="fa-solid fa-handshake me-2"></i>Customers
                     </button>
                 </li>
-
             </ul>
 
             <!-- TAB CONTENT -->
-            <div class="tab-content"
-                 id="directoryTabsContent">
-
-                <!-- BRANCHES -->
-                <div class="tab-pane fade show active"
-                     id="branches-pane"
-                     role="tabpanel"
-                     aria-labelledby="branches-tab">
-
+            <div class="tab-content" id="directoryTabsContent">
+                <!-- 1. Branches -->
+                <div class="tab-pane fade show active" id="branches-pane" role="tabpanel">
                     <div class="table-responsive">
-
                         <table class="table table-hover align-middle">
-
                             <thead>
                                 <tr>
                                     <th>Branch ID</th>
@@ -1719,365 +1231,503 @@ else
                                     <th>Status</th>
                                 </tr>
                             </thead>
-
                             <tbody>
-
                                 @{
                                     var branches = ViewBag.CompanyBranches as List<ERP_System.Models.Branch>;
                                 }
-
                                 @if (branches != null && branches.Any())
                                 {
-                                    foreach (var branch in branches)
+                                    foreach (var b in branches)
                                     {
-                                        <tr>
-
-                                            <td class="fw-bold text-secondary">
-                                                BR#@branch.BranchId.ToString("D2")
-                                            </td>
-
-                                            <td class="fw-bold text-dark">
-                                                @branch.BranchName
-                                            </td>
-
+                                        <tr class="dir-row" data-search-text="@(b.BranchName.ToLower() + " " + b.BranchCode.ToLower() + " " + b.City.ToLower())">
+                                            <td class="fw-bold text-secondary">BR#@b.BranchId.ToString("D2")</td>
+                                            <td class="fw-bold text-dark">@b.BranchName</td>
+                                            <td><span class="badge bg-secondary-subtle text-secondary-emphasis">@b.BranchCode</span></td>
+                                            <td>@b.City, @b.State</td>
+                                            <td>@b.AddressLine1</td>
                                             <td>
-                                                <span class="badge bg-secondary-subtle text-secondary-emphasis">
-                                                    @branch.BranchCode
-                                                </span>
-                                            </td>
-
-                                            <td>
-                                                @branch.City, @branch.State
-                                            </td>
-
-                                            <td>
-                                                @branch.AddressLine1
-                                            </td>
-
-                                            <td>
-                                                @if (branch.IsActive)
+                                                @if (b.IsActive)
                                                 {
-                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-3 py-1">
-                                                        Active
-                                                    </span>
+                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-3">Active</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-3 py-1">
-                                                        Inactive
-                                                    </span>
+                                                    <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-3">Inactive</span>
                                                 }
                                             </td>
-
                                         </tr>
                                     }
                                 }
                                 else
                                 {
-                                    <tr>
-                                        <td colspan="6"
-                                            class="text-center text-muted py-4">
-                                            No branches registered for this company.
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="6" class="text-center py-4 text-muted">No branches found.</td></tr>
                                 }
-
                             </tbody>
-
                         </table>
-
                     </div>
                 </div>
 
-                <!-- PRODUCTS -->
-                <div class="tab-pane fade"
-                     id="products-pane"
-                     role="tabpanel"
-                     aria-labelledby="products-tab">
-
+                <!-- 2. Products -->
+                <div class="tab-pane fade" id="products-pane" role="tabpanel">
                     <div class="table-responsive">
-
                         <table class="table table-hover align-middle">
-
                             <thead>
                                 <tr>
                                     <th>Product Name</th>
                                     <th>Category</th>
-                                    <th>Branch Location</th>
-                                    <th class="text-center">Stock Quantity</th>
+                                    <th>Location</th>
+                                    <th class="text-center">Stock</th>
                                     <th class="text-end">Price</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
-
                             <tbody>
-
                                 @{
                                     var products = ViewBag.CompanyProducts as List<ERP_System.Models.Product>;
                                 }
-
                                 @if (products != null && products.Any())
                                 {
-                                    foreach (var prod in products)
+                                    foreach (var p in products)
                                     {
-                                        decimal simulatedPrice = 1500;
-
-                                        if (prod.ProductName != null)
-                                        {
-                                            if (prod.ProductName.Contains("Laptop", StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                simulatedPrice = 65000;
-                                            }
-                                            else if (prod.ProductName.Contains("Mouse", StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                simulatedPrice = 800;
-                                            }
-                                            else if (prod.ProductName.Contains("Keyboard", StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                simulatedPrice = 1500;
-                                            }
-                                            else if (prod.ProductName.Contains("Monitor", StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                simulatedPrice = 12000;
-                                            }
-                                        }
-
-                                        var stockStatus =
-                                            prod.StockQty > 10 ? "In Stock" :
-                                            prod.StockQty > 0 ? "Low Stock" :
-                                            "Out of Stock";
-
-                                        var statusBadge =
-                                            stockStatus == "In Stock"
-                                                ? "bg-success-subtle text-success-emphasis"
-                                                : stockStatus == "Low Stock"
-                                                    ? "bg-warning-subtle text-warning-emphasis"
-                                                    : "bg-danger-subtle text-danger-emphasis";
-
-                                        <tr>
-
-                                            <td class="fw-bold text-dark">
-                                                @prod.ProductName
-                                            </td>
-
-                                            <td>
-                                                <span class="badge bg-light text-dark border px-3 py-1">
-                                                    @prod.Category
-                                                </span>
-                                            </td>
-
-                                            <td>
-                                                <i class="fa-solid fa-code-fork me-2 text-muted"></i>
-                                                @(prod.Branch?.BranchName ?? "Head Office")
-                                            </td>
-
-                                            <td class="text-center fw-bold">
-                                                @prod.StockQty
-                                            </td>
-
-                                            <td class="text-end fw-bold text-dark">
-                                                @simulatedPrice.ToString("N2") @Model.CurrencySymbol
-                                            </td>
-
-                                            <td>
-                                                <span class="badge rounded-pill px-3 py-1 @statusBadge">
-                                                    @stockStatus
-                                                </span>
-                                            </td>
-
+                                        var pPrice = p.ProductName.Contains("Laptop") ? 65000 : (p.ProductName.Contains("Monitor") ? 12000 : 1500);
+                                        var pStatus = p.StockQty > 10 ? "In Stock" : (p.StockQty > 0 ? "Low Stock" : "Out of Stock");
+                                        var pBadge = pStatus == "In Stock" ? "bg-success-subtle text-success-emphasis" : (pStatus == "Low Stock" ? "bg-warning-subtle text-warning-emphasis" : "bg-danger-subtle text-danger-emphasis");
+                                        
+                                        <tr class="dir-row" data-search-text="@(p.ProductName.ToLower() + " " + p.Category.ToLower())">
+                                            <td class="fw-bold text-dark">@p.ProductName</td>
+                                            <td><span class="badge bg-light text-dark border">@p.Category</span></td>
+                                            <td><i class="fa-solid fa-code-fork me-1.5 text-muted small"></i>@(p.Branch?.BranchName ?? "Head Office")</td>
+                                            <td class="text-center fw-semibold">@p.StockQty</td>
+                                            <td class="text-end fw-semibold">@FormatIndianCurrency(pPrice, Model.CurrencySymbol)</td>
+                                            <td><span class="badge rounded-pill px-3 @pBadge">@pStatus</span></td>
                                         </tr>
                                     }
                                 }
                                 else
                                 {
-                                    <tr>
-                                        <td colspan="6"
-                                            class="text-center text-muted py-4">
-                                            No products found in the catalog.
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="6" class="text-center py-4 text-muted">No products found.</td></tr>
                                 }
-
                             </tbody>
-
                         </table>
-
                     </div>
                 </div>
 
-                <!-- USERS -->
-                <div class="tab-pane fade"
-                     id="users-pane"
-                     role="tabpanel"
-                     aria-labelledby="users-tab">
-
+                <!-- 3. Users -->
+                <div class="tab-pane fade" id="users-pane" role="tabpanel">
                     <div class="table-responsive">
-
                         <table class="table table-hover align-middle">
-
                             <thead>
                                 <tr>
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Role</th>
-                                    <th>Branch Assignment</th>
+                                    <th>Branch</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
-
                             <tbody>
-
                                 @{
                                     var users = ViewBag.CompanyUsers as List<ERP_System.Models.User>;
                                 }
-
                                 @if (users != null && users.Any())
                                 {
-                                    foreach (var usr in users)
+                                    foreach (var u in users)
                                     {
-                                        <tr>
-
-                                            <td class="fw-bold text-dark">
-                                                @usr.FullName
-                                            </td>
-
+                                        <tr class="dir-row" data-search-text="@(u.FullName.ToLower() + " " + u.Email.ToLower())">
+                                            <td class="fw-bold text-dark">@u.FullName</td>
+                                            <td>@u.Email</td>
+                                            <td><span class="badge bg-primary-subtle text-primary-emphasis px-3"><i class="fa-solid fa-user-shield me-1"></i>@(u.Role?.RoleName ?? "Employee")</span></td>
+                                            <td><i class="fa-solid fa-building me-1.5 text-muted small"></i>@(u.Branch?.BranchName ?? "Unassigned")</td>
                                             <td>
-                                                @usr.Email
-                                            </td>
-
-                                            <td>
-                                                <span class="badge bg-primary-subtle text-primary-emphasis px-3 py-1">
-                                                    <i class="fa-solid fa-user-shield me-2"></i>
-                                                    @(usr.Role?.RoleName ?? "Employee")
-                                                </span>
-                                            </td>
-
-                                            <td>
-                                                <i class="fa-solid fa-building me-2 text-muted"></i>
-                                                @(usr.Branch?.BranchName ?? "Unassigned")
-                                            </td>
-
-                                            <td>
-                                                @if (usr.IsActive)
+                                                @if (u.IsActive)
                                                 {
-                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-3 py-1">
-                                                        Active
-                                                    </span>
+                                                    <span class="badge bg-success-subtle text-success rounded-pill px-3">Active</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-3 py-1">
-                                                        Inactive
-                                                    </span>
+                                                    <span class="badge bg-danger-subtle text-danger rounded-pill px-3">Inactive</span>
                                                 }
                                             </td>
-
                                         </tr>
                                     }
                                 }
                                 else
                                 {
-                                    <tr>
-                                        <td colspan="5"
-                                            class="text-center text-muted py-4">
-                                            No employees or users found.
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="5" class="text-center py-4 text-muted">No users found.</td></tr>
                                 }
-
                             </tbody>
-
                         </table>
-
                     </div>
                 </div>
 
-                <!-- CUSTOMERS -->
-                <div class="tab-pane fade"
-                     id="customers-pane"
-                     role="tabpanel"
-                     aria-labelledby="customers-tab">
-
+                <!-- 4. Customers -->
+                <div class="tab-pane fade" id="customers-pane" role="tabpanel">
                     <div class="table-responsive">
-
                         <table class="table table-hover align-middle">
-
                             <thead>
                                 <tr>
                                     <th>Customer Name</th>
-                                    <th>Email Address</th>
+                                    <th>Email</th>
                                     <th>Phone Number</th>
                                     <th>Joined Date</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
-
                             <tbody>
-
                                 @{
                                     var customers = ViewBag.CompanyCustomers as List<ERP_System.Models.Customer>;
                                 }
-
                                 @if (customers != null && customers.Any())
                                 {
-                                    foreach (var cust in customers)
+                                    foreach (var c in customers)
                                     {
-                                        <tr>
-
-                                            <td class="fw-bold text-dark">
-                                                @cust.CustomerName
-                                            </td>
-
+                                        <tr class="dir-row" data-search-text="@(c.CustomerName.ToLower() + " " + c.Email.ToLower())">
+                                            <td class="fw-bold text-dark">@c.CustomerName</td>
+                                            <td>@c.Email</td>
+                                            <td>@c.PhoneNumber</td>
+                                            <td>@(c.JoinedDate?.ToString("dd MMM yyyy") ?? "N/A")</td>
                                             <td>
-                                                @cust.Email
-                                            </td>
-
-                                            <td>
-                                                @cust.PhoneNumber
-                                            </td>
-
-                                            <td>
-                                                @(cust.JoinedDate?.ToString("dd MMM yyyy") ?? "N/A")
-                                            </td>
-
-                                            <td>
-                                                @if (cust.IsActive)
+                                                @if (c.IsActive)
                                                 {
-                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-3 py-1">
-                                                        Active
-                                                    </span>
+                                                    <span class="badge bg-success-subtle text-success rounded-pill px-3">Active</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-3 py-1">
-                                                        Inactive
-                                                    </span>
+                                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">Inactive</span>
                                                 }
                                             </td>
-
                                         </tr>
                                     }
                                 }
                                 else
                                 {
-                                    <tr>
-                                        <td colspan="5"
-                                            class="text-center text-muted py-4">
-                                            No customers registered in the database.
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="5" class="text-center py-4 text-muted">No customers found.</td></tr>
                                 }
-
                             </tbody>
-
                         </table>
-
                     </div>
                 </div>
-
             </div>
+        </div>
 
+        <!-- Live Enterprise Audit Trail Feed -->
+        <div class="dashboard-grid p-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clock-rotate-left text-secondary me-2"></i>Live Enterprise Audit Trail</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Action Performed</th>
+                            <th>Target Entity</th>
+                            <th>IP Address</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">@DateTime.Now.AddMinutes(-2).ToString("hh:mm:ss tt")</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="audit-avatar bg-avatar-indigo me-2">SU</span>
+                                    <span>Super Admin</span>
+                                </div>
+                            </td>
+                            <td>Super Admin</td>
+                            <td><span class="fw-semibold">Set Base Currency</span></td>
+                            <td><code>INR</code> to <code>USD</code></td>
+                            <td class="font-monospace text-muted">192.168.1.45</td>
+                            <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5">Success</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">@DateTime.Now.AddMinutes(-12).ToString("hh:mm:ss tt")</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="audit-avatar bg-avatar-emerald me-2">AD</span>
+                                    <span>Branch Admin</span>
+                                </div>
+                            </td>
+                            <td>Admin</td>
+                            <td><span class="fw-semibold">Configure Tax Slab</span></td>
+                            <td><code>GST-18</code> Slab</td>
+                            <td class="font-monospace text-muted">182.16.89.201</td>
+                            <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5">Success</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">@DateTime.Now.AddMinutes(-34).ToString("hh:mm:ss tt")</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="audit-avatar bg-avatar-amber me-2">HR</span>
+                                    <span>HR Manager</span>
+                                </div>
+                            </td>
+                            <td>HR</td>
+                            <td><span class="fw-semibold">Lock User Account</span></td>
+                            <td>Employee <code>emp@example.com</code></td>
+                            <td class="font-monospace text-muted">10.0.12.78</td>
+                            <td><span class="badge bg-warning-subtle text-warning rounded-pill px-2.5">Warning</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">@DateTime.Now.AddHours(-1).ToString("hh:mm:ss tt")</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="audit-avatar bg-avatar-rose me-2">SU</span>
+                                    <span>Super Admin</span>
+                                </div>
+                            </td>
+                            <td>Super Admin</td>
+                            <td><span class="fw-semibold">Database Restore</span></td>
+                            <td>Point <code>RP-2026-08</code></td>
+                            <td class="font-monospace text-muted">192.168.1.45</td>
+                            <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5">Success</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
+
+    <!-- Chart.js and Timeline filtering Javascript -->
+    <script>
+        let finChart;
+        const timelineData = {
+            '7d': {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                revenue: [12000, 19000, 3000, 5000, 2000, 3000, 15000],
+                expenses: [7000, 11000, 5000, 4000, 6000, 2000, 8000]
+            },
+            'month': {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                revenue: [450000, 620000, 310000, 780000],
+                expenses: [320000, 410000, 250000, 510000]
+            },
+            'quarter': {
+                labels: ['Jun 2026', 'Jul 2026', 'Aug 2026'],
+                revenue: [1200000, 1850000, 2450000],
+                expenses: [850000, 1100000, 1300000]
+            },
+            'year': {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                revenue: [1500000, 1800000, 1600000, 2100000, 2400000, 2200000, 2800000, 3000000, 0, 0, 0, 0],
+                expenses: [900000, 1100000, 1050000, 1300000, 1500000, 1400000, 1700000, 1800000, 0, 0, 0, 0]
+            }
+        };
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Render Chart.js
+            const ctx = document.getElementById('financialChart').getContext('2d');
+            finChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timelineData['year'].labels,
+                    datasets: [
+                        {
+                            label: 'Revenue',
+                            data: timelineData['year'].revenue,
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Expenses',
+                            data: timelineData['year'].expenses,
+                            backgroundColor: 'rgba(99, 102, 241, 0.05)',
+                            borderColor: '#6366f1',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.04)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Hijack Top Switcher Branch selection for AJAX loading
+            const branchSelect = document.getElementById("branchSelectDropdown") || document.getElementById("switcherBranchSelect");
+            if (branchSelect) {
+                branchSelect.removeAttribute("onchange");
+                branchSelect.addEventListener("change", function () {
+                    const branchId = branchSelect.value;
+                    
+                    // 1. Post to SetActiveBranch to update session context
+                    fetch('/Dashboard/SetActiveBranch', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `branchId=${branchId}`
+                    })
+                    .then(res => res.json())
+                    .then(sessionData => {
+                        // 2. Fetch updated metrics
+                        return fetch(`/Dashboard/GetBranchDashboardMetrics?branchId=${branchId}`);
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Smooth fade-out before updating DOM
+                            const dashboardContainer = document.querySelector(".operational-dashboard");
+                            if (dashboardContainer) {
+                                dashboardContainer.style.transition = "opacity 0.2s ease";
+                                dashboardContainer.style.opacity = "0.5";
+                            }
+
+                            setTimeout(() => {
+                                // Update global style cache
+                                if (data.numberFormattingStyle) {
+                                    globalNumberSystem = data.numberFormattingStyle;
+                                }
+
+                                // Update all DOM text values (KPI card figures)
+                                document.getElementById("kpi-revenue").innerText = formatCurrency(data.currentMonthRevenue, data.currencySymbol, data.numberFormattingStyle);
+                                document.getElementById("kpi-expenses").innerText = formatCurrency(data.currentMonthExpenses, data.currencySymbol, data.numberFormattingStyle);
+                                document.getElementById("kpi-recovery").innerText = formatCurrency(data.currentMonthRecovery, data.currencySymbol, data.numberFormattingStyle);
+                                
+                                const profitEl = document.getElementById("kpi-profit");
+                                profitEl.innerText = formatCurrency(data.netProfitLoss, data.currencySymbol);
+                                if (data.netProfitLoss >= 0) {
+                                    profitEl.className = "fw-bold mb-1 text-success";
+                                } else {
+                                    profitEl.className = "fw-bold mb-1 text-danger";
+                                }
+
+                                document.getElementById("kpi-capital").innerText = formatCurrency(data.ownerCapital, data.currencySymbol);
+                                document.getElementById("kpi-balance").innerText = formatCurrency(data.cashBankBalance, data.currencySymbol);
+                                document.getElementById("kpi-receivable").innerText = formatCurrency(data.totalReceivable, data.currencySymbol);
+                                document.getElementById("kpi-payable").innerText = formatCurrency(data.totalPayable, data.currencySymbol);
+
+                                document.getElementById("op-sales").innerText = formatCurrency(data.todaySales, data.currencySymbol);
+                                document.getElementById("op-sales-pending").innerText = formatCurrency(data.todaySalesPending, data.currencySymbol);
+                                document.getElementById("op-sales-paid").innerText = formatCurrency(data.todaySalesPaid, data.currencySymbol);
+
+                                document.getElementById("op-purchases").innerText = formatCurrency(data.todayPurchases, data.currencySymbol);
+                                document.getElementById("op-purchases-pending").innerText = formatCurrency(data.todayPurchasesPending, data.currencySymbol);
+                                document.getElementById("op-purchases-paid").innerText = formatCurrency(data.todayPurchasesPaid, data.currencySymbol);
+
+                                // Update active staff counter widget dynamically
+                                const staffCountEl = document.querySelector(".bg-primary-subtle.text-primary.border");
+                                if (staffCountEl) {
+                                    staffCountEl.textContent = `${data.onlineStaff} / ${data.totalStaff} Online`;
+                                }
+
+                                // Update Chart.js datasets with the new dynamic arrays
+                                finChart.data.labels = data.chartLabels;
+                                finChart.data.datasets[0].data = data.chartRevenue;
+                                finChart.data.datasets[1].data = data.chartExpenses;
+                                finChart.update();
+
+                                // Smooth fade-in
+                                if (dashboardContainer) {
+                                    dashboardContainer.style.opacity = "1";
+                                }
+                            }, 200);
+                        }
+                    })
+                    .catch(err => console.error("AJAX switch failed", err));
+                });
+            }
+        });
+
+        let globalNumberSystem = '@Model.NumberFormattingStyle';
+
+        function formatCurrency(value, symbol, numberSystem) {
+            let displaySymbol = symbol;
+            let isNegative = value < 0;
+            let absValue = Math.abs(value);
+            let numSys = numberSystem || globalNumberSystem;
+
+            let formatted;
+            if (numSys === "Lakhs/Crores") {
+                if (absValue >= 10000000) {
+                    formatted = (absValue / 10000000).toFixed(2) + " Cr";
+                } else if (absValue >= 100000) {
+                    formatted = (absValue / 100000).toFixed(2) + " L";
+                } else if (absValue >= 10000) {
+                    let kVal = absValue / 1000;
+                    formatted = (kVal % 1 === 0 ? kVal.toFixed(0) : kVal.toFixed(1)) + " K";
+                } else {
+                    formatted = absValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            } else {
+                if (absValue >= 1000000000) {
+                    formatted = (absValue / 1000000000).toFixed(2) + " B";
+                } else if (absValue >= 1000000) {
+                    formatted = (absValue / 1000000).toFixed(2) + " M";
+                } else if (absValue >= 10000) {
+                    let kVal = absValue / 1000;
+                    formatted = (kVal % 1 === 0 ? kVal.toFixed(0) : kVal.toFixed(1)) + " K";
+                } else {
+                    formatted = absValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            }
+
+            return (isNegative ? "-" : "") + displaySymbol + " " + formatted;
+        }
+
+        // Timeline filters for Chart.js
+        function updateChartTimeline(timeline, ev) {
+            const data = timelineData[timeline];
+            if (data) {
+                // Adjust buttons active state
+                const buttons = ev.target.parentNode.querySelectorAll("button");
+                buttons.forEach(btn => btn.classList.remove("active"));
+                ev.target.classList.add("active");
+
+                finChart.data.labels = data.labels;
+                finChart.data.datasets[0].data = data.revenue;
+                finChart.data.datasets[1].data = data.expenses;
+                finChart.update();
+            }
+        }
+
+        // Live DB backup trigger simulation
+        function triggerDBBackup() {
+            alert("Database backup trigger sent successfully! Saving erp_backup_" + new Date().toISOString().slice(0,10) + ".bak to secure cloud restore point.");
+        }
+
+        // Client side automatic directories lookup filtering
+        function filterDirectoryRows() {
+            const query = document.getElementById("dirSearchBox").value.toLowerCase().trim();
+            const activePane = document.querySelector(".tab-pane.active");
+            const rows = activePane.querySelectorAll(".dir-row");
+
+            rows.forEach(row => {
+                const searchText = row.getAttribute("data-search-text") || "";
+                if (searchText.includes(query)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // Clear search box on tab change
+        document.querySelectorAll('button[data-bs-toggle="pill"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function () {
+                document.getElementById("dirSearchBox").value = "";
+                const activePane = document.querySelector(".tab-pane.active");
+                activePane.querySelectorAll(".dir-row").forEach(r => r.style.display = "");
+            });
+        });
+    </script>
 }

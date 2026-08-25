@@ -1,83 +1,499 @@
 @model IEnumerable<ERP_System.Models.AdminAnnouncement>
+@using System.Text.Encodings.Web
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Internal Announcements";
+    ViewData["Title"] = "Announcements Billboard";
 }
 
+<!-- Premium Alert & Notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    }
+    .announcement-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    .announcement-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.04);
+        border-color: rgba(37, 99, 235, 0.25);
+    }
+    .announcement-card.pinned {
+        border-left: 5px solid #2563eb;
+    }
+    .priority-urgent {
+        background-color: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fee2e2;
+        box-shadow: 0 0 8px rgba(220, 38, 38, 0.15);
+    }
+    .priority-high {
+        background-color: #fff7ed;
+        color: #ea580c;
+        border: 1px solid #ffedd5;
+        box-shadow: 0 0 8px rgba(234, 88, 12, 0.15);
+    }
+    .priority-normal {
+        background-color: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #dcfce7;
+    }
+    .filter-pill {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .filter-pill:hover {
+        background-color: #f1f5f9;
+    }
+    .filter-pill.active {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        border-color: #2563eb !important;
+    }
+</style>
+
 <div class="container-fluid py-4 text-start">
+
+    <!-- Top Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-bullhorn text-primary me-2"></i>Internal Announcements</h4>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
+                <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Announcements</li>
+                    <li class="breadcrumb-item text-secondary">Communication</li>
+                    <li class="breadcrumb-item active" aria-current="page">Billboard</li>
                 </ol>
             </nav>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-bullhorn text-primary me-2"></i>Internal Announcements Billboard</h4>
+            <p class="text-secondary small mb-0">Broadcast updates, policies, and event news across corporate divisions and branch networks.</p>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#announcementModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Post Announcement
-        </button>
+        <div>
+            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" onclick="openCreateModal()">
+                <i class="fa-solid fa-plus me-1.5"></i>Post Announcement
+            </button>
+        </div>
     </div>
 
-    <!-- Announcements Timeline -->
-    <div class="row">
-        <div class="col-lg-8">
-            @if (Model != null && Model.Any())
-            {
-                @foreach (var a in Model)
-                {
-                    <div class="bg-white border rounded-3 p-4 shadow-sm mb-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="fw-bold text-dark mb-0">@a.Title</h5>
-                            <span class="text-muted small"><i class="fa-solid fa-clock me-1"></i>@a.CreatedAt.ToString("dd MMM yyyy hh:mm tt")</span>
-                        </div>
-                        <p class="text-muted mb-3" style="font-size: 0.9rem; line-height: 1.5;">@a.Content</p>
-                        <div class="d-flex align-items-center">
-                            <div class="bg-light rounded-circle p-2 d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                <i class="fa-solid fa-user-shield text-primary" style="font-size: 0.8rem;"></i>
-                            </div>
-                            <span class="small fw-semibold text-secondary">Posted by @a.PostedBy</span>
-                        </div>
-                    </div>
-                }
-            }
-            else
-            {
-                <div class="bg-white border rounded-3 p-5 text-center text-muted shadow-sm">
-                    <i class="fa-solid fa-bullhorn fa-2x mb-3 text-secondary opacity-50"></i>
-                    <p class="mb-0">No announcements posted yet.</p>
-                </div>
-            }
+    <!-- Category Filter Pills & Audience Selection -->
+    <div class="glass-panel p-3 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex flex-wrap gap-2" id="categoryFilters">
+            <span class="filter-pill border bg-white text-secondary active" onclick="filterCategory('All', this)">All Notices</span>
+            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('Urgent / Broadcast', this)">🚨 Urgent / Alerts</span>
+            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('General', this)">📢 General Broadcasts</span>
+            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('HR Policy', this)">📑 Policies & Tax</span>
+            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('Holiday & Events', this)">🎉 Events & Celebrations</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="small fw-bold text-secondary text-nowrap">Audience Scope:</span>
+            <select class="form-select form-select-sm" id="audienceFilter" style="width: 180px;" onchange="filterAudience(this.value)">
+                <option value="All">All Staff</option>
+                <option value="Managers & Admins">Managers & Admins</option>
+                <option value="Sales Department">Sales Department</option>
+                <option value="Accounts Team">Accounts Team</option>
+            </select>
         </div>
     </div>
+
+    <!-- Announcement Feed Cards -->
+    <div class="row g-3" id="announcementsFeed">
+        @if (!Model.Any())
+        {
+            <div class="col-12 text-center text-muted py-5" id="noNoticesDisplay">
+                <i class="fa-solid fa-folder-open fs-2 d-block mb-2"></i>
+                No active announcements found.
+            </div>
+        }
+        else
+        {
+            @foreach (var a in Model)
+            {
+                var priorityClass = a.Priority switch
+                {
+                    "Urgent / Broadcast" => "priority-urgent",
+                    "High" => "priority-high",
+                    _ => "priority-normal"
+                };
+
+                var priorityLabel = a.Priority == "Urgent / Broadcast" ? "🚨 Urgent" : (a.Priority == "High" ? "📢 High" : "📢 Normal");
+
+                <div class="col-md-6 announcement-item" data-category="@a.Category" data-audience="@a.TargetAudience" data-priority="@a.Priority">
+                    <div class="announcement-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between @(a.IsPinned ? "pinned" : "")">
+                        <div>
+                            <!-- Header Row -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <span class="badge @priorityClass border px-2.5 py-1 text-uppercase small">@priorityLabel</span>
+                                    <span class="badge bg-light text-secondary border px-2 py-1 small">@a.Category</span>
+                                    @if (a.IsPinned)
+                                    {
+                                        <span class="text-primary" title="Pinned to top"><i class="fa-solid fa-thumbtack"></i></span>
+                                    }
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-link btn-sm text-secondary p-0" type="button" data-bs-toggle="dropdown">
+                                        <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button class="dropdown-item small" onclick="openEditModal({
+                                                id: @a.AnnouncementId,
+                                                title: '@Html.Raw(JavaScriptEncoder.Default.Encode(a.Title))',
+                                                content: '@Html.Raw(JavaScriptEncoder.Default.Encode(a.Content))',
+                                                priority: '@a.Priority',
+                                                category: '@a.Category',
+                                                audience: '@a.TargetAudience',
+                                                branch: '@a.TargetBranch',
+                                                isPinned: @(a.IsPinned ? "true" : "false"),
+                                                expiryDate: '@(a.ExpiryDate?.ToString("yyyy-MM-dd"))'
+                                            })">
+                                                <i class="fa-solid fa-pencil-alt me-2 small"></i>Edit post
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item small" onclick="togglePin(@a.AnnouncementId)">
+                                                <i class="fa-solid fa-thumbtack me-2 small"></i>@(a.IsPinned ? "Unpin post" : "Pin post")
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <button class="dropdown-item text-danger small" onclick="deleteAnnouncement(@a.AnnouncementId)">
+                                                <i class="fa-solid fa-trash me-2 small"></i>Delete post
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Content Body -->
+                            <h5 class="fw-bold text-dark mb-2">@a.Title</h5>
+                            <p class="text-secondary small mb-3" style="line-height: 1.5; white-space: pre-wrap;">@a.Content</p>
+
+                            @if (!string.IsNullOrEmpty(a.AttachmentUrl))
+                            {
+                                <div class="mb-3">
+                                    <a href="@a.AttachmentUrl" target="_blank" class="btn btn-sm btn-light border px-3 text-start font-monospace small text-dark d-inline-flex align-items-center gap-2 rounded-pill">
+                                        <i class="fa-solid fa-file-pdf text-danger"></i>
+                                        <span>@a.AttachmentName</span>
+                                        <i class="fa-solid fa-download ms-1.5 text-secondary"></i>
+                                    </a>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Footer Row -->
+                        <div class="border-top pt-3 mt-3 d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2 font-monospace small fw-bold" style="width:28px; height:28px; font-size: 0.7rem;">
+                                    @a.PostedBy.Substring(0, Math.Min(2, a.PostedBy.Length)).ToUpper()
+                                </div>
+                                <div>
+                                    <span class="small fw-bold text-dark d-block">@a.PostedBy</span>
+                                    <span class="text-muted small" style="font-size: 0.7rem;">@a.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-light text-secondary border d-block font-monospace" style="font-size: 0.65rem;">Audience: @a.TargetAudience</span>
+                                <span class="badge bg-light text-secondary border mt-1 d-block font-monospace" style="font-size: 0.65rem;">Branch: @a.TargetBranch</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
 </div>
 
-<!-- Announcement Modal -->
-<div class="modal fade text-start" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="/AdminAnnouncements/CreateAnnouncement" method="post">
+<!-- Create & Edit Announcement Modal -->
+<div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-panel border shadow-lg text-start">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="fw-bold text-dark" id="modalTitle"><i class="fa-solid fa-bullhorn text-primary me-2"></i>Post New Announcement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="announcementForm" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="announcementModalLabel">Post Internal Announcement</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Title</label>
-                        <input type="text" name="Title" class="form-control" placeholder="e.g. Server Maintenance" required />
+                <input type="hidden" name="AnnouncementId" id="formAnnouncementId" />
+
+                <div class="modal-body py-3">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-secondary">Announcement Title</label>
+                            <input type="text" class="form-control" name="Title" id="formTitle" placeholder="Enter notice headline..." required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Severity Priority</label>
+                            <select class="form-select" name="Priority" id="formPriority" required>
+                                <option value="Normal">Normal</option>
+                                <option value="High">High</option>
+                                <option value="Urgent / Broadcast">Urgent / Broadcast</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Notice Category</label>
+                            <select class="form-select" name="Category" id="formCategory" required>
+                                <option value="General">General Broadcast</option>
+                                <option value="IT Infrastructure">IT Infrastructure</option>
+                                <option value="HR Policy">HR Policy & Tax</option>
+                                <option value="Compliance">Statutory Compliance</option>
+                                <option value="Holiday & Events">Holiday & Events</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Target Audience</label>
+                            <select class="form-select" name="TargetAudience" id="formAudience" required>
+                                <option value="All Staff">All Staff</option>
+                                <option value="Managers & Admins">Managers & Admins</option>
+                                <option value="Sales Department">Sales Department</option>
+                                <option value="Accounts Team">Accounts Team</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Target Branch</label>
+                            <select class="form-select" name="TargetBranch" id="formBranch" required>
+                                <option value="All Branches">All Branches</option>
+                                @foreach (var br in ViewBag.Branches)
+                                {
+                                    <option value="@br.BranchName">@br.BranchName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Expiry Date</label>
+                            <input type="date" class="form-control" name="ExpiryDate" id="formExpiryDate" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-secondary">Message / Notice Body</label>
+                            <textarea class="form-control" name="Content" id="formContent" rows="5" placeholder="Write full details..." required></textarea>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-secondary">File Attachment (.pdf, .jpg, .png)</label>
+                            <input type="file" class="form-control" name="AttachmentFile" id="formAttachmentFile" accept=".pdf, .jpg, .jpeg, .png" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2">
+                                <input class="form-check-input" type="checkbox" role="switch" name="IsPinned" id="formIsPinned" value="true" />
+                                <input type="hidden" name="IsPinned" value="false" />
+                                <label class="form-check-label fw-bold small text-secondary" for="formIsPinned">Pin announcement to top of dashboard feed</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Content / Body</label>
-                        <textarea name="Content" class="form-control" rows="5" placeholder="Write announcement details here..." required></textarea>
-                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Publish Announcement</button>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4" id="btnSubmitModal">Publish Notice</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Hidden Token Form for JS AJAX Actions -->
+<form id="ajaxTokenForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
+
+<script>
+    const modal = new bootstrap.Modal(document.getElementById('announcementModal'));
+
+    // Open Modal for posting a new announcement
+    function openCreateModal() {
+        document.getElementById("modalTitle").innerHTML = '<i class="fa-solid fa-bullhorn text-primary me-2"></i>Post New Announcement';
+        document.getElementById("announcementForm").action = "/AdminAnnouncements/CreateAnnouncement";
+        document.getElementById("formAnnouncementId").value = "";
+        document.getElementById("formTitle").value = "";
+        document.getElementById("formContent").value = "";
+        document.getElementById("formPriority").value = "Normal";
+        document.getElementById("formCategory").value = "General";
+        document.getElementById("formAudience").value = "All Staff";
+        document.getElementById("formBranch").value = "All Branches";
+        document.getElementById("formExpiryDate").value = "";
+        document.getElementById("formIsPinned").checked = false;
+        document.getElementById("btnSubmitModal").textContent = "Publish Notice";
+        modal.show();
+    }
+
+    // Open Modal for editing an announcement
+    function openEditModal(a) {
+        document.getElementById("modalTitle").innerHTML = '<i class="fa-solid fa-pencil-alt text-primary me-2"></i>Edit Announcement';
+        document.getElementById("announcementForm").action = "/AdminAnnouncements/EditAnnouncement";
+        document.getElementById("formAnnouncementId").value = a.id;
+        document.getElementById("formTitle").value = a.title;
+        document.getElementById("formContent").value = a.content;
+        document.getElementById("formPriority").value = a.priority;
+        document.getElementById("formCategory").value = a.category;
+        document.getElementById("formAudience").value = a.audience;
+        document.getElementById("formBranch").value = a.branch;
+        document.getElementById("formExpiryDate").value = a.expiryDate || "";
+        document.getElementById("formIsPinned").checked = a.isPinned;
+        document.getElementById("btnSubmitModal").textContent = "Save Changes";
+        modal.show();
+    }
+
+    // Toggle pin/unpin status
+    function togglePin(id) {
+        const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]').value;
+        const formData = new FormData();
+        formData.append("id", id);
+        formData.append("__RequestVerificationToken", token);
+
+        fetch("/AdminAnnouncements/TogglePin", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                toastr.success(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                toastr.error(data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            toastr.error("Server pin toggle action failed.");
+        });
+    }
+
+    // Delete announcement
+    function deleteAnnouncement(id) {
+        Swal.fire({
+            title: 'Delete Announcement?',
+            text: 'This notice will be removed from all active feeds permanently.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete notice'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]').value;
+                const formData = new FormData();
+                formData.append("id", id);
+                formData.append("__RequestVerificationToken", token);
+
+                fetch("/AdminAnnouncements/DeleteAnnouncement", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted',
+                            text: data.message,
+                            confirmButtonColor: '#2563eb'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        toastr.error(data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    toastr.error("Server delete execution failed.");
+                });
+            }
+        });
+    }
+
+    // Client-side category filtering
+    function filterCategory(cat, pill) {
+        document.querySelectorAll("#categoryFilters .filter-pill").forEach(p => p.classList.remove("active"));
+        pill.classList.add("active");
+
+        const cards = document.querySelectorAll(".announcement-item");
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const cardCat = card.getAttribute("data-category");
+            const cardPri = card.getAttribute("data-priority");
+            
+            let match = false;
+            if (cat === "All") {
+                match = true;
+            } else if (cat === "Urgent / Broadcast") {
+                match = (cardPri === "Urgent / Broadcast");
+            } else {
+                match = (cardCat === cat);
+            }
+
+            if (match) {
+                card.style.display = "block";
+                visibleCount++;
+            } else {
+                card.style.display = "none";
+            }
+        });
+
+        toggleEmptyState(visibleCount);
+    }
+
+    // Client-side audience filtering
+    function filterAudience(aud) {
+        const cards = document.querySelectorAll(".announcement-item");
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const cardAud = card.getAttribute("data-audience");
+            
+            if (aud === "All" || cardAud === aud) {
+                card.style.display = "block";
+                visibleCount++;
+            } else {
+                card.style.display = "none";
+            }
+        });
+
+        toggleEmptyState(visibleCount);
+    }
+
+    function toggleEmptyState(count) {
+        const emptyDiv = document.getElementById("noNoticesDisplay");
+        if (count === 0) {
+            if (!emptyDiv) {
+                const feed = document.getElementById("announcementsFeed");
+                const div = document.createElement("div");
+                div.id = "noNoticesDisplay";
+                div.className = "col-12 text-center text-muted py-5";
+                div.innerHTML = '<i class="fa-solid fa-folder-open fs-2 d-block mb-2"></i>No matching notices found.';
+                feed.appendChild(div);
+            } else {
+                emptyDiv.style.display = "block";
+            }
+        } else {
+            if (emptyDiv) emptyDiv.style.display = "none";
+        }
+    }
+</script>

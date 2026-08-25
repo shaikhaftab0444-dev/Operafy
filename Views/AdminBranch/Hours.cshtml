@@ -1,48 +1,243 @@
-@model IEnumerable<ERP_System.Models.AdminBranchHour>
+@model ERP_System.Models.BranchWorkingHoursViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Branch Working Hours";
 }
 
+<!-- Premium Alert & Notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+        transition: all 0.3s ease;
+    }
+    .hours-table tbody tr {
+        transition: all 0.25s ease;
+    }
+    .hours-table tbody tr:hover {
+        transform: translateY(-2px);
+        background: #ffffff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.035);
+    }
+    .ios-switch .form-check-input {
+        width: 2.8em;
+        height: 1.55em;
+        background-color: #cbd5e1;
+        border: none;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+        transition: background-position 0.2s ease, background-color 0.2s ease;
+    }
+    .ios-switch .form-check-input:checked {
+        background-color: #10b981;
+        background-position: right center;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    }
+    .modal.fade .modal-dialog {
+        transform: scale(0.95);
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .modal.show .modal-dialog {
+        transform: scale(1);
+    }
+</style>
+
 <div class="container-fluid py-4 text-start">
+
+    <!-- Header & Action Bar -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-clock text-primary me-2"></i>Branch Working Hours</h4>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
+                <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
+                    <li class="breadcrumb-item text-secondary">Master Setup</li>
                     <li class="breadcrumb-item active" aria-current="page">Branch Hours</li>
                 </ol>
             </nav>
+            <h4 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-clock text-primary me-2"></i>Branch Working Hours</h4>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#hourModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Log Working Hours
-        </button>
+        <div>
+            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#addHoursModal">
+                <i class="fa-solid fa-plus me-2"></i>Set Branch Hours
+            </button>
+        </div>
     </div>
 
-    <!-- Working Hours Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm" style="max-width: 800px;">
-        <h5 class="fw-bold mb-3">Timings Setup</h5>
+    <!-- Alert Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Action Completed',
+                    text: '@Html.Raw(TempData["SuccessMessage"])',
+                    confirmButtonColor: '#2563eb'
+                });
+            });
+        </script>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'System Error',
+                    text: '@Html.Raw(TempData["ErrorMessage"])',
+                    confirmButtonColor: '#ef4444'
+                });
+            });
+        </script>
+    }
+
+    <!-- Search / Filter Lookup -->
+    <div class="glass-panel p-4 mb-4">
+        <form method="get" action="/AdminBranch/Hours" id="searchForm" class="row g-3">
+            <div class="col-md-12">
+                <label class="form-label fw-semibold text-secondary small">Filter by Branch Name</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" class="form-control border-start-0" id="hoursSearch" name="search" value="@Model.SearchTerm" placeholder="Search branch work timings by branch name..." />
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                    {
+                        <a href="/AdminBranch/Hours" class="btn btn-outline-secondary"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 3D Glassmorphic Table -->
+    <div class="glass-panel p-4">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <table class="table align-middle hours-table mb-0 text-start">
                 <thead class="table-light">
                     <tr>
-                        <th>Branch Name</th>
-                        <th>Opening Time</th>
-                        <th>Closing Time</th>
-                        <th>Off Day</th>
+                        <th style="width: 25%;">Branch Location</th>
+                        <th style="width: 20%;">Operating Timings</th>
+                        <th style="width: 12%;">Grace Period</th>
+                        <th style="width: 12%;">Break Interval</th>
+                        <th style="width: 12%;">Weekly Off Rule</th>
+                        <th style="width: 10%;">Half-Day Threshold</th>
+                        <th style="width: 10%;">Status</th>
+                        <th class="text-center" style="width: 10%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model != null && Model.Any())
+                    @if (Model.Hours.Count == 0)
                     {
-                        @foreach (var h in Model)
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-folder-open fs-3 d-block mb-2"></i>
+                                No branch working hours mapped to current search filter.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var h in Model.Hours)
                         {
-                            <tr>
-                                <td class="fw-bold text-dark">@h.BranchName</td>
-                                <td>@h.OpeningTime</td>
-                                <td>@h.ClosingTime</td>
-                                <td><span class="badge bg-secondary-subtle text-secondary">@h.OffDay</span></td>
+                            var offCode = h.OffDay == "Sunday" ? "All Sundays" : h.OffDay;
+                            var badgeClass = h.IsContinuousShift ? "bg-purple-subtle text-purple border-purple-subtle" : "bg-primary-subtle text-primary border-primary-subtle";
+
+                            <tr class="hours-row">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2 text-primary fs-5"><i class="fa-solid fa-building"></i></div>
+                                        <div>
+                                            <div class="fw-bold text-dark branch-name">@h.BranchName</div>
+                                            <span class="badge bg-light text-secondary border font-monospace mt-0.5">ID: @h.BranchId</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (h.IsContinuousShift)
+                                    {
+                                        <span class="badge @badgeClass fw-bold px-2.5 py-1.5"><i class="fa-solid fa-arrows-spin me-1"></i>24/7 Operations</span>
+                                    }
+                                    else
+                                    {
+                                        <div>
+                                            <span class="fw-bold text-dark font-monospace">@h.OpeningTime - @h.ClosingTime</span>
+                                            <span class="d-block text-secondary small">Shift Timings</span>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1fw-bold">
+                                        <i class="fa-regular fa-clock me-1 small"></i>@h.GracePeriod Mins
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1 fw-bold">
+                                        <i class="fa-solid fa-mug-hot me-1 small"></i>@h.BreakDuration Mins
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1.5 small fw-semibold">
+                                        @offCode
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-secondary small fw-bold">Min @h.HalfDayMinHours Hrs</span>
+                                </td>
+                                <td>
+                                    @if (h.IsActive)
+                                    {
+                                        <span class="badge bg-emerald-subtle text-emerald-emphasis border border-success-subtle rounded-pill px-2.5 py-1 small">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1 small">Inactive</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center align-items-center gap-1.5">
+                                        <button type="button" 
+                                                onclick="openEditModal({
+                                                    id: @h.HourId,
+                                                    branchId: @h.BranchId,
+                                                    openTime: '@h.OpeningTime',
+                                                    closeTime: '@h.ClosingTime',
+                                                    offDay: '@h.OffDay',
+                                                    grace: @h.GracePeriod,
+                                                    breakDur: @h.BreakDuration,
+                                                    halfDay: '@h.HalfDayMinHours.ToString("F1")',
+                                                    continuous: '@h.IsContinuousShift',
+                                                    active: '@h.IsActive',
+                                                    date: '@h.EffectiveDate.ToString("yyyy-MM-dd")'
+                                                })"
+                                                class="btn btn-sm btn-outline-primary border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Edit Working Hours">
+                                            <i class="fa-solid fa-pencil"></i>
+                                        </button>
+                                        
+                                        <form method="post" action="/AdminBranch/ToggleHoursStatus" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@h.HourId" />
+                                            <div class="form-check form-switch ios-switch d-inline-block ms-1">
+                                                <input class="form-check-input" type="checkbox" role="switch" checked="@(h.IsActive ? "checked" : null)" onchange="this.form.submit()" />
+                                            </div>
+                                        </form>
+
+                                        <form method="post" action="/AdminBranch/DeleteHours" class="d-inline delete-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@h.HourId" />
+                                            <button type="button" onclick="confirmDelete(this)" class="btn btn-sm btn-outline-danger border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Delete Settings">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
                             </tr>
                         }
                     }
@@ -50,41 +245,267 @@
             </table>
         </div>
     </div>
+
 </div>
 
-<!-- Working Hours Modal -->
-<div class="modal fade text-start" id="hourModal" tabindex="-1" aria-labelledby="hourModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="/AdminBranch/SaveHours" method="post">
+<!-- ========================================== -->
+<!--     ADD WORKING HOURS BOOTSTRAP MODAL      -->
+<!-- ========================================== -->
+<div class="modal fade" id="addHoursModal" tabindex="-1" aria-labelledby="addModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header bg-light border-bottom p-3">
+                <h5 class="modal-title fw-bold text-dark" id="addModalTitle"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Establish Branch Work Shift</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="/AdminBranch/SaveHours" id="addHoursForm">
                 @Html.AntiForgeryToken()
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="hourModalLabel">Log Branch Working Hours</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <input type="hidden" asp-for="Hour.OffDay" id="addOffDayHidden" />
+                <div class="modal-body p-4 text-start">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Assign Branch</label>
+                            <select asp-for="Hour.BranchId" class="form-select" required>
+                                <option value="">-- Choose Branch --</option>
+                                @foreach (var b in Model.Branches)
+                                {
+                                    <option value="@b.BranchId">@b.BranchName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Hour.BranchId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Effective Starting Date</label>
+                            <input type="date" asp-for="Hour.EffectiveDate" class="form-control" required />
+                            <span asp-validation-for="Hour.EffectiveDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Shift Opening Time</label>
+                            <input type="text" asp-for="Hour.OpeningTime" class="form-control font-monospace" placeholder="e.g. 09:00 AM" required />
+                            <span asp-validation-for="Hour.OpeningTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Shift Closing Time</label>
+                            <input type="text" asp-for="Hour.ClosingTime" class="form-control font-monospace" placeholder="e.g. 06:00 PM" required />
+                            <span asp-validation-for="Hour.ClosingTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Clock-In Grace Period (Mins)</label>
+                            <input type="number" asp-for="Hour.GracePeriod" class="form-control" placeholder="15" min="0" required />
+                            <span asp-validation-for="Hour.GracePeriod" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Lunch Break Duration (Mins)</label>
+                            <input type="number" asp-for="Hour.BreakDuration" class="form-control" placeholder="45" min="0" required />
+                            <span asp-validation-for="Hour.BreakDuration" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Half-Day Min Work Hours</label>
+                            <input type="number" step="0.5" asp-for="Hour.HalfDayMinHours" class="form-control" placeholder="4.5" min="0" required />
+                            <span asp-validation-for="Hour.HalfDayMinHours" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Weekly Off Selection (Monday-Sunday Checkboxes) -->
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small text-secondary d-block">Select Weekly Off Days</label>
+                            <div class="d-flex flex-wrap gap-3 bg-light border p-3 rounded-3">
+                                @foreach (var day in new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" })
+                                {
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input add-off-check" type="checkbox" id="addOff-@day" value="@day" checked="@(day == "Sunday" ? "checked" : null)" />
+                                        <label class="form-check-label small fw-semibold text-secondary" for="addOff-@day">@day.Substring(0, 3)</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mt-3">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2">
+                                <input class="form-check-input" type="checkbox" asp-for="Hour.IsContinuousShift" id="addIsContinuous" />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Hour.IsContinuousShift">Continuous 24/7 Operations Shift</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
+                                <input class="form-check-input" type="checkbox" asp-for="Hour.IsActive" checked />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Hour.IsActive">Active & Enforced</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Branch Name</label>
-                        <input type="text" name="BranchName" class="form-control" placeholder="e.g. Bangalore Branch" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Opening Time</label>
-                        <input type="text" name="OpeningTime" class="form-control" placeholder="e.g. 09:00 AM" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Closing Time</label>
-                        <input type="text" name="ClosingTime" class="form-control" placeholder="e.g. 06:00 PM" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Off Day</label>
-                        <input type="text" name="OffDay" class="form-control" placeholder="e.g. Sunday" required />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Hours</button>
+                <div class="modal-footer bg-light border-top p-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fa-solid fa-save me-1.5"></i>Save Timings</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- ========================================== -->
+<!--     EDIT WORKING HOURS BOOTSTRAP MODAL     -->
+<!-- ========================================== -->
+<div class="modal fade" id="editHoursModal" tabindex="-1" aria-labelledby="editModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header bg-light border-bottom p-3">
+                <h5 class="modal-title fw-bold text-dark" id="editModalTitle"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Modify Branch Timings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="/AdminBranch/SaveHours" id="editHoursForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Hour.HourId" id="editHourId" />
+                <input type="hidden" asp-for="Hour.OffDay" id="editOffDayHidden" />
+                <div class="modal-body p-4 text-start">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Assign Branch</label>
+                            <select asp-for="Hour.BranchId" id="editBranchId" class="form-select" required>
+                                @foreach (var b in Model.Branches)
+                                {
+                                    <option value="@b.BranchId">@b.BranchName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Hour.BranchId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Effective Starting Date</label>
+                            <input type="date" asp-for="Hour.EffectiveDate" id="editEffectiveDate" class="form-control" required />
+                            <span asp-validation-for="Hour.EffectiveDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Shift Opening Time</label>
+                            <input type="text" asp-for="Hour.OpeningTime" id="editOpeningTime" class="form-control font-monospace" placeholder="e.g. 09:00 AM" required />
+                            <span asp-validation-for="Hour.OpeningTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Shift Closing Time</label>
+                            <input type="text" asp-for="Hour.ClosingTime" id="editClosingTime" class="form-control font-monospace" placeholder="e.g. 06:00 PM" required />
+                            <span asp-validation-for="Hour.ClosingTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Clock-In Grace Period (Mins)</label>
+                            <input type="number" asp-for="Hour.GracePeriod" id="editGracePeriod" class="form-control" placeholder="15" min="0" required />
+                            <span asp-validation-for="Hour.GracePeriod" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Lunch Break Duration (Mins)</label>
+                            <input type="number" asp-for="Hour.BreakDuration" id="editBreakDuration" class="form-control" placeholder="45" min="0" required />
+                            <span asp-validation-for="Hour.BreakDuration" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Half-Day Min Work Hours</label>
+                            <input type="number" step="0.5" asp-for="Hour.HalfDayMinHours" id="editHalfDayMinHours" class="form-control" placeholder="4.5" min="0" required />
+                            <span asp-validation-for="Hour.HalfDayMinHours" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Weekly Off Selection (Monday-Sunday Checkboxes) -->
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small text-secondary d-block">Select Weekly Off Days</label>
+                            <div class="d-flex flex-wrap gap-3 bg-light border p-3 rounded-3">
+                                @foreach (var day in new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" })
+                                {
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input edit-off-check" type="checkbox" id="editOff-@day" value="@day" />
+                                        <label class="form-check-label small fw-semibold text-secondary" for="editOff-@day">@day.Substring(0, 3)</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mt-3">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2">
+                                <input class="form-check-input" type="checkbox" asp-for="Hour.IsContinuousShift" id="editIsContinuous" />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Hour.IsContinuousShift">Continuous 24/7 Operations Shift</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
+                                <input class="form-check-input" type="checkbox" asp-for="Hour.IsActive" id="editIsActive" />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Hour.IsActive">Active & Enforced</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top p-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fa-solid fa-save me-1.5"></i>Apply Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Realtime table search
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("hoursSearch");
+        if (searchInput) {
+            searchInput.addEventListener("keyup", function () {
+                const query = this.value.toLowerCase().trim();
+                const rows = document.querySelectorAll(".hours-row");
+
+                rows.forEach(row => {
+                    const branchName = row.querySelector(".branch-name").textContent.toLowerCase();
+                    if (branchName.includes(query)) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            });
+        }
+    });
+
+    // Concatenate checkboxes for ADD Form weekly offs
+    document.getElementById("addHoursForm").addEventListener("submit", function (e) {
+        const checked = Array.from(this.querySelectorAll(".add-off-check:checked")).map(cb => cb.value);
+        document.getElementById("addOffDayHidden").value = checked.join(", ") || "Sunday";
+    });
+
+    // Concatenate checkboxes for EDIT Form weekly offs
+    document.getElementById("editHoursForm").addEventListener("submit", function (e) {
+        const checked = Array.from(this.querySelectorAll(".edit-off-check:checked")).map(cb => cb.value);
+        document.getElementById("editOffDayHidden").value = checked.join(", ") || "Sunday";
+    });
+
+    // Populate and trigger Edit Modal
+    function openEditModal(h) {
+        document.getElementById("editHourId").value = h.id;
+        document.getElementById("editBranchId").value = h.branchId;
+        document.getElementById("editEffectiveDate").value = h.date;
+        document.getElementById("editOpeningTime").value = h.openTime;
+        document.getElementById("editClosingTime").value = h.closeTime;
+        document.getElementById("editGracePeriod").value = h.grace;
+        document.getElementById("editBreakDuration").value = h.breakDur;
+        document.getElementById("editHalfDayMinHours").value = h.halfDay;
+        document.getElementById("editIsContinuous").checked = (h.continuous === 'True' || h.continuous === 'true');
+        document.getElementById("editIsActive").checked = (h.active === 'True' || h.active === 'true');
+
+        // Check off checkbox days
+        const days = h.offDay.split(", ").map(day => day.trim());
+        document.querySelectorAll(".edit-off-check").forEach(cb => {
+            cb.checked = days.includes(cb.value);
+        });
+
+        const editModal = new bootstrap.Modal(document.getElementById("editHoursModal"));
+        editModal.show();
+    }
+
+    // Confirm working hour deletion
+    function confirmDelete(btn) {
+        Swal.fire({
+            title: 'Delete Branch Hours?',
+            text: "This will remove the work timings profile for this branch. Staff attendances will revert to global system shifts.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete settings'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.closest('.delete-form').submit();
+            }
+        });
+    }
+</script>

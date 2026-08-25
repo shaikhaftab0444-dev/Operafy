@@ -21,5 +21,11 @@ namespace ERP_System.Models
         public string ModuleName { get; set; } = string.Empty;
 
         public bool IsAllowed { get; set; }
+
+        public bool CanView { get; set; } = false;
+        public bool CanCreate { get; set; } = false;
+        public bool CanEdit { get; set; } = false;
+        public bool CanDelete { get; set; } = false;
+        public bool CanApprove { get; set; } = false;
     }
 }

@@ -1,51 +1,482 @@
+@model ERP_System.Models.DesignationViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Designation Master";
+    var counts = ViewBag.DesignationEmployeeCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
 }
 
+<!-- Premium Alert Control -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+    }
+    .designation-table tbody tr {
+        transition: all 0.25s ease;
+    }
+    .designation-table tbody tr:hover {
+        transform: translateY(-2px);
+        background: #ffffff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    }
+    .badge-grade {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .grade-L5 { background-color: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
+    .grade-L4 { background-color: #faf5ff; color: #6b21a8; border: 1px solid #f3e8ff; }
+    .grade-L3 { background-color: #eff6ff; color: #1e40af; border: 1px solid #dbeafe; }
+    .grade-L2 { background-color: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
+    .grade-L1 { background-color: #f8fafc; color: #475569; border: 1px solid #f1f5f9; }
+
+    /* Custom iOS toggle switch */
+    .ios-switch .form-check-input {
+        width: 2.8em;
+        height: 1.55em;
+        background-color: #cbd5e1;
+        border: none;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+        transition: background-position 0.2s ease, background-color 0.2s ease;
+    }
+    .ios-switch .form-check-input:checked {
+        background-color: #10b981;
+        background-position: right center;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    }
+
+    /* Modal Animation */
+    .modal.fade .modal-dialog {
+        transform: scale(0.95);
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .modal.show .modal-dialog {
+        transform: scale(1);
+    }
+</style>
+
 <div class="container-fluid py-4 text-start">
+
+    <!-- Breadcrumb & Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-id-card text-primary me-2"></i>Designation Master</h4>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
+                <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Designations</li>
+                    <li class="breadcrumb-item text-secondary">Master Setup</li>
+                    <li class="breadcrumb-item active" aria-current="page">Designation Master</li>
                 </ol>
             </nav>
+            <h4 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-id-card text-primary me-2"></i>Designation Master</h4>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#addDesignationModal">
+                <i class="fa-solid fa-plus me-2"></i>Add New Designation
+            </button>
         </div>
     </div>
 
-    <!-- Designations Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm" style="max-width: 600px;">
-        <h5 class="fw-bold mb-3">Enterprise Designation Master</h5>
+    <!-- Alert Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Action Completed',
+                    text: '@Html.Raw(TempData["SuccessMessage"])',
+                    confirmButtonColor: '#2563eb'
+                });
+            });
+        </script>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Database Error',
+                    text: '@Html.Raw(TempData["ErrorMessage"])',
+                    confirmButtonColor: '#ef4444'
+                });
+            });
+        </script>
+    }
+
+    <!-- Search & Quick Filters Bar -->
+    <div class="glass-panel p-4 mb-4">
+        <form method="get" action="/AdminMaster/Designations" id="filterForm" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold text-secondary small">Filter by Department</label>
+                <select class="form-select" name="departmentId" onchange="this.form.submit()">
+                    <option value="0">All Departments</option>
+                    @foreach (var d in Model.Departments)
+                    {
+                        <option value="@d.DepartmentId" selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">
+                            @d.DepartmentName
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label fw-semibold text-secondary small">Instant Search Lookup</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" class="form-control border-start-0" id="designationSearch" name="search" value="@Model.SearchQuery" placeholder="Search designations by code or job title..." />
+                    @if (!string.IsNullOrEmpty(Model.SearchQuery) || Model.SelectedDepartmentId > 0)
+                    {
+                        <a href="/AdminMaster/Designations" class="btn btn-outline-secondary"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Frosted Glass Table of Designations -->
+    <div class="glass-panel p-4">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <table class="table align-middle designation-table mb-0 text-start">
                 <thead class="table-light">
                     <tr>
-                        <th>Designation Code</th>
-                        <th>Job Title / Designation</th>
-                        <th>Status</th>
+                        <th style="width: 15%;">Designation Code</th>
+                        <th style="width: 25%;">Job Title & Level</th>
+                        <th style="width: 18%;">Department</th>
+                        <th class="text-center" style="width: 12%;">Active Staff</th>
+                        <th style="width: 15%;">CTC Band (PA)</th>
+                        <th style="width: 10%;">Status</th>
+                        <th class="text-center" style="width: 10%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">HR-MGR</td>
-                        <td>Human Resources Manager</td>
-                        <td><span class="badge bg-success-subtle text-success">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">SYS-ADM</td>
-                        <td>System & Infrastructure Admin</td>
-                        <td><span class="badge bg-success-subtle text-success">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">SDE-II</td>
-                        <td>Software Development Engineer II</td>
-                        <td><span class="badge bg-success-subtle text-success">Active</span></td>
-                    </tr>
+                    @if (Model.Designations.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-folder-open fs-3 d-block mb-2"></i>
+                                No active designations found matching the current search criteria.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var d in Model.Designations)
+                        {
+                            var levelCode = d.HierarchyLevel.Split(' ')[0]; // L1, L2, L3, L4, L5
+                            var staffCount = counts.TryGetValue(d.DesignationId, out var count) ? count : 1;
+
+                            // Icon logic per hierarchy grade
+                            var gradeIcon = "fa-user-tie";
+                            if (levelCode == "L1") gradeIcon = "fa-seedling";
+                            else if (levelCode == "L2") gradeIcon = "fa-user-astronaut";
+                            else if (levelCode == "L3") gradeIcon = "fa-user-gear";
+                            else if (levelCode == "L4") gradeIcon = "fa-award";
+
+                            <tr class="designation-row">
+                                <td>
+                                    <span class="badge bg-light text-dark border font-monospace px-2.5 py-1.5 fw-bold">@d.DesignationCode</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2 text-secondary text-center" style="width: 24px;"><i class="fa-solid @gradeIcon"></i></div>
+                                        <div>
+                                            <div class="fw-bold text-dark designation-title">@d.JobTitle</div>
+                                            <span class="badge badge-grade grade-@levelCode mt-1">@d.HierarchyLevel</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-secondary small fw-semibold">
+                                        <i class="fa-solid fa-folder-open text-primary-subtle me-1"></i>@(d.Department?.DepartmentName ?? "General Operations")
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1 fw-bold pointer-cursor" title="Click to view staff roster">
+                                        <i class="fa-solid fa-users me-1 small"></i>@staffCount Staff
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-dark font-monospace" style="font-size:0.85rem;">
+                                        ₹ @((d.MinCTC / 100000m).ToString("F1"))L - @((d.MaxCTC / 100000m).ToString("F1"))L
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (d.IsActive)
+                                    {
+                                        <span class="badge bg-emerald-subtle text-emerald-emphasis border border-success-subtle rounded-pill px-2.5 py-1 small">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1 small">Inactive</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center align-items-center gap-1.5">
+                                        <button type="button" 
+                                                onclick="openEditModal({
+                                                    id: @d.DesignationId,
+                                                    code: '@d.DesignationCode',
+                                                    title: '@d.JobTitle',
+                                                    deptId: @d.DepartmentId,
+                                                    level: '@d.HierarchyLevel',
+                                                    minCtc: @d.MinCTC,
+                                                    maxCtc: @d.MaxCTC,
+                                                    desc: '@Html.Raw(d.JobDescription ?? "")',
+                                                    active: '@d.IsActive'
+                                                })"
+                                                class="btn btn-sm btn-outline-primary border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Edit Designation Details">
+                                            <i class="fa-solid fa-pencil"></i>
+                                        </button>
+                                        
+                                        <form method="post" action="/AdminMaster/ToggleDesignationStatus" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@d.DesignationId" />
+                                            <div class="form-check form-switch ios-switch d-inline-block ms-1">
+                                                <input class="form-check-input" type="checkbox" role="switch" checked="@(d.IsActive ? "checked" : null)" onchange="this.form.submit()" />
+                                            </div>
+                                        </form>
+
+                                        <form method="post" action="/AdminMaster/DeleteDesignation" class="d-inline delete-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@d.DesignationId" />
+                                            <button type="button" onclick="confirmDelete(this)" class="btn btn-sm btn-outline-danger border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Delete Designation">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<!-- ========================================== -->
+<!--     ADD NEW DESIGNATION BOOTSTRAP MODAL    -->
+<!-- ========================================== -->
+<div class="modal fade" id="addDesignationModal" tabindex="-1" aria-labelledby="addModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header bg-light border-bottom p-3">
+                <h5 class="modal-title fw-bold text-dark" id="addModalTitle"><i class="fa-solid fa-plus-circle text-primary me-2"></i>Create Designation Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="/AdminMaster/CreateDesignation" id="addForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4 text-start">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Designation Code</label>
+                            <input type="text" asp-for="Designation.DesignationCode" class="form-control text-uppercase" placeholder="e.g. HR-MGR" maxlength="8" required oninput="this.value = this.value.toUpperCase();" />
+                            <span asp-validation-for="Designation.DesignationCode" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold small text-secondary">Job Title</label>
+                            <input type="text" asp-for="Designation.JobTitle" class="form-control" placeholder="e.g. Human Resources Manager" required />
+                            <span asp-validation-for="Designation.JobTitle" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Assign Department</label>
+                            <select asp-for="Designation.DepartmentId" class="form-select" required>
+                                <option value="">-- Choose Department --</option>
+                                @foreach (var d in Model.Departments)
+                                {
+                                    <option value="@d.DepartmentId">@d.DepartmentName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Designation.DepartmentId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Hierarchy Level / Grade</label>
+                            <select asp-for="Designation.HierarchyLevel" class="form-select" required>
+                                <option value="">-- Choose Level --</option>
+                                <option value="L1 - Entry Level">L1 - Entry Level</option>
+                                <option value="L2 - Junior Associate">L2 - Junior Associate</option>
+                                <option value="L3 - Mid-Level">L3 - Mid-Level</option>
+                                <option value="L4 - Senior Specialist">L4 - Senior Specialist</option>
+                                <option value="L5 - Management / Executive">L5 - Management / Executive</option>
+                            </select>
+                            <span asp-validation-for="Designation.HierarchyLevel" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Minimum Salary CTC Band (Annual ₹)</label>
+                            <input type="number" asp-for="Designation.MinCTC" class="form-control" placeholder="e.g. 450000" min="0" required />
+                            <span asp-validation-for="Designation.MinCTC" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Maximum Salary CTC Band (Annual ₹)</label>
+                            <input type="number" asp-for="Designation.MaxCTC" class="form-control" placeholder="e.g. 700000" min="0" required />
+                            <span asp-validation-for="Designation.MaxCTC" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-secondary">Job Description & Responsibilities</label>
+                            <textarea asp-for="Designation.JobDescription" class="form-control" rows="3" placeholder="Enter key duties, skill expectations, and operational scopes..."></textarea>
+                            <span asp-validation-for="Designation.JobDescription" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
+                                <input class="form-check-input" type="checkbox" asp-for="Designation.IsActive" checked />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Designation.IsActive">Publish & Enable Active Status</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top p-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fa-solid fa-save me-1.5"></i>Save Designation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!--     EDIT DESIGNATION BOOTSTRAP MODAL      -->
+<!-- ========================================== -->
+<div class="modal fade" id="editDesignationModal" tabindex="-1" aria-labelledby="editModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header bg-light border-bottom p-3">
+                <h5 class="modal-title fw-bold text-dark" id="editModalTitle"><i class="fa-solid fa-edit text-primary me-2"></i>Modify Designation Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="/AdminMaster/EditDesignation" id="editForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Designation.DesignationId" id="editDesignationId" />
+                <div class="modal-body p-4 text-start">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Designation Code</label>
+                            <input type="text" asp-for="Designation.DesignationCode" id="editDesignationCode" class="form-control text-uppercase" readonly />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold small text-secondary">Job Title</label>
+                            <input type="text" asp-for="Designation.JobTitle" id="editJobTitle" class="form-control" placeholder="e.g. Human Resources Manager" required />
+                            <span asp-validation-for="Designation.JobTitle" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Assign Department</label>
+                            <select asp-for="Designation.DepartmentId" id="editDepartmentId" class="form-select" required>
+                                @foreach (var d in Model.Departments)
+                                {
+                                    <option value="@d.DepartmentId">@d.DepartmentName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Designation.DepartmentId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Hierarchy Level / Grade</label>
+                            <select asp-for="Designation.HierarchyLevel" id="editHierarchyLevel" class="form-select" required>
+                                <option value="L1 - Entry Level">L1 - Entry Level</option>
+                                <option value="L2 - Junior Associate">L2 - Junior Associate</option>
+                                <option value="L3 - Mid-Level">L3 - Mid-Level</option>
+                                <option value="L4 - Senior Specialist">L4 - Senior Specialist</option>
+                                <option value="L5 - Management / Executive">L5 - Management / Executive</option>
+                            </select>
+                            <span asp-validation-for="Designation.HierarchyLevel" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Minimum Salary CTC Band (Annual ₹)</label>
+                            <input type="number" asp-for="Designation.MinCTC" id="editMinCTC" class="form-control" placeholder="e.g. 450000" min="0" required />
+                            <span asp-validation-for="Designation.MinCTC" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Maximum Salary CTC Band (Annual ₹)</label>
+                            <input type="number" asp-for="Designation.MaxCTC" id="editMaxCTC" class="form-control" placeholder="e.g. 700000" min="0" required />
+                            <span asp-validation-for="Designation.MaxCTC" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-secondary">Job Description & Responsibilities</label>
+                            <textarea asp-for="Designation.JobDescription" id="editJobDescription" class="form-control" rows="3" placeholder="Enter key duties, skill expectations, and operational scopes..."></textarea>
+                            <span asp-validation-for="Designation.JobDescription" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
+                                <input class="form-check-input" type="checkbox" asp-for="Designation.IsActive" id="editIsActive" />
+                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Designation.IsActive">Publish & Enable Active Status</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top p-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fa-solid fa-save me-1.5"></i>Apply Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Realtime search lookup
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("designationSearch");
+        if (searchInput) {
+            searchInput.addEventListener("keyup", function () {
+                const query = this.value.toLowerCase().trim();
+                const rows = document.querySelectorAll(".designation-row");
+
+                rows.forEach(row => {
+                    const titleText = row.querySelector(".designation-title").textContent.toLowerCase();
+                    const codeText = row.querySelector(".font-monospace").textContent.toLowerCase();
+                    
+                    if (titleText.includes(query) || codeText.includes(query)) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            });
+        }
+    });
+
+    // Populate and open edit modal
+    function openEditModal(d) {
+        document.getElementById("editDesignationId").value = d.id;
+        document.getElementById("editDesignationCode").value = d.code;
+        document.getElementById("editJobTitle").value = d.title;
+        document.getElementById("editDepartmentId").value = d.deptId;
+        document.getElementById("editHierarchyLevel").value = d.level;
+        document.getElementById("editMinCTC").value = d.minCtc;
+        document.getElementById("editMaxCTC").value = d.maxCtc;
+        document.getElementById("editJobDescription").value = d.desc;
+        document.getElementById("editIsActive").checked = (d.active === 'True' || d.active === 'true');
+
+        const editModal = new bootstrap.Modal(document.getElementById("editDesignationModal"));
+        editModal.show();
+    }
+
+    // Confirm designation delete
+    function confirmDelete(btn) {
+        Swal.fire({
+            title: 'Delete Designation?',
+            text: "This action is permanent and cannot be undone. Active staff mapped to this designation will need reconfiguration.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.closest('.delete-form').submit();
+            }
+        });
+    }
+</script>
