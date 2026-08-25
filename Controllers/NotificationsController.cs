@@ -264,6 +264,64 @@ namespace ERP_System.Controllers
             }
         }
 
+        // Public static helper to push targeted notifications for profile & setting updates
+        public static void AddNotification(NotificationItem item)
+        {
+            lock (_lock)
+            {
+                if (_notificationStore == null)
+                {
+                    _notificationStore = new List<NotificationItem>();
+                }
+                int maxId = _notificationStore.Any() ? _notificationStore.Max(n => n.NotificationId) + 1 : 1;
+                item.NotificationId = maxId;
+                _notificationStore.Insert(0, item);
+            }
+        }
+
+        // GET: /Notifications/GetUserNotifications
+        [HttpGet]
+        public async Task<IActionResult> GetUserNotifications()
+        {
+            var currentUser = await GetCurrentUserAsync();
+            await SyncWithActivityLogsAsync(currentUser.email);
+
+            List<NotificationItem> list;
+            lock (_lock)
+            {
+                list = _notificationStore!.Where(n =>
+                    string.IsNullOrEmpty(n.TargetEmail) ||
+                    n.TargetEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrEmpty(n.TargetRole) && n.TargetRole.Equals(currentUser.role, StringComparison.OrdinalIgnoreCase))
+                ).OrderByDescending(n => n.CreatedAt).ToList();
+            }
+
+            var unreadCount = list.Count(n => !n.IsRead);
+            var recent = list.Take(5).Select(n => new {
+                id = n.NotificationId,
+                title = n.Title,
+                description = n.Description,
+                category = n.Category,
+                createdAt = n.CreatedAt.ToString("HH:mm"),
+                timeAgo = GetTimeAgo(n.CreatedAt),
+                isRead = n.IsRead,
+                iconClass = n.IconClass,
+                colorClass = n.ColorClass,
+                targetUrl = n.TargetUrl
+            }).ToList();
+
+            return Json(new { unreadCount, totalCount = list.Count, notifications = recent });
+        }
+
+        private static string GetTimeAgo(DateTime dt)
+        {
+            var span = DateTime.Now - dt;
+            if (span.TotalMinutes < 1) return "Just now";
+            if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes} mins ago";
+            if (span.TotalHours < 24) return $"{(int)span.TotalHours} hrs ago";
+            return $"{(int)span.TotalDays} days ago";
+        }
+
         private async Task SyncWithActivityLogsAsync(string currentUserEmail)
         {
             try
@@ -290,7 +348,7 @@ namespace ERP_System.Controllers
                                     ColorClass = string.IsNullOrEmpty(log.ColorClass) ? "text-primary" : log.ColorClass,
                                     BgColorClass = "bg-primary-subtle",
                                     TargetUrl = "/Dashboard",
-                                    TargetEmail = ""
+                                    TargetEmail = currentUserEmail
                                 });
                             }
                         }
