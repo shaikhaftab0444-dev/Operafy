@@ -59,6 +59,27 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthentication();
+
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity != null && context.User.Identity.IsAuthenticated)
+    {
+        var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out int userId))
+        {
+            var dbContext = context.RequestServices.GetRequiredService<ApplicationDbContext>();
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null || !user.IsActive)
+            {
+                await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(context, CookieAuthenticationDefaults.AuthenticationScheme);
+                context.Response.Redirect("/Account/Login");
+                return;
+            }
+        }
+    }
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllerRoute(

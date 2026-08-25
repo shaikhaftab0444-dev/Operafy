@@ -4,86 +4,1574 @@
     ViewData["Title"] = "Branch Details";
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-code-branch text-primary me-2"></i>Branch Details</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Branch Details</li>
-                </ol>
-            </nav>
+<div class="branch-page container-fluid py-4 text-start">
+
+    <!-- =========================================================
+         PAGE HEADER
+         ========================================================= -->
+    <div class="branch-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+
+        <div class="branch-title-section">
+
+            <div class="branch-title-icon">
+                <i class="fa-solid fa-code-branch"></i>
+            </div>
+
+            <div>
+                <h4 class="fw-bold mb-1">
+                    Branch Details
+                </h4>
+
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0 small">
+
+                        <li class="breadcrumb-item">
+                            <a href="/Dashboard" class="text-decoration-none">
+                                Admin Dashboard
+                            </a>
+                        </li>
+
+                        <li class="breadcrumb-item active" aria-current="page">
+                            Branch Details
+                        </li>
+
+                    </ol>
+                </nav>
+            </div>
+
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#branchModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Create Branch
+
+
+        <!-- CREATE BRANCH BUTTON -->
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm branch-create-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#branchModal">
+
+            <i class="fa-solid fa-plus me-1"></i>
+            Create Branch
+
         </button>
+
     </div>
 
-    <!-- Branches List -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Company Branches</h5>
+
+    <!-- =========================================================
+         SUMMARY / INFO STRIP
+         ========================================================= -->
+    @{
+        var totalBranches = Model?.Count() ?? 0;
+        var activeBranches = Model?.Count(x => x.IsActive) ?? 0;
+        var inactiveBranches = totalBranches - activeBranches;
+    }
+
+    <div class="branch-summary-row mb-4">
+
+        <!-- TOTAL -->
+        <div class="branch-summary-card">
+
+            <div class="summary-icon summary-icon-primary">
+                <i class="fa-solid fa-building"></i>
+            </div>
+
+            <div class="summary-content">
+
+                <span class="summary-label">
+                    Total Branches
+                </span>
+
+                <strong class="summary-value">
+                    @totalBranches
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- ACTIVE -->
+        <div class="branch-summary-card">
+
+            <div class="summary-icon summary-icon-success">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+
+            <div class="summary-content">
+
+                <span class="summary-label">
+                    Active Branches
+                </span>
+
+                <strong class="summary-value">
+                    @activeBranches
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- INACTIVE -->
+        <div class="branch-summary-card">
+
+            <div class="summary-icon summary-icon-danger">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </div>
+
+            <div class="summary-content">
+
+                <span class="summary-label">
+                    Inactive Branches
+                </span>
+
+                <strong class="summary-value">
+                    @inactiveBranches
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         BRANCHES LIST CARD
+         ========================================================= -->
+
+    <div class="branch-table-card bg-white border rounded-3 shadow-sm">
+
+        <!-- CARD HEADER -->
+        <div class="branch-card-header">
+
+            <div>
+
+                <h5 class="fw-bold mb-1">
+                    <i class="fa-solid fa-building-columns me-2 text-primary"></i>
+                    Company Branches
+                </h5>
+
+                <p class="branch-subtitle mb-0">
+                    Manage and view all registered company branches.
+                </p>
+
+            </div>
+
+            <div class="branch-record-count">
+
+                <i class="fa-solid fa-layer-group me-1"></i>
+
+                @totalBranches
+                @(totalBranches == 1 ? "Branch" : "Branches")
+
+            </div>
+
+        </div>
+
+
+        <!-- TABLE -->
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+
+            <table class="table branch-table table-hover align-middle mb-0">
+
+                <thead>
+
                     <tr>
-                        <th>Branch Code</th>
-                        <th>Branch Name</th>
-                        <th>Status</th>
+
+                        <th>
+                            <span>
+                                Branch Code
+                            </span>
+                        </th>
+
+                        <th>
+                            <span>
+                                Branch Name
+                            </span>
+                        </th>
+
+                        <th>
+                            <span>
+                                Status
+                            </span>
+                        </th>
+
                     </tr>
+
                 </thead>
+
+
                 <tbody>
+
                     @if (Model != null && Model.Any())
                     {
                         @foreach (var b in Model)
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@b.BranchCode</td>
-                                <td>@b.BranchName</td>
+
+                                <!-- BRANCH CODE -->
                                 <td>
+
+                                    <div class="branch-code-wrapper">
+
+                                        <div class="branch-code-icon">
+                                            <i class="fa-solid fa-code-branch"></i>
+                                        </div>
+
+                                        <span class="branch-code">
+                                            @b.BranchCode
+                                        </span>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- BRANCH NAME -->
+                                <td>
+
+                                    <div class="branch-name-wrapper">
+
+                                        <span class="branch-name">
+                                            @b.BranchName
+                                        </span>
+
+                                        <small class="branch-name-label">
+                                            Corporate Branch
+                                        </small>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+                                <td>
+
                                     @if (b.IsActive)
                                     {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5">Active</span>
+                                        <span class="branch-status status-active">
+
+                                            <span class="status-dot"></span>
+
+                                            Active
+
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5">Inactive</span>
+                                        <span class="branch-status status-inactive">
+
+                                            <span class="status-dot"></span>
+
+                                            Inactive
+
+                                        </span>
                                     }
+
                                 </td>
+
                             </tr>
                         }
                     }
+                    else
+                    {
+                        <!-- EMPTY STATE -->
+
+                        <tr>
+
+                            <td colspan="3">
+
+                                <div class="branch-empty-state">
+
+                                    <div class="empty-icon">
+
+                                        <i class="fa-solid fa-building-circle-exclamation"></i>
+
+                                    </div>
+
+                                    <h6>
+                                        No Branches Found
+                                    </h6>
+
+                                    <p>
+                                        No company branches have been added yet.
+                                    </p>
+
+                                    <button class="btn btn-primary btn-sm rounded-pill px-3"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#branchModal">
+
+                                        <i class="fa-solid fa-plus me-1"></i>
+                                        Create First Branch
+
+                                    </button>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Branch Modal -->
-<div class="modal fade text-start" id="branchModal" tabindex="-1" aria-labelledby="branchModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+
+<!-- =========================================================
+     CREATE BRANCH MODAL
+     ========================================================= -->
+
+<div class="modal fade branch-modal text-start"
+     id="branchModal"
+     tabindex="-1"
+     aria-labelledby="branchModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
         <div class="modal-content">
+
             <form action="/AdminBranch/CreateBranch" method="post">
+
                 @Html.AntiForgeryToken()
+
+
+                <!-- MODAL HEADER -->
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="branchModalLabel">Add Corporate Branch</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    <div class="modal-title-wrapper">
+
+                        <div class="modal-title-icon">
+
+                            <i class="fa-solid fa-code-branch"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h5 class="modal-title fw-bold mb-0"
+                                id="branchModalLabel">
+
+                                Add Corporate Branch
+
+                            </h5>
+
+                            <small>
+                                Create a new company branch
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
                 </div>
+
+
+                <!-- MODAL BODY -->
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Branch Code</label>
-                        <input type="text" name="BranchCode" class="form-control" placeholder="e.g. BR-HYD" required />
+
+                    <!-- BRANCH CODE -->
+                    <div class="mb-3 form-field">
+
+                        <label class="form-label small fw-semibold">
+
+                            Branch Code
+
+                            <span class="required-star">
+                                *
+                            </span>
+
+                        </label>
+
+                        <div class="input-with-icon">
+
+                            <i class="fa-solid fa-hashtag"></i>
+
+                            <input type="text"
+                                   name="BranchCode"
+                                   class="form-control"
+                                   placeholder="e.g. BR-HYD"
+                                   required />
+
+                        </div>
+
+                        <small class="form-help-text">
+                            Use a unique short code for the branch.
+                        </small>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Branch Name</label>
-                        <input type="text" name="BranchName" class="form-control" placeholder="e.g. Hyderabad Sales Branch" required />
+
+
+                    <!-- BRANCH NAME -->
+                    <div class="mb-3 form-field">
+
+                        <label class="form-label small fw-semibold">
+
+                            Branch Name
+
+                            <span class="required-star">
+                                *
+                            </span>
+
+                        </label>
+
+                        <div class="input-with-icon">
+
+                            <i class="fa-solid fa-building"></i>
+
+                            <input type="text"
+                                   name="BranchName"
+                                   class="form-control"
+                                   placeholder="e.g. Hyderabad Sales Branch"
+                                   required />
+
+                        </div>
+
+                        <small class="form-help-text">
+                            Enter the official name of the company branch.
+                        </small>
+
                     </div>
+
+
+                    <!-- INFORMATION BOX -->
+                    <div class="branch-info-box">
+
+                        <div class="info-box-icon">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Branch Information
+                            </strong>
+
+                            <p class="mb-0">
+                                Make sure the branch code and branch name are correct before creating the branch.
+                            </p>
+
+                        </div>
+
+                    </div>
+
                 </div>
+
+
+                <!-- MODAL FOOTER -->
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Add Branch</button>
+
+                    <button type="button"
+                            class="btn btn-outline-secondary rounded-pill px-3 btn-sm"
+                            data-bs-dismiss="modal">
+
+                        <i class="fa-solid fa-xmark me-1"></i>
+                        Cancel
+
+                    </button>
+
+
+                    <button type="submit"
+                            class="btn btn-primary rounded-pill px-3 btn-sm">
+
+                        <i class="fa-solid fa-plus me-1"></i>
+                        Add Branch
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
+
+
+<!-- =========================================================
+     PREMIUM BRANCH PAGE CSS
+     ========================================================= -->
+
+<style>
+
+    /* =========================================================
+           ROOT COLORS
+           ========================================================= */
+
+    .branch-page {
+        --branch-primary: #0d6efd;
+        --branch-primary-dark: #0a58ca;
+        --branch-success: #198754;
+        --branch-danger: #dc3545;
+        --branch-text: #27364b;
+        --branch-muted: #667085;
+        --branch-border: #e7ebf0;
+        --branch-bg: #f8fafc;
+        --branch-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
+        --branch-shadow-hover: 0 16px 38px rgba(15, 23, 42, 0.09);
+        --branch-transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+
+    /* =========================================================
+           PAGE ENTRANCE
+           ========================================================= */
+
+    .branch-page {
+        animation: branchPageEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+
+    @@keyframes branchPageEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    /* =========================================================
+           HEADER
+           ========================================================= */
+
+    .branch-header {
+        animation: branchHeaderEnter 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+
+    @@keyframes branchHeaderEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    /* =========================================================
+           TITLE SECTION
+           ========================================================= */
+
+    .branch-title-section {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+    }
+
+
+    .branch-title-icon {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--branch-primary);
+        background: linear-gradient( 135deg, #edf5ff, #f7faff );
+        border: 1px solid #dceaff;
+        box-shadow: 0 6px 15px rgba(13, 110, 253, 0.08);
+        transition: var(--branch-transition);
+    }
+
+
+    .branch-title-section:hover .branch-title-icon {
+        transform: translateY(-2px) rotate(-3deg);
+        box-shadow: 0 9px 20px rgba(13, 110, 253, 0.14);
+    }
+
+
+    .branch-title-section h4 {
+        color: var(--branch-text);
+    }
+
+
+    /* =========================================================
+           BREADCRUMB
+           ========================================================= */
+
+    .branch-page .breadcrumb-item a {
+        color: #667085;
+        transition: all 0.2s ease;
+    }
+
+
+        .branch-page .breadcrumb-item a:hover {
+            color: var(--branch-primary) !important;
+            transform: translateX(2px);
+        }
+
+
+    /* =========================================================
+           CREATE BUTTON
+           ========================================================= */
+
+    .branch-create-btn {
+        box-shadow: 0 5px 14px rgba(13, 110, 253, 0.17) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+
+        .branch-create-btn:hover {
+            transform: translateY(-2px);
+            background-color: var(--branch-primary-dark);
+            box-shadow: 0 9px 22px rgba(13, 110, 253, 0.24) !important;
+        }
+
+
+        .branch-create-btn:active {
+            transform: translateY(0) scale(0.97);
+        }
+
+
+        .branch-create-btn .fa-plus {
+            transition: transform 0.22s ease;
+        }
+
+
+        .branch-create-btn:hover .fa-plus {
+            transform: rotate(90deg);
+        }
+
+
+    /* =========================================================
+           SUMMARY CARDS
+           ========================================================= */
+
+    .branch-summary-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        animation: summaryEnter 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+    }
+
+
+    @@keyframes summaryEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .branch-summary-card {
+        min-height: 92px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 17px 18px;
+        background: #ffffff;
+        border: 1px solid var(--branch-border);
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.035);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+
+        .branch-summary-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.075);
+            border-color: #dbe4ef;
+        }
+
+
+    .summary-icon {
+        width: 46px;
+        height: 46px;
+        min-width: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        transition: transform 0.25s ease;
+    }
+
+
+    .branch-summary-card:hover .summary-icon {
+        transform: scale(1.07) rotate(-3deg);
+    }
+
+
+    .summary-icon-primary {
+        color: #0d6efd;
+        background: #edf5ff;
+    }
+
+
+    .summary-icon-success {
+        color: #198754;
+        background: #eaf8f1;
+    }
+
+
+    .summary-icon-danger {
+        color: #dc3545;
+        background: #fff0f1;
+    }
+
+
+    .summary-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+
+    .summary-label {
+        color: var(--branch-muted);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+
+    .summary-value {
+        color: var(--branch-text);
+        font-size: 1.25rem;
+        line-height: 1.2;
+    }
+
+
+    /* =========================================================
+           MAIN TABLE CARD
+           ========================================================= */
+
+    .branch-table-card {
+        overflow: hidden;
+        border-color: var(--branch-border) !important;
+        box-shadow: var(--branch-shadow) !important;
+        animation: tableCardEnter 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+        transition: box-shadow 0.25s ease;
+    }
+
+
+    @@keyframes tableCardEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .branch-table-card:hover {
+        box-shadow: var(--branch-shadow-hover) !important;
+    }
+
+
+    /* =========================================================
+           CARD HEADER
+           ========================================================= */
+
+    .branch-card-header {
+        min-height: 78px;
+        padding: 18px 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        border-bottom: 1px solid #edf0f4;
+        background: linear-gradient( 180deg, #ffffff 0%, #fbfcfe 100% );
+    }
+
+
+        .branch-card-header h5 {
+            color: var(--branch-text);
+        }
+
+
+    .branch-subtitle {
+        color: #8a94a6;
+        font-size: 0.78rem;
+    }
+
+
+    .branch-record-count {
+        white-space: nowrap;
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: #f3f7fc;
+        border: 1px solid #e4ebf3;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+
+        .branch-record-count i {
+            color: var(--branch-primary);
+        }
+
+
+    /* =========================================================
+           TABLE
+           ========================================================= */
+
+    .branch-table {
+        font-size: 0.85rem;
+    }
+
+
+        .branch-table thead th {
+            padding: 13px 20px;
+            background: #f8fafc;
+            color: #667085;
+            border-bottom: 1px solid #e7ebf0;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.45px;
+            white-space: nowrap;
+        }
+
+
+        .branch-table tbody td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #475467;
+            vertical-align: middle;
+        }
+
+
+        .branch-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+
+        /* =========================================================
+           TABLE ROW ANIMATION
+           ========================================================= */
+
+        .branch-table tbody tr {
+            animation: branchRowEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            transition: background-color 0.22s ease, box-shadow 0.22s ease;
+        }
+
+
+            .branch-table tbody tr:nth-child(1) {
+                animation-delay: 0.25s;
+            }
+
+
+            .branch-table tbody tr:nth-child(2) {
+                animation-delay: 0.30s;
+            }
+
+
+            .branch-table tbody tr:nth-child(3) {
+                animation-delay: 0.35s;
+            }
+
+
+            .branch-table tbody tr:nth-child(4) {
+                animation-delay: 0.40s;
+            }
+
+
+            .branch-table tbody tr:nth-child(5) {
+                animation-delay: 0.45s;
+            }
+
+
+            .branch-table tbody tr:nth-child(n+6) {
+                animation-delay: 0.50s;
+            }
+
+
+    @@keyframes branchRowEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(7px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .branch-table.table-hover > tbody > tr:hover {
+        background: #f8fbff;
+    }
+
+
+    .branch-table tbody tr:hover td {
+        border-bottom-color: #e7eef7;
+    }
+
+
+    /* =========================================================
+           BRANCH CODE
+           ========================================================= */
+
+    .branch-code-wrapper {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+
+    .branch-code-icon {
+        width: 31px;
+        height: 31px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--branch-primary);
+        background: #eef5ff;
+        font-size: 12px;
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+
+    .branch-table tbody tr:hover .branch-code-icon {
+        transform: scale(1.08) rotate(-3deg);
+        background: #e6f0ff;
+    }
+
+
+    .branch-code {
+        font-weight: 700;
+        color: #27364b;
+        letter-spacing: 0.2px;
+        transition: color 0.2s ease;
+    }
+
+
+    .branch-table tbody tr:hover .branch-code {
+        color: var(--branch-primary);
+    }
+
+
+    /* =========================================================
+           BRANCH NAME
+           ========================================================= */
+
+    .branch-name-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+
+    .branch-name {
+        color: #344054;
+        font-weight: 600;
+        transition: color 0.2s ease;
+    }
+
+
+    .branch-name-label {
+        color: #98a2b3;
+        font-size: 0.68rem;
+    }
+
+
+    .branch-table tbody tr:hover .branch-name {
+        color: var(--branch-primary);
+    }
+
+
+    /* =========================================================
+           STATUS
+           ========================================================= */
+
+    .branch-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+
+    .branch-table tbody tr:hover .branch-status {
+        transform: translateY(-1px);
+    }
+
+
+    .status-active {
+        color: #16804f;
+        background: #eaf8f1;
+        border: 1px solid #d8f0e4;
+    }
+
+
+    .status-inactive {
+        color: #c73647;
+        background: #fff0f1;
+        border: 1px solid #f9dce0;
+    }
+
+
+    .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+
+    .status-active .status-dot {
+        background: #198754;
+        box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.10);
+    }
+
+
+    .status-inactive .status-dot {
+        background: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.08);
+    }
+
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .branch-empty-state {
+        min-height: 250px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 35px 20px;
+        animation: emptyStateEnter 0.55s ease both;
+    }
+
+
+    @@keyframes emptyStateEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .empty-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        background: #f3f6fa;
+        margin-bottom: 15px;
+        font-size: 24px;
+    }
+
+
+    .branch-empty-state h6 {
+        color: var(--branch-text);
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+
+    .branch-empty-state p {
+        color: #8a94a6;
+        font-size: 0.8rem;
+        margin-bottom: 15px;
+    }
+
+
+    /* =========================================================
+           MODAL
+           ========================================================= */
+
+    .branch-modal .modal-dialog {
+        transform: translateY(18px) scale(0.97);
+        opacity: 0;
+        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+    }
+
+
+    .branch-modal.show .modal-dialog {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+
+    .branch-modal .modal-content {
+        border: 1px solid #e5eaf0;
+        border-radius: 17px;
+        overflow: hidden;
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.16);
+    }
+
+
+    /* =========================================================
+           MODAL HEADER
+           ========================================================= */
+
+    .branch-modal .modal-header {
+        padding: 18px 20px;
+        background: linear-gradient( 135deg, #ffffff 0%, #f7faff 100% );
+        border-bottom: 1px solid #edf0f4;
+    }
+
+
+    .modal-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+
+    .modal-title-icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        color: var(--branch-primary);
+        background: #edf5ff;
+        border: 1px solid #dceaff;
+    }
+
+
+    .modal-title-wrapper small {
+        display: block;
+        color: #8a94a6;
+        margin-top: 2px;
+        font-size: 0.7rem;
+    }
+
+
+    .branch-modal .btn-close {
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+
+        .branch-modal .btn-close:hover {
+            transform: rotate(90deg) scale(1.05);
+            opacity: 0.65;
+        }
+
+
+    /* =========================================================
+           MODAL BODY
+           ========================================================= */
+
+    .branch-modal .modal-body {
+        padding: 22px 20px;
+    }
+
+
+    .form-field {
+        animation: formFieldEnter 0.35s ease both;
+    }
+
+
+        .form-field:nth-child(1) {
+            animation-delay: 0.08s;
+        }
+
+
+        .form-field:nth-child(2) {
+            animation-delay: 0.14s;
+        }
+
+
+    @@keyframes formFieldEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(7px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .branch-modal .form-label {
+        color: #475467;
+        margin-bottom: 7px;
+    }
+
+
+    .required-star {
+        color: var(--branch-danger);
+        margin-left: 2px;
+    }
+
+
+    /* =========================================================
+           INPUT ICON
+           ========================================================= */
+
+    .input-with-icon {
+        position: relative;
+    }
+
+
+        .input-with-icon > i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #98a2b3;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 2;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+
+        .input-with-icon .form-control {
+            padding-left: 38px;
+        }
+
+
+        .input-with-icon:focus-within > i {
+            color: var(--branch-primary);
+            transform: translateY(-50%) scale(1.08);
+        }
+
+
+    .branch-modal .form-control {
+        min-height: 40px;
+        border: 1px solid #dfe5ec;
+        border-radius: 9px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+
+        .branch-modal .form-control:hover {
+            border-color: #c9d3df;
+        }
+
+
+        .branch-modal .form-control:focus {
+            border-color: rgba(13, 110, 253, 0.55);
+            box-shadow: 0 0 0 0.18rem rgba(13, 110, 253, 0.10);
+            transform: translateY(-1px);
+        }
+
+
+        .branch-modal .form-control::placeholder {
+            color: #a3acb9;
+            font-size: 0.78rem;
+        }
+
+
+    .form-help-text {
+        display: block;
+        margin-top: 5px;
+        color: #98a2b3;
+        font-size: 0.68rem;
+    }
+
+
+    /* =========================================================
+           INFO BOX
+           ========================================================= */
+
+    .branch-info-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 13px;
+        margin-top: 18px;
+        border-radius: 10px;
+        border: 1px solid #dceaff;
+        background: #f5f9ff;
+        color: #526176;
+        font-size: 0.72rem;
+        animation: infoBoxEnter 0.4s ease 0.2s both;
+    }
+
+
+    @@keyframes infoBoxEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .info-box-icon {
+        color: var(--branch-primary);
+        font-size: 14px;
+        margin-top: 1px;
+    }
+
+
+    .branch-info-box strong {
+        color: #344054;
+        display: block;
+        margin-bottom: 2px;
+    }
+
+
+    /* =========================================================
+           MODAL FOOTER
+           ========================================================= */
+
+    .branch-modal .modal-footer {
+        padding: 14px 20px;
+        background: #fbfcfe;
+        border-top: 1px solid #edf0f4;
+    }
+
+
+        .branch-modal .modal-footer .btn {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+
+            .branch-modal .modal-footer .btn:hover {
+                transform: translateY(-2px);
+            }
+
+
+            .branch-modal .modal-footer .btn:active {
+                transform: scale(0.97);
+            }
+
+
+        .branch-modal .modal-footer .btn-primary {
+            box-shadow: 0 5px 14px rgba(13, 110, 253, 0.15);
+        }
+
+
+    /* =========================================================
+           BACKDROP
+           ========================================================= */
+
+    .modal-backdrop.show {
+        opacity: 0.42;
+    }
+
+
+    /* =========================================================
+           SCROLLBAR
+           ========================================================= */
+
+    .branch-page .table-responsive::-webkit-scrollbar {
+        height: 6px;
+    }
+
+
+    .branch-page .table-responsive::-webkit-scrollbar-track {
+        background: #f1f3f6;
+        border-radius: 10px;
+    }
+
+
+    .branch-page .table-responsive::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+
+        .branch-page .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 991.98px) {
+        .branch-summary-row
+
+    {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    }
+
+
+    @@media (max-width: 767.98px) {
+        .branch-page
+
+    {
+        padding-top: 1rem !important;
+    }
+
+
+    .branch-title-section {
+        width: 100%;
+    }
+
+
+    .branch-create-btn {
+        width: 100%;
+    }
+
+
+    .branch-summary-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+
+    .branch-summary-card {
+        min-height: 78px;
+    }
+
+
+    .branch-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px;
+    }
+
+
+    .branch-record-count {
+        align-self: flex-start;
+    }
+
+
+    .branch-table {
+        min-width: 620px;
+    }
+
+
+        .branch-table thead th,
+        .branch-table tbody td {
+            padding-left: 14px;
+            padding-right: 14px;
+        }
+
+
+    .branch-modal .modal-dialog {
+        margin: 0.75rem;
+    }
+
+
+    .branch-modal .modal-content {
+        border-radius: 14px;
+    }
+
+    }
+
+
+    @@media (max-width: 420px) {
+        .branch-title-icon
+
+    {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+    }
+
+
+    .branch-title-section h4 {
+        font-size: 1rem;
+    }
+
+
+    .branch-modal .modal-body {
+        padding: 18px 15px;
+    }
+
+
+    .branch-modal .modal-header {
+        padding: 15px;
+    }
+
+
+    .branch-modal .modal-footer {
+        padding: 12px 15px;
+    }
+
+    }
+
+
+    /* =========================================================
+           ACCESSIBILITY — REDUCED MOTION
+           ========================================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .branch-page *, .branch-page *::before, .branch-page *::after, .branch-modal *, .branch-modal *::before, .branch-modal *::after
+
+    {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    }
+</style>

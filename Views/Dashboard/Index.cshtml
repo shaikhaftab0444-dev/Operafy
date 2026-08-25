@@ -1,4 +1,5 @@
 ﻿@model ERP_System.Models.DashboardViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Dashboard";
@@ -8,751 +9,1707 @@
 @if (User.IsInRole("Admin"))
 {
     <!-- ========================================== -->
-    <!--          SYSTEM ADMIN DASHBOARD            -->
+    <!--         PREMIUM ADMIN DASHBOARD            -->
     <!-- ========================================== -->
+
     <style>
-        .admin-title-bar {
-            text-align: left;
-            margin-bottom: 1.5rem;
+        :root {
+            --dashboard-primary: #2563eb;
+            --dashboard-primary-dark: #1d4ed8;
+            --dashboard-text: #1e293b;
+            --dashboard-muted: #64748b;
+            --dashboard-border: #e5e7eb;
+            --dashboard-bg: #f8fafc;
+            --dashboard-card: #ffffff;
+            --dashboard-success: #16a34a;
+            --dashboard-warning: #d97706;
         }
 
-        .admin-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-color);
+        .premium-dashboard {
+            animation: dashboardFadeIn .45s ease;
+            padding-bottom: 30px;
+        }
+
+        @@keyframes dashboardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* =========================
+           PAGE HEADER
+        ========================== */
+
+        .admin-welcome-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid var(--dashboard-border);
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+        }
+
+        .admin-welcome-card::before {
+            content: "";
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.05);
+            right: -90px;
+            top: -110px;
+        }
+
+        .admin-welcome-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .admin-page-title {
+            color: var(--dashboard-text);
+            font-size: 1.7rem;
+            font-weight: 800;
+            margin: 0 0 6px;
+            letter-spacing: -0.4px;
+        }
+
+        .admin-page-subtitle {
+            color: var(--dashboard-muted);
+            font-size: .92rem;
             margin: 0;
         }
 
-        .admin-subtitle {
-            font-size: 0.875rem;
-            color: var(--sidebar-color);
-            margin-top: 2px;
+        .admin-page-subtitle strong {
+            color: var(--dashboard-primary);
+            font-weight: 700;
         }
 
-        /* Settings Portals Grid */
+        /* =========================
+           OVERVIEW STATS
+        ========================== */
+
+        .admin-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 26px;
+        }
+
+        .admin-stat-card {
+            background: var(--dashboard-card);
+            border: 1px solid var(--dashboard-border);
+            border-radius: 18px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all .25s ease;
+            animation: cardEntrance .5s ease both;
+        }
+
+        .admin-stat-card:nth-child(2) {
+            animation-delay: .05s;
+        }
+
+        .admin-stat-card:nth-child(3) {
+            animation-delay: .1s;
+        }
+
+        .admin-stat-card:nth-child(4) {
+            animation-delay: .15s;
+        }
+
+        @@keyframes cardEntrance {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .admin-stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 18px 35px rgba(15, 23, 42, .08);
+            border-color: #cbd5e1;
+        }
+
+        .admin-stat-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .admin-stat-label {
+            color: var(--dashboard-muted);
+            font-size: .8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .admin-stat-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .stat-icon-blue {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .stat-icon-purple {
+            background: #f5f3ff;
+            color: #7c3aed;
+        }
+
+        .stat-icon-green {
+            background: #ecfdf5;
+            color: #16a34a;
+        }
+
+        .stat-icon-orange {
+            background: #fff7ed;
+            color: #ea580c;
+        }
+
+        .admin-stat-value {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--dashboard-text);
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .admin-stat-bottom {
+            font-size: .78rem;
+            color: var(--dashboard-muted);
+        }
+
+        /* =========================
+           QUICK ACTIONS
+        ========================== */
+
+        .dashboard-section {
+            margin-bottom: 26px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--dashboard-text);
+            margin: 0;
+        }
+
+        .section-subtitle {
+            font-size: .8rem;
+            color: var(--dashboard-muted);
+            margin-top: 3px;
+        }
+
         .portal-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
-            margin-bottom: 2.5rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
         }
 
-        @@media (max-width: 900px) {
+        .portal-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #ffffff;
+            border: 1px solid var(--dashboard-border);
+            border-radius: 18px;
+            padding: 20px;
+            text-decoration: none !important;
+            color: inherit;
+            transition: all .25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .portal-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(37, 99, 235, .025));
+            opacity: 0;
+            transition: opacity .25s ease;
+        }
+
+        .portal-card:hover {
+            transform: translateY(-5px);
+            border-color: #bfdbfe;
+            box-shadow: 0 16px 30px rgba(15, 23, 42, .07);
+        }
+
+        .portal-card:hover::after {
+            opacity: 1;
+        }
+
+        .portal-icon-wrap {
+            width: 52px;
+            height: 52px;
+            min-width: 52px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #eff6ff, #f8fbff);
+            color: var(--dashboard-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .portal-info {
+            min-width: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .portal-name {
+            font-size: .95rem;
+            font-weight: 800;
+            color: var(--dashboard-text);
+            margin-bottom: 5px;
+        }
+
+        .portal-desc {
+            color: var(--dashboard-muted);
+            font-size: .78rem;
+            line-height: 1.5;
+        }
+
+        .portal-arrow {
+            margin-left: auto;
+            color: #94a3b8;
+            font-size: .8rem;
+            position: relative;
+            z-index: 1;
+            transition: transform .25s ease;
+        }
+
+        .portal-card:hover .portal-arrow {
+            color: var(--dashboard-primary);
+            transform: translateX(4px);
+        }
+
+        /* =========================
+           PANELS
+        ========================== */
+
+        .admin-panel {
+            background: #ffffff;
+            border: 1px solid var(--dashboard-border);
+            border-radius: 20px;
+            padding: 22px;
+            height: 100%;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .025);
+        }
+
+        .admin-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 15px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .admin-panel-title {
+            color: var(--dashboard-text);
+            font-size: 1rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .panel-icon {
+            width: 36px;
+            height: 36px;
+            background: #f8fafc;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dashboard-primary);
+        }
+
+        /* =========================
+           ACTIVITY
+        ========================== */
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 13px;
+            padding: 13px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .activity-icon {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: var(--dashboard-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .85rem;
+        }
+
+        .activity-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .activity-title {
+            color: var(--dashboard-text);
+            font-size: .85rem;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .activity-description {
+            color: var(--dashboard-muted);
+            font-size: .76rem;
+            line-height: 1.45;
+        }
+
+        .activity-time {
+            color: #94a3b8;
+            font-size: .72rem;
+            white-space: nowrap;
+        }
+
+        /* =========================
+           DATABASE SUMMARY
+        ========================== */
+
+        .stat-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .stat-list-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .stat-item-left {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .stat-item-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
+            background: #f8fafc;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .8rem;
+        }
+
+        .stat-item-label {
+            color: #475569;
+            font-size: .82rem;
+            font-weight: 600;
+        }
+
+        .stat-item-val {
+            color: var(--dashboard-text);
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        /* =========================
+           RESPONSIVE
+        ========================== */
+
+        @@media (max-width: 1200px) {
+            .admin-stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @@media (max-width: 992px) {
             .portal-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        @@media (max-width: 600px) {
+        @@media (max-width: 576px) {
+            .admin-welcome-card {
+                padding: 20px;
+            }
+
+            .admin-page-title {
+                font-size: 1.35rem;
+            }
+
+            .admin-stat-grid,
             .portal-grid {
                 grid-template-columns: 1fr;
             }
-        }
 
-        .portal-card {
-            background: #ffffff;
-            border: 1px solid var(--border-warm);
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: left;
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-            box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-            text-decoration: none !important;
-            transition: all 0.2s ease-in-out;
-        }
-
-            .portal-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 16px rgba(45,37,30,0.06);
-                border-color: var(--primary-warm);
+            .portal-card {
+                padding: 17px;
             }
-
-        .portal-icon-wrap {
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            flex-shrink: 0;
-            background-color: rgba(79, 70, 229, 0.06);
-            color: var(--primary-warm);
-        }
-
-        .portal-info {
-            flex-grow: 1;
-        }
-
-        .portal-name {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text-color);
-            margin-bottom: 4px;
-        }
-
-        .portal-desc {
-            font-size: 0.8rem;
-            color: #7c7267;
-            line-height: 1.4;
-        }
-
-        /* Two columns bottom section */
-        .admin-panel {
-            background: #ffffff;
-            border: 1px solid var(--border-warm);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-        }
-
-        .admin-panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border-warm);
-            padding-bottom: 0.75rem;
-            margin-bottom: 1.25rem;
-            text-align: left;
-        }
-
-        .admin-panel-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-color);
-            margin: 0;
-        }
-
-        /* Activity list */
-        .activity-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .activity-item {
-            display: flex;
-            gap: 15px;
-            align-items: flex-start;
-        }
-
-        .activity-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
-            background-color: #faf6f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            flex-shrink: 0;
-        }
-
-        .activity-body {
-            flex-grow: 1;
-            font-size: 0.85rem;
-            text-align: left;
-        }
-
-        .activity-time {
-            font-size: 0.75rem;
-            color: #a19688;
-            white-space: nowrap;
-        }
-
-        /* Stats List */
-        .stat-list-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.85rem 0;
-            border-bottom: 1px dashed var(--border-warm);
-        }
-
-            .stat-list-item:last-child {
-                border-bottom: none;
-            }
-
-        .stat-item-label {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #555555;
-        }
-
-        .stat-item-val {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--primary-warm);
         }
     </style>
 
-    <div class="admin-title-bar">
-        <h2 class="admin-title">System Administration Control Panel</h2>
-        <div class="admin-subtitle">Welcome, <strong>@Model.CurrentUserFullName</strong>. Manage database configurations, users, and enterprise options below.</div>
-    </div>
+    <div class="premium-dashboard">
 
-    <!-- Quick Access Portals -->
-    <div class="portal-grid">
-        <!-- 1. User Types -->
-        <a href="/Roles" class="portal-card">
-            <div class="portal-icon-wrap"><i class="fa-solid fa-user-shield"></i></div>
-            <div class="portal-info">
-                <div class="portal-name">User Types (Roles)</div>
-                <div class="portal-desc">Manage access level privileges and review active user counts per system role.</div>
+        <!-- WELCOME HEADER -->
+        <div class="admin-welcome-card">
+            <div class="admin-welcome-content">
+                <h2 class="admin-page-title">
+                    System Administration
+                </h2>
+
+                <p class="admin-page-subtitle">
+                    Welcome back, <strong>@Model.CurrentUserFullName</strong>.
+                    Monitor users, companies and system configuration from one place.
+                </p>
             </div>
-        </a>
+        </div>
 
-        <!-- 2. Users -->
-        <a href="/UserAccounts" class="portal-card">
-            <div class="portal-icon-wrap"><i class="fa-solid fa-users"></i></div>
-            <div class="portal-info">
-                <div class="portal-name">User Directory</div>
-                <div class="portal-desc">Manage system logins, roles configuration, and branch location assignments.</div>
-            </div>
-        </a>
+        <!-- ADMIN OVERVIEW -->
+        <div class="admin-stat-grid">
 
-        <!-- 3. Companies -->
-        <a href="/Company" class="portal-card">
-            <div class="portal-icon-wrap"><i class="fa-solid fa-building"></i></div>
-            <div class="portal-info">
-                <div class="portal-name">Companies</div>
-                <div class="portal-desc">Update parent company information, local currency settings, and addresses.</div>
-            </div>
-        </a>
-
-        <!-- 4. Company Registration -->
-        <a href="/Company/Create" class="portal-card">
-            <div class="portal-icon-wrap"><i class="fa-solid fa-folder-plus"></i></div>
-            <div class="portal-info">
-                <div class="portal-name">Company Registration</div>
-                <div class="portal-desc">Register new enterprise companies into the SQL Server database.</div>
-            </div>
-        </a>
-
-        <!-- 5. Account Head's -->
-        <a href="/AccountHeads" class="portal-card">
-            <div class="portal-icon-wrap"><i class="fa-solid fa-wallet"></i></div>
-            <div class="portal-info">
-                <div class="portal-name">Account Head's</div>
-                <div class="portal-desc">Configure accounting chart of account ledger categories and codes.</div>
-            </div>
-        </a>
-
-        <!-- 6. Financial Year -->
-        <a href="/FinancialYear" class="portal-card">
-            <div class="portal-icon-wrap"><i class="fa-solid fa-calendar-days"></i></div>
-            <div class="portal-info">
-                <div class="portal-name">Financial Year Settings</div>
-                <div class="portal-desc">Open fiscal calendars, view starting dates, and switch active operating years.</div>
-            </div>
-        </a>
-    </div>
-
-    <!-- Bottom Log Feed and Stats -->
-    <div class="row g-4 text-start">
-        <!-- System Logs Feed -->
-        <div class="col-lg-7">
-            <div class="admin-panel">
-                <div class="admin-panel-header">
-                    <h5 class="admin-panel-title"><i class="fa-solid fa-clock-rotate-left me-2 text-muted"></i>Recent Administrative Logs</h5>
+            <div class="admin-stat-card">
+                <div class="admin-stat-top">
+                    <span class="admin-stat-label">Companies</span>
+                    <div class="admin-stat-icon stat-icon-blue">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
                 </div>
-                <div class="activity-list">
-                    @if (Model.RecentActivities != null && Model.RecentActivities.Any())
-                    {
-                        foreach (var activity in Model.RecentActivities)
-                        {
-                            var timeDiff = DateTime.UtcNow - activity.CreatedAt.ToUniversalTime();
-                            var timeStr = timeDiff.TotalMinutes < 60 ? $"{(int)timeDiff.TotalMinutes} min ago" :
-                            timeDiff.TotalHours < 24 ? $"{(int)timeDiff.TotalHours} hour ago" :
-                            $"{(int)timeDiff.TotalDays} days ago";
 
-                            <div class="activity-item">
-                                <div class="activity-icon @activity.ColorClass">
-                                    <i class="fa-solid @activity.IconClass"></i>
+                <div class="admin-stat-value">@ViewBag.TotalCompanies</div>
+                <div class="admin-stat-bottom">Registered companies</div>
+            </div>
+
+            <div class="admin-stat-card">
+                <div class="admin-stat-top">
+                    <span class="admin-stat-label">Users</span>
+                    <div class="admin-stat-icon stat-icon-purple">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+
+                <div class="admin-stat-value">@ViewBag.TotalUsers</div>
+                <div class="admin-stat-bottom">System user accounts</div>
+            </div>
+
+            <div class="admin-stat-card">
+                <div class="admin-stat-top">
+                    <span class="admin-stat-label">Products</span>
+                    <div class="admin-stat-icon stat-icon-green">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+                </div>
+
+                <div class="admin-stat-value">@Model.TotalProducts</div>
+                <div class="admin-stat-bottom">Products in catalog</div>
+            </div>
+
+            <div class="admin-stat-card">
+                <div class="admin-stat-top">
+                    <span class="admin-stat-label">System Roles</span>
+                    <div class="admin-stat-icon stat-icon-orange">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                </div>
+
+                <div class="admin-stat-value">@ViewBag.TotalRoles</div>
+                <div class="admin-stat-bottom">Access roles configured</div>
+            </div>
+
+        </div>
+
+        <!-- QUICK ACCESS -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <div>
+                    <h4 class="section-title">Administration Center</h4>
+                    <div class="section-subtitle">
+                        Quick access to important system configuration areas
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-grid">
+
+                <!-- ROLES -->
+                <a href="/Roles" class="portal-card">
+                    <div class="portal-icon-wrap">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+
+                    <div class="portal-info">
+                        <div class="portal-name">User Types & Roles</div>
+                        <div class="portal-desc">
+                            Manage roles, permissions and system access levels.
+                        </div>
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right portal-arrow"></i>
+                </a>
+
+                <!-- USERS -->
+                <a href="/UserAccounts" class="portal-card">
+                    <div class="portal-icon-wrap">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+
+                    <div class="portal-info">
+                        <div class="portal-name">User Directory</div>
+                        <div class="portal-desc">
+                            Manage user accounts, login details and assignments.
+                        </div>
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right portal-arrow"></i>
+                </a>
+
+                <!-- COMPANIES -->
+                <a href="/Company" class="portal-card">
+                    <div class="portal-icon-wrap">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+
+                    <div class="portal-info">
+                        <div class="portal-name">Companies</div>
+                        <div class="portal-desc">
+                            Manage company information and enterprise settings.
+                        </div>
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right portal-arrow"></i>
+                </a>
+
+                <!-- COMPANY REGISTRATION -->
+                <a href="/Company/Create" class="portal-card">
+                    <div class="portal-icon-wrap">
+                        <i class="fa-solid fa-folder-plus"></i>
+                    </div>
+
+                    <div class="portal-info">
+                        <div class="portal-name">Company Registration</div>
+                        <div class="portal-desc">
+                            Register and configure a new enterprise company.
+                        </div>
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right portal-arrow"></i>
+                </a>
+
+                <!-- ACCOUNT HEADS -->
+                <a href="/AccountHeads" class="portal-card">
+                    <div class="portal-icon-wrap">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+
+                    <div class="portal-info">
+                        <div class="portal-name">Account Heads</div>
+                        <div class="portal-desc">
+                            Configure accounting heads and ledger categories.
+                        </div>
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right portal-arrow"></i>
+                </a>
+
+                <!-- FINANCIAL YEAR -->
+                <a href="/FinancialYear" class="portal-card">
+                    <div class="portal-icon-wrap">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+
+                    <div class="portal-info">
+                        <div class="portal-name">Financial Year</div>
+                        <div class="portal-desc">
+                            Manage fiscal calendars and active financial years.
+                        </div>
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right portal-arrow"></i>
+                </a>
+
+            </div>
+        </div>
+
+        <!-- ACTIVITY + SUMMARY -->
+        <div class="row g-4">
+
+            <!-- RECENT ACTIVITY -->
+            <div class="col-lg-7">
+                <div class="admin-panel">
+
+                    <div class="admin-panel-header">
+                        <div>
+                            <h5 class="admin-panel-title">
+                                Recent Administrative Activity
+                            </h5>
+                        </div>
+
+                        <div class="panel-icon">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                    </div>
+
+                    <div class="activity-list">
+
+                        @if (Model.RecentActivities != null && Model.RecentActivities.Any())
+                        {
+                            foreach (var activity in Model.RecentActivities)
+                            {
+                                var timeDiff = DateTime.UtcNow - activity.CreatedAt.ToUniversalTime();
+
+                                var timeStr =
+                                    timeDiff.TotalMinutes < 1 ? "Just now" :
+                                    timeDiff.TotalMinutes < 60 ? $"{(int)timeDiff.TotalMinutes} min ago" :
+                                    timeDiff.TotalHours < 24 ? $"{(int)timeDiff.TotalHours} hour ago" :
+                                    $"{(int)timeDiff.TotalDays} day(s) ago";
+
+                                <div class="activity-item">
+
+                                    <div class="activity-icon @activity.ColorClass">
+                                        <i class="fa-solid @activity.IconClass"></i>
+                                    </div>
+
+                                    <div class="activity-body">
+                                        <div class="activity-title">
+                                            @activity.Title
+                                        </div>
+
+                                        <div class="activity-description">
+                                            @activity.Description
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-time">
+                                        @timeStr
+                                    </div>
+
                                 </div>
-                                <div class="activity-body">
-                                    <div class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">@activity.Title</div>
-                                    <div class="text-secondary small">@activity.Description</div>
-                                </div>
-                                <div class="activity-time">@timeStr</div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-4">
+                                <i class="fa-regular fa-folder-open fa-2x mb-3"></i>
+                                <div>No recent administrative activity found.</div>
                             </div>
                         }
-                    }
-                    else
-                    {
-                        <div class="text-center text-muted small py-4">No recent administration logs recorded.</div>
-                    }
+
+                    </div>
                 </div>
             </div>
+
+            <!-- DATABASE SUMMARY -->
+            <div class="col-lg-5">
+                <div class="admin-panel">
+
+                    <div class="admin-panel-header">
+                        <h5 class="admin-panel-title">
+                            Database Summary
+                        </h5>
+
+                        <div class="panel-icon">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-list-item">
+                        <div class="stat-item-left">
+                            <div class="stat-item-icon">
+                                <i class="fa-solid fa-building"></i>
+                            </div>
+
+                            <span class="stat-item-label">
+                                Registered Companies
+                            </span>
+                        </div>
+
+                        <span class="stat-item-val">
+                            @ViewBag.TotalCompanies
+                        </span>
+                    </div>
+
+                    <div class="stat-list-item">
+                        <div class="stat-item-left">
+                            <div class="stat-item-icon">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+
+                            <span class="stat-item-label">
+                                User Credentials
+                            </span>
+                        </div>
+
+                        <span class="stat-item-val">
+                            @ViewBag.TotalUsers
+                        </span>
+                    </div>
+
+                    <div class="stat-list-item">
+                        <div class="stat-item-left">
+                            <div class="stat-item-icon">
+                                <i class="fa-solid fa-user-shield"></i>
+                            </div>
+
+                            <span class="stat-item-label">
+                                System Roles
+                            </span>
+                        </div>
+
+                        <span class="stat-item-val">
+                            @ViewBag.TotalRoles
+                        </span>
+                    </div>
+
+                    <div class="stat-list-item">
+                        <div class="stat-item-left">
+                            <div class="stat-item-icon">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+
+                            <span class="stat-item-label">
+                                Account Heads
+                            </span>
+                        </div>
+
+                        <span class="stat-item-val">
+                            @ViewBag.TotalAccountHeads
+                        </span>
+                    </div>
+
+                    <div class="stat-list-item">
+                        <div class="stat-item-left">
+                            <div class="stat-item-icon">
+                                <i class="fa-solid fa-box-open"></i>
+                            </div>
+
+                            <span class="stat-item-label">
+                                Products Catalog
+                            </span>
+                        </div>
+
+                        <span class="stat-item-val">
+                            @Model.TotalProducts
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
 
-        <!-- System Statistics Summary -->
-        <div class="col-lg-5">
-            <div class="admin-panel">
-                <div class="admin-panel-header">
-                    <h5 class="admin-panel-title"><i class="fa-solid fa-chart-pie me-2 text-muted"></i>Database Entities Summary</h5>
-                </div>
-                <div class="d-flex flex-column">
-                    <div class="stat-list-item">
-                        <span class="stat-item-label"><i class="fa-solid fa-building me-2 text-muted"></i>Registered Companies</span>
-                        <span class="stat-item-val">@ViewBag.TotalCompanies</span>
-                    </div>
-                    <div class="stat-list-item">
-                        <span class="stat-item-label"><i class="fa-solid fa-users me-2 text-muted"></i>User Credentials</span>
-                        <span class="stat-item-val">@ViewBag.TotalUsers</span>
-                    </div>
-                    <div class="stat-list-item">
-                        <span class="stat-item-label"><i class="fa-solid fa-user-shield me-2 text-muted"></i>System Roles (User Types)</span>
-                        <span class="stat-item-val">@ViewBag.TotalRoles</span>
-                    </div>
-                    <div class="stat-list-item">
-                        <span class="stat-item-label"><i class="fa-solid fa-wallet me-2 text-muted"></i>Chart Account Heads</span>
-                        <span class="stat-item-val">@ViewBag.TotalAccountHeads</span>
-                    </div>
-                    <div class="stat-list-item">
-                        <span class="stat-item-label"><i class="fa-solid fa-box-open me-2 text-muted"></i>Products Catalog SKUs</span>
-                        <span class="stat-item-val">@Model.TotalProducts</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 }
 else
 {
     <!-- ========================================== -->
-    <!--         OPERATIONAL COMPANY DASHBOARD      -->
+    <!--       PREMIUM OPERATIONAL DASHBOARD        -->
     <!-- ========================================== -->
+
     <style>
+        .operational-dashboard {
+            padding-bottom: 40px;
+            animation: operationalFade .5s ease;
+        }
+
+        @@keyframes operationalFade {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* HEADER */
+
         .dashboard-title-bar {
-            text-align: left;
-            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
         }
 
         .dashboard-title {
-            font-size: 1.8rem;
-            font-weight: 500;
-            color: #555555;
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: #1e293b;
             margin: 0;
+            letter-spacing: -.4px;
         }
 
-        /* 8 KPI Cards Grid Layout */
+        .dashboard-subtitle {
+            font-size: .86rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        /* KPI */
+
         .kpi-row {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1.25rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 26px;
         }
 
-        @@media (max-width: 1200px) {
-            .kpi-row {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @@media (max-width: 600px) {
-            .kpi-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* KPI Card Style */
         .screenshot-card {
-            border-radius: 6px;
-            color: #ffffff !important;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 19px;
+            min-height: 138px;
             display: flex;
-            align-items: stretch;
-            min-height: 100px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            flex-direction: column;
+            justify-content: space-between;
+            color: #1e293b !important;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, .025);
+            transition: all .25s ease;
+            position: relative;
             overflow: hidden;
-            text-align: left;
+        }
+
+        .screenshot-card::before {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            right: -25px;
+            top: -25px;
+            border-radius: 50%;
+            opacity: .5;
+        }
+
+        .screenshot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, .08);
         }
 
         .card-left-block {
-            width: 34%;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border-right: 1px solid rgba(255, 255, 255, 0.25);
-            background: rgba(0, 0, 0, 0.08);
-            padding: 0.5rem;
-            text-align: center;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
         .card-left-month {
-            font-size: 0.7rem;
-            font-weight: 500;
-            opacity: 0.9;
-            text-transform: capitalize;
+            font-size: .76rem;
+            font-weight: 700;
+            color: #64748b;
         }
 
         .card-left-year {
-            font-size: 1.05rem;
+            font-size: .82rem;
             font-weight: 700;
-            line-height: 1.1;
+            color: #64748b;
         }
 
         .card-left-icon {
-            font-size: 1.8rem;
-            opacity: 0.85;
+            width: 45px;
+            height: 45px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
         }
 
         .card-right-block {
-            width: 66%;
-            padding: 0.75rem 1rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-width: 0;
+            margin-top: 10px;
         }
 
         .card-val {
-            font-size: clamp(0.95rem, 1.6vw, 1.25rem);
-            font-weight: 700;
-            margin: 0;
-            line-height: 1.25;
+            font-size: clamp(1.05rem, 1.5vw, 1.5rem);
+            font-weight: 800;
+            color: #1e293b;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .card-label {
-            font-size: 0.72rem;
-            font-weight: 500;
-            opacity: 0.95;
-            margin-top: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: .76rem;
+            color: #64748b;
+            font-weight: 600;
+            margin-top: 5px;
         }
 
-        /* Card Background Colors matching screenshot */
+        /* WHITE CARD ACCENT COLORS */
+
         .bg-kpi-blue {
-            background-color: #3b82f6;
+            border-top: 3px solid #2563eb;
+        }
+
+        .bg-kpi-blue::before {
+            background: #dbeafe;
+        }
+
+        .bg-kpi-blue .card-left-icon {
+            background: #eff6ff;
+            color: #2563eb;
         }
 
         .bg-kpi-indigo {
-            background-color: #6366f1;
+            border-top: 3px solid #4f46e5;
+        }
+
+        .bg-kpi-indigo::before {
+            background: #e0e7ff;
+        }
+
+        .bg-kpi-indigo .card-left-icon {
+            background: #eef2ff;
+            color: #4f46e5;
         }
 
         .bg-kpi-purple {
-            background-color: #a855f7;
+            border-top: 3px solid #9333ea;
+        }
+
+        .bg-kpi-purple::before {
+            background: #f3e8ff;
+        }
+
+        .bg-kpi-purple .card-left-icon {
+            background: #faf5ff;
+            color: #9333ea;
         }
 
         .bg-kpi-teal-dark {
-            background-color: #0d9488;
+            border-top: 3px solid #0f766e;
+        }
+
+        .bg-kpi-teal-dark::before {
+            background: #ccfbf1;
+        }
+
+        .bg-kpi-teal-dark .card-left-icon {
+            background: #f0fdfa;
+            color: #0f766e;
         }
 
         .bg-kpi-green {
-            background-color: #10b981;
+            border-top: 3px solid #16a34a;
+        }
+
+        .bg-kpi-green::before {
+            background: #dcfce7;
+        }
+
+        .bg-kpi-green .card-left-icon {
+            background: #f0fdf4;
+            color: #16a34a;
         }
 
         .bg-kpi-slate {
-            background-color: #475569;
+            border-top: 3px solid #475569;
+        }
+
+        .bg-kpi-slate::before {
+            background: #e2e8f0;
+        }
+
+        .bg-kpi-slate .card-left-icon {
+            background: #f8fafc;
+            color: #475569;
         }
 
         .bg-kpi-violet {
-            background-color: #8b5cf6;
+            border-top: 3px solid #7c3aed;
+        }
+
+        .bg-kpi-violet::before {
+            background: #ede9fe;
+        }
+
+        .bg-kpi-violet .card-left-icon {
+            background: #f5f3ff;
+            color: #7c3aed;
         }
 
         .bg-kpi-teal-light {
-            background-color: #14b8a6;
+            border-top: 3px solid #0891b2;
         }
 
-        /* Summary Modules (Grid Tables) */
+        .bg-kpi-teal-light::before {
+            background: #cffafe;
+        }
+
+        .bg-kpi-teal-light .card-left-icon {
+            background: #ecfeff;
+            color: #0891b2;
+        }
+
+        /* SUMMARY MODULE */
+
         .summary-module {
             background: #ffffff;
-            border: 1px solid var(--border-warm);
-            border-radius: 8px;
-            margin-bottom: 2rem;
-            text-align: left;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, .025);
         }
 
         .summary-header {
-            background-color: #fafafa;
-            border-bottom: 1px solid var(--border-warm);
-            padding: 0.75rem 1.25rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #666666;
+            padding: 17px 22px;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #1e293b;
+            background: #ffffff;
+            border-bottom: 1px solid #eef2f7;
         }
 
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
-            border-collapse: collapse;
-        }
-
-        @@media (max-width: 1000px) {
-            .summary-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        @@media (max-width: 600px) {
-            .summary-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
         }
 
         .summary-box {
+            padding: 23px 15px;
             text-align: center;
-            padding: 1.25rem 0.5rem;
-            border-right: 1px solid var(--border-warm);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            border-right: 1px solid #eef2f7;
+            transition: background .2s ease;
         }
 
-            .summary-box:last-child {
-                border-right: none;
-            }
+        .summary-box:hover {
+            background: #f8fafc;
+        }
+
+        .summary-box:last-child {
+            border-right: none;
+        }
 
         .summary-title {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #3b82f6; /* screenshot blue title text */
-            margin-bottom: 0.5rem;
+            display: block;
+            min-height: 38px;
+            font-size: .75rem;
+            font-weight: 700;
+            color: #64748b;
+            line-height: 1.45;
+            margin-bottom: 7px;
         }
 
         .summary-value {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #444444;
-            line-height: 1.1;
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #1e293b;
         }
 
         .summary-currency {
-            font-size: 0.7rem;
-            color: #888888;
-            font-weight: 600;
-            margin-top: 2px;
-            text-transform: uppercase;
+            display: block;
+            margin-top: 4px;
+            font-size: .68rem;
+            color: #94a3b8;
+            font-weight: 700;
+        }
+
+        /* OPERATIONS */
+
+        .operations-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, .025);
+        }
+
+        .operations-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .operations-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .operations-subtitle {
+            color: #64748b;
+            font-size: .78rem;
+            margin-top: 4px;
+        }
+
+        .operations-card .nav-pills {
+            padding: 18px 24px 0;
+        }
+
+        .operations-card .nav-link {
+            border-radius: 10px !important;
+            color: #64748b;
+            font-size: .82rem;
+            font-weight: 700;
+            background: transparent;
+            transition: all .2s ease;
+        }
+
+        .operations-card .nav-link:hover {
+            background: #f1f5f9;
+            color: #2563eb;
+        }
+
+        .operations-card .nav-link.active {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .operations-card .tab-content {
+            padding: 20px 24px 24px;
+        }
+
+        .operations-card table {
+            margin-bottom: 0;
+            font-size: .82rem;
+        }
+
+        .operations-card table thead th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 700;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .operations-card table th,
+        .operations-card table td {
+            padding: 14px 12px;
+            vertical-align: middle;
+        }
+
+        /* RESPONSIVE */
+
+        @@media (max-width: 1200px) {
+            .kpi-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .summary-box:nth-child(3) {
+                border-right: none;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .kpi-row {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .summary-box {
+                border-bottom: 1px solid #eef2f7;
+            }
+
+            .summary-box:nth-child(even) {
+                border-right: none;
+            }
+
+            .operations-card .nav-pills {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+
+            .operations-card .nav-link {
+                white-space: nowrap;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .dashboard-title {
+                font-size: 1.35rem;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-box {
+                border-right: none;
+            }
+
+            .operations-card .tab-content {
+                padding: 15px;
+            }
         }
     </style>
 
-    <!-- Page Header Title -->
-    <div class="dashboard-title-bar">
-        <h2 class="dashboard-title">Deshboard</h2>
-    </div>
+   
+        var monthParts = Model.ActiveMonthName?.Split(' ') ?? Array.Empty<string>();
+        var monthName = monthParts.Length > 0 ? monthParts[0] : "";
+        var yearName = monthParts.Length > 1 ? monthParts[1] : "";
+    
 
-    <!-- KPI Cards Container -->
-    <div class="kpi-row">
+    <div class="operational-dashboard">
 
-        <!-- 1. Current Month Revenue -->
-        <div class="screenshot-card bg-kpi-blue">
-            <div class="card-left-block">
-                @{
-                    var monthParts = Model.ActiveMonthName.Split(' ');
-                    var monthName = monthParts.Length > 0 ? monthParts[0] : "";
-                    var yearName = monthParts.Length > 1 ? monthParts[1] : "";
-                }
-                <div class="card-left-month">@monthName</div>
-                <div class="card-left-year">@yearName</div>
-            </div>
-            <div class="card-right-block">
-                <div class="card-val" title="@Model.CurrentMonthRevenue.ToString("N0") @Model.CurrencySymbol">@Model.CurrentMonthRevenue.ToString("N0") @Model.CurrencySymbol</div>
-                <div class="card-label">Current Month Revenue</div>
+        <!-- HEADER -->
+        <div class="dashboard-title-bar">
+            <div>
+                <h2 class="dashboard-title">Dashboard</h2>
+
+                <div class="dashboard-subtitle">
+                    Business performance and operational overview
+                </div>
             </div>
         </div>
 
-        <!-- 2. Current Month Expenses -->
-        <div class="screenshot-card bg-kpi-indigo">
-            <div class="card-left-block">
-                <div class="card-left-month">@monthName</div>
-                <div class="card-left-year">@yearName</div>
+        <!-- KPI CARDS -->
+        <div class="kpi-row">
+
+            <!-- 1 REVENUE -->
+            <div class="screenshot-card bg-kpi-blue">
+                <div class="card-left-block">
+                    <div>
+                        <div class="card-left-month">@monthName</div>
+                        <div class="card-left-year">@yearName</div>
+                    </div>
+
+                    <div class="card-left-icon">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                </div>
+
+                <div class="card-right-block">
+                    <div class="card-val"
+                         title="@Model.CurrentMonthRevenue.ToString("N0") @Model.CurrencySymbol">
+                        @Model.CurrentMonthRevenue.ToString("N0") @Model.CurrencySymbol
+                    </div>
+
+                    <div class="card-label">
+                        Current Month Revenue
+                    </div>
+                </div>
             </div>
-            <div class="card-right-block">
-                <div class="card-val" title="@Model.CurrentMonthExpenses.ToString("N0") @Model.CurrencySymbol">@Model.CurrentMonthExpenses.ToString("N0") @Model.CurrencySymbol</div>
-                <div class="card-label">Current Month Expenses</div>
+
+            <!-- 2 EXPENSES -->
+            <div class="screenshot-card bg-kpi-indigo">
+                <div class="card-left-block">
+                    <div>
+                        <div class="card-left-month">@monthName</div>
+                        <div class="card-left-year">@yearName</div>
+                    </div>
+
+                    <div class="card-left-icon">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                </div>
+
+                <div class="card-right-block">
+                    <div class="card-val"
+                         title="@Model.CurrentMonthExpenses.ToString("N0") @Model.CurrencySymbol">
+                        @Model.CurrentMonthExpenses.ToString("N0") @Model.CurrencySymbol
+                    </div>
+
+                    <div class="card-label">
+                        Current Month Expenses
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3 RECOVERY -->
+            <div class="screenshot-card bg-kpi-purple">
+                <div class="card-left-block">
+                    <div>
+                        <div class="card-left-month">@monthName</div>
+                        <div class="card-left-year">@yearName</div>
+                    </div>
+
+                    <div class="card-left-icon">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </div>
+                </div>
+
+                <div class="card-right-block">
+                    <div class="card-val"
+                         title="@Model.CurrentMonthRecovery.ToString("N0") @Model.CurrencySymbol">
+                        @Model.CurrentMonthRecovery.ToString("N0") @Model.CurrencySymbol
+                    </div>
+
+                    <div class="card-label">
+                        Current Month Recovery
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 PROFIT -->
+            <div class="screenshot-card bg-kpi-teal-dark">
+                <div class="card-left-block">
+                    <div>
+                        <div class="card-left-month">Business</div>
+                        <div class="card-left-year">Performance</div>
+                    </div>
+
+                    <div class="card-left-icon">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                </div>
+
+                <div class="card-right-block">
+                    <div class="card-val"
+                         title="@Model.NetProfitLoss.ToString("N0") @Model.CurrencySymbol">
+                        @Model.NetProfitLoss.ToString("N0") @Model.CurrencySymbol
+                    </div>
+
+                    <div class="card-label">
+                        Net Profit / Loss
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5 CAPITAL -->
+            <div class="screenshot-card bg-kpi-green">
+                <div class="card-left-block">
+                    <div>
+                        <div class="card-left-month">Business</div>
+                        <div class="card-left-year">Capital</div>
+                    </div>
+
+                    <div class="card-left-icon">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+                </div>
+
+                <div class="card-right-block">
+                    <div class="card-val"
+                         title="@Model.OwnerCapital.ToString("N0") @Model.CurrencySymbol">
+                        @Model.OwnerCapital.ToString("N0") @Model.CurrencySymbol
+                    </div>
+
+                    <div class="card-label">
+                        Owner / Capital
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6 CASH -->
+            <div class="screenshot-card bg-kpi-slate">
+                <div class="card-left-block">
+                    <div>
+                        <div class="card-left-month">Available</div>
+                        <div class="card-left-year">Balance</div>
+                    </div>
+
+                    <div class="card-left-icon">
+                        <i class="fa-solid fa-building-columns"></i>
+                    </div>
+                </div>
+
+                <div class="card-right-block">
+                    <div class="card-val"
+                         title="@Model.CashBankBalance.ToString("N0") @Model.CurrencySymbol">
+                        @Model.CashBankBalance.ToString("N0") @Model.CurrencySymbol
+                    </div>
+
+                    <div class="card-label">
+                        Cash / Bank Balance
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7 RECEIVABLE -->
+            <div class="screenshot-card bg-kpi-violet">
+                <div class="card-left-block">
+                    <div>
+                        <div class="card-left-month">Pending</div>
+                        <div class="card-left-year">Collection</div>
+                    </div>
+
+                    <div class="card-left-icon">
+                        <i class="fa-solid fa-arrow-up-right-dots"></i>
+                    </div>
+                </div>
+
+                <div class="card-right-block">
+                    <div class="card-val"
+                         title="@Model.TotalReceivable.ToString("N0") @Model.CurrencySymbol">
+                        @Model.TotalReceivable.ToString("N0") @Model.CurrencySymbol
+                    </div>
+
+                    <div class="card-label">
+                        Total Receivable
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8 PAYABLE -->
+            <div class="screenshot-card bg-kpi-teal-light">
+                <div class="card-left-block">
+                    <div>
+                        <div class="card-left-month">Pending</div>
+                        <div class="card-left-year">Payments</div>
+                    </div>
+
+                    <div class="card-left-icon">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                </div>
+
+                <div class="card-right-block">
+                    <div class="card-val"
+                         title="@Model.TotalPayable.ToString("N0") @Model.CurrencySymbol">
+                        @Model.TotalPayable.ToString("N0") @Model.CurrencySymbol
+                    </div>
+
+                    <div class="card-label">
+                        Total Payable
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TODAY SALES / PURCHASES -->
+        <div class="summary-module">
+
+            <div class="summary-header">
+                Today's Sales & Purchases
+            </div>
+
+            <div class="summary-grid">
+
+                <div class="summary-box">
+                    <span class="summary-title">Total Sales</span>
+                    <span class="summary-value">@Model.TodaySales.ToString("N0")</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Sales Payment Pending</span>
+                    <span class="summary-value">@Model.TodaySalesPending.ToString("N0")</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Sales Payment Received</span>
+                    <span class="summary-value">@Model.TodaySalesPaid.ToString("N0")</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Total Purchases</span>
+                    <span class="summary-value">@Model.TodayPurchases.ToString("N0")</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Purchase Payment Pending</span>
+                    <span class="summary-value">@Model.TodayPurchasesPending.ToString("N0")</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Purchase Payment Paid</span>
+                    <span class="summary-value">@Model.TodayPurchasesPaid.ToString("N0")</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
             </div>
         </div>
 
-        <!-- 3. Current Month Recovery -->
-        <div class="screenshot-card bg-kpi-purple">
-            <div class="card-left-block">
-                <div class="card-left-month">@monthName</div>
-                <div class="card-left-year">@yearName</div>
+        <!-- RETURN SALES / PURCHASES -->
+        <div class="summary-module">
+
+            <div class="summary-header">
+                Today's Return Sales & Return Purchases
             </div>
-            <div class="card-right-block">
-                <div class="card-val" title="@Model.CurrentMonthRecovery.ToString("N0") @Model.CurrencySymbol">@Model.CurrentMonthRecovery.ToString("N0") @Model.CurrencySymbol</div>
-                <div class="card-label">Current Month Recovery</div>
+
+            <div class="summary-grid">
+
+                <div class="summary-box">
+                    <span class="summary-title">Total Return Sales</span>
+                    <span class="summary-value">0</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Return Sales Payment Pending</span>
+                    <span class="summary-value">0</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Return Sales Payment Paid</span>
+                    <span class="summary-value">0</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Total Return Purchases</span>
+                    <span class="summary-value">0</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Return Purchase Payment Pending</span>
+                    <span class="summary-value">0</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
+                <div class="summary-box">
+                    <span class="summary-title">Return Purchase Payment Paid</span>
+                    <span class="summary-value">0</span>
+                    <span class="summary-currency">@Model.CurrencySymbol</span>
+                </div>
+
             </div>
         </div>
 
-        <!-- 4. Net Profit / Loss -->
-        <div class="screenshot-card bg-kpi-teal-dark">
-            <div class="card-left-block">
-                <span class="card-left-icon"><i class="fa-solid fa-layer-group"></i></span>
-            </div>
-            <div class="card-right-block">
-                <div class="card-val" title="@Model.NetProfitLoss.ToString("N0") @Model.CurrencySymbol">@Model.NetProfitLoss.ToString("N0") @Model.CurrencySymbol</div>
-                <div class="card-label">Net Profit / Loss</div>
-            </div>
-        </div>
+        <!-- COMPANY OPERATIONS -->
+        <div class="operations-card">
 
-        <!-- 5. Owner / Capital -->
-        <div class="screenshot-card bg-kpi-green">
-            <div class="card-left-block">
-                <span class="card-left-icon"><i class="fa-regular fa-comment-dots"></i></span>
-            </div>
-            <div class="card-right-block">
-                <div class="card-val" title="@Model.OwnerCapital.ToString("N0") @Model.CurrencySymbol">@Model.OwnerCapital.ToString("N0") @Model.CurrencySymbol</div>
-                <div class="card-label">Owner / Capital</div>
-            </div>
-        </div>
+            <div class="operations-header">
+                <h5 class="operations-title">
+                    Company Operations & Directories
+                </h5>
 
-        <!-- 6. Case / Bank Balance -->
-        <div class="screenshot-card bg-kpi-slate">
-            <div class="card-left-block">
-                <span class="card-left-icon"><i class="fa-regular fa-gem"></i></span>
+                <div class="operations-subtitle">
+                    Browse branches, products, users and customer information
+                </div>
             </div>
-            <div class="card-right-block">
-                <div class="card-val" title="@Model.CashBankBalance.ToString("N0") @Model.CurrencySymbol">@Model.CashBankBalance.ToString("N0") @Model.CurrencySymbol</div>
-                <div class="card-label">Case / Bank Balance</div>
-            </div>
-        </div>
 
-        <!-- 7. Total / Receivable -->
-        <div class="screenshot-card bg-kpi-violet">
-            <div class="card-left-block">
-                <span class="card-left-icon"><i class="fa-solid fa-chevron-up"></i></span>
-            </div>
-            <div class="card-right-block">
-                <div class="card-val" title="@Model.TotalReceivable.ToString("N0") @Model.CurrencySymbol">@Model.TotalReceivable.ToString("N0") @Model.CurrencySymbol</div>
-                <div class="card-label">Total / Receivable</div>
-            </div>
-        </div>
+            <!-- TABS -->
+            <ul class="nav nav-pills gap-2"
+                id="directoryTabs"
+                role="tablist">
 
-        <!-- 8. Total / Payable -->
-        <div class="screenshot-card bg-kpi-teal-light">
-            <div class="card-left-block">
-                <span class="card-left-icon"><i class="fa-solid fa-wallet"></i></span>
-            </div>
-            <div class="card-right-block">
-                <div class="card-val" title="@Model.TotalPayable.ToString("N0") @Model.CurrencySymbol">@Model.TotalPayable.ToString("N0") @Model.CurrencySymbol</div>
-                <div class="card-label">Total / Payable</div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Summary Module 1: Today Sales & Purchases -->
-    <div class="summary-module">
-        <div class="summary-header">Today Sale's / Purchase's</div>
-        <div class="summary-grid">
-            <div class="summary-box">
-                <span class="summary-title">Total Sales</span>
-                <span class="summary-value">@Model.TodaySales.ToString("N0")</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Sale's Payment Pending</span>
-                <span class="summary-value">@Model.TodaySalesPending.ToString("N0")</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Sale's Payment Paid</span>
-                <span class="summary-value">@Model.TodaySalesPaid.ToString("N0")</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Total Purchases</span>
-                <span class="summary-value">@Model.TodayPurchases.ToString("N0")</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Purchases Payment Pending</span>
-                <span class="summary-value">@Model.TodayPurchasesPending.ToString("N0")</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Purchases Payment Paid</span>
-                <span class="summary-value">@Model.TodayPurchasesPaid.ToString("N0")</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Summary Module 2: Today Return Sales & Purchases -->
-    <div class="summary-module" style="margin-bottom: 2rem;">
-        <div class="summary-header">Today Return Sale's / Return Purchase's</div>
-        <div class="summary-grid">
-            <div class="summary-box">
-                <span class="summary-title">Total Return Sales</span>
-                <span class="summary-value">0</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Return Sale's Payment Pending</span>
-                <span class="summary-value">0</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Return Sale's Payment Paid</span>
-                <span class="summary-value">0</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Total Return Purchases</span>
-                <span class="summary-value">0</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Return Purchases Payment Pending</span>
-                <span class="summary-value">0</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-            <div class="summary-box">
-                <span class="summary-title">Return Purchases Payment Paid</span>
-                <span class="summary-value">0</span>
-                <span class="summary-currency">@Model.CurrencySymbol</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Company Operations Directories -->
-    <div class="card border shadow-sm text-start" style="border-radius: 12px; overflow: hidden; background-color: #ffffff; margin-bottom: 4rem;">
-        <div class="card-header bg-light border-bottom p-3">
-            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-folder-open me-2 text-muted"></i>Company Operations &amp; Directories</h5>
-        </div>
-        <div class="card-body p-4">
-            <!-- Navigation Tabs -->
-            <ul class="nav nav-pills mb-4 gap-2" id="directoryTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active px-4 py-2 fw-bold" id="branches-tab" data-bs-toggle="pill" data-bs-target="#branches-pane" type="button" role="tab" aria-controls="branches-pane" aria-selected="true" style="border-radius: 8px;">
-                        <i class="fa-solid fa-code-fork me-2"></i>Company Branches
+                    <button class="nav-link active px-4 py-2"
+                            id="branches-tab"
+                            data-bs-toggle="pill"
+                            data-bs-target="#branches-pane"
+                            type="button"
+                            role="tab"
+                            aria-controls="branches-pane"
+                            aria-selected="true">
+
+                        <i class="fa-solid fa-code-fork me-2"></i>
+                        Company Branches
                     </button>
                 </li>
+
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link px-4 py-2 fw-bold" id="products-tab" data-bs-toggle="pill" data-bs-target="#products-pane" type="button" role="tab" aria-controls="products-pane" aria-selected="false" style="border-radius: 8px;">
-                        <i class="fa-solid fa-box-open me-2"></i>Product Catalog
+                    <button class="nav-link px-4 py-2"
+                            id="products-tab"
+                            data-bs-toggle="pill"
+                            data-bs-target="#products-pane"
+                            type="button"
+                            role="tab"
+                            aria-controls="products-pane"
+                            aria-selected="false">
+
+                        <i class="fa-solid fa-box-open me-2"></i>
+                        Product Catalog
                     </button>
                 </li>
+
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link px-4 py-2 fw-bold" id="users-tab" data-bs-toggle="pill" data-bs-target="#users-pane" type="button" role="tab" aria-controls="users-pane" aria-selected="false" style="border-radius: 8px;">
-                        <i class="fa-solid fa-users me-2"></i>Employees &amp; Users
+                    <button class="nav-link px-4 py-2"
+                            id="users-tab"
+                            data-bs-toggle="pill"
+                            data-bs-target="#users-pane"
+                            type="button"
+                            role="tab"
+                            aria-controls="users-pane"
+                            aria-selected="false">
+
+                        <i class="fa-solid fa-users me-2"></i>
+                        Employees & Users
                     </button>
                 </li>
+
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link px-4 py-2 fw-bold" id="customers-tab" data-bs-toggle="pill" data-bs-target="#customers-pane" type="button" role="tab" aria-controls="customers-pane" aria-selected="false" style="border-radius: 8px;">
-                        <i class="fa-solid fa-handshake me-2"></i>Customers List
+                    <button class="nav-link px-4 py-2"
+                            id="customers-tab"
+                            data-bs-toggle="pill"
+                            data-bs-target="#customers-pane"
+                            type="button"
+                            role="tab"
+                            aria-controls="customers-pane"
+                            aria-selected="false">
+
+                        <i class="fa-solid fa-handshake me-2"></i>
+                        Customers
                     </button>
                 </li>
+
             </ul>
 
-            <!-- Tab Panes Content -->
-            <div class="tab-content" id="directoryTabsContent">
+            <!-- TAB CONTENT -->
+            <div class="tab-content"
+                 id="directoryTabsContent">
 
-                <!-- 1. Branches Pane -->
-                <div class="tab-pane fade show active" id="branches-pane" role="tabpanel" aria-labelledby="branches-tab" tabindex="0">
+                <!-- BRANCHES -->
+                <div class="tab-pane fade show active"
+                     id="branches-pane"
+                     role="tabpanel"
+                     aria-labelledby="branches-tab">
+
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+
+                        <table class="table table-hover align-middle">
+
+                            <thead>
                                 <tr>
                                     <th>Branch ID</th>
                                     <th>Branch Name</th>
@@ -762,102 +1719,203 @@ else
                                     <th>Status</th>
                                 </tr>
                             </thead>
+
                             <tbody>
+
                                 @{
-                                    var branches = (List<ERP_System.Models.Branch>)ViewBag.CompanyBranches;
+                                    var branches = ViewBag.CompanyBranches as List<ERP_System.Models.Branch>;
                                 }
+
                                 @if (branches != null && branches.Any())
                                 {
                                     foreach (var branch in branches)
                                     {
                                         <tr>
-                                            <td class="fw-bold text-secondary">BR#@branch.BranchId.ToString("D2")</td>
-                                            <td class="fw-bold text-dark">@branch.BranchName</td>
-                                            <td><span class="badge bg-secondary-subtle text-secondary-emphasis">@branch.BranchCode</span></td>
-                                            <td>@branch.City, @branch.State</td>
-                                            <td>@branch.AddressLine1</td>
+
+                                            <td class="fw-bold text-secondary">
+                                                BR#@branch.BranchId.ToString("D2")
+                                            </td>
+
+                                            <td class="fw-bold text-dark">
+                                                @branch.BranchName
+                                            </td>
+
+                                            <td>
+                                                <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                                                    @branch.BranchCode
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                @branch.City, @branch.State
+                                            </td>
+
+                                            <td>
+                                                @branch.AddressLine1
+                                            </td>
+
                                             <td>
                                                 @if (branch.IsActive)
                                                 {
-                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-2.5 py-1">Active</span>
+                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-3 py-1">
+                                                        Active
+                                                    </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-2.5 py-1">Inactive</span>
+                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-3 py-1">
+                                                        Inactive
+                                                    </span>
                                                 }
                                             </td>
+
                                         </tr>
                                     }
                                 }
                                 else
                                 {
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No branches registered for this company.</td>
+                                        <td colspan="6"
+                                            class="text-center text-muted py-4">
+                                            No branches registered for this company.
+                                        </td>
                                     </tr>
                                 }
+
                             </tbody>
+
                         </table>
+
                     </div>
                 </div>
 
-                <!-- 2. Products Pane -->
-                <div class="tab-pane fade" id="products-pane" role="tabpanel" aria-labelledby="products-tab" tabindex="0">
+                <!-- PRODUCTS -->
+                <div class="tab-pane fade"
+                     id="products-pane"
+                     role="tabpanel"
+                     aria-labelledby="products-tab">
+
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+
+                        <table class="table table-hover align-middle">
+
+                            <thead>
                                 <tr>
                                     <th>Product Name</th>
                                     <th>Category</th>
                                     <th>Branch Location</th>
                                     <th class="text-center">Stock Quantity</th>
-                                    <th class="text-end">Simulated Price</th>
+                                    <th class="text-end">Price</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
+
                             <tbody>
+
                                 @{
-                                    var products = (List<ERP_System.Models.Product>)ViewBag.CompanyProducts;
+                                    var products = ViewBag.CompanyProducts as List<ERP_System.Models.Product>;
                                 }
+
                                 @if (products != null && products.Any())
                                 {
                                     foreach (var prod in products)
                                     {
                                         decimal simulatedPrice = 1500;
-                                        if (prod.ProductName.Contains("Laptop", StringComparison.OrdinalIgnoreCase)) simulatedPrice = 65000;
-                                        else if (prod.ProductName.Contains("Mouse", StringComparison.OrdinalIgnoreCase)) simulatedPrice = 800;
-                                        else if (prod.ProductName.Contains("Keyboard", StringComparison.OrdinalIgnoreCase)) simulatedPrice = 1500;
-                                        else if (prod.ProductName.Contains("Monitor", StringComparison.OrdinalIgnoreCase)) simulatedPrice = 12000;
 
-                                        var stockStatus = prod.StockQty > 10 ? "In Stock" : prod.StockQty > 0 ? "Low Stock" : "Out of Stock";
-                                        var statusBadge = stockStatus == "In Stock" ? "bg-success-subtle text-success-emphasis" :
-                                        stockStatus == "Low Stock" ? "bg-warning-subtle text-warning-emphasis" :
-                                        "bg-danger-subtle text-danger-emphasis";
+                                        if (prod.ProductName != null)
+                                        {
+                                            if (prod.ProductName.Contains("Laptop", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                simulatedPrice = 65000;
+                                            }
+                                            else if (prod.ProductName.Contains("Mouse", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                simulatedPrice = 800;
+                                            }
+                                            else if (prod.ProductName.Contains("Keyboard", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                simulatedPrice = 1500;
+                                            }
+                                            else if (prod.ProductName.Contains("Monitor", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                simulatedPrice = 12000;
+                                            }
+                                        }
+
+                                        var stockStatus =
+                                            prod.StockQty > 10 ? "In Stock" :
+                                            prod.StockQty > 0 ? "Low Stock" :
+                                            "Out of Stock";
+
+                                        var statusBadge =
+                                            stockStatus == "In Stock"
+                                                ? "bg-success-subtle text-success-emphasis"
+                                                : stockStatus == "Low Stock"
+                                                    ? "bg-warning-subtle text-warning-emphasis"
+                                                    : "bg-danger-subtle text-danger-emphasis";
+
                                         <tr>
-                                            <td class="fw-bold text-dark">@prod.ProductName</td>
-                                            <td><span class="badge bg-light text-dark border px-2.5 py-1">@prod.Category</span></td>
-                                            <td><i class="fa-solid fa-code-fork me-1.5 text-muted"></i>@(prod.Branch?.BranchName ?? "Head Office")</td>
-                                            <td class="text-center fw-bold text-secondary">@prod.StockQty</td>
-                                            <td class="text-end fw-bold text-dark">@simulatedPrice.ToString("N2") @Model.CurrencySymbol</td>
-                                            <td><span class="badge rounded-pill px-2.5 py-1 @statusBadge">@stockStatus</span></td>
+
+                                            <td class="fw-bold text-dark">
+                                                @prod.ProductName
+                                            </td>
+
+                                            <td>
+                                                <span class="badge bg-light text-dark border px-3 py-1">
+                                                    @prod.Category
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <i class="fa-solid fa-code-fork me-2 text-muted"></i>
+                                                @(prod.Branch?.BranchName ?? "Head Office")
+                                            </td>
+
+                                            <td class="text-center fw-bold">
+                                                @prod.StockQty
+                                            </td>
+
+                                            <td class="text-end fw-bold text-dark">
+                                                @simulatedPrice.ToString("N2") @Model.CurrencySymbol
+                                            </td>
+
+                                            <td>
+                                                <span class="badge rounded-pill px-3 py-1 @statusBadge">
+                                                    @stockStatus
+                                                </span>
+                                            </td>
+
                                         </tr>
                                     }
                                 }
                                 else
                                 {
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No products catalog registered for this company.</td>
+                                        <td colspan="6"
+                                            class="text-center text-muted py-4">
+                                            No products found in the catalog.
+                                        </td>
                                     </tr>
                                 }
+
                             </tbody>
+
                         </table>
+
                     </div>
                 </div>
 
-                <!-- 3. Employees / Users Pane -->
-                <div class="tab-pane fade" id="users-pane" role="tabpanel" aria-labelledby="users-tab" tabindex="0">
+                <!-- USERS -->
+                <div class="tab-pane fade"
+                     id="users-pane"
+                     role="tabpanel"
+                     aria-labelledby="users-tab">
+
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+
+                        <table class="table table-hover align-middle">
+
+                            <thead>
                                 <tr>
                                     <th>Name</th>
                                     <th>Email</th>
@@ -866,52 +1924,85 @@ else
                                     <th>Status</th>
                                 </tr>
                             </thead>
+
                             <tbody>
+
                                 @{
-                                    var users = (List<ERP_System.Models.User>)ViewBag.CompanyUsers;
+                                    var users = ViewBag.CompanyUsers as List<ERP_System.Models.User>;
                                 }
+
                                 @if (users != null && users.Any())
                                 {
                                     foreach (var usr in users)
                                     {
                                         <tr>
-                                            <td class="fw-bold text-dark">@usr.FullName</td>
-                                            <td>@usr.Email</td>
+
+                                            <td class="fw-bold text-dark">
+                                                @usr.FullName
+                                            </td>
+
                                             <td>
-                                                <span class="badge bg-primary-subtle text-primary-emphasis px-2.5 py-1">
-                                                    <i class="fa-solid fa-user-shield me-1.5"></i>@(usr.Role?.RoleName ?? "Employee")
+                                                @usr.Email
+                                            </td>
+
+                                            <td>
+                                                <span class="badge bg-primary-subtle text-primary-emphasis px-3 py-1">
+                                                    <i class="fa-solid fa-user-shield me-2"></i>
+                                                    @(usr.Role?.RoleName ?? "Employee")
                                                 </span>
                                             </td>
-                                            <td><i class="fa-solid fa-building me-1.5 text-muted"></i>@(usr.Branch?.BranchName ?? "Unassigned")</td>
+
+                                            <td>
+                                                <i class="fa-solid fa-building me-2 text-muted"></i>
+                                                @(usr.Branch?.BranchName ?? "Unassigned")
+                                            </td>
+
                                             <td>
                                                 @if (usr.IsActive)
                                                 {
-                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-2.5 py-1">Active</span>
+                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-3 py-1">
+                                                        Active
+                                                    </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-2.5 py-1">Inactive</span>
+                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-3 py-1">
+                                                        Inactive
+                                                    </span>
                                                 }
                                             </td>
+
                                         </tr>
                                     }
                                 }
                                 else
                                 {
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">No employees registered for this company.</td>
+                                        <td colspan="5"
+                                            class="text-center text-muted py-4">
+                                            No employees or users found.
+                                        </td>
                                     </tr>
                                 }
+
                             </tbody>
+
                         </table>
+
                     </div>
                 </div>
 
-                <!-- 4. Customers Pane -->
-                <div class="tab-pane fade" id="customers-pane" role="tabpanel" aria-labelledby="customers-tab" tabindex="0">
+                <!-- CUSTOMERS -->
+                <div class="tab-pane fade"
+                     id="customers-pane"
+                     role="tabpanel"
+                     aria-labelledby="customers-tab">
+
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+
+                        <table class="table table-hover align-middle">
+
+                            <thead>
                                 <tr>
                                     <th>Customer Name</th>
                                     <th>Email Address</th>
@@ -920,44 +2011,73 @@ else
                                     <th>Status</th>
                                 </tr>
                             </thead>
+
                             <tbody>
+
                                 @{
-                                    var customers = (List<ERP_System.Models.Customer>)ViewBag.CompanyCustomers;
+                                    var customers = ViewBag.CompanyCustomers as List<ERP_System.Models.Customer>;
                                 }
+
                                 @if (customers != null && customers.Any())
                                 {
                                     foreach (var cust in customers)
                                     {
                                         <tr>
-                                            <td class="fw-bold text-dark">@cust.CustomerName</td>
-                                            <td>@cust.Email</td>
-                                            <td>@cust.PhoneNumber</td>
-                                            <td>@(cust.JoinedDate?.ToString("dd MMM yyyy") ?? "N/A")</td>
+
+                                            <td class="fw-bold text-dark">
+                                                @cust.CustomerName
+                                            </td>
+
+                                            <td>
+                                                @cust.Email
+                                            </td>
+
+                                            <td>
+                                                @cust.PhoneNumber
+                                            </td>
+
+                                            <td>
+                                                @(cust.JoinedDate?.ToString("dd MMM yyyy") ?? "N/A")
+                                            </td>
+
                                             <td>
                                                 @if (cust.IsActive)
                                                 {
-                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-2.5 py-1">Active</span>
+                                                    <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-3 py-1">
+                                                        Active
+                                                    </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-2.5 py-1">Inactive</span>
+                                                    <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill px-3 py-1">
+                                                        Inactive
+                                                    </span>
                                                 }
                                             </td>
+
                                         </tr>
                                     }
                                 }
                                 else
                                 {
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">No customers registered in database.</td>
+                                        <td colspan="5"
+                                            class="text-center text-muted py-4">
+                                            No customers registered in the database.
+                                        </td>
                                     </tr>
                                 }
+
                             </tbody>
+
                         </table>
+
                     </div>
                 </div>
 
             </div>
+
         </div>
+
     </div>
 }

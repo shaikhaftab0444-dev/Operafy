@@ -58,6 +58,9 @@ namespace ERP_System.Data
         public DbSet<SuperAdminIntegration> SuperAdminIntegrations { get; set; }
         public DbSet<SuperAdminRestorePoint> SuperAdminRestorePoints { get; set; }
         public DbSet<SuperAdminPriceOverride> SuperAdminPriceOverrides { get; set; }
+        public DbSet<Currency> Currencies { get; set; }
+        public DbSet<CurrencyRateHistory> CurrencyRateHistories { get; set; }
+        public DbSet<TaxSlab> TaxSlabs { get; set; }
         public DbSet<HRAttendanceLog> HRAttendanceLogs { get; set; }
         public DbSet<HRBiometricDevice> HRBiometricDevices { get; set; }
         public DbSet<HRShiftRoster> HRShiftRosters { get; set; }

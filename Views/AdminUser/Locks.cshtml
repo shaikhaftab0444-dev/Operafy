@@ -1,74 +1,1246 @@
 @model IEnumerable<ERP_System.Models.User>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Account Lock / Unlock";
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-lock text-primary me-2"></i>Account Lock / Unlock</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Account Locks</li>
-                </ol>
-            </nav>
+<style>
+    :root {
+        --lock-primary: #2563eb;
+        --lock-primary-dark: #1d4ed8;
+        --lock-indigo: #4f46e5;
+        --lock-success: #16a34a;
+        --lock-danger: #dc2626;
+        --lock-warning: #d97706;
+        --lock-text: #1e293b;
+        --lock-muted: #64748b;
+        --lock-border: #e2e8f0;
+        --lock-bg: #f8fafc;
+        --lock-card: #ffffff;
+        --lock-shadow: 0 10px 35px rgba(15, 23, 42, 0.07);
+        --lock-hover-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    /* =========================================
+           PAGE WRAPPER
+        ========================================= */
+
+    .access-page {
+        animation: accessPageEnter 0.55s ease both;
+    }
+
+    /* =========================================
+           PAGE HEADER
+        ========================================= */
+
+    .access-header {
+        margin-bottom: 1.5rem;
+        animation: fadeSlideDown 0.6s ease both;
+    }
+
+    .access-title {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+    }
+
+    .access-title-icon {
+        width: 46px;
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        color: var(--lock-primary);
+        background: linear-gradient( 135deg, rgba(37, 99, 235, 0.14), rgba(79, 70, 229, 0.08) );
+        border: 1px solid rgba(37, 99, 235, 0.12);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .access-header:hover .access-title-icon {
+        transform: rotate(-5deg) scale(1.06);
+        box-shadow: 0 12px 25px rgba(37, 99, 235, 0.14);
+    }
+
+    .access-title h4 {
+        margin: 0;
+        color: var(--lock-text);
+        font-size: 1.45rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    .access-title p {
+        margin: 0.2rem 0 0;
+        color: var(--lock-muted);
+        font-size: 0.84rem;
+    }
+
+    .access-breadcrumb {
+        margin-top: 0.65rem;
+    }
+
+        .access-breadcrumb .breadcrumb-item {
+            font-size: 0.8rem;
+        }
+
+        .access-breadcrumb a {
+            color: var(--lock-primary);
+            transition: color 0.2s ease;
+        }
+
+            .access-breadcrumb a:hover {
+                color: var(--lock-primary-dark);
+            }
+
+    /* =========================================
+           SEARCH PANEL
+        ========================================= */
+
+    .access-filters {
+        max-width: 980px;
+        padding: 1rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid var(--lock-border);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--lock-shadow);
+        animation: fadeSlideUp 0.65s ease both;
+        animation-delay: 0.08s;
+        backdrop-filter: blur(10px);
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+        .access-filters:hover {
+            box-shadow: var(--lock-hover-shadow);
+        }
+
+    .search-input-wrapper,
+    .role-select-wrapper {
+        position: relative;
+    }
+
+    .search-icon,
+    .select-icon {
+        position: absolute;
+        top: 50%;
+        left: 1rem;
+        z-index: 3;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        pointer-events: none;
+        transition: color 0.25s ease, transform 0.25s ease;
+    }
+
+    .search-input-custom,
+    .role-select-custom {
+        height: 52px;
+        border: 1px solid var(--lock-border);
+        border-radius: 13px;
+        background: #ffffff;
+        color: var(--lock-text);
+        box-shadow: none;
+        font-size: 0.88rem;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
+    }
+
+    .search-input-custom {
+        padding-left: 3rem !important;
+    }
+
+    .role-select-custom {
+        padding-left: 3rem !important;
+    }
+
+        .search-input-custom:hover,
+        .role-select-custom:hover {
+            border-color: #cbd5e1;
+        }
+
+        .search-input-custom:focus,
+        .role-select-custom:focus {
+            border-color: var(--lock-primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.09);
+            transform: translateY(-1px);
+        }
+
+    .search-input-wrapper:focus-within .search-icon,
+    .role-select-wrapper:focus-within .select-icon {
+        color: var(--lock-primary);
+        transform: translateY(-50%) scale(1.08);
+    }
+
+    .filter-results {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.85rem;
+        padding-left: 0.25rem;
+        color: var(--lock-muted);
+        font-size: 0.78rem;
+        font-weight: 500;
+    }
+
+        .filter-results i {
+            color: var(--lock-primary);
+        }
+
+    /* =========================================
+           MAIN TABLE CARD
+        ========================================= */
+
+    .access-table-card {
+        position: relative;
+        max-width: 980px;
+        overflow: hidden;
+        border: 1px solid var(--lock-border);
+        border-radius: 20px;
+        background: var(--lock-card);
+        box-shadow: var(--lock-shadow);
+        animation: tableCardEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation-delay: 0.15s;
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+        .access-table-card:hover {
+            box-shadow: var(--lock-hover-shadow);
+        }
+
+    .table-card-top-line {
+        width: 100%;
+        height: 3px;
+        background: linear-gradient( 90deg, var(--lock-primary), var(--lock-indigo), #06b6d4 );
+    }
+
+    .access-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.4rem 1.5rem 1rem;
+    }
+
+    .access-table-heading {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+
+    .access-table-heading-icon {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        color: var(--lock-primary);
+        background: rgba(37, 99, 235, 0.08);
+    }
+
+    .access-table-heading h5 {
+        margin: 0;
+        color: var(--lock-text);
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+
+    .access-table-heading span {
+        display: block;
+        margin-top: 0.15rem;
+        color: var(--lock-muted);
+        font-size: 0.75rem;
+    }
+
+    .access-count-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.8rem;
+        border-radius: 999px;
+        color: var(--lock-primary);
+        background: rgba(37, 99, 235, 0.08);
+        border: 1px solid rgba(37, 99, 235, 0.1);
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+
+    /* =========================================
+           TABLE
+        ========================================= */
+
+    .access-table {
+        margin: 0;
+        font-size: 0.85rem;
+    }
+
+        .access-table thead th {
+            padding: 0.9rem 1rem;
+            color: #475569;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--lock-border);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .access-table tbody td {
+            padding: 0.95rem 1rem;
+            color: #475569;
+            border-color: #edf1f5;
+            vertical-align: middle;
+        }
+
+    .user-row {
+        opacity: 0;
+        animation: rowEnter 0.5s ease forwards;
+        transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+        .user-row:nth-child(1) {
+            animation-delay: 0.22s;
+        }
+
+        .user-row:nth-child(2) {
+            animation-delay: 0.28s;
+        }
+
+        .user-row:nth-child(3) {
+            animation-delay: 0.34s;
+        }
+
+        .user-row:nth-child(4) {
+            animation-delay: 0.40s;
+        }
+
+        .user-row:nth-child(5) {
+            animation-delay: 0.46s;
+        }
+
+        .user-row:nth-child(6) {
+            animation-delay: 0.52s;
+        }
+
+        .user-row:nth-child(n+7) {
+            animation-delay: 0.58s;
+        }
+
+        .user-row:hover {
+            background: linear-gradient( 90deg, rgba(37, 99, 235, 0.035), rgba(79, 70, 229, 0.018) );
+            transform: translateX(2px);
+        }
+
+    .user-name-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+    }
+
+    .user-avatar {
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border-radius: 50%;
+        color: var(--lock-primary);
+        background: linear-gradient( 135deg, rgba(37, 99, 235, 0.14), rgba(79, 70, 229, 0.08) );
+        font-size: 0.75rem;
+        font-weight: 700;
+        transition: transform 0.3s ease;
+    }
+
+    .user-row:hover .user-avatar {
+        transform: scale(1.08);
+    }
+
+    .user-full-name {
+        color: var(--lock-text);
+        font-weight: 700;
+    }
+
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.38rem 0.7rem;
+        border-radius: 999px;
+        color: #4338ca;
+        background: #eef2ff;
+        font-size: 0.74rem;
+        font-weight: 600;
+    }
+
+    /* =========================================
+           STATUS
+        ========================================= */
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.38rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+    }
+
+        .status-badge i {
+            font-size: 0.45rem;
+        }
+
+    .status-active {
+        color: #15803d;
+        background: #ecfdf3;
+        border: 1px solid #bbf7d0;
+    }
+
+    .status-locked {
+        color: #b91c1c;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+    }
+
+    /* =========================================
+           ACTION BUTTONS
+        ========================================= */
+
+    .access-action-btn {
+        position: relative;
+        min-width: 104px;
+        overflow: hidden;
+        border-radius: 10px !important;
+        font-size: 0.78rem;
+        font-weight: 700;
+        transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, color 0.22s ease;
+    }
+
+        .access-action-btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient( 100deg, transparent, rgba(255, 255, 255, 0.6), transparent );
+            transform: skewX(-20deg);
+            transition: left 0.6s ease;
+        }
+
+        .access-action-btn:hover::before {
+            left: 160%;
+        }
+
+        .access-action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .access-action-btn:active {
+            transform: translateY(0) scale(0.97);
+        }
+
+    .lock-btn {
+        color: var(--lock-danger);
+        border-color: #fca5a5;
+        background: #fffafa;
+    }
+
+        .lock-btn:hover {
+            color: #ffffff;
+            background: var(--lock-danger);
+            border-color: var(--lock-danger);
+            box-shadow: 0 8px 18px rgba(220, 38, 38, 0.2);
+        }
+
+    .unlock-btn {
+        color: var(--lock-success);
+        border-color: #86efac;
+        background: #f0fdf4;
+    }
+
+        .unlock-btn:hover {
+            color: #ffffff;
+            background: var(--lock-success);
+            border-color: var(--lock-success);
+            box-shadow: 0 8px 18px rgba(22, 163, 74, 0.2);
+        }
+
+    .action-loading {
+        pointer-events: none;
+        opacity: 0.8;
+    }
+
+        .action-loading i {
+            animation: actionSpin 0.8s linear infinite;
+        }
+
+    /* =========================================
+           EMPTY STATE
+        ========================================= */
+
+    .empty-search-row {
+        display: none;
+    }
+
+    .empty-search-content {
+        padding: 2.5rem 1rem;
+        text-align: center;
+    }
+
+    .empty-search-icon {
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.8rem;
+        border-radius: 50%;
+        color: #94a3b8;
+        background: #f1f5f9;
+        font-size: 1.3rem;
+    }
+
+    .empty-search-content h6 {
+        margin: 0 0 0.35rem;
+        color: var(--lock-text);
+        font-weight: 700;
+    }
+
+    .empty-search-content p {
+        margin: 0;
+        color: var(--lock-muted);
+        font-size: 0.8rem;
+    }
+
+    /* =========================================
+           ANIMATIONS
+        ========================================= */
+
+    @@keyframes accessPageEnter {
+
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeSlideDown {
+
+        from {
+            opacity: 0;
+            transform: translateY(-15px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeSlideUp {
+
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes tableCardEnter {
+
+        from {
+            opacity: 0;
+            transform: translateY(22px) scale(0.99);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @@keyframes rowEnter {
+
+        from {
+            opacity: 0;
+            transform: translateX(-12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes actionSpin {
+
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* =========================================
+           RESPONSIVE
+        ========================================= */
+
+    @@media (max-width: 767.98px) {
+
+        .access-title h4 {
+            font-size: 1.25rem;
+        }
+
+        .access-table-header {
+            padding: 1.1rem;
+        }
+
+        .access-count-badge {
+            display: none;
+        }
+
+        .access-table {
+            font-size: 0.8rem;
+        }
+
+            .access-table thead th,
+            .access-table tbody td {
+                padding: 0.8rem;
+            }
+    }
+
+    /* =========================================
+           REDUCED MOTION
+        ========================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+</style>
+
+
+<div class="container-fluid py-4 text-start access-page">
+
+    <!-- =========================================
+         PAGE HEADER
+    ========================================= -->
+
+    <div class="access-header">
+
+        <div class="access-title">
+
+            <div class="access-title-icon">
+                <i class="fa-solid fa-user-lock"></i>
+            </div>
+
+            <div>
+                <h4>Account Lock / Unlock</h4>
+
+                <p>
+                    Manage user account access and security status.
+                </p>
+            </div>
+
         </div>
+
+        <nav class="access-breadcrumb"
+             aria-label="breadcrumb">
+
+            <ol class="breadcrumb mb-0">
+
+                <li class="breadcrumb-item">
+                    <a href="/Dashboard"
+                       class="text-decoration-none">
+
+                        Admin Dashboard
+
+                    </a>
+                </li>
+
+                <li class="breadcrumb-item active"
+                    aria-current="page">
+
+                    Account Locks
+
+                </li>
+
+            </ol>
+
+        </nav>
+
     </div>
 
-    <!-- Locks Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm" style="max-width: 800px;">
-        <h5 class="fw-bold mb-3">User Access States</h5>
+
+    <!-- =========================================
+         SEARCH FILTERS
+    ========================================= -->
+
+    <div class="access-filters">
+
+        <div class="row g-3">
+
+            <!-- Search -->
+
+            <div class="col-md-6">
+
+                <div class="search-input-wrapper">
+
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+
+                    <input type="text"
+                           id="searchUser"
+                           class="form-control search-input-custom"
+                           placeholder="Search by name or email..."
+                           autocomplete="off" />
+
+                </div>
+
+            </div>
+
+
+            <!-- Role Filter -->
+
+            <div class="col-md-6">
+
+                <div class="role-select-wrapper">
+
+                    <i class="fa-solid fa-user-shield select-icon"></i>
+
+                    <select id="searchRole"
+                            class="form-select role-select-custom">
+
+                        <option value="">All Roles</option>
+                        <option value="Super Admin">Super Admin</option>
+                        <option value="Admin">Admin</option>
+                        <option value="HR">HR</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Employee">Employee</option>
+                        <option value="Accountant">Accountant</option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="filter-results">
+
+            <i class="fa-solid fa-users"></i>
+
+            <span id="resultText">
+                Showing all users
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================
+         USER ACCESS TABLE
+    ========================================= -->
+
+    <div class="access-table-card">
+
+        <div class="table-card-top-line"></div>
+
+
+        <!-- Card Header -->
+
+        <div class="access-table-header">
+
+            <div class="access-table-heading">
+
+                <div class="access-table-heading-icon">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+
+                <div>
+
+                    <h5>User Access States</h5>
+
+                    <span>
+                        Monitor and manage account availability
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="access-count-badge">
+
+                <i class="fa-solid fa-users"></i>
+
+                <span id="userCount">
+                    @(Model?.Count() ?? 0) Users
+                </span>
+
+            </div>
+
+        </div>
+
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+
+            <table class="table align-middle mb-0 access-table">
+
+                <thead>
+
                     <tr>
+
                         <th>User</th>
+
                         <th>Role</th>
+
                         <th>Email</th>
+
                         <th>Status</th>
-                        <th class="text-center">Action</th>
+
+                        <th class="text-center">
+                            Action
+                        </th>
+
                     </tr>
+
                 </thead>
+
+
                 <tbody>
+
                     @if (Model != null && Model.Any())
                     {
                         @foreach (var u in Model)
                         {
-                            <tr>
-                                <td class="fw-bold text-dark">@u.FullName</td>
-                                <td>@(u.Role != null ? u.Role.RoleName : "Employee")</td>
-                                <td>@u.Email</td>
+                            var roleName = u.Role != null
+                            ? u.Role.RoleName
+                            : "Employee";
+
+                            var userInitials = "";
+
+                            if (!string.IsNullOrWhiteSpace(u.FullName))
+                            {
+                                var nameParts = u.FullName
+                                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                                userInitials = nameParts.Length > 1
+                                ? $"{nameParts[0][0]}{nameParts[1][0]}"
+                                : $"{nameParts[0][0]}";
+                            }
+
+                            <tr class="user-row"
+                                data-name="@(u.FullName?.ToLower() ?? "")"
+                                data-email="@(u.Email?.ToLower() ?? "")"
+                                data-role="@roleName.ToLower()">
+
+                                <!-- User -->
+
                                 <td>
+
+                                    <div class="user-name-cell">
+
+                                        <div class="user-avatar">
+                                            @userInitials.ToUpper()
+                                        </div>
+
+                                        <span class="user-full-name">
+                                            @u.FullName
+                                        </span>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- Role -->
+
+                                <td>
+
+                                    <span class="role-badge">
+                                        @roleName
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Email -->
+
+                                <td>
+                                    @u.Email
+                                </td>
+
+
+                                <!-- Status -->
+
+                                <td>
+
                                     @if (u.IsActive)
                                     {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5">Active</span>
+                                        <span class="status-badge status-active">
+
+                                            <i class="fa-solid fa-circle"></i>
+
+                                            Active
+
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5">Locked</span>
+                                        <span class="status-badge status-locked">
+
+                                            <i class="fa-solid fa-lock"></i>
+
+                                            Locked
+
+                                        </span>
                                     }
+
                                 </td>
+
+
+                                <!-- Action -->
+
                                 <td class="text-center">
-                                    <form action="/AdminUser/ToggleLock" method="post" class="d-inline">
+
+                                    <form action="/AdminUser/ToggleLock"
+                                          method="post"
+                                          class="d-inline lock-form">
+
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@u.UserId" />
+
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@u.UserId" />
+
                                         @if (u.IsActive)
                                         {
-                                            <button type="submit" class="btn btn-sm btn-outline-danger px-3 rounded-pill py-1"><i class="fa-solid fa-lock me-1"></i> Lock</button>
+                                            <button type="submit"
+                                                    class="btn access-action-btn lock-btn">
+
+                                                <i class="fa-solid fa-lock me-1"></i>
+
+                                                <span>
+                                                    Lock
+                                                </span>
+
+                                            </button>
                                         }
                                         else
                                         {
-                                            <button type="submit" class="btn btn-sm btn-outline-success px-3 rounded-pill py-1"><i class="fa-solid fa-lock-open me-1"></i> Unlock</button>
+                                            <button type="submit"
+                                                    class="btn access-action-btn unlock-btn">
+
+                                                <i class="fa-solid fa-lock-open me-1"></i>
+
+                                                <span>
+                                                    Unlock
+                                                </span>
+
+                                            </button>
                                         }
+
                                     </form>
+
                                 </td>
+
                             </tr>
                         }
+
+
+                        <!-- Search Empty State -->
+
+                        <tr id="emptySearchRow"
+                            class="empty-search-row">
+
+                            <td colspan="5">
+
+                                <div class="empty-search-content">
+
+                                    <div class="empty-search-icon">
+                                        <i class="fa-solid fa-user-slash"></i>
+                                    </div>
+
+                                    <h6>
+                                        No users found
+                                    </h6>
+
+                                    <p>
+                                        Try changing your search or role filter.
+                                    </p>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
                     }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="5">
+
+                                <div class="empty-search-content">
+
+                                    <div class="empty-search-icon">
+                                        <i class="fa-solid fa-users-slash"></i>
+                                    </div>
+
+                                    <h6>
+                                        No users available
+                                    </h6>
+
+                                    <p>
+                                        There are currently no users to manage.
+                                    </p>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>
+
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const searchUser =
+            document.getElementById("searchUser");
+
+        const searchRole =
+            document.getElementById("searchRole");
+
+        const rows =
+            document.querySelectorAll(".user-row");
+
+        const resultText =
+            document.getElementById("resultText");
+
+        const userCount =
+            document.getElementById("userCount");
+
+        const emptySearchRow =
+            document.getElementById("emptySearchRow");
+
+
+        /* =====================================
+           SEARCH + ROLE FILTER
+        ====================================== */
+
+        function filterTable() {
+
+            const userQuery =
+                searchUser.value
+                    .toLowerCase()
+                    .trim();
+
+            const roleQuery =
+                searchRole.value
+                    .toLowerCase()
+                    .trim();
+
+            let visibleCount = 0;
+
+
+            rows.forEach(function (row) {
+
+                const name =
+                    row.getAttribute("data-name") || "";
+
+                const email =
+                    row.getAttribute("data-email") || "";
+
+                const role =
+                    row.getAttribute("data-role") || "";
+
+
+                const matchesUser =
+                    name.includes(userQuery) ||
+                    email.includes(userQuery);
+
+
+                const matchesRole =
+                    roleQuery === "" ||
+                    role === roleQuery;
+
+
+                if (matchesUser && matchesRole) {
+
+                    row.style.display = "";
+
+                    visibleCount++;
+
+                }
+                else {
+
+                    row.style.display = "none";
+
+                }
+
+            });
+
+
+            /* Update result text */
+
+            if (resultText) {
+
+                if (visibleCount === 0) {
+
+                    resultText.textContent =
+                        "No matching users found";
+
+                }
+                else if (visibleCount === 1) {
+
+                    resultText.textContent =
+                        "1 user found";
+
+                }
+                else {
+
+                    resultText.textContent =
+                        visibleCount + " users found";
+
+                }
+
+            }
+
+
+            /* Update top count */
+
+            if (userCount) {
+
+                userCount.textContent =
+                    visibleCount + (visibleCount === 1 ? " User" : " Users");
+
+            }
+
+
+            /* Show empty search row */
+
+            if (emptySearchRow) {
+
+                if (visibleCount === 0) {
+
+                    emptySearchRow.style.display =
+                        "table-row";
+
+                }
+                else {
+
+                    emptySearchRow.style.display =
+                        "none";
+
+                }
+
+            }
+
+        }
+
+
+        if (searchUser) {
+
+            searchUser.addEventListener(
+                "input",
+                filterTable
+            );
+
+        }
+
+
+        if (searchRole) {
+
+            searchRole.addEventListener(
+                "change",
+                filterTable
+            );
+
+        }
+
+
+        /* =====================================
+           BUTTON SUBMIT ANIMATION
+        ====================================== */
+
+        const lockForms =
+            document.querySelectorAll(".lock-form");
+
+
+        lockForms.forEach(function (form) {
+
+            form.addEventListener(
+                "submit",
+                function () {
+
+                    const button =
+                        form.querySelector(
+                            ".access-action-btn"
+                        );
+
+
+                    if (!button) {
+                        return;
+                    }
+
+
+                    const isLockButton =
+                        button.classList.contains(
+                            "lock-btn"
+                        );
+
+
+                    button.classList.add(
+                        "action-loading"
+                    );
+
+
+                    button.innerHTML =
+                        '<i class="fa-solid fa-spinner me-1"></i>' +
+                        (isLockButton
+                            ? ' Locking...'
+                            : ' Unlocking...');
+
+                }
+            );
+
+        });
+
+    });
+
+</script>

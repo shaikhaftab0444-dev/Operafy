@@ -1,30 +1,499 @@
 @model IEnumerable<ERP_System.Models.User>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "User Directory";
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-users text-primary me-2"></i>User Directory</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Users</li>
-                </ol>
-            </nav>
+<style>
+    :root {
+        --directory-primary: #2563eb;
+        --directory-primary-dark: #1d4ed8;
+        --directory-accent: #7c3aed;
+        --directory-bg: #f8fafc;
+        --directory-text: #0f172a;
+        --directory-muted: #64748b;
+        --directory-border: #e2e8f0;
+        --directory-card: #ffffff;
+    }
+
+    /* =========================
+           PAGE ENTRANCE
+        ========================= */
+
+    .user-directory-page {
+        animation: pageFadeUp 0.55s ease-out both;
+    }
+
+    @@keyframes pageFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* =========================
+           PAGE HEADER
+        ========================= */
+
+    .directory-header {
+        animation: headerSlideDown 0.6s ease-out both;
+    }
+
+    @@keyframes headerSlideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .directory-title {
+        color: var(--directory-text);
+        letter-spacing: -0.4px;
+    }
+
+    .directory-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        color: white;
+        background: linear-gradient( 135deg, var(--directory-primary), var(--directory-accent) );
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+        transition: transform 0.25s ease;
+    }
+
+    .directory-title-wrapper:hover .directory-icon {
+        transform: rotate(-5deg) scale(1.05);
+    }
+
+    /* =========================
+           CREATE BUTTON
+        ========================= */
+
+    .create-user-btn {
+        border: none;
+        background: linear-gradient( 135deg, var(--directory-primary), var(--directory-primary-dark) );
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+        transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+    }
+
+        .create-user-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(37, 99, 235, 0.3);
+            filter: brightness(1.04);
+        }
+
+        .create-user-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+    /* =========================
+           DIRECTORY CARD
+        ========================= */
+
+    .directory-card {
+        background: var(--directory-card);
+        border: 1px solid var(--directory-border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+        animation: cardReveal 0.65s ease-out both;
+        animation-delay: 0.08s;
+    }
+
+    @@keyframes cardReveal {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* =========================
+           SEARCH BAR
+        ========================= */
+
+    .directory-search-area {
+        border-bottom: 1px solid var(--directory-border);
+        background: linear-gradient( 180deg, #ffffff, #fbfdff );
+    }
+
+    .directory-search {
+        position: relative;
+        max-width: 420px;
+        width: 100%;
+    }
+
+    .directory-search-icon {
+        position: absolute;
+        top: 50%;
+        left: 16px;
+        transform: translateY(-50%);
+        color: var(--directory-muted);
+        font-size: 0.9rem;
+        pointer-events: none;
+        transition: color 0.2s ease;
+    }
+
+    .directory-search-input {
+        width: 100%;
+        height: 44px;
+        padding-left: 42px;
+        padding-right: 42px;
+        border: 1px solid var(--directory-border);
+        border-radius: 12px;
+        outline: none;
+        background: #f8fafc;
+        color: var(--directory-text);
+        transition: border-color 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, transform 0.22s ease;
+    }
+
+        .directory-search-input::placeholder {
+            color: #94a3b8;
+        }
+
+    .directory-search:focus-within .directory-search-icon {
+        color: var(--directory-primary);
+    }
+
+    .directory-search-input:focus {
+        background: white;
+        border-color: var(--directory-primary);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .search-clear-btn {
+        position: absolute;
+        top: 50%;
+        right: 8px;
+        transform: translateY(-50%);
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--directory-muted);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    }
+
+        .search-clear-btn:hover {
+            background: #eef2ff;
+            color: var(--directory-primary);
+            transform: translateY(-50%) rotate(90deg);
+        }
+
+    .directory-search.has-value .search-clear-btn {
+        display: flex;
+    }
+
+    /* =========================
+           TABLE
+        ========================= */
+
+    .directory-table {
+        margin-bottom: 0;
+        font-size: 0.87rem;
+    }
+
+        .directory-table thead th {
+            padding: 15px 18px;
+            color: #64748b;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--directory-border);
+            font-size: 0.73rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .directory-table tbody td {
+            padding: 16px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #475569;
+            vertical-align: middle;
+        }
+
+        .directory-table tbody tr {
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            animation: rowReveal 0.4s ease-out both;
+        }
+
+    @@keyframes rowReveal {
+        from {
+            opacity: 0;
+            transform: translateX(-8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .directory-table tbody tr:hover {
+        background: #f8fbff;
+        transform: translateX(3px);
+        box-shadow: inset 3px 0 0 var(--directory-primary);
+    }
+
+    .directory-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* =========================
+           USER NAME
+        ========================= */
+
+    .user-name {
+        color: var(--directory-text);
+        font-weight: 700;
+        transition: color 0.2s ease;
+    }
+
+    .directory-table tbody tr:hover .user-name {
+        color: var(--directory-primary);
+    }
+
+    .username-text {
+        font-weight: 500;
+        color: #64748b;
+    }
+
+    .email-text {
+        color: #64748b;
+    }
+
+    /* =========================
+           BADGES
+        ========================= */
+
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-weight: 600;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .role-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(37, 99, 235, 0.12);
+        }
+
+    .status-badge {
+        padding: 0.45rem 0.8rem;
+        font-weight: 600;
+        transition: transform 0.2s ease;
+    }
+
+        .status-badge:hover {
+            transform: scale(1.04);
+        }
+
+    /* =========================
+           SEARCH RESULT INFO
+        ========================= */
+
+    .directory-result-info {
+        color: var(--directory-muted);
+        font-size: 0.82rem;
+        white-space: nowrap;
+    }
+
+    /* =========================
+           NO RESULT
+        ========================= */
+
+    .no-search-result {
+        display: none;
+        text-align: center;
+        padding: 45px 20px;
+        animation: fadeIn 0.3s ease;
+    }
+
+        .no-search-result.show {
+            display: table-row;
+        }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .no-result-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #eff6ff;
+        color: var(--directory-primary);
+        font-size: 1.25rem;
+    }
+
+    /* =========================
+           RESPONSIVE
+        ========================= */
+
+    @@media (max-width: 767.98px) {
+        .directory-header {
+            align-items: flex-start !important;
+            gap: 1rem;
+        }
+
+        .create-user-btn {
+            white-space: nowrap;
+        }
+
+        .directory-search-area {
+            padding: 1rem !important;
+        }
+
+        .directory-result-info {
+            display: none;
+        }
+
+        .directory-table thead th,
+        .directory-table tbody td {
+            padding: 14px 12px;
+        }
+    }
+
+    /* =========================
+           REDUCED MOTION
+        ========================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4 text-start user-directory-page">
+
+    <!-- Page Header -->
+    <div class="directory-header d-flex justify-content-between align-items-center mb-4">
+
+        <div class="directory-title-wrapper">
+            <div class="d-flex align-items-center gap-3">
+
+                <div class="directory-icon">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+
+                <div>
+                    <h4 class="directory-title fw-bold mb-1">
+                        User Directory
+                    </h4>
+
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0 small">
+                            <li class="breadcrumb-item">
+                                <a href="/Dashboard"
+                                   class="text-decoration-none">
+                                    Admin Dashboard
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active"
+                                aria-current="page">
+                                Users
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+
+            </div>
         </div>
-        <a href="/AdminUser/AddEdit" class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm">
-            <i class="fa-solid fa-plus me-1.5"></i>Create New User
+
+        <a href="/AdminUser/AddEdit"
+           class="btn btn-primary rounded-pill px-3 btn-sm create-user-btn">
+            <i class="fa-solid fa-plus me-2"></i>
+            Create New User
         </a>
+
     </div>
 
-    <!-- Users Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
+    <!-- Users Directory Card -->
+    <div class="directory-card">
+
+        <!-- Search Section -->
+        <div class="directory-search-area p-4">
+
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+
+                <div class="directory-search">
+
+                    <i class="fa-solid fa-magnifying-glass directory-search-icon"></i>
+
+                    <input type="text"
+                           id="userSearch"
+                           class="directory-search-input"
+                           placeholder="Search by name, username or email..."
+                           autocomplete="off" />
+
+                    <button type="button"
+                            id="clearSearch"
+                            class="search-clear-btn"
+                            aria-label="Clear search">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+
+                </div>
+
+                <div class="directory-result-info">
+                    <span id="userCount">
+                        @Model.Count() users
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Users Table -->
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+
+            <table class="table directory-table align-middle">
+
+                <thead>
                     <tr>
                         <th>Full Name</th>
                         <th>Username</th>
@@ -34,42 +503,199 @@
                         <th>Account Status</th>
                     </tr>
                 </thead>
-                <tbody>
+
+                <tbody id="userTableBody">
+
                     @if (Model != null && Model.Any())
                     {
+                        var rowIndex = 0;
+
                         @foreach (var u in Model)
                         {
-                            <tr>
-                                <td class="fw-bold text-dark">@u.FullName</td>
-                                <td>@@@u.UserName</td>
-                                <td>@u.Email</td>
+                            <tr class="user-row"
+                                style="animation-delay: @(rowIndex * 0.04)s">
+
                                 <td>
-                                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5">
-                                        @(u.Role != null ? u.Role.RoleName : "Employee")
+                                    <span class="user-name">
+                                        @u.FullName
                                     </span>
                                 </td>
-                                <td>@(u.Branch != null ? u.Branch.BranchName : "Main Head Office")</td>
+
                                 <td>
-                                    @if (u.IsActive)
+                                    <span class="username-text">
+                                        @@u.UserName
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="email-text">
+                                        @u.Email
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="role-badge">
+                                        @(u.Role != null
+                                                                        ? u.Role.RoleName
+                                                                        : "Employee")
+                                                                                 </span>
+                                                                             </td>
+
+                                <td>
+                                    @(u.Branch != null
+                                                                ? u.Branch.BranchName
+                                                                : "Main Head Office")
+                        </td>
+
+                                <td>
+                            @if (u.IsActive)
                                     {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span>
+                                        <span class="badge bg-success-subtle text-success rounded-pill status-badge">
+                                            <i class="fa-solid fa-circle-check me-1"></i>
+                                            Active
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">Locked</span>
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill status-badge">
+                                            <i class="fa-solid fa-lock me-1"></i>
+                                            Locked
+                                        </span>
                                     }
                                 </td>
+
                             </tr>
+
+                            rowIndex++;
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">No users found.</td>
+                            <td colspan="6"
+                                class="text-center py-5 text-muted">
+
+                                <i class="fa-solid fa-users-slash fa-2x mb-3 d-block"></i>
+
+                                No users found.
+                            </td>
                         </tr>
                     }
+
+                    <!-- Live Search Empty State -->
+                    <tr id="noSearchResult" class="no-search-result">
+
+                        <td colspan="6">
+
+                            <div class="no-result-icon">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </div>
+
+                            <h6 class="fw-bold text-dark">
+                                No matching users found
+                            </h6>
+
+                            <p class="text-muted small mb-0">
+                                Try searching with a different name or email address.
+                            </p>
+
+                        </td>
+
+                    </tr>
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const searchInput = document.getElementById("userSearch");
+        const clearSearch = document.getElementById("clearSearch");
+        const searchContainer = document.querySelector(".directory-search");
+        const userRows = document.querySelectorAll(".user-row");
+        const noSearchResult = document.getElementById("noSearchResult");
+        const userCount = document.getElementById("userCount");
+
+        const totalUsers = userRows.length;
+
+        function filterUsers() {
+
+            const searchValue =
+                searchInput.value.trim().toLowerCase();
+
+            let visibleUsers = 0;
+
+            userRows.forEach(function (row) {
+
+                const rowText =
+                    row.textContent.toLowerCase();
+
+                const isMatch =
+                    rowText.includes(searchValue);
+
+                row.style.display =
+                    isMatch ? "" : "none";
+
+                if (isMatch) {
+                    visibleUsers++;
+                }
+
+            });
+
+            if (searchValue.length > 0) {
+                searchContainer.classList.add("has-value");
+            } else {
+                searchContainer.classList.remove("has-value");
+            }
+
+            if (searchValue.length > 0 && visibleUsers === 0) {
+                noSearchResult.classList.add("show");
+            } else {
+                noSearchResult.classList.remove("show");
+            }
+
+            if (searchValue.length > 0) {
+
+                userCount.textContent =
+                    visibleUsers +
+                    (visibleUsers === 1
+                        ? " user found"
+                        : " users found");
+
+            } else {
+
+                userCount.textContent =
+                    totalUsers +
+                    " users";
+
+            }
+
+        }
+
+        searchInput.addEventListener(
+            "input",
+            filterUsers
+        );
+
+        clearSearch.addEventListener(
+            "click",
+            function () {
+
+                searchInput.value = "";
+
+                filterUsers();
+
+                searchInput.focus();
+
+            }
+        );
+
+    });
+</script>
