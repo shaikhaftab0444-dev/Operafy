@@ -51,6 +51,21 @@
         userProfilePhoto = _switcherContext.Users.Where(u => u.UserId == loggedUserId).Select(u => u.ProfilePhoto).FirstOrDefault();
     }
     var layoutProfilePhoto = !string.IsNullOrEmpty(userProfilePhoto) ? userProfilePhoto : "/profile_images/admin-avatar.jpg";
+
+    // Read per-user preferences from Cookies for dynamic website styling & persistence
+    var userThemeMode = Context.Request.Cookies["UserSettings_ThemeMode"] ?? "Light";
+    var userPrimaryAccent = Context.Request.Cookies["UserSettings_PrimaryAccentColor"] ?? "#3b82f6";
+    var userSidebarLayout = Context.Request.Cookies["UserSettings_SidebarLayout"] ?? "Expanded";
+    var userSystemName = Context.Request.Cookies["UserSettings_SystemName"] ?? "ERP System Solutions";
+    var isDarkMode = userThemeMode.Equals("Dark", StringComparison.OrdinalIgnoreCase);
+    var isCompactSidebar = userSidebarLayout.Equals("Compact", StringComparison.OrdinalIgnoreCase);
+
+    var sidebarBg = isDarkMode ? "#0f172a" : "#0e1726";
+    var topbarBg = isDarkMode ? "#1e293b" : "#ffffff";
+    var contentBg = isDarkMode ? "#0f172a" : "#f8fafc";
+    var textColor = isDarkMode ? "#f8fafc" : "#1e293b";
+    var borderWarm = isDarkMode ? "#334155" : "#e2e8f0";
+    var cardBg = isDarkMode ? "#1e293b" : "#ffffff";
 }
 
 <!DOCTYPE html>
@@ -58,22 +73,141 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ERP Dashboard</title>
+    <title>@ViewData["Title"] - @userSystemName</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/fontawesome-free/css/all.min.css" />
     <style>
         @@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
         :root {
-            --sidebar-bg: #0e1726;
+            --sidebar-bg: @sidebarBg;
             --sidebar-color: #abb5c2;
-            --sidebar-active-bg: #3b82f6;
+            --sidebar-active-bg: @userPrimaryAccent;
             --sidebar-active-color: #ffffff;
-            --topbar-bg: #ffffff;
-            --content-bg: #f8fafc;
-            --text-color: #1e293b;
-            --border-warm: #e2e8f0;
-            --primary-warm: #3b82f6;
+            --topbar-bg: @topbarBg;
+            --content-bg: @contentBg;
+            --text-color: @textColor;
+            --border-warm: @borderWarm;
+            --primary-warm: @userPrimaryAccent;
+            --panel-card-bg: @cardBg;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--content-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        @if (isDarkMode)
+        {
+            <text>
+            /* Dark Slate Mode Global Contrast Overrides */
+            .panel-card, .card, .modal-content, .dropdown-menu, .table, .form-control-warm, .form-control, .form-select, select, input, textarea {
+                background-color: #1e293b !important;
+                color: #f8fafc !important;
+                border-color: #334155 !important;
+            }
+
+            /* Dropdown Select Option Contrast: explicit contrast styling for select options in Dark Mode */
+            select option, .form-select option, option {
+                background-color: #1e293b !important;
+                color: #ffffff !important;
+            }
+
+            .form-control-warm:focus, .form-select:focus, .form-control:focus, select:focus {
+                background-color: #1e293b !important;
+                color: #ffffff !important;
+                border-color: var(--primary-warm) !important;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+            }
+
+            .text-dark, .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6, label, .form-label, .fw-bold {
+                color: #f8fafc !important;
+            }
+
+            .bg-light, .bg-light-subtle {
+                background-color: #0f172a !important;
+                color: #f8fafc !important;
+            }
+
+            .text-muted, .form-text, .extra-small {
+                color: #94a3b8 !important;
+            }
+
+            .breadcrumb-item.active, .breadcrumb-item a {
+                color: #94a3b8 !important;
+            }
+
+            .dropdown-item {
+                color: #f8fafc !important;
+            }
+
+            .dropdown-item:hover, .dropdown-item:focus {
+                background-color: rgba(255, 255, 255, 0.1) !important;
+                color: #ffffff !important;
+            }
+
+            .settings-nav .nav-link {
+                color: #cbd5e1 !important;
+                background-color: rgba(255, 255, 255, 0.04) !important;
+                border-color: #334155 !important;
+            }
+
+            .settings-nav .nav-link:hover {
+                background-color: rgba(255, 255, 255, 0.12) !important;
+                color: #ffffff !important;
+            }
+
+            .settings-nav .nav-link.active {
+                background-color: var(--primary-warm) !important;
+                color: #ffffff !important;
+                border-color: var(--primary-warm) !important;
+            }
+
+            .settings-icon {
+                background-color: rgba(255, 255, 255, 0.1) !important;
+                color: #f8fafc !important;
+            }
+
+            .settings-nav .nav-link.active .settings-icon {
+                background-color: rgba(255, 255, 255, 0.25) !important;
+                color: #ffffff !important;
+            }
+            </text>
+        }
+        else
+        {
+            <text>
+            /* Light Mode Dropdown Select Option Contrast */
+            select option, .form-select option, option {
+                background-color: #ffffff !important;
+                color: #0f172a !important;
+            }
+            </text>
+        }
+
+        @if (isCompactSidebar)
+        {
+            <text>
+            #sidebar {
+                min-width: 80px !important;
+                max-width: 80px !important;
+            }
+            #sidebar .menu-title, #sidebar .sidebar-brand span, #sidebar .menu-link span, #sidebar .dropdown-toggle-arrow, #sidebar .sidebar-footer span:last-child {
+                display: none !important;
+            }
+            #sidebar .menu-link {
+                justify-content: center !important;
+                padding: 0.75rem 0 !important;
+            }
+            #sidebar .menu-icon {
+                margin-right: 0 !important;
+                font-size: 1.25rem !important;
+            }
+            </text>
         }
 
         body {
@@ -426,7 +560,7 @@
             <div class="sidebar-header">
                 <a href="/" class="sidebar-brand">
                     <i class="fa-solid fa-cubes text-white"></i>
-                    <span>ERP System</span>
+                    <span>@userSystemName</span>
                 </a>
                 <button class="toggle-btn text-white d-lg-none" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -1672,14 +1806,14 @@
                     <div class="dropdown">
                         <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
                             <i class="fa-regular fa-bell"></i>
-                            <span class="badge bg-danger icon-badge">3</span>
+                            <span class="badge bg-danger icon-badge" id="topbar-notif-count">3</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="width: 320px; border: 1px solid var(--border-warm) !important; font-size: 0.85rem;">
                             <div class="p-2.5 border-bottom d-flex justify-content-between align-items-center bg-light-subtle">
                                 <h6 class="fw-bold m-0 text-dark" style="font-size:0.85rem;"><i class="fa-solid fa-bell text-primary me-1.5"></i>Notifications</h6>
-                                <span class="badge bg-danger-subtle text-danger rounded-pill px-2">New Alerts</span>
+                                <span class="badge bg-danger-subtle text-danger rounded-pill px-2">Live Profile Stream</span>
                             </div>
-                            <div class="p-2 border-bottom text-start">
+                            <div class="p-2 border-bottom text-start" id="topbar-notif-items">
                                 <a href="/Notifications" class="text-decoration-none d-block p-2 rounded bg-light-subtle mb-1 hover-bg">
                                     <span class="fw-bold d-block text-dark small">New Activity & System Alerts</span>
                                     <span class="text-muted extra-small">View real-time operational notifications</span>
@@ -1770,6 +1904,51 @@
                 document.exitFullscreen();
             }
         }
+
+        function escapeHtmlNotif(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function pollRealtimeUserNotifications() {
+            fetch('/Notifications/GetUserNotifications')
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (!data) return;
+                    var badgeEl = document.getElementById('topbar-notif-count');
+                    if (badgeEl) {
+                        badgeEl.innerText = data.unreadCount;
+                        badgeEl.style.display = data.unreadCount > 0 ? 'inline-block' : 'none';
+                    }
+
+                    var containerEl = document.getElementById('topbar-notif-items');
+                    if (containerEl && data.notifications && data.notifications.length > 0) {
+                        var html = '';
+                        data.notifications.forEach(function (n) {
+                            var unreadTag = !n.isRead ? '<span class="badge bg-primary rounded-pill ms-1" style="font-size:0.55rem;">NEW</span>' : '';
+                            var borderStyle = !n.isRead ? 'border-left: 3px solid #3b82f6; background-color: #f8fafc;' : '';
+                            html += `
+                                <a href="${n.targetUrl || '/Notifications'}" class="text-decoration-none d-block p-2 rounded mb-1 hover-bg" style="${borderStyle}">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span class="fw-bold d-block text-dark small"><i class="fa-solid ${n.iconClass || 'fa-bell'} ${n.colorClass || 'text-primary'} me-1.5"></i>${escapeHtmlNotif(n.title)} ${unreadTag}</span>
+                                        <span class="text-muted extra-small" style="font-size: 0.7rem;">${n.timeAgo}</span>
+                                    </div>
+                                    <span class="text-muted extra-small d-block text-truncate mt-0.5" style="font-size:0.75rem;">${escapeHtmlNotif(n.description)}</span>
+                                </a>
+                            `;
+                        });
+                        containerEl.innerHTML = html;
+                    } else if (containerEl) {
+                        containerEl.innerHTML = '<div class="p-2 text-muted small text-center">No recent notifications.</div>';
+                    }
+                })
+                .catch(function (err) { console.log(err); });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            pollRealtimeUserNotifications();
+            setInterval(pollRealtimeUserNotifications, 3000);
+        });
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

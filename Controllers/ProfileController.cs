@@ -129,6 +129,20 @@ namespace ERP_System.Controllers
             });
             await _context.SaveChangesAsync();
 
+            NotificationsController.AddNotification(new NotificationItem
+            {
+                Title = "Profile Updated",
+                Description = "Your account profile information was updated successfully.",
+                Category = "Security",
+                CreatedAt = DateTime.Now,
+                IsRead = false,
+                IconClass = "fa-user-check",
+                ColorClass = "text-success",
+                BgColorClass = "bg-success-subtle",
+                TargetUrl = "/Profile",
+                TargetEmail = user.Email
+            });
+
             TempData["SuccessMessage"] = "Profile details updated successfully!";
             return RedirectToAction(nameof(Index));
         }
@@ -171,6 +185,20 @@ namespace ERP_System.Controllers
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
+
+                NotificationsController.AddNotification(new NotificationItem
+                {
+                    Title = "Password Changed",
+                    Description = "Your account password was changed successfully.",
+                    Category = "Security",
+                    CreatedAt = DateTime.Now,
+                    IsRead = false,
+                    IconClass = "fa-key",
+                    ColorClass = "text-warning",
+                    BgColorClass = "bg-warning-subtle",
+                    TargetUrl = "/Profile",
+                    TargetEmail = user.Email
+                });
 
                 TempData["SuccessMessage"] = "Password updated successfully!";
                 return RedirectToAction(nameof(Index));

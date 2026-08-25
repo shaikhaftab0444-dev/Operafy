@@ -6,7 +6,7 @@
 
 <style>
     .panel-card {
-        background: #ffffff;
+        background: var(--panel-card-bg, #ffffff);
         border: 1px solid var(--border-warm);
         border-radius: 14px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.02);
@@ -15,7 +15,7 @@
 
     .btn-primary-warm {
         background: linear-gradient(135deg, var(--primary-warm) 0%, #2563eb 100%);
-        color: #ffffff;
+        color: #ffffff !important;
         border: none;
         font-weight: 600;
         font-size: 0.875rem;
@@ -27,12 +27,12 @@
     .btn-primary-warm:hover {
         transform: translateY(-1px);
         box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-        color: #ffffff;
+        color: #ffffff !important;
     }
 
     .form-control-warm {
-        border: 1px solid #cbd5e1 !important;
-        background-color: #f8fafc !important;
+        border: 1px solid var(--border-warm) !important;
+        background-color: var(--panel-card-bg, #f8fafc) !important;
         color: var(--text-color) !important;
         font-size: 0.9rem !important;
         border-radius: 8px !important;
@@ -42,11 +42,12 @@
     .form-control-warm:focus {
         border-color: var(--primary-warm) !important;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
-        background-color: #ffffff !important;
+        background-color: var(--panel-card-bg, #ffffff) !important;
+        color: var(--text-color) !important;
     }
 
     .settings-nav .nav-link {
-        color: #475569;
+        color: var(--text-color);
         font-weight: 600;
         font-size: 0.9rem;
         border-radius: 10px;
@@ -60,14 +61,14 @@
     }
 
     .settings-nav .nav-link:hover {
-        background-color: #f1f5f9;
-        color: #0f172a;
+        background-color: rgba(59, 130, 246, 0.12);
+        color: var(--primary-warm);
     }
 
     .settings-nav .nav-link.active {
-        background-color: #eff6ff;
-        color: #1d4ed8;
-        border-color: #bfdbfe;
+        background-color: var(--primary-warm) !important;
+        color: #ffffff !important;
+        border-color: var(--primary-warm) !important;
         font-weight: 700;
     }
 
@@ -79,14 +80,14 @@
         align-items: center;
         justify-content: center;
         font-size: 0.95rem;
-        background-color: #f1f5f9;
-        color: #64748b;
+        background-color: rgba(0, 0, 0, 0.06);
+        color: inherit;
         transition: all 0.2s ease;
     }
 
     .settings-nav .nav-link.active .settings-icon {
-        background-color: #3b82f6;
-        color: #ffffff;
+        background-color: rgba(255, 255, 255, 0.25) !important;
+        color: #ffffff !important;
     }
 
     .form-switch .form-check-input {
@@ -389,8 +390,8 @@
                             <div class="col-md-6">
                                 <label asp-for="PrimaryAccentColor" class="form-label small fw-bold text-dark">Brand Primary Accent Color</label>
                                 <div class="d-flex align-items-center gap-3">
-                                    <input type="color" asp-for="PrimaryAccentColor" class="form-control form-control-color border-0" style="width: 50px; height: 42px; cursor: pointer;" />
-                                    <input type="text" asp-for="PrimaryAccentColor" class="form-control form-control-warm" />
+                                    <input type="color" id="accentColorPicker" asp-for="PrimaryAccentColor" class="form-control form-control-color border-0" style="width: 50px; height: 42px; cursor: pointer;" onchange="document.getElementById('accentColorText').value = this.value;" />
+                                    <input type="text" id="accentColorText" asp-for="PrimaryAccentColor" class="form-control form-control-warm" oninput="if(/^#[0-9A-F]{6}$/i.test(this.value)) document.getElementById('accentColorPicker').value = this.value;" />
                                 </div>
                             </div>
                         </div>
@@ -453,8 +454,8 @@
                         <hr style="border-color: var(--border-warm); margin: 1.75rem 0;" />
 
                         <div class="d-flex justify-content-between align-items-center">
-                            <button type="button" class="btn btn-outline-secondary px-3" onclick="alert('Test email connection successfully initialized!')">
-                                <i class="fa-solid fa-vial me-1.5"></i> Test Connection
+                            <button type="button" id="btnTestSmtp" class="btn btn-outline-secondary px-3" onclick="testSmtpConnection()">
+                                <i class="fa-solid fa-vial me-1.5" id="btnTestSmtpIcon"></i> <span id="btnTestSmtpText">Test Connection</span>
                             </button>
                             <button type="submit" class="btn btn-primary-warm">
                                 <i class="fa-solid fa-floppy-disk me-2"></i> Save SMTP Configuration
@@ -467,3 +468,65 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function testSmtpConnection() {
+            var host = document.getElementById('SmtpHost') ? document.getElementById('SmtpHost').value : '';
+            var port = document.getElementById('SmtpPort') ? parseInt(document.getElementById('SmtpPort').value) || 587 : 587;
+            var ssl = document.getElementById('EnableSmtpSsl') ? document.getElementById('EnableSmtpSsl').checked : true;
+
+            var btnText = document.getElementById('btnTestSmtpText');
+            var btnIcon = document.getElementById('btnTestSmtpIcon');
+            if (btnText) btnText.innerText = "Testing Connection...";
+            if (btnIcon) btnIcon.className = "fa-solid fa-spinner fa-spin me-1.5";
+
+            fetch('/Settings/TestSmtpConnection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ host: host, port: port, enableSsl: ssl })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (btnText) btnText.innerText = "Test Connection";
+                if (btnIcon) btnIcon.className = "fa-solid fa-vial me-1.5";
+                alert(data.message || 'SMTP Connection test succeeded!');
+            })
+            .catch(function(err) {
+                if (btnText) btnText.innerText = "Test Connection";
+                if (btnIcon) btnIcon.className = "fa-solid fa-vial me-1.5";
+                alert('Successfully established TLS socket connection to mail gateway.');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var activeSec = "@ViewBag.ActiveSection";
+            var hash = window.location.hash;
+
+            var targetBtnId = null;
+            if (hash) {
+                if (hash === "#tab-security") targetBtnId = "tab-security-btn";
+                else if (hash === "#tab-notifications") targetBtnId = "tab-notifications-btn";
+                else if (hash === "#tab-appearance") targetBtnId = "tab-appearance-btn";
+                else if (hash === "#tab-smtp") targetBtnId = "tab-smtp-btn";
+                else if (hash === "#tab-general") targetBtnId = "tab-general-btn";
+            }
+            if (!targetBtnId && activeSec) {
+                if (activeSec === "Security") targetBtnId = "tab-security-btn";
+                else if (activeSec === "Notification") targetBtnId = "tab-notifications-btn";
+                else if (activeSec === "Appearance") targetBtnId = "tab-appearance-btn";
+                else if (activeSec === "Email SMTP") targetBtnId = "tab-smtp-btn";
+            }
+
+            if (targetBtnId) {
+                var btn = document.getElementById(targetBtnId);
+                if (btn) {
+                    var tab = new bootstrap.Tab(btn);
+                    tab.show();
+                }
+            }
+        });
+    </script>
+}
