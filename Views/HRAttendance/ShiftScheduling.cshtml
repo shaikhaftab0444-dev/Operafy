@@ -4,96 +4,594 @@
     ViewData["Title"] = "Shift Scheduling & Rosters";
 }
 
-<div class="container-fluid py-4 text-start">
+<style>
+    /* =========================================
+           SHIFT SCHEDULING - PREMIUM ERP UI
+           ========================================= */
+
+    .shift-scheduling-page {
+        --shift-primary: var(--primary-warm, #2563eb);
+        --shift-primary-dark: #1d4ed8;
+        --shift-border: var(--border-warm, #e5e7eb);
+        --shift-text: var(--text-color, #1f2937);
+        --shift-muted: #6b7280;
+        --shift-soft: #f8fafc;
+    }
+
+    /* Page entrance */
+    .shift-page-animate {
+        opacity: 0;
+        transform: translateY(14px);
+        animation: shiftPageFadeUp .55s ease-out forwards;
+    }
+
+    @@keyframes shiftPageFadeUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Alert */
+    .shift-alert {
+        border: 1px solid rgba(25, 135, 84, .16);
+        animation: shiftAlertIn .45s ease-out both;
+    }
+
+    @@keyframes shiftAlertIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Header */
+    .shift-page-header {
+        animation: shiftPageFadeUp .55s ease-out both;
+    }
+
+    .shift-page-title {
+        color: var(--shift-text);
+        letter-spacing: -.35px;
+    }
+
+    .shift-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+        color: #9ca3af;
+    }
+
+    .shift-breadcrumb a {
+        color: var(--shift-primary);
+        transition: color .2s ease;
+    }
+
+        .shift-breadcrumb a:hover {
+            color: var(--shift-primary-dark);
+        }
+
+    /* Primary button */
+    .shift-primary-btn {
+        position: relative;
+        overflow: hidden;
+        transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+
+        .shift-primary-btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 25%, rgba(255,255,255,.22) 50%, transparent 75%);
+            transform: translateX(-130%);
+            transition: transform .55s ease;
+        }
+
+        .shift-primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(37, 99, 235, .20) !important;
+        }
+
+            .shift-primary-btn:hover::before {
+                transform: translateX(130%);
+            }
+
+        .shift-primary-btn:active {
+            transform: translateY(0) scale(.98);
+        }
+
+    /* Statistics cards */
+    .shift-stat-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 116px;
+        border-radius: 16px !important;
+        transition: transform .25s ease, box-shadow .25s ease;
+        animation: shiftCardIn .55s ease-out both;
+    }
+
+        .shift-stat-card::after {
+            content: "";
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            top: -55px;
+            right: -40px;
+            background: rgba(37, 99, 235, .025);
+            transition: transform .35s ease;
+        }
+
+        .shift-stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 14px 30px rgba(15, 23, 42, .10) !important;
+        }
+
+            .shift-stat-card:hover::after {
+                transform: scale(1.25);
+            }
+
+        .shift-stat-card:nth-child(1) {
+            animation-delay: .05s;
+        }
+
+        .shift-stat-card:nth-child(2) {
+            animation-delay: .12s;
+        }
+
+        .shift-stat-card:nth-child(3) {
+            animation-delay: .19s;
+        }
+
+        .shift-stat-card:nth-child(4) {
+            animation-delay: .26s;
+        }
+
+    @@keyframes shiftCardIn {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .shift-stat-label {
+        font-size: .68rem;
+        letter-spacing: .55px;
+        line-height: 1.35;
+    }
+
+    .shift-stat-number {
+        letter-spacing: -.6px;
+    }
+
+    .shift-stat-icon {
+        position: relative;
+        z-index: 1;
+        transition: transform .25s ease;
+    }
+
+    .shift-stat-card:hover .shift-stat-icon {
+        transform: rotate(-5deg) scale(1.08);
+    }
+
+    /* Table section */
+    .shift-table-card {
+        border-color: var(--shift-border) !important;
+        border-radius: 18px !important;
+        overflow: hidden;
+        animation: shiftTableIn .65s ease-out both;
+        animation-delay: .15s;
+    }
+
+    @@keyframes shiftTableIn {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .shift-table-header {
+        border-bottom: 1px solid var(--shift-border);
+    }
+
+    .shift-table-title {
+        color: var(--shift-text);
+        letter-spacing: -.15px;
+    }
+
+    .shift-count-badge {
+        background: var(--shift-soft) !important;
+        border: 1px solid var(--shift-border) !important;
+        padding: .45rem .7rem;
+        border-radius: 999px;
+        font-weight: 600;
+        transition: transform .2s ease, background-color .2s ease;
+    }
+
+        .shift-count-badge:hover {
+            transform: scale(1.04);
+            background: #fff !important;
+        }
+
+    /* Table */
+    .shift-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .shift-table thead th {
+            background: var(--shift-soft);
+            color: #64748b;
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: .45px;
+            font-weight: 700;
+            padding: .9rem .85rem;
+            border-bottom: 1px solid var(--shift-border);
+            white-space: nowrap;
+        }
+
+        .shift-table tbody td {
+            padding: .9rem .85rem;
+            vertical-align: middle;
+            border-color: #eef1f5;
+            transition: background-color .2s ease;
+        }
+
+        .shift-table tbody tr {
+            transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+        }
+
+            .shift-table tbody tr:hover {
+                background: rgba(37, 99, 235, .025);
+                box-shadow: inset 3px 0 0 var(--shift-primary);
+            }
+
+                .shift-table tbody tr:hover td {
+                    background-color: transparent;
+                }
+
+    .shift-employee-name {
+        color: var(--shift-text);
+        font-weight: 700;
+        transition: color .2s ease;
+    }
+
+    .shift-table tbody tr:hover .shift-employee-name {
+        color: var(--shift-primary);
+    }
+
+    .shift-time-code {
+        display: inline-block;
+        background: #f8fafc;
+        border: 1px solid #eef2f7;
+        border-radius: 8px;
+        padding: .3rem .5rem;
+        font-size: .78rem;
+        color: #334155;
+        transition: background-color .2s ease, transform .2s ease;
+    }
+
+    .shift-table tbody tr:hover .shift-time-code {
+        background: #fff;
+        transform: translateX(2px);
+    }
+
+    /* Badges */
+    .shift-badge {
+        padding: .42rem .65rem;
+        font-weight: 600;
+        font-size: .72rem;
+        border-radius: 999px;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .shift-badge:hover {
+            transform: translateY(-1px);
+        }
+
+    .shift-weekly-off {
+        display: inline-flex;
+        align-items: center;
+        padding: .38rem .65rem;
+        border-radius: 999px;
+        background: #f8fafc;
+        border: 1px solid var(--shift-border);
+        color: #64748b;
+        font-size: .74rem;
+        font-weight: 600;
+    }
+
+    /* Remove button */
+    .shift-remove-btn {
+        transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+
+        .shift-remove-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 16px rgba(220, 53, 69, .12);
+        }
+
+        .shift-remove-btn:active {
+            transform: scale(.96);
+        }
+
+    /* Empty state */
+    .shift-empty-state {
+        padding: 3rem 1rem !important;
+    }
+
+    .shift-empty-icon {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--shift-soft);
+        color: #94a3b8;
+        font-size: 1.2rem;
+    }
+
+    /* Modal */
+    .shift-modal .modal-content {
+        border-radius: 18px !important;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, .18) !important;
+    }
+
+    .shift-modal .modal-header {
+        background: linear-gradient(135deg, #f8fafc, #ffffff);
+    }
+
+    .shift-modal .modal-title {
+        color: var(--shift-text);
+    }
+
+    .shift-modal .modal-footer {
+        background: #fafbfc;
+    }
+
+    .shift-modal .form-label {
+        color: #475569;
+        letter-spacing: .15px;
+    }
+
+    .shift-modal .form-control,
+    .shift-modal .form-select {
+        min-height: 42px;
+        border-color: var(--shift-border);
+        border-radius: 10px;
+        transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+
+    .shift-modal textarea.form-control {
+        min-height: auto;
+    }
+
+    .shift-modal .form-control:hover,
+    .shift-modal .form-select:hover {
+        border-color: #cbd5e1;
+    }
+
+    .shift-modal .form-control:focus,
+    .shift-modal .form-select:focus {
+        border-color: var(--shift-primary);
+        box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .10);
+    }
+
+    .shift-modal .modal-dialog {
+        animation: shiftModalUp .25s ease-out;
+    }
+
+    @@keyframes shiftModalUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px) scale(.985);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .shift-cancel-btn,
+    .shift-save-btn {
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .shift-cancel-btn:hover,
+        .shift-save-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .shift-save-btn:hover {
+            box-shadow: 0 8px 18px rgba(37, 99, 235, .18);
+        }
+
+    /* Responsive */
+    @@media (max-width: 767.98px) {
+        .shift-page-title {
+            font-size: 1.25rem;
+        }
+
+        .shift-stat-card {
+            min-height: 105px;
+        }
+
+        .shift-table-card {
+            padding: 1rem !important;
+        }
+
+        .shift-table-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: .7rem;
+        }
+    }
+
+    /* Reduced Motion */
+    @@media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: .01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: .01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4 text-start shift-scheduling-page shift-page-animate">
+
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4 shift-alert" role="alert">
             <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
     <!-- Header & Action Controls -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 shift-page-header">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-clock text-primary me-2"></i>Shift Scheduling & Rosters</h4>
+            <h4 class="fw-bold mb-1 shift-page-title">
+                <i class="fa-solid fa-clock text-primary me-2"></i>Shift Scheduling & Rosters
+            </h4>
+
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
+                <ol class="breadcrumb mb-0 small shift-breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/HR" class="text-decoration-none">HR Dashboard</a>
+                    </li>
                     <li class="breadcrumb-item active" aria-current="page">Shift Rosters</li>
                 </ol>
             </nav>
         </div>
-        <button type="button" class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#assignShiftModal">
+
+        <button type="button"
+                class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm shift-primary-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#assignShiftModal">
             <i class="fa-solid fa-calendar-plus me-1.5"></i>Assign Shift Roster
         </button>
     </div>
 
     <!-- Roster Stat Cards -->
     <div class="row g-3 mb-4">
+
         <div class="col-12 col-sm-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-primary">
+            <div class="card border-0 shadow-sm bg-white p-3 border-start border-4 border-primary shift-stat-card">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase">Total Active Rosters</div>
-                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Rosters.Count</h3>
+                        <div class="text-muted fw-semibold text-uppercase shift-stat-label">
+                            Total Active Rosters
+                        </div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1 shift-stat-number">
+                            @Model.Rosters.Count
+                        </h3>
                     </div>
-                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary shift-stat-icon">
                         <i class="fa-solid fa-users fa-lg"></i>
                     </div>
                 </div>
             </div>
         </div>
+
         <div class="col-12 col-sm-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-success">
+            <div class="card border-0 shadow-sm bg-white p-3 border-start border-4 border-success shift-stat-card">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase">General Shift (Day)</div>
-                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Rosters.Count(r => r.ShiftName.Contains("General"))</h3>
+                        <div class="text-muted fw-semibold text-uppercase shift-stat-label">
+                            General Shift (Day)
+                        </div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1 shift-stat-number">
+                            @Model.Rosters.Count(r => r.ShiftName.Contains("General"))
+                        </h3>
                     </div>
-                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
+
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success shift-stat-icon">
                         <i class="fa-solid fa-sun fa-lg"></i>
                     </div>
                 </div>
             </div>
         </div>
+
         <div class="col-12 col-sm-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-dark">
+            <div class="card border-0 shadow-sm bg-white p-3 border-start border-4 border-dark shift-stat-card">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase">Night Shift</div>
-                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Rosters.Count(r => r.ShiftName.Contains("Night"))</h3>
+                        <div class="text-muted fw-semibold text-uppercase shift-stat-label">
+                            Night Shift
+                        </div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1 shift-stat-number">
+                            @Model.Rosters.Count(r => r.ShiftName.Contains("Night"))
+                        </h3>
                     </div>
-                    <div class="rounded-circle bg-dark bg-opacity-10 p-3 text-dark">
+
+                    <div class="rounded-circle bg-dark bg-opacity-10 p-3 text-dark shift-stat-icon">
                         <i class="fa-solid fa-moon fa-lg"></i>
                     </div>
                 </div>
             </div>
         </div>
+
         <div class="col-12 col-sm-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-4 border-info">
+            <div class="card border-0 shadow-sm bg-white p-3 border-start border-4 border-info shift-stat-card">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase">Morning/Evening Shift</div>
-                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Rosters.Count(r => r.ShiftName.Contains("Morning") || r.ShiftName.Contains("Evening"))</h3>
+                        <div class="text-muted fw-semibold text-uppercase shift-stat-label">
+                            Morning / Evening
+                        </div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1 shift-stat-number">
+                            @Model.Rosters.Count(r =>
+                            r.ShiftName.Contains("Morning") ||
+                            r.ShiftName.Contains("Evening"))
+                        </h3>
                     </div>
-                    <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info">
+
+                    <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info shift-stat-icon">
                         <i class="fa-solid fa-cloud-sun fa-lg"></i>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 
     <!-- Shifts Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0 text-secondary">Employee Shift Roster Assignments</h6>
-            <span class="badge bg-light text-dark border">@Model.Rosters.Count Assigned</span>
+    <div class="bg-white border p-4 shadow-sm shift-table-card">
+
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 shift-table-header">
+            <h6 class="fw-bold mb-0 shift-table-title">
+                <i class="fa-solid fa-calendar-days text-primary me-2"></i>
+                Employee Shift Roster Assignments
+            </h6>
+
+            <span class="badge text-dark shift-count-badge">
+                @Model.Rosters.Count Assigned
+            </span>
         </div>
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+            <table class="table table-hover align-middle mb-0 shift-table" style="font-size: 0.85rem;">
+                <thead>
                     <tr>
                         <th>Employee</th>
                         <th>Current Shift</th>
@@ -101,35 +599,92 @@
                         <th>Weekly Offs</th>
                         <th>Roster Effective Date</th>
                         <th>Notes</th>
-                        <th>Action</th>
+                        <th class="text-center">Action</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     @if (Model.Rosters.Any())
                     {
                         foreach (var roster in Model.Rosters)
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@roster.EmployeeName</td>
+                                <td>
+                                    <div class="shift-employee-name">
+                                        <i class="fa-solid fa-user me-2 text-muted small"></i>
+                                        @roster.EmployeeName
+                                    </div>
+                                </td>
+
                                 <td>
                                     @if (roster.ShiftName.Contains("Night"))
                                     {
-                                        <span class="badge bg-dark text-white rounded-pill px-2.5"><i class="fa-solid fa-moon me-1"></i>@roster.ShiftName</span>
+                                        <span class="badge bg-dark text-white shift-badge">
+                                            <i class="fa-solid fa-moon me-1"></i>
+                                            @roster.ShiftName
+                                        </span>
+                                    }
+                                    else if (roster.ShiftName.Contains("Morning"))
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning-emphasis shift-badge">
+                                            <i class="fa-solid fa-sun me-1"></i>
+                                            @roster.ShiftName
+                                        </span>
+                                    }
+                                    else if (roster.ShiftName.Contains("Evening"))
+                                    {
+                                        <span class="badge bg-info-subtle text-info shift-badge">
+                                            <i class="fa-solid fa-cloud-sun me-1"></i>
+                                            @roster.ShiftName
+                                        </span>
+                                    }
+                                    else if (roster.ShiftName.Contains("Flexible"))
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary shift-badge">
+                                            <i class="fa-solid fa-sliders me-1"></i>
+                                            @roster.ShiftName
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5"><i class="fa-solid fa-sun me-1"></i>@roster.ShiftName</span>
+                                        <span class="badge bg-primary-subtle text-primary shift-badge">
+                                            <i class="fa-solid fa-clock me-1"></i>
+                                            @roster.ShiftName
+                                        </span>
                                     }
                                 </td>
-                                <td><code>@roster.Timings</code></td>
-                                <td><span class="badge bg-light text-secondary border">@roster.WeeklyOffs</span></td>
-                                <td>@roster.EffectiveDate.ToString("dd MMM yyyy")</td>
-                                <td class="text-muted small">@(string.IsNullOrEmpty(roster.Notes) ? "-" : roster.Notes)</td>
+
                                 <td>
+                                    <code class="shift-time-code">@roster.Timings</code>
+                                </td>
+
+                                <td>
+                                    <span class="shift-weekly-off">
+                                        <i class="fa-solid fa-calendar-xmark me-1"></i>
+                                        @roster.WeeklyOffs
+                                    </span>
+                                </td>
+
+                                <td class="text-muted">
+                                    <i class="fa-regular fa-calendar me-1 small"></i>
+                                    @roster.EffectiveDate.ToString("dd MMM yyyy")
+                                </td>
+
+                                <td class="text-muted small">
+                                    @(string.IsNullOrEmpty(roster.Notes) ? "-" : roster.Notes)
+                                </td>
+
+                                <td class="text-center">
                                     <form asp-action="DeleteRoster" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="rosterId" value="@roster.RosterId" />
-                                        <button type="submit" class="btn btn-outline-danger btn-xs rounded-pill px-2.5" onclick="return confirm('Remove shift roster assignment for @roster.EmployeeName?')">
+
+                                        <input type="hidden"
+                                               name="rosterId"
+                                               value="@roster.RosterId" />
+
+                                        <button type="submit"
+                                                class="btn btn-outline-danger btn-xs rounded-pill px-2.5 shift-remove-btn"
+                                                onclick="return confirm('Remove shift roster assignment for @roster.EmployeeName?')">
                                             <i class="fa-solid fa-trash me-1"></i>Remove
                                         </button>
                                     </form>
@@ -140,7 +695,19 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">No shift rosters assigned yet. Click "Assign Shift Roster" to add an assignment.</td>
+                            <td colspan="7" class="text-center text-muted shift-empty-state">
+                                <div class="shift-empty-icon">
+                                    <i class="fa-solid fa-calendar-xmark"></i>
+                                </div>
+
+                                <div class="fw-semibold text-dark mb-1">
+                                    No shift rosters assigned yet
+                                </div>
+
+                                <div class="small">
+                                    Click "Assign Shift Roster" to create the first employee shift assignment.
+                                </div>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -150,63 +717,142 @@
 </div>
 
 <!-- Assign Shift Modal -->
-<div class="modal fade" id="assignShiftModal" tabindex="-1" aria-labelledby="assignShiftModalLabel" aria-hidden="true">
+<div class="modal fade shift-modal"
+     id="assignShiftModal"
+     tabindex="-1"
+     aria-labelledby="assignShiftModalLabel"
+     aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-3 border-0 shadow">
-            <div class="modal-header bg-light border-bottom px-4 py-3">
-                <h5 class="modal-title fw-bold" id="assignShiftModalLabel"><i class="fa-solid fa-user-gear text-primary me-2"></i>Assign Employee Shift Roster</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold" id="assignShiftModalLabel">
+                    <i class="fa-solid fa-user-gear text-primary me-2"></i>
+                    Assign Employee Shift Roster
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
             </div>
+
             <form asp-action="AssignShift" method="post">
                 @Html.AntiForgeryToken()
+
                 <div class="modal-body p-4">
+
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Select Employee</label>
+                        <label class="form-label small fw-bold">
+                            Select Employee
+                        </label>
+
                         <select name="userId" class="form-select" required>
                             <option value="">-- Choose Employee --</option>
+
                             @foreach (var emp in Model.Employees)
                             {
-                                <option value="@emp.UserId">@emp.FullName</option>
+                                <option value="@emp.UserId">
+                                    @emp.FullName
+                                </option>
                             }
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Shift Schedule Name</label>
+                        <label class="form-label small fw-bold">
+                            Shift Schedule Name
+                        </label>
+
                         <select name="shiftName" class="form-select" required>
-                            <option value="General Shift (Day)">General Shift (Day)</option>
-                            <option value="Morning Shift">Morning Shift</option>
-                            <option value="Evening Shift">Evening Shift</option>
-                            <option value="Night Shift">Night Shift</option>
-                            <option value="Flexible Shift">Flexible Shift</option>
+                            <option value="General Shift (Day)">
+                                General Shift (Day)
+                            </option>
+
+                            <option value="Morning Shift">
+                                Morning Shift
+                            </option>
+
+                            <option value="Evening Shift">
+                                Evening Shift
+                            </option>
+
+                            <option value="Night Shift">
+                                Night Shift
+                            </option>
+
+                            <option value="Flexible Shift">
+                                Flexible Shift
+                            </option>
                         </select>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-bold text-secondary">Shift Timings</label>
-                            <input type="text" name="timings" class="form-control" value="09:00 AM - 06:00 PM" required />
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">
+                                Shift Timings
+                            </label>
+
+                            <input type="text"
+                                   name="timings"
+                                   class="form-control"
+                                   value="09:00 AM - 06:00 PM"
+                                   required />
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-bold text-secondary">Weekly Off Day(s)</label>
-                            <input type="text" name="weeklyOffs" class="form-control" value="Sunday" required />
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">
+                                Weekly Off Day(s)
+                            </label>
+
+                            <input type="text"
+                                   name="weeklyOffs"
+                                   class="form-control"
+                                   value="Sunday"
+                                   required />
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Effective Roster Date</label>
-                        <input type="date" name="effectiveDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        <label class="form-label small fw-bold">
+                            Effective Roster Date
+                        </label>
+
+                        <input type="date"
+                               name="effectiveDate"
+                               class="form-control"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               required />
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label small fw-bold text-secondary">Notes / Comments</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Special rotation shift assignment"></textarea>
+                        <label class="form-label small fw-bold">
+                            Notes / Comments
+                        </label>
+
+                        <textarea name="notes"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="e.g. Special rotation shift assignment"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-top px-4 py-2">
-                    <button type="button" class="btn btn-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4"><i class="fa-solid fa-save me-1"></i>Save Roster</button>
+
+                <div class="modal-footer border-top px-4 py-3">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm rounded-pill px-3 shift-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary btn-sm rounded-pill px-4 shift-save-btn">
+                        <i class="fa-solid fa-save me-1"></i>
+                        Save Roster
+                    </button>
                 </div>
+
             </form>
         </div>
     </div>

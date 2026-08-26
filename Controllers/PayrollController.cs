@@ -21,33 +21,9 @@ namespace ERP_System.Controllers
 
         // GET: /Payroll
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            var employees = await _context.Users
-                .Include(u => u.Role)
-                .Where(u => u.IsActive && u.Role != null && u.Role.RoleName != "Admin" && u.Role.RoleName != "Super Admin")
-                .OrderBy(u => u.FullName)
-                .ToListAsync();
-
-            var structures = await _context.SalaryStructures
-                .ToDictionaryAsync(s => s.UserId);
-
-            var payslips = await _context.Payslips
-                .Include(p => p.User)
-                .OrderByDescending(p => p.PaymentDate)
-                .ToListAsync();
-
-            var totalMonthlyPayout = payslips
-                .Where(p => p.PaymentDate.Month == DateTime.UtcNow.Month && p.PaymentDate.Year == DateTime.UtcNow.Year)
-                .Sum(p => p.NetSalary);
-
-            ViewBag.EmployeesList = employees;
-            ViewBag.SalaryStructures = structures;
-            ViewBag.PayslipsList = payslips;
-            ViewBag.TotalMonthlyPayout = totalMonthlyPayout;
-            ViewBag.ConfiguredStructuresCount = structures.Count;
-
-            return View();
+            return RedirectToAction("PayrollProcessing", "HRPayroll");
         }
 
         // GET: /Payroll/ManageSalary/5

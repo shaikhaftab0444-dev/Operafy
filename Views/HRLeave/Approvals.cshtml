@@ -1,39 +1,736 @@
 @model IEnumerable<ERP_System.Models.HRLeaveApplicationViewModel>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Leave Approvals";
+
+    var pendingCount = Model?.Count() ?? 0;
+    var totalDays = Model?.Sum(x => x.TotalDays) ?? 0;
 }
 
-<div class="container-fluid py-4 text-start">
+<style>
+    /* =====================================================
+           LEAVE APPROVALS - PREMIUM PROFESSIONAL UI
+           ===================================================== */
+
+    .leave-approval-page {
+        animation: leavePageEnter .65s cubic-bezier(.22,.61,.36,1) both;
+    }
+
+    @@keyframes leavePageEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* =====================================================
+           HEADER
+           ===================================================== */
+
+    .leave-approval-header {
+        animation: leaveHeaderEnter .6s ease-out both;
+    }
+
+    @@keyframes leaveHeaderEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .leave-title {
+        color: var(--text-color, #1f2937);
+        letter-spacing: -0.6px;
+    }
+
+    .leave-title-icon {
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: linear-gradient( 135deg, rgba(13, 110, 253, .14), rgba(13, 110, 253, .05) );
+        transition: all .3s ease;
+    }
+
+    .leave-approval-header:hover .leave-title-icon {
+        transform: rotate(-6deg) scale(1.08);
+        background: linear-gradient( 135deg, rgba(13, 110, 253, .20), rgba(13, 110, 253, .08) );
+    }
+
+    .leave-breadcrumb a {
+        transition: color .2s ease;
+    }
+
+        .leave-breadcrumb a:hover {
+            color: var(--bs-primary) !important;
+        }
+
+    /* =====================================================
+           SUCCESS ALERT
+           ===================================================== */
+
+    .leave-success-alert {
+        border: 0;
+        border-left: 4px solid #198754;
+        background: linear-gradient( 90deg, rgba(25, 135, 84, .08), rgba(25, 135, 84, .02) );
+        animation: alertEnter .5s ease-out both;
+    }
+
+    @@keyframes alertEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* =====================================================
+           SUMMARY CARDS
+           ===================================================== */
+
+    .approval-summary-row {
+        animation: summaryEnter .6s ease-out .08s both;
+    }
+
+    @@keyframes summaryEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .approval-summary-card {
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #edf0f4;
+        border-radius: 18px;
+        padding: 18px;
+        min-height: 125px;
+        transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease;
+    }
+
+        .approval-summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 16px 35px rgba(20, 30, 55, .09);
+        }
+
+        .approval-summary-card::after {
+            content: "";
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            right: -42px;
+            top: -45px;
+            background: currentColor;
+            opacity: .035;
+            transition: transform .35s ease;
+        }
+
+        .approval-summary-card:hover::after {
+            transform: scale(1.5);
+        }
+
+    .approval-summary-icon {
+        position: relative;
+        z-index: 2;
+        width: 54px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 17px;
+        flex-shrink: 0;
+        transition: transform .3s ease;
+    }
+
+    .approval-summary-card:hover .approval-summary-icon {
+        transform: rotate(-6deg) scale(1.08);
+    }
+
+    .approval-summary-label {
+        font-size: .72rem;
+        letter-spacing: .75px;
+        text-transform: uppercase;
+    }
+
+    .approval-summary-value {
+        font-size: 1.8rem;
+        letter-spacing: -1px;
+        line-height: 1;
+    }
+
+    /* =====================================================
+           MAIN TABLE CARD
+           ===================================================== */
+
+    .leave-approvals-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #e8ebf0 !important;
+        animation: tableEnter .65s ease-out .16s both;
+        transition: box-shadow .3s ease;
+    }
+
+        .leave-approvals-card:hover {
+            box-shadow: 0 16px 40px rgba(20, 30, 55, .08) !important;
+        }
+
+    @@keyframes tableEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .leave-table-header {
+        padding-bottom: 18px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+    .leave-table-title {
+        letter-spacing: -.2px;
+    }
+
+    .leave-pending-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 13px;
+        border-radius: 999px;
+        background: rgba(255, 193, 7, .10);
+        border: 1px solid rgba(255, 193, 7, .22);
+        transition: all .25s ease;
+    }
+
+    .leave-approvals-card:hover .leave-pending-badge {
+        transform: translateY(-2px);
+        box-shadow: 0 7px 15px rgba(255, 193, 7, .10);
+    }
+
+    /* =====================================================
+           TABLE
+           ===================================================== */
+
+    .leave-approval-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .leave-approval-table thead th {
+            white-space: nowrap;
+            padding: 14px 13px;
+            background: #f8f9fb;
+            color: #6b7280;
+            border-bottom: 1px solid #e9edf2;
+            font-size: .70rem;
+            font-weight: 700;
+            letter-spacing: .55px;
+            text-transform: uppercase;
+        }
+
+        .leave-approval-table tbody tr {
+            animation: leaveRowEnter .4s ease-out both;
+            transition: background-color .2s ease;
+        }
+
+            .leave-approval-table tbody tr:nth-child(1) {
+                animation-delay: .05s;
+            }
+
+            .leave-approval-table tbody tr:nth-child(2) {
+                animation-delay: .10s;
+            }
+
+            .leave-approval-table tbody tr:nth-child(3) {
+                animation-delay: .15s;
+            }
+
+            .leave-approval-table tbody tr:nth-child(4) {
+                animation-delay: .20s;
+            }
+
+            .leave-approval-table tbody tr:nth-child(5) {
+                animation-delay: .25s;
+            }
+
+            .leave-approval-table tbody tr:hover {
+                background: rgba(13, 110, 253, .025);
+            }
+
+        .leave-approval-table tbody td {
+            padding: 15px 13px;
+            border-color: #f0f2f5;
+            vertical-align: middle;
+        }
+
+    @@keyframes leaveRowEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateX(-7px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    }
+
+    /* =====================================================
+           EMPLOYEE
+           ===================================================== */
+
+    .leave-employee {
+        font-weight: 700;
+        color: #1f2937;
+        transition: color .2s ease;
+    }
+
+    .leave-approval-table tbody tr:hover .leave-employee {
+        color: var(--bs-primary);
+    }
+
+    /* =====================================================
+           LEAVE TYPE
+           ===================================================== */
+
+    .leave-type-badge {
+        padding: 7px 11px;
+        border-radius: 8px;
+        font-weight: 600;
+        background: #f8f9fb;
+        transition: all .2s ease;
+    }
+
+    .leave-approval-table tbody tr:hover .leave-type-badge {
+        background: rgba(13, 110, 253, .06) !important;
+        border-color: rgba(13, 110, 253, .20) !important;
+        color: var(--bs-primary) !important;
+    }
+
+    /* =====================================================
+           DATE & DAYS
+           ===================================================== */
+
+    .leave-period {
+        white-space: nowrap;
+        color: #4b5563;
+        font-size: .83rem;
+    }
+
+    .leave-days {
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .leave-days-number {
+        color: var(--bs-primary);
+        font-size: 1rem;
+    }
+
+    /* =====================================================
+           REASON
+           ===================================================== */
+
+    .leave-reason {
+        max-width: 260px;
+        color: #6b7280;
+        line-height: 1.5;
+    }
+
+    /* =====================================================
+           REMARKS INPUT
+           ===================================================== */
+
+    .leave-remarks {
+        min-width: 180px;
+        border-color: #e0e5eb;
+        border-radius: 9px;
+        padding: 8px 10px;
+        transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+
+        .leave-remarks:hover {
+            border-color: #bfc8d4;
+        }
+
+        .leave-remarks:focus {
+            border-color: var(--bs-primary);
+            box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .09);
+            transform: translateY(-1px);
+        }
+
+    /* =====================================================
+           ACTION BUTTONS
+           ===================================================== */
+
+    .leave-action-group {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+    }
+
+    .leave-approve-btn,
+    .leave-reject-btn {
+        position: relative;
+        overflow: hidden;
+        white-space: nowrap;
+        transition: transform .22s ease, box-shadow .22s ease;
+    }
+
+        .leave-approve-btn:hover,
+        .leave-reject-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(20, 30, 55, .12);
+        }
+
+        .leave-approve-btn:active,
+        .leave-reject-btn:active {
+            transform: scale(.96);
+        }
+
+        .leave-approve-btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 60%;
+            height: 100%;
+            background: rgba(255,255,255,.18);
+            transform: skewX(-25deg);
+            transition: left .5s ease;
+        }
+
+        .leave-approve-btn:hover::before {
+            left: 140%;
+        }
+
+        .leave-reject-btn:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+
+    /* =====================================================
+           EMPTY STATE
+           ===================================================== */
+
+    .leave-empty-state {
+        padding: 55px 20px !important;
+        animation: emptyStateEnter .5s ease-out both;
+    }
+
+    @@keyframes emptyStateEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: scale(.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    }
+
+    .leave-empty-icon {
+        width: 74px;
+        height: 74px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(25, 135, 84, .08);
+        color: #198754;
+        margin-bottom: 16px;
+        animation: emptyIconFloat 3s ease-in-out infinite;
+    }
+
+    @@keyframes emptyIconFloat {
+        0%, 100%
+
+    {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+
+    }
+
+    /* =====================================================
+           RESPONSIVE
+           ===================================================== */
+
+    @@media (max-width: 991.98px) {
+        .leave-approvals-card
+
+    {
+        padding: 1rem !important;
+    }
+
+    .leave-table-header {
+        gap: 12px;
+        align-items: flex-start !important;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .leave-approval-header
+
+    {
+        align-items: flex-start !important;
+    }
+
+    .approval-summary-card {
+        min-height: 105px;
+    }
+
+    .leave-title-icon {
+        width: 42px;
+        height: 42px;
+    }
+
+    .leave-approval-table {
+        font-size: .82rem;
+    }
+
+    }
+
+    /* =====================================================
+           REDUCED MOTION
+           ===================================================== */
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after
+
+    {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    }
+</style>
+
+<div class="container-fluid py-4 text-start leave-approval-page">
+
+    <!-- Success Alert -->
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4 leave-success-alert" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            @TempData["SuccessMessage"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
+            </button>
         </div>
     }
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 leave-approval-header">
+
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-check-double text-primary me-2"></i>Pending Leave Approvals</h4>
+            <h4 class="fw-bold mb-1 leave-title">
+                <span class="leave-title-icon text-primary me-2">
+                    <i class="fa-solid fa-check-double"></i>
+                </span>
+                Pending Leave Approvals
+            </h4>
+
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Leave Approvals</li>
+                <ol class="breadcrumb mb-0 small leave-breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/HR"
+                           class="text-decoration-none">
+                            HR Dashboard
+                        </a>
+                    </li>
+
+                    <li class="breadcrumb-item active"
+                        aria-current="page">
+                        Leave Approvals
+                    </li>
                 </ol>
             </nav>
         </div>
+
     </div>
 
-    <!-- Leave Approvals Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0 text-secondary">Applications Awaiting HR Action</h6>
-            <span class="badge bg-warning-subtle text-warning border">@Model.Count() Pending Requests</span>
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4 approval-summary-row">
+
+        <!-- Pending Requests -->
+        <div class="col-12 col-sm-6 col-md-4">
+            <div class="approval-summary-card border-start border-4 border-warning">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+                        <div class="approval-summary-label text-muted fw-semibold">
+                            Pending Requests
+                        </div>
+
+                        <div class="approval-summary-value fw-bold text-dark mt-2">
+                            @pendingCount
+                        </div>
+
+                        <div class="small text-muted mt-1">
+                            Awaiting HR action
+                        </div>
+                    </div>
+
+                    <div class="approval-summary-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="fa-solid fa-hourglass-half fa-lg"></i>
+                    </div>
+
+                </div>
+
+            </div>
         </div>
+
+        <!-- Employees -->
+        <div class="col-12 col-sm-6 col-md-4">
+            <div class="approval-summary-card border-start border-4 border-primary">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+                        <div class="approval-summary-label text-muted fw-semibold">
+                            Employees
+                        </div>
+
+                        <div class="approval-summary-value fw-bold text-dark mt-2">
+                            @pendingCount
+                        </div>
+
+                        <div class="small text-muted mt-1">
+                            Applications to review
+                        </div>
+                    </div>
+
+                    <div class="approval-summary-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="fa-solid fa-users fa-lg"></i>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Leave Days -->
+        <div class="col-12 col-sm-6 col-md-4">
+            <div class="approval-summary-card border-start border-4 border-info">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+                        <div class="approval-summary-label text-muted fw-semibold">
+                            Requested Days
+                        </div>
+
+                        <div class="approval-summary-value fw-bold text-dark mt-2">
+                            @totalDays
+                        </div>
+
+                        <div class="small text-muted mt-1">
+                            Total days under review
+                        </div>
+                    </div>
+
+                    <div class="approval-summary-icon bg-info bg-opacity-10 text-info">
+                        <i class="fa-solid fa-calendar-days fa-lg"></i>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Main Approvals Table -->
+    <div class="bg-white rounded-4 p-4 shadow-sm leave-approvals-card">
+
+        <!-- Table Header -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 leave-table-header">
+
+            <div>
+                <h6 class="fw-bold mb-1 text-secondary leave-table-title">
+                    Applications Awaiting HR Action
+                </h6>
+
+                <div class="small text-muted">
+                    Review leave requests and approve or reject them.
+                </div>
+            </div>
+
+            <span class="leave-pending-badge text-warning">
+                <i class="fa-solid fa-clock"></i>
+                @pendingCount Pending Requests
+            </span>
+
+        </div>
+
+        <!-- Table -->
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+
+            <table class="table table-hover align-middle mb-0 leave-approval-table">
+
+                <thead>
                     <tr>
                         <th>Employee</th>
                         <th>Leave Type</th>
@@ -44,48 +741,154 @@
                         <th>Action</th>
                     </tr>
                 </thead>
+
                 <tbody>
+
                     @if (Model != null && Model.Any())
                     {
                         foreach (var l in Model)
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@l.EmployeeName</td>
-                                <td><span class="badge bg-light text-dark border">@l.LeaveType</span></td>
-                                <td>@l.StartDate.ToString("dd MMM yyyy") - @l.EndDate.ToString("dd MMM yyyy")</td>
-                                <td class="fw-semibold">@l.TotalDays Days</td>
-                                <td class="text-muted small" style="max-width: 250px;">@l.Reason</td>
+
+                                <!-- Employee -->
                                 <td>
-                                    <input type="text" form="approveForm_@l.LeaveApplicationId" name="remarks" class="form-control form-control-sm" placeholder="Optional comments..." />
-                                </td>
-                                <td>
-                                    <div class="d-flex gap-1">
-                                        <form id="approveForm_@l.LeaveApplicationId" asp-action="ApproveLeave" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="leaveId" value="@l.LeaveApplicationId" />
-                                            <button type="submit" class="btn btn-success btn-xs rounded-pill px-2.5">Approve</button>
-                                        </form>
-                                        <form asp-action="RejectLeave" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="leaveId" value="@l.LeaveApplicationId" />
-                                            <button type="submit" class="btn btn-outline-danger btn-xs rounded-pill px-2.5">Reject</button>
-                                        </form>
+                                    <div class="leave-employee">
+                                        <i class="fa-solid fa-user me-2 text-primary opacity-75"></i>
+                                        @l.EmployeeName
                                     </div>
                                 </td>
+
+                                <!-- Leave Type -->
+                                <td>
+                                    <span class="badge text-dark border leave-type-badge">
+                                        @l.LeaveType
+                                    </span>
+                                </td>
+
+                                <!-- Period -->
+                                <td>
+                                    <div class="leave-period">
+                                        <div>
+                                            @l.StartDate.ToString("dd MMM yyyy")
+                                        </div>
+
+                                        <div class="small text-muted">
+                                            <i class="fa-solid fa-arrow-down me-1"></i>
+                                            @l.EndDate.ToString("dd MMM yyyy")
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Days -->
+                                <td>
+                                    <div class="leave-days">
+                                        <span class="leave-days-number">
+                                            @l.TotalDays
+                                        </span>
+                                        Days
+                                    </div>
+                                </td>
+
+                                <!-- Reason -->
+                                <td>
+                                    <div class="leave-reason small">
+                                        @l.Reason
+                                    </div>
+                                </td>
+
+                                <!-- Comments -->
+                                <td>
+                                    <input type="text"
+                                           form="approveForm_@l.LeaveApplicationId"
+                                           name="remarks"
+                                           class="form-control form-control-sm leave-remarks"
+                                           placeholder="Add comments..." />
+                                </td>
+
+                                <!-- Actions -->
+                                <td>
+
+                                    <div class="leave-action-group">
+
+                                        <form id="approveForm_@l.LeaveApplicationId"
+                                              asp-action="ApproveLeave"
+                                              method="post"
+                                              class="d-inline">
+
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="leaveId"
+                                                   value="@l.LeaveApplicationId" />
+
+                                            <button type="submit"
+                                                    class="btn btn-success btn-xs rounded-pill px-3 leave-approve-btn">
+
+                                                <i class="fa-solid fa-check me-1"></i>
+                                                Approve
+
+                                            </button>
+
+                                        </form>
+
+
+                                        <form asp-action="RejectLeave"
+                                              method="post"
+                                              class="d-inline">
+
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="leaveId"
+                                                   value="@l.LeaveApplicationId" />
+
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-xs rounded-pill px-3 leave-reject-btn">
+
+                                                <i class="fa-solid fa-xmark me-1"></i>
+                                                Reject
+
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </td>
+
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">
-                                <i class="fa-solid fa-circle-check fa-2x mb-2 d-block text-success opacity-50"></i>
-                                Great news! No pending leave approval requests at this time.
+
+                            <td colspan="7"
+                                class="text-center leave-empty-state">
+
+                                <div class="leave-empty-icon">
+                                    <i class="fa-solid fa-circle-check fa-2x"></i>
+                                </div>
+
+                                <h6 class="fw-bold text-dark mb-2">
+                                    All caught up!
+                                </h6>
+
+                                <p class="text-muted small mb-0">
+                                    Great news! No pending leave approval requests at this time.
+                                </p>
+
                             </td>
+
                         </tr>
                     }
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>

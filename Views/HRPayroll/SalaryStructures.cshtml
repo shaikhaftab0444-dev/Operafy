@@ -1,12 +1,32 @@
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Salary Structures (CTC Breakdown)";
+    ViewData["Title"] = "Salary Structures & Employee CTC";
+    var structures = ViewBag.Structures as List<ERP_System.Models.SalaryStructureMaster> ?? new List<ERP_System.Models.SalaryStructureMaster>();
+    var assignments = ViewBag.Assignments as List<ERP_System.Models.EmployeeSalaryAssignment> ?? new List<ERP_System.Models.EmployeeSalaryAssignment>();
+    var employees = ViewBag.ActiveEmployees as List<ERP_System.Models.User> ?? new List<ERP_System.Models.User>();
 }
 
 <div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Success & Error Toast Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-exclamation me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-wallet text-primary me-2"></i>Salary Structures</h4>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-wallet text-primary me-2"></i>Salary Structures & CTC</h4>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 small">
                     <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
@@ -14,45 +34,370 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm"><i class="fa-solid fa-plus me-1.5"></i>Create Structure</button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#assignCtcModal">
+                <i class="fa-solid fa-user-plus me-1.5"></i>Assign Employee CTC
+            </button>
+            <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#createStructureModal">
+                <i class="fa-solid fa-plus me-1.5"></i>Create Structure Template
+            </button>
+        </div>
     </div>
 
-    <!-- Salary Structures Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Structure Name</th>
-                        <th>Basic Salary (%)</th>
-                        <th>HRA (%)</th>
-                        <th>LTA (%)</th>
-                        <th>Special Allowance</th>
-                        <th>PF Contribution</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Standard Executive CTC</td>
-                        <td>50% of CTC</td>
-                        <td>20% of CTC</td>
-                        <td>5% of CTC</td>
-                        <td>Balance amount</td>
-                        <td>12% of Basic</td>
-                        <td><span class="badge bg-success-subtle text-success">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Developer Grade A CTC</td>
-                        <td>45% of CTC</td>
-                        <td>22.5% of CTC</td>
-                        <td>5% of CTC</td>
-                        <td>Balance amount</td>
-                        <td>12% of Basic</td>
-                        <td><span class="badge bg-success-subtle text-success">Active</span></td>
-                    </tr>
-                </tbody>
-            </table>
+    <!-- Quick Stats Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="bg-white border rounded-3 p-3 shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">Total Structure Templates</div>
+                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.TotalStructures</h3>
+                </div>
+                <div class="bg-primary-subtle text-primary p-3 rounded-circle">
+                    <i class="fa-solid fa-sitemap fa-lg"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="bg-white border rounded-3 p-3 shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">Configured Active Structures</div>
+                    <h3 class="fw-bold mb-0 text-success">@structures.Count(s => s.IsActive)</h3>
+                </div>
+                <div class="bg-success-subtle text-success p-3 rounded-circle">
+                    <i class="fa-solid fa-circle-check fa-lg"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="bg-white border rounded-3 p-3 shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">Assigned Employees</div>
+                    <h3 class="fw-bold mb-0 text-info">@ViewBag.TotalAssigned</h3>
+                </div>
+                <div class="bg-info-subtle text-info p-3 rounded-circle">
+                    <i class="fa-solid fa-users fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-bordered mb-4" id="salaryTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold text-dark" id="templates-tab" data-bs-toggle="tab" data-bs-target="#templates-pane" type="button" role="tab">
+                <i class="fa-solid fa-layer-group me-1.5"></i>Salary Structure Templates (@structures.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold text-dark" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments-pane" type="button" role="tab">
+                <i class="fa-solid fa-user-gear me-1.5"></i>Employee Salary Assignments (@assignments.Count)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="salaryTabsContent">
+        <!-- TAB 1: STRUCTURE TEMPLATES -->
+        <div class="tab-pane fade show active" id="templates-pane" role="tabpanel">
+            <div class="bg-white border rounded-3 p-4 shadow-sm">
+                <!-- Search & Filters -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                            <input type="text" id="searchStructureInput" class="form-control border-start-0" placeholder="Search structure by name or department...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="structuresTable" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Structure Name</th>
+                                <th>Department / Designation</th>
+                                <th>Basic (%)</th>
+                                <th>HRA (%)</th>
+                                <th>LTA (%)</th>
+                                <th>Special Allowance</th>
+                                <th>Statutory Rules</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!structures.Any())
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">
+                                        <i class="fa-solid fa-folder-open fa-2x mb-2 d-block text-secondary"></i>
+                                        No salary structures found. Click <strong>+ Create Structure Template</strong> above to add one.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in structures)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark">@item.StructureName</div>
+                                            <div class="text-muted small">@item.Description</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">@item.Department</span>
+                                            <span class="badge bg-light text-dark border">@item.Designation</span>
+                                        </td>
+                                        <td class="fw-semibold">@item.BasicPercent%</td>
+                                        <td class="fw-semibold">@item.HRAPercent%</td>
+                                        <td class="fw-semibold">@item.LTAPercent%</td>
+                                        <td><span class="badge bg-info-subtle text-info">@(item.AutoCalculateSpecialAllowance ? "Auto-Calculated Balance" : "Fixed Amount")</span></td>
+                                        <td>
+                                            @if (item.IsPFEnabled) { <span class="badge bg-secondary me-0.5">PF</span> }
+                                            @if (item.IsESIEnabled) { <span class="badge bg-secondary me-0.5">ESI</span> }
+                                            @if (item.IsPTEnabled) { <span class="badge bg-secondary me-0.5">PT</span> }
+                                            @if (item.IsTDSEnabled) { <span class="badge bg-secondary">TDS</span> }
+                                        </td>
+                                        <td>
+                                            @if (item.IsActive)
+                                            {
+                                                <span class="badge bg-success-subtle text-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger">Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <form asp-action="DuplicateSalaryStructure" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.StructureId" />
+                                                    <button type="submit" class="btn btn-outline-secondary btn-xs rounded-circle me-1" title="Duplicate"><i class="fa-solid fa-copy"></i></button>
+                                                </form>
+
+                                                <form asp-action="ToggleSalaryStructureStatus" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.StructureId" />
+                                                    <button type="submit" class="btn btn-outline-warning btn-xs rounded-circle me-1" title="Toggle Active/Inactive">
+                                                        <i class="fa-solid fa-power-off"></i>
+                                                    </button>
+                                                </form>
+
+                                                <form asp-action="DeleteSalaryStructure" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this salary structure?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.StructureId" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-xs rounded-circle" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: EMPLOYEE ASSIGNMENTS -->
+        <div class="tab-pane fade" id="assignments-pane" role="tabpanel">
+            <div class="bg-white border rounded-3 p-4 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Structure Template</th>
+                                <th>Annual CTC</th>
+                                <th>Monthly Basic</th>
+                                <th>Monthly Gross</th>
+                                <th>Monthly Net</th>
+                                <th>Effective From</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!assignments.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">No employee CTC assignments configured yet.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var assign in assignments)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark">@(assign.User?.FullName ?? "N/A")</div>
+                                            <div class="text-muted small">Code: @(assign.User?.UserCode) | @(assign.User?.Role?.RoleName)</div>
+                                        </td>
+                                        <td><span class="badge bg-primary-subtle text-primary">@(assign.Structure?.StructureName ?? "Standard CTC")</span></td>
+                                        <td class="fw-bold text-dark">₹@assign.AnnualCTC.ToString("N0")</td>
+                                        <td>₹@assign.MonthlyBasic.ToString("N0")</td>
+                                        <td class="fw-semibold text-primary">₹@assign.MonthlyGrossSalary.ToString("N0")</td>
+                                        <td class="fw-bold text-success">₹@assign.MonthlyNetSalary.ToString("N0")</td>
+                                        <td>@assign.EffectiveFrom.ToString("dd MMM yyyy")</td>
+                                        <td><span class="badge bg-success-subtle text-success">Current</span></td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- MODAL 1: CREATE SALARY STRUCTURE TEMPLATE -->
+<div class="modal fade" id="createStructureModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus-circle text-primary me-2"></i>Create Salary Structure</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="CreateSalaryStructure" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Structure Name <span class="text-danger">*</span></label>
+                            <input type="text" name="StructureName" class="form-control form-control-sm" required placeholder="e.g. Standard Executive CTC">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Department</label>
+                            <input type="text" name="Department" class="form-control form-control-sm" value="All Departments">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Description</label>
+                            <textarea name="Description" class="form-control form-control-sm" rows="2" placeholder="Brief description of this salary component rules..."></textarea>
+                        </div>
+
+                        <div class="col-12"><hr class="my-2"><h6 class="fw-bold text-primary small">Salary Component % Breakdown</h6></div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Basic Salary (%)</label>
+                            <input type="number" step="0.01" name="BasicPercent" id="structBasic" class="form-control form-control-sm" value="50.00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">HRA (% of Basic)</label>
+                            <input type="number" step="0.01" name="HRAPercent" id="structHRA" class="form-control form-control-sm" value="20.00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">LTA (% of Basic)</label>
+                            <input type="number" step="0.01" name="LTAPercent" id="structLTA" class="form-control form-control-sm" value="5.00" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Conveyance (Fixed ₹/mo)</label>
+                            <input type="number" step="0.01" name="ConveyanceAllowance" class="form-control form-control-sm" value="1600.00">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Medical (Fixed ₹/mo)</label>
+                            <input type="number" step="0.01" name="MedicalAllowance" class="form-control form-control-sm" value="1250.00">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Other Allowances (Fixed ₹/mo)</label>
+                            <input type="number" step="0.01" name="OtherAllowance" class="form-control form-control-sm" value="0.00">
+                        </div>
+
+                        <div class="col-12"><hr class="my-2"><h6 class="fw-bold text-primary small">Statutory Rules & Deductions</h6></div>
+
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="IsPFEnabled" value="true" checked id="pfSwitch">
+                                <label class="form-check-label small fw-bold" for="pfSwitch">Enable PF (12%)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="IsESIEnabled" value="true" checked id="esiSwitch">
+                                <label class="form-check-label small fw-bold" for="esiSwitch">Enable ESI (0.75%)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="IsPTEnabled" value="true" checked id="ptSwitch">
+                                <label class="form-check-label small fw-bold" for="ptSwitch">Enable Prof Tax</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="IsTDSEnabled" value="true" checked id="tdsSwitch">
+                                <label class="form-check-label small fw-bold" for="tdsSwitch">Enable TDS</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fa-solid fa-save me-1"></i>Save Structure</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: ASSIGN CTC TO EMPLOYEE -->
+<div class="modal fade" id="assignCtcModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-check text-primary me-2"></i>Assign Employee CTC</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="AssignSalaryToEmployee" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Select Employee <span class="text-danger">*</span></label>
+                            <select name="userId" class="form-select form-select-sm" required>
+                                <option value="">-- Choose Employee --</option>
+                                @foreach (var emp in employees)
+                                {
+                                    <option value="@emp.UserId">@emp.FullName (@emp.UserCode - @emp.Role?.RoleName)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Select Structure Template</label>
+                            <select name="structureId" class="form-select form-select-sm">
+                                <option value="">-- Standard CTC Structure --</option>
+                                @foreach (var str in structures)
+                                {
+                                    <option value="@str.StructureId">@str.StructureName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Annual CTC (₹) <span class="text-danger">*</span></label>
+                            <input type="number" step="1000" name="annualCtc" id="inputAnnualCtc" class="form-control form-control-sm" required placeholder="e.g. 600000">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Remarks / Effective Note</label>
+                            <input type="text" name="remarks" class="form-control form-control-sm" placeholder="e.g. Initial Offer or Annual Increment">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fa-solid fa-check-circle me-1"></i>Assign CTC</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('searchStructureInput')?.addEventListener('keyup', function() {
+        let val = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#structuresTable tbody tr');
+        rows.forEach(r => {
+            let text = r.innerText.toLowerCase();
+            r.style.display = text.includes(val) ? '' : 'none';
+        });
+    });
+</script>
