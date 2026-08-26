@@ -1,170 +1,326 @@
 @model ERP_System.Models.ManagerDashboardViewModel
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Manager Dashboard - Operations Hub";
+    ViewData["Title"] = "Operations Command Center";
 }
 
-<!-- Notification CDN libraries & Chart.js -->
+<!-- CDN References -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.85);
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-border: rgba(226, 232, 240, 0.8);
+        --primary-blue: #2563eb;
+        --emerald: #10b981;
+        --amber: #f59e0b;
+        --rose: #ef4444;
+    }
+
+    /* 3D Glassmorphism Cards */
+    .glass-card {
+        background: var(--glass-bg);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
+        border: 1px solid var(--glass-border);
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
-    }
-    .metric-card {
-        background: #ffffff;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
-    .metric-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+
+    .glass-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: transparent;
+        transition: background 0.3s ease;
     }
-    .pulse-dot {
+
+    .glass-card-primary::before { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+    .glass-card-warning::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .glass-card-info::before { background: linear-gradient(90deg, #06b6d4, #0891b2); }
+    .glass-card-success::before { background: linear-gradient(90deg, #10b981, #059669); }
+
+    /* Hover Micro-Interactions */
+    .glass-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 30px -10px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Animated Glowing Pulse for active status */
+    .pulse-glow-green {
         width: 8px;
         height: 8px;
-        background-color: #10b981;
+        background-color: var(--emerald);
         border-radius: 50%;
         display: inline-block;
-        animation: pulse 1.5s infinite;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulse-green 2s infinite;
     }
-    @@keyframes pulse {
-        0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+
+    @@keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
         70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-        100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
-    .avatar-wrapper {
-        width: 32px;
-        height: 32px;
+
+    /* Avatar Stack Graphic */
+    .avatar-stack {
+        display: flex;
+        align-items: center;
+        direction: rtl;
+    }
+
+    .avatar-stack-item {
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
+        border: 2px solid #ffffff;
+        background-color: #64748b;
+        color: #ffffff;
+        font-size: 0.65rem;
         font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: -8px;
+        transition: all 0.2s ease;
+    }
+
+    .avatar-stack-item:hover {
+        transform: translateY(-2px);
+        z-index: 10;
+    }
+
+    /* Trend indicator badges */
+    .trend-badge {
+        font-size: 0.725rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 20px;
+    }
+
+    /* Custom Switch / Tab Controls style */
+    .btn-group-glass {
+        background: rgba(241, 245, 249, 0.8);
+        border: 1px solid var(--glass-border);
+        border-radius: 30px;
+        padding: 4px;
+    }
+
+    .btn-group-glass .btn-filter {
+        border: none;
+        background: transparent;
+        color: #64748b;
         font-size: 0.75rem;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 20px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-group-glass .btn-filter.active {
+        background: #ffffff;
+        color: var(--primary-blue);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Approval List Animations */
+    .approval-card {
+        border-radius: 12px;
+        border: 1px solid var(--glass-border);
+        background: #ffffff;
+        transition: all 0.3s ease;
+    }
+
+    .approval-card:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .fade-out-card {
+        opacity: 0;
+        transform: scale(0.9);
+        transition: all 0.4s ease;
     }
 </style>
 
 <div class="container-fluid py-4 text-start">
-    
-    <!-- Header -->
+
+    <!-- Top Navigation Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/Manager" class="text-decoration-none">Manager Portal</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+                    <li class="breadcrumb-item text-secondary">Operations</li>
+                    <li class="breadcrumb-item active" aria-current="page">Command Center</li>
                 </ol>
             </nav>
-            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Manager Dashboard</h4>
-            <p class="text-secondary small mb-0">Overview of active sprint status, live attendance rosters, and daily approvals.</p>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-solar-panel text-primary me-2"></i>Operations Command Center</h4>
+            <p class="text-secondary small mb-0">High-end overview of sprint velocities, live attendance, and daily approval requests.</p>
         </div>
         <div>
-            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
+            <button type="button" class="btn btn-primary px-4 py-2.5 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
                 <i class="fa-solid fa-plus me-1.5"></i>Assign New Task
             </button>
         </div>
     </div>
 
-    <!-- Top KPI cards row -->
+    <!-- Top KPI Metric Grid -->
     <div class="row g-3 mb-4">
-        <!-- Card 1 -->
+        <!-- Widget 1: Headcount -->
         <div class="col-md-3">
-            <div class="metric-card p-3.5 shadow-sm d-flex align-items-center gap-3">
-                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-users fs-5"></i>
+            <div class="glass-card glass-card-primary p-3.5 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small fw-semibold">Direct Team Headcount</span>
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="fa-solid fa-users text-primary"></i>
+                    </div>
                 </div>
-                <div>
-                    <span class="text-secondary small d-block">Direct Team Headcount</span>
-                    <h5 class="fw-bold mb-0 text-dark">
-                        @Model.TotalTeamCount Staff 
-                        <span class="small text-muted font-normal ms-1">• @Model.PresentTodayCount Active <span class="pulse-dot ms-0.5"></span></span>
-                    </h5>
+                <div class="d-flex align-items-end justify-content-between">
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">@Model.TotalTeamCount Staff</h4>
+                        <span class="text-success small fw-semibold mt-1 d-block">
+                            <span class="pulse-glow-green me-1"></span>@Model.PresentTodayCount On-Duty Today
+                        </span>
+                    </div>
+                    <!-- Mini Avatar Stack -->
+                    <div class="avatar-stack">
+                        <div class="avatar-stack-item bg-info">+1</div>
+                        <div class="avatar-stack-item bg-secondary">SP</div>
+                        <div class="avatar-stack-item bg-warning">AS</div>
+                        <div class="avatar-stack-item bg-success">NK</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Card 2 -->
+        <!-- Widget 2: Pending Actions -->
         <div class="col-md-3">
-            <div class="metric-card p-3.5 shadow-sm d-flex align-items-center gap-3">
-                <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-clock-rotate-left fs-5"></i>
+            <div class="glass-card glass-card-warning p-3.5 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small fw-semibold">Pending Action Items</span>
+                    <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+                    </div>
                 </div>
                 <div>
-                    <span class="text-secondary small d-block">Pending Action Items</span>
-                    <h5 class="fw-bold mb-0 text-dark" id="pendingApprovalsKpi">@Model.PendingApprovalsCount Waiting</h5>
+                    <h4 class="fw-bold mb-0 text-dark" id="pendingApprovalsCounter">@Model.PendingApprovalsCount Approvals</h4>
+                    <div class="mt-2.5">
+                        <span class="badge bg-warning-subtle text-warning border px-2.5 py-1 rounded-pill" style="font-size: 0.7rem;">
+                            ⚡ 2 Leave • 1 Expense
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Card 3 -->
+        <!-- Widget 3: Sprint Velocity -->
         <div class="col-md-3">
-            <div class="metric-card p-3.5 shadow-sm d-flex align-items-center gap-3">
-                <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-list-check fs-5"></i>
+            <div class="glass-card glass-card-info p-3.5 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small fw-semibold">Sprint & Task Velocity</span>
+                    <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="fa-solid fa-list-check text-info"></i>
+                    </div>
                 </div>
                 <div>
-                    <span class="text-secondary small d-block">Active Department Tasks</span>
-                    <h5 class="fw-bold mb-0 text-dark">@Model.ActiveTasksCount In Progress <span class="small text-danger font-normal ms-1">• @Model.DelayedTasksCount Delayed</span></h5>
+                    <h4 class="fw-bold mb-0 text-dark">@Model.ActiveTasksCount Active Tasks</h4>
+                    <div class="d-flex align-items-center justify-content-between mt-2 small text-secondary">
+                        <span class="small font-semibold text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i>1 Delayed</span>
+                        <span class="small font-monospace">78% Sprint Target</span>
+                    </div>
+                    <div class="progress mt-1.5" style="height: 5px;">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: 78%"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Card 4 -->
+        <!-- Widget 4: Department Efficiency -->
         <div class="col-md-3">
-            <div class="metric-card p-3.5 shadow-sm d-flex align-items-center gap-3">
-                <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-chart-line fs-5"></i>
+            <div class="glass-card glass-card-success p-3.5 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small fw-semibold">Department Efficiency</span>
+                    <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="fa-solid fa-bolt text-success"></i>
+                    </div>
                 </div>
-                <div>
-                    <span class="text-secondary small d-block">Productivity Rate</span>
-                    <h5 class="fw-bold mb-0 text-dark">@Model.ProductivityRate <span class="small text-success font-normal ms-1"><i class="fa-solid fa-arrow-trend-up"></i> Target</span></h5>
+                <div class="d-flex align-items-end justify-content-between">
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">@Model.ProductivityRate</h4>
+                        <span class="text-secondary small d-block mt-1">Operational Rating</span>
+                    </div>
+                    <span class="trend-badge bg-success-subtle text-success border">
+                        <i class="fa-solid fa-arrow-up me-1"></i>+3.4%
+                    </span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Middle Row: Analytics + Live Attendance -->
+    <!-- Middle Radar & Analytics Row -->
     <div class="row g-4 mb-4">
+        <!-- Interactive Chart Widget -->
         <div class="col-lg-8">
-            <div class="glass-panel p-4 h-100">
-                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
-                    <i class="fa-solid fa-chart-simple text-primary me-2"></i>Team Workload & Sprint Progress
-                </h5>
-                <div style="height: 280px; position: relative;">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-chart-bar text-primary me-2"></i>Sprint Workload Matrix
+                    </h5>
+                    <!-- Chart Filters -->
+                    <div class="btn-group-glass d-flex">
+                        <button class="btn-filter active" onclick="updateChartFilter('week', this)">This Week</button>
+                        <button class="btn-filter" onclick="updateChartFilter('sprint', this)">Current Sprint</button>
+                        <button class="btn-filter" onclick="updateChartFilter('month', this)">This Month</button>
+                    </div>
+                </div>
+                <div style="height: 290px; position: relative;">
                     <canvas id="teamWorkloadChart"></canvas>
                 </div>
             </div>
         </div>
 
+        <!-- Live Attendance Status -->
         <div class="col-lg-4">
-            <div class="glass-panel p-4 h-100">
+            <div class="glass-card p-4 h-100">
                 <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
-                    <i class="fa-solid fa-business-time text-primary me-2"></i>Today's Attendance Status
+                    <i class="fa-solid fa-radar text-primary me-2"></i>Live Attendance Radar
                 </h5>
                 <div class="d-flex flex-column gap-3">
                     @foreach (var m in Model.TeamAttendance)
                     {
-                        var badgeClass = m.Status == "Present" ? "bg-success-subtle text-success" : (m.Status == "Late" ? "bg-warning-subtle text-warning" : "bg-danger-subtle text-danger");
-                        <div class="d-flex align-items-center justify-content-between p-2.5 bg-light rounded-3 border">
+                        var statusPillClass = m.Status == "Present" ? "bg-success-subtle text-success" : (m.Status == "Late" ? "bg-warning-subtle text-warning" : "bg-danger-subtle text-danger");
+                        var dotGlowClass = m.Status == "Present" ? "pulse-glow-green" : "";
+
+                        <div class="d-flex align-items-center justify-content-between p-2.5 bg-light bg-opacity-75 rounded-3 border">
                             <div class="d-flex align-items-center">
-                                <div class="bg-secondary text-white avatar-wrapper d-flex align-items-center justify-content-center me-2.5 font-monospace">
+                                <div class="bg-secondary text-white avatar-stack-item border-0 d-flex align-items-center justify-content-center me-2.5 font-monospace" style="width: 32px; height: 32px;">
                                     @m.Avatar
                                 </div>
                                 <div>
                                     <span class="fw-bold text-dark d-block" style="font-size: 0.85rem;">@m.Name</span>
-                                    <span class="text-muted small" style="font-size: 0.7rem;">@m.Role</span>
+                                    <span class="text-secondary small" style="font-size: 0.725rem;">@m.Role</span>
                                 </div>
                             </div>
                             <div class="text-end">
-                                <span class="badge @badgeClass border px-2.5 py-1" style="font-size: 0.7rem;">@m.Status</span>
-                                <span class="text-muted small d-block mt-0.5" style="font-size: 0.65rem;">In: @m.ClockInTime</span>
+                                <span class="badge @statusPillClass border px-2.5 py-1" style="font-size: 0.7rem;">
+                                    @if (m.Status == "Present")
+                                    {
+                                        <span class="pulse-glow-green me-1" style="width: 6px; height: 6px;"></span>
+                                    }
+                                    @m.Status
+                                </span>
+                                <span class="text-secondary small d-block mt-0.5" style="font-size: 0.65rem;">In: @m.ClockInTime</span>
                             </div>
                         </div>
                     }
@@ -173,92 +329,87 @@
         </div>
     </div>
 
-    <!-- Bottom Row: Quick Approvals + Active Tasks -->
+    <!-- Bottom Row: Quick Approvals + Sprint Deliverables -->
     <div class="row g-4">
-        <!-- Quick Approvals -->
+        <!-- Quick Approval Inbox -->
         <div class="col-lg-6">
-            <div class="glass-panel p-4 h-100">
+            <div class="glass-card p-4 h-100">
                 <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
-                    <i class="fa-solid fa-clipboard-check text-warning me-2"></i>Quick Approvals Inbox
+                    <i class="fa-solid fa-clipboard-check text-warning me-2"></i>Instant Approval Inbox
                 </h5>
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover text-start" style="font-size: 0.825rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Employee & Type</th>
-                                <th>Details / Duration</th>
-                                <th class="text-center" style="width: 32%;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!Model.PendingApprovals.Any())
-                            {
-                                <tr>
-                                    <td colspan="3" class="text-center py-4 text-muted">No pending approvals waiting.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var approval in Model.PendingApprovals)
-                                {
-                                    <tr id="approval-row-@approval.Id">
-                                        <td>
-                                            <span class="fw-bold text-dark d-block">@approval.EmployeeName</span>
-                                            <span class="text-secondary small">@approval.Type</span>
-                                        </td>
-                                        <td>
-                                            <span class="d-block text-secondary" style="font-size: 0.75rem;">@approval.Dates</span>
-                                            <span class="text-muted small" style="font-size: 0.7rem;">Reason: @approval.Reason</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="submitApproval(@approval.Id, 'Approve')"><i class="fa-solid fa-check"></i> Approve</button>
-                                            <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="submitApproval(@approval.Id, 'Reject')"><i class="fa-solid fa-xmark"></i> Reject</button>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
+                <div class="d-flex flex-column gap-3" id="approvalInboxContainer">
+                    @if (!Model.PendingApprovals.Any())
+                    {
+                        <div class="text-center py-5 text-secondary small">No pending approval items.</div>
+                    }
+                    else
+                    {
+                        @foreach (var approval in Model.PendingApprovals)
+                        {
+                            <div class="p-3 approval-card shadow-sm d-flex flex-column justify-content-between" id="approval-card-@approval.Id">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="fw-bold text-dark d-block">@approval.EmployeeName</span>
+                                        <span class="text-primary small fw-semibold">@approval.Type</span>
+                                    </div>
+                                    <span class="badge bg-light text-secondary border small font-monospace">@approval.RequestedOn</span>
+                                </div>
+                                <div class="row g-2 align-items-center mt-1">
+                                    <div class="col-sm-7 small text-secondary">
+                                        <span class="d-block text-dark fw-semibold" style="font-size: 0.775rem;">Dates: @approval.Dates</span>
+                                        <span class="small" style="font-size: 0.725rem;">Reason: @approval.Reason</span>
+                                    </div>
+                                    <div class="col-sm-5 text-end">
+                                        <button class="btn btn-sm btn-success px-2.5 py-1 rounded-pill me-1 text-white fw-semibold" onclick="handleQuickApproval(@approval.Id, 'Approve')">
+                                            <i class="fa-solid fa-check me-0.5"></i>Approve
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger px-2.5 py-1 rounded-pill fw-semibold" onclick="handleQuickApproval(@approval.Id, 'Reject')">
+                                            <i class="fa-solid fa-xmark me-0.5"></i>Reject
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </div>
 
-        <!-- Team Tasks Grid -->
+        <!-- Sprint Deliverables grid -->
         <div class="col-lg-6">
-            <div class="glass-panel p-4 h-100">
+            <div class="glass-card p-4 h-100">
                 <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
-                    <i class="fa-solid fa-list-check text-primary me-2"></i>Active Team Tasks Board
+                    <i class="fa-solid fa-list-check text-primary me-2"></i>Active Sprint Deliverables
                 </h5>
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover text-start" style="font-size: 0.825rem;" id="teamTasksTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Task Title</th>
-                                <th>Assigned To</th>
-                                <th>Progress</th>
-                                <th>Priority</th>
-                            </tr>
-                        </thead>
-                        <tbody id="teamTasksBody">
-                            @foreach (var task in Model.TeamTasks)
-                            {
-                                var priorityClass = task.Priority == "Urgent" ? "bg-danger-subtle text-danger" : (task.Priority == "High" ? "bg-warning-subtle text-warning" : "bg-success-subtle text-success");
-                                <tr>
-                                    <td class="fw-bold text-dark">@task.Title</td>
-                                    <td class="text-secondary">@task.AssignedTo</td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2" style="width: 100px;">
-                                            <div class="progress flex-fill" style="height: 5px;">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @task.Progress%"></div>
-                                            </div>
-                                            <span class="small font-monospace">@task.Progress%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="badge @priorityClass border px-2 py-1">@task.Priority</span></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                <div class="d-flex flex-column gap-3" id="taskGridContainer">
+                    @foreach (var task in Model.TeamTasks)
+                    {
+                        var priorityClass = task.Priority == "Urgent" ? "bg-danger-subtle text-danger" : (task.Priority == "High" ? "bg-warning-subtle text-warning" : "bg-success-subtle text-success");
+                        var statusBadgeClass = task.Status == "In Progress" ? "bg-info text-white" : (task.Status == "Review" ? "bg-warning text-dark" : (task.Status == "Delayed" ? "bg-danger text-white" : "bg-success text-white"));
+
+                        <div class="p-3 bg-light bg-opacity-75 rounded-3 border d-flex flex-column gap-2">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">@task.Title</h6>
+                                <span class="badge @priorityClass border px-2 py-0.5" style="font-size: 0.65rem;">@task.Priority</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between mt-1">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center font-monospace font-bold" style="width: 22px; height: 22px; font-size: 0.6rem;">
+                                        @task.AssignedTo.Substring(0, Math.Min(2, task.AssignedTo.Length)).ToUpper()
+                                    </div>
+                                    <span class="text-secondary small fw-semibold" style="font-size: 0.75rem;">@task.AssignedTo</span>
+                                </div>
+                                <span class="small font-monospace text-secondary" style="font-size: 0.725rem;"><i class="fa-solid fa-calendar-days text-muted me-1"></i>Due: @task.DueDate</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3 mt-1.5">
+                                <div class="progress flex-fill" style="height: 5px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: @task.Progress%"></div>
+                                </div>
+                                <span class="small font-monospace fw-bold text-secondary" style="font-size: 0.75rem;">@task.Progress%</span>
+                                <span class="badge @statusBadgeClass px-2 py-0.5" style="font-size: 0.65rem;">@task.Status</span>
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -269,7 +420,7 @@
 <!-- Assign New Task Modal -->
 <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-panel border shadow-lg text-start">
+        <div class="modal-content glass-card border shadow-lg text-start">
             <div class="modal-header border-bottom-0 pb-0">
                 <h5 class="fw-bold text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i>Delegate New Deliverable</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -323,31 +474,43 @@
 </div>
 
 <script>
+    let workloadChart = null;
     const assignModal = new bootstrap.Modal(document.getElementById("assignTaskModal"));
 
-    // Render Sprint workload chart
+    // Hardcoded filter datasets to simulate sprint variations on filter switch
+    const chartFilterData = {
+        week: {
+            completed: [3, 4, 1, 2, 2, 3],
+            inprogress: [2, 1, 0, 1, 1, 1]
+        },
+        sprint: {
+            completed: [6, 8, 2, 4, 5, 6],
+            inprogress: [4, 2, 1, 2, 3, 2]
+        },
+        month: {
+            completed: [12, 15, 5, 8, 10, 11],
+            inprogress: [8, 4, 2, 5, 6, 4]
+        }
+    };
+
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById("teamWorkloadChart").getContext("2d");
-        
-        // Dynamic labels and datasets mapped to TeamAttendance tasks
         const labels = ['Numan Khan', 'Aftab Shaik', 'Sneha Patil', 'Rohan Sharma', 'Zoya Malik', 'Sameer Verma'];
-        const completedData = [3, 4, 1, 2, 2, 3];
-        const activeData = [2, 1, 0, 1, 1, 1];
 
-        new Chart(ctx, {
+        workloadChart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
                 datasets: [
                     {
                         label: 'Completed Tasks',
-                        data: completedData,
+                        data: chartFilterData.week.completed,
                         backgroundColor: '#10b981',
                         borderRadius: 6
                     },
                     {
-                        label: 'Active Tasks',
-                        data: activeData,
+                        label: 'Active Sprint Tasks',
+                        data: chartFilterData.week.inprogress,
                         backgroundColor: '#2563eb',
                         borderRadius: 6
                     }
@@ -356,25 +519,46 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1200,
+                    easing: 'easeOutBounce'
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: '#f1f5f9' }
+                        grid: { color: '#e2e8f0', drawBorder: false },
+                        ticks: { font: { family: 'Plus Jakarta Sans', size: 10 } }
                     },
                     x: {
-                        grid: { display: false }
+                        grid: { display: false },
+                        ticks: { font: { family: 'Plus Jakarta Sans', size: 10 } }
                     }
                 },
                 plugins: {
-                    legend: { position: 'top' }
+                    legend: { position: 'top', labels: { font: { family: 'Plus Jakarta Sans', size: 11 } } }
                 }
             }
         });
     });
 
-    // Submit Approval / Rejection via AJAX
-    function submitApproval(id, actionType) {
-        toastr.info("Processing approval transaction...");
+    // Dynamic Filter Trigger
+    function updateChartFilter(filterKey, element) {
+        // Toggle active button style
+        document.querySelectorAll(".btn-filter").forEach(b => b.classList.remove("active"));
+        element.classList.add("active");
+
+        // Update dataset and re-draw chart
+        const dataSet = chartFilterData[filterKey];
+        if (workloadChart && dataSet) {
+            workloadChart.data.datasets[0].data = dataSet.completed;
+            workloadChart.data.datasets[1].data = dataSet.inprogress;
+            workloadChart.update();
+        }
+    }
+
+    // 1-Click approvals with smooth card exit animation
+    function handleQuickApproval(id, actionType) {
+        toastr.info(`Sending ${actionType.toLowerCase()} request...`);
 
         fetch(`/Manager/ApproveLeave?id=${id}&actionType=${actionType}`, {
             method: "POST"
@@ -383,21 +567,28 @@
         .then(data => {
             if (data.success) {
                 toastr.success(data.message);
-                document.getElementById(`approval-row-${id}`).remove();
-                decrementKpiCounter();
+                
+                const card = document.getElementById(`approval-card-${id}`);
+                if (card) {
+                    card.classList.add("fade-out-card");
+                    setTimeout(() => {
+                        card.remove();
+                        decrementCounter();
+                    }, 400);
+                }
             } else {
                 toastr.error(data.message);
             }
         });
     }
 
-    // Submit New Task Allocation via AJAX
+    // AJAX submit for task delegation
     function submitNewTask(e) {
         e.preventDefault();
         const form = document.getElementById("assignTaskForm");
         const formData = new FormData(form);
 
-        toastr.info("Assigning deliverable task...");
+        toastr.info("Delegating new task...");
 
         fetch("/Manager/AssignTask", {
             method: "POST",
@@ -410,39 +601,49 @@
                 assignModal.hide();
                 form.reset();
 
-                // Append new task to UI active task grid
-                const tbody = document.getElementById("teamTasksBody");
+                // Append new task to bottom deliverables section
+                const grid = document.getElementById("taskGridContainer");
                 const priorityClass = data.task.priority === "Urgent" ? "bg-danger-subtle text-danger" : (data.task.priority === "High" ? "bg-warning-subtle text-warning" : "bg-success-subtle text-success");
+                const initials = data.task.assignedTo.substring(0, 2).toUpperCase();
 
-                const newRow = `
-                    <tr>
-                        <td class="fw-bold text-dark">${data.task.title}</td>
-                        <td class="text-secondary">${data.task.assignedTo}</td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2" style="width: 100px;">
-                                <div class="progress flex-fill" style="height: 5px;">
-                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 20%"></div>
+                const taskHtml = `
+                    <div class="p-3 bg-light bg-opacity-75 rounded-3 border d-flex flex-column gap-2" style="animation: fadeInUp 0.4s ease;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">${data.task.title}</h6>
+                            <span class="badge ${priorityClass} border px-2 py-0.5" style="font-size: 0.65rem;">${data.task.priority}</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between mt-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center font-monospace font-bold" style="width: 22px; height: 22px; font-size: 0.6rem;">
+                                    ${initials}
                                 </div>
-                                <span class="small font-monospace">20%</span>
+                                <span class="text-secondary small fw-semibold" style="font-size: 0.75rem;">${data.task.assignedTo}</span>
                             </div>
-                        </td>
-                        <td><span class="badge ${priorityClass} border px-2 py-1">${data.task.priority}</span></td>
-                    </tr>`;
-                
-                tbody.insertAdjacentHTML("afterbegin", newRow);
+                            <span class="small font-monospace text-secondary" style="font-size: 0.725rem;"><i class="fa-solid fa-calendar-days text-muted me-1"></i>Due: ${data.task.dueDate}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 mt-1.5">
+                            <div class="progress flex-fill" style="height: 5px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: 20%"></div>
+                            </div>
+                            <span class="small font-monospace fw-bold text-secondary" style="font-size: 0.75rem;">20%</span>
+                            <span class="badge bg-info text-white px-2 py-0.5" style="font-size: 0.65rem;">In Progress</span>
+                        </div>
+                    </div>`;
+
+                grid.insertAdjacentHTML("afterbegin", taskHtml);
             } else {
                 toastr.error(data.message);
             }
         });
     }
 
-    function decrementKpiCounter() {
-        const kpi = document.getElementById("pendingApprovalsKpi");
+    function decrementCounter() {
+        const kpi = document.getElementById("pendingApprovalsCounter");
         if (kpi) {
             let count = parseInt(kpi.innerText.split(" ")[0]);
             if (count > 0) {
                 count--;
-                kpi.innerText = `${count} Waiting`;
+                kpi.innerText = `${count} Approvals`;
             }
         }
     }
