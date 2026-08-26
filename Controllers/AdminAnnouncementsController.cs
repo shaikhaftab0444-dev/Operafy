@@ -36,8 +36,7 @@ namespace ERP_System.Controllers
 
         // POST: /AdminAnnouncements/CreateAnnouncement
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateAnnouncement(AnnouncementViewModel model)
+        public async Task<IActionResult> CreateAnnouncement([FromForm] AnnouncementViewModel model)
         {
             if (ModelState.IsValid)
             {
@@ -76,16 +75,27 @@ namespace ERP_System.Controllers
 
                 _context.AdminAnnouncements.Add(announcement);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+
+                return Json(new { 
+                    success = true, 
+                    message = "Announcement published successfully!",
+                    announcementId = announcement.AnnouncementId,
+                    title = announcement.Title,
+                    content = announcement.Content,
+                    priority = announcement.Priority,
+                    category = announcement.Category,
+                    isPinned = announcement.IsPinned,
+                    attachmentName = announcement.AttachmentName,
+                    attachmentUrl = announcement.AttachmentUrl,
+                    postedBy = announcement.PostedBy,
+                    createdAt = announcement.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt"),
+                    targetAudience = announcement.TargetAudience,
+                    targetBranch = announcement.TargetBranch
+                });
             }
 
-            var announcements = await _context.AdminAnnouncements
-                .OrderByDescending(a => a.IsPinned)
-                .ThenByDescending(a => a.CreatedAt)
-                .ToListAsync();
-
-            ViewBag.Branches = await _context.Branches.ToListAsync();
-            return View(nameof(Index), announcements);
+            var errors = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return Json(new { success = false, message = "Form validation failed: " + errors });
         }
 
         // POST: /AdminAnnouncements/EditAnnouncement

@@ -365,79 +365,25 @@
     function triggerExport(entityType, format) {
         toastr.info(`Staging ${entityType} in ${format.toUpperCase()} format...`);
 
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = "/AdminData/ExportDataset";
+        const branchSelect = document.getElementById("branchFilter");
+        const branchName = branchSelect.options[branchSelect.selectedIndex].text;
+        const dateRange = document.getElementById("dateRangePreset").value;
 
-        // Anti-forgery verification
-        const tokenInput = document.createElement("input");
-        tokenInput.type = "hidden";
-        tokenInput.name = "__RequestVerificationToken";
-        tokenInput.value = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]').value;
-        form.appendChild(tokenInput);
-
-        const entityInput = document.createElement("input");
-        entityInput.type = "hidden";
-        entityInput.name = "entityType";
-        entityInput.value = entityType;
-        form.appendChild(entityInput);
-
-        const formatInput = document.createElement("input");
-        formatInput.type = "hidden";
-        formatInput.name = "format";
-        formatInput.value = format;
-        form.appendChild(formatInput);
-
-        // Filter Branch
-        const branchInput = document.createElement("input");
-        branchInput.type = "hidden";
-        branchInput.name = "branchId";
-        branchInput.value = document.getElementById("branchFilter").value;
-        form.appendChild(branchInput);
-
-        // Date Range preset
-        const dateRangePreset = document.getElementById("dateRangePreset").value;
-        let fromDate = "";
-        let toDate = "";
-
-        if (dateRangePreset === "Current FY 2026-27") {
-            fromDate = "2026-04-01";
-            toDate = "2027-03-31";
-        } else if (dateRangePreset === "This Month") {
-            const today = new Date();
-            const y = today.getFullYear();
-            const m = String(today.getMonth() + 1).padStart(2, '0');
-            fromDate = `${y}-${m}-01`;
-
-            const lastDay = new Date(y, today.getMonth() + 1, 0).getDate();
-            toDate = `${y}-${m}-${lastDay}`;
-        } else if (dateRangePreset === "Custom Date Range") {
-            fromDate = document.getElementById("customFromDate").value;
-            toDate = document.getElementById("customToDate").value;
+        let customDates = "";
+        if (dateRange === "Custom Date Range") {
+            const from = document.getElementById("customFromDate").value;
+            const to = document.getElementById("customToDate").value;
+            if (from && to) {
+                customDates = `&fromDate=${from}&toDate=${to}`;
+            }
         }
 
-        if (fromDate) {
-            const fromInput = document.createElement("input");
-            fromInput.type = "hidden";
-            fromInput.name = "fromDate";
-            fromInput.value = fromDate;
-            form.appendChild(fromInput);
-        }
-
-        if (toDate) {
-            const toInput = document.createElement("input");
-            toInput.type = "hidden";
-            toInput.name = "toDate";
-            toInput.value = toDate;
-            form.appendChild(toInput);
-        }
-
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
+        const url = `/AdminData/ExportDataset?moduleType=${encodeURIComponent(entityType)}&format=${encodeURIComponent(format)}&branch=${encodeURIComponent(branchName)}&dateRange=${encodeURIComponent(dateRange)}${customDates}`;
+        
+        window.location.href = url;
 
         setTimeout(() => {
             toastr.success(`Processing dataset download.`);
-        }, 1000);
+        }, 1200);
     }
 </script>

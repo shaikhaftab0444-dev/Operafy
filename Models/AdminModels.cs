@@ -121,6 +121,22 @@ namespace ERP_System.Models
         [Required]
         [StringLength(50)]
         public string Status { get; set; } = "Success"; // Success, Failed
+
+        [Required]
+        [StringLength(150)]
+        public string FullName { get; set; } = "System User";
+
+        [Required]
+        [StringLength(50)]
+        public string RoleName { get; set; } = "Employee";
+
+        [Required]
+        [StringLength(150)]
+        public string DeviceInfo { get; set; } = "Chrome / Windows 11";
+
+        [Required]
+        [StringLength(100)]
+        public string SessionDuration { get; set; } = "Active Now";
     }
 
     [Table("erp_AdminAnnouncements")]
