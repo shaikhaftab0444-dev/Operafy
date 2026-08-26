@@ -237,6 +237,11 @@ namespace ERP_System.Controllers
             }
 
             var data = await GetDatasetData(moduleType, from, to, branchId);
+            if (format.ToLower() == "json")
+            {
+                return Json(new { headers = data.Headers, rows = data.Rows });
+            }
+
             byte[] fileBytes;
             string contentType;
             string fileExtension = format.ToLower() == "csv" ? "csv" : (format.ToLower() == "pdf" ? "pdf" : "xlsx");

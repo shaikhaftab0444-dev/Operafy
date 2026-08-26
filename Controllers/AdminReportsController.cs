@@ -386,5 +386,106 @@ namespace ERP_System.Controllers
                 return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"branch_performance_{DateTime.Now:yyyyMMdd}.xlsx");
             }
         }
+
+        // GET: /AdminReports/ExportUserActivityData
+        [HttpGet]
+        public async Task<IActionResult> ExportUserActivityData(string format = "csv", DateTime? startDate = null, DateTime? endDate = null, string? userName = null, string? moduleName = null, string? severity = null, string? search = null)
+        {
+            var query = _context.AuditLogs.AsQueryable();
+
+            if (startDate.HasValue) query = query.Where(l => l.Timestamp >= startDate.Value);
+            if (endDate.HasValue) query = query.Where(l => l.Timestamp <= endDate.Value.AddDays(1).AddTicks(-1));
+            if (!string.IsNullOrEmpty(userName) && userName != "All Users") query = query.Where(l => l.FullName == userName);
+            if (!string.IsNullOrEmpty(moduleName) && moduleName != "All Modules") query = query.Where(l => l.Module == moduleName);
+            if (!string.IsNullOrEmpty(severity) && severity != "All Severities") query = query.Where(l => l.Severity == severity);
+            if (!string.IsNullOrEmpty(search))
+            {
+                var lowerSearch = search.ToLower();
+                query = query.Where(l => l.Description.ToLower().Contains(lowerSearch) || 
+                                         l.ActionSubject.ToLower().Contains(lowerSearch) || 
+                                         l.IpAddress.ToLower().Contains(lowerSearch));
+            }
+
+            var logs = await query.OrderByDescending(l => l.Timestamp).ToListAsync();
+
+            if (format.ToLower() == "csv")
+            {
+                var csvBuilder = new System.Text.StringBuilder();
+                csvBuilder.AppendLine("Timestamp,User,Role,Target Module,Action Subject,Description,IP Address,Status");
+                foreach (var l in logs)
+                {
+                    csvBuilder.AppendLine($"\"{l.Timestamp:yyyy-MM-dd HH:mm}\",\"{l.FullName}\",\"{l.RoleName}\",\"{l.Module}\",\"{l.ActionSubject}\",\"{l.Description.Replace("\"", "\"\"")}\",\"{l.IpAddress}\",\"{l.Severity}\"");
+                }
+                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(csvBuilder.ToString());
+                string fileName = $"User_Activity_Audit_{DateTime.Now:yyyyMMddHHmmss}.csv";
+                return File(buffer, "text/csv", fileName);
+            }
+            else
+            {
+                var html = new System.Text.StringBuilder();
+                html.Append("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+                html.Append("<head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Activity</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>");
+                html.Append("<body><table border=\"1\">");
+                html.Append("<tr><th>Timestamp</th><th>User</th><th>Role</th><th>Target Module</th><th>Action Subject</th><th>Description</th><th>IP Address</th><th>Status</th></tr>");
+                foreach (var l in logs)
+                {
+                    html.Append($"<tr><td>{l.Timestamp:yyyy-MM-dd HH:mm}</td><td>{l.FullName}</td><td>{l.RoleName}</td><td>{l.Module}</td><td>{l.ActionSubject}</td><td>{l.Description}</td><td>{l.IpAddress}</td><td>{l.Severity}</td></tr>");
+                }
+                html.Append("</table></body></html>");
+                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(html.ToString());
+                string fileName = $"User_Activity_Audit_{DateTime.Now:yyyyMMddHHmmss}.xls";
+                return File(buffer, "application/vnd.ms-excel", fileName);
+            }
+        }
+
+        // GET: /AdminReports/ExportLoginAuditData
+        [HttpGet]
+        public async Task<IActionResult> ExportLoginAuditData(string format = "csv", DateTime? fromDate = null, DateTime? toDate = null, string? status = null, string? role = null, string? search = null)
+        {
+            var query = _context.AdminLoginAudits.AsQueryable();
+
+            if (fromDate.HasValue) query = query.Where(l => l.LoginTime >= fromDate.Value);
+            if (toDate.HasValue) query = query.Where(l => l.LoginTime <= toDate.Value.AddDays(1).AddTicks(-1));
+            if (!string.IsNullOrEmpty(status) && status != "All Statuses") query = query.Where(l => l.Status == status);
+            if (!string.IsNullOrEmpty(role) && role != "All Roles") query = query.Where(l => l.RoleName == role);
+            if (!string.IsNullOrEmpty(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(l => l.Username.ToLower().Contains(searchLower) || 
+                                         l.FullName.ToLower().Contains(searchLower) || 
+                                         l.IpAddress.ToLower().Contains(searchLower));
+            }
+
+            var logs = await query.OrderByDescending(l => l.LoginTime).ToListAsync();
+
+            if (format.ToLower() == "csv")
+            {
+                var csvBuilder = new System.Text.StringBuilder();
+                csvBuilder.AppendLine("User & Identity,Role,IP Address,Location,Device & Browser,Login Timestamp,Session Duration,Status");
+                foreach (var l in logs)
+                {
+                    csvBuilder.AppendLine($"\"{l.FullName} ({l.Username})\",\"{l.RoleName}\",\"{l.IpAddress}\",\"Aurangabad, MH\",\"{l.DeviceInfo}\",\"{l.LoginTime:yyyy-MM-dd HH:mm}\",\"{l.SessionDuration}\",\"{l.Status}\"");
+                }
+                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(csvBuilder.ToString());
+                string fileName = $"Login_Audit_{DateTime.Now:yyyyMMddHHmmss}.csv";
+                return File(buffer, "text/csv", fileName);
+            }
+            else
+            {
+                var html = new System.Text.StringBuilder();
+                html.Append("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+                html.Append("<head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>LoginAudit</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>");
+                html.Append("<body><table border=\"1\">");
+                html.Append("<tr><th>User & Identity</th><th>Role</th><th>IP Address</th><th>Location</th><th>Device & Browser</th><th>Login Timestamp</th><th>Session Duration</th><th>Status</th></tr>");
+                foreach (var l in logs)
+                {
+                    html.Append($"<tr><td>{l.FullName} ({l.Username})</td><td>{l.RoleName}</td><td>{l.IpAddress}</td><td>Aurangabad, MH</td><td>{l.DeviceInfo}</td><td>{l.LoginTime:yyyy-MM-dd HH:mm}</td><td>{l.SessionDuration}</td><td>{l.Status}</td></tr>");
+                }
+                html.Append("</table></body></html>");
+                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(html.ToString());
+                string fileName = $"Login_Audit_{DateTime.Now:yyyyMMddHHmmss}.xls";
+                return File(buffer, "application/vnd.ms-excel", fileName);
+            }
+        }
     }
 }

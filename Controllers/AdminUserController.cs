@@ -58,6 +58,36 @@ namespace ERP_System.Controllers
             return RedirectToAction(nameof(PasswordResets));
         }
 
+        // POST: /AdminUser/EmergencyReset
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EmergencyReset(int id, string tempPassword)
+        {
+            if (string.IsNullOrEmpty(tempPassword))
+            {
+                return RedirectToAction(nameof(PasswordResets));
+            }
+
+            var reset = await _context.AdminPasswordResets.FindAsync(id);
+            if (reset != null)
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == reset.Email);
+                if (user != null)
+                {
+                    var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
+                    user.PasswordHash = hasher.HashPassword(user, tempPassword);
+
+                    reset.Status = "Manual Override";
+                    reset.RequestType = "Admin Override";
+                    reset.DeliveryMethod = "Manual OTP";
+                    
+                    await _context.SaveChangesAsync();
+                    TempData["EmergencySuccess"] = $"Emergency temporary password set successfully for user: {reset.Email}";
+                }
+            }
+            return RedirectToAction(nameof(PasswordResets));
+        }
+
         // GET: /AdminUser/Locks
         [HttpGet]
         public async Task<IActionResult> Locks()

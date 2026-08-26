@@ -133,7 +133,7 @@
             <i class="fa-solid fa-table-list text-primary me-2"></i>Operational Performance Grid
         </h5>
         <div class="table-responsive">
-            <table class="table align-middle table-hover text-start mb-0">
+            <table class="table align-middle table-hover text-start mb-0" id="branchSummaryTable">
                 <thead class="table-light">
                     <tr>
                         <th>Branch Details</th>
@@ -307,13 +307,44 @@
         });
     });
 
-    // Trigger report exporter
+</script>
+
+<!-- Client-side Export Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+    // Trigger report exporter client-side
     function exportReport(format) {
         toastr.info(`Preparing branch summary report in ${format.toUpperCase()} format...`);
-        window.location.href = `/AdminReports/ExportBranchSummary?format=${format}`;
         
-        setTimeout(() => {
-            toastr.success("Report file download triggered.");
-        }, 1200);
+        if (format.toLowerCase() === "csv") {
+            const table = document.getElementById("branchSummaryTable");
+            if (!table) return;
+            const wb = XLSX.utils.table_to_book(table, { sheet: "Branch Summary" });
+            XLSX.writeFile(wb, `Branch_Performance_Summary_${new Date().toISOString().slice(0,10)}.csv`, { bookType: 'csv' });
+        } 
+        else if (format.toLowerCase() === "pdf") {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'pt', 'a4');
+            doc.setFontSize(14);
+            doc.text("Branch Performance Summary", 40, 30);
+            doc.autoTable({
+                html: '#branchSummaryTable',
+                startY: 50,
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 4 },
+                headStyles: { fillColor: [37, 99, 235] }
+            });
+            doc.save(`Branch_Performance_Summary_${new Date().toISOString().slice(0,10)}.pdf`);
+        } 
+        else {
+            const table = document.getElementById("branchSummaryTable");
+            if (!table) return;
+            const wb = XLSX.utils.table_to_book(table, { sheet: "Branch Summary" });
+            XLSX.writeFile(wb, `Branch_Performance_Summary_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+        toastr.success("Report file download triggered.");
     }
 </script>

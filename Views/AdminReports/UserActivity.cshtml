@@ -203,7 +203,7 @@
             <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Operation Audit Streams
         </h5>
         <div class="table-responsive">
-            <table class="table align-middle table-hover text-start mb-0">
+            <table class="table align-middle table-hover text-start mb-0" id="userActivityTable">
                 <thead class="table-light">
                     <tr>
                         <th style="width: 15%;">Timestamp</th>
@@ -342,12 +342,56 @@
         document.getElementById("filterForm").submit();
     }
 
-    // Trigger logs exporter
+</script>
+
+<!-- Client-side Export Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+    // Trigger logs exporter client-side with server fallback
     function exportLogs(format) {
-        toastr.info(`Staging audit log report in ${format.toUpperCase()} format...`);
-        window.location.href = '/AdminReports/ExportUserActivity?format=' + format + '&' + $('#filterForm').serialize();
-        setTimeout(() => {
-            toastr.success("Report file download triggered.");
-        }, 1200);
+        toastr.info(`Preparing user activity report in ${format.toUpperCase()} format...`);
+        
+        try {
+            if (typeof XLSX !== "undefined" && (format.toLowerCase() === "xlsx" || format.toLowerCase() === "csv")) {
+                const table = document.getElementById("userActivityTable");
+                if (!table) throw new Error("Table not found");
+                const wb = XLSX.utils.table_to_book(table, { sheet: "User Activity" });
+                if (format.toLowerCase() === "csv") {
+                    XLSX.writeFile(wb, `User_Activity_Logs_${new Date().toISOString().slice(0,10)}.csv`, { bookType: 'csv' });
+                } else {
+                    XLSX.writeFile(wb, `User_Activity_Logs_${new Date().toISOString().slice(0,10)}.xlsx`);
+                }
+                toastr.success("Report file download completed via Client-Side Engine.");
+                return;
+            }
+            if (typeof window.jspdf !== "undefined" && format.toLowerCase() === "pdf") {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'pt', 'a4');
+                doc.setFontSize(14);
+                doc.text("User Activity Logs", 40, 30);
+                doc.autoTable({
+                    html: '#userActivityTable',
+                    startY: 50,
+                    theme: 'grid',
+                    styles: { fontSize: 8, cellPadding: 4 },
+                    headStyles: { fillColor: [37, 99, 235] }
+                });
+                doc.save(`User_Activity_Logs_${new Date().toISOString().slice(0,10)}.pdf`);
+                toastr.success("Report file download completed via Client-Side Engine.");
+                return;
+            }
+            throw new Error("Client-side export libraries not loaded.");
+        }
+        catch (err) {
+            console.warn(err.message + " Falling back to Server-side Exporter...");
+            const serverFormat = format.toLowerCase() === "xlsx" ? "excel" : format.toLowerCase();
+            window.location.href = `/AdminReports/ExportUserActivityData?format=${serverFormat}&` + $('#filterForm').serialize();
+            setTimeout(() => {
+                toastr.success("Report file download triggered via Server-side fallback.");
+            }, 1200);
+        }
     }
 </script>

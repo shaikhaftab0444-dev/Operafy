@@ -361,8 +361,16 @@
         });
     }
 
-    // Dynamically post export configurations form parameters
-    function triggerExport(entityType, format) {
+</script>
+
+<!-- Client-side Export Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+    // Client-side dataset export logic
+    async function triggerExport(entityType, format) {
         toastr.info(`Staging ${entityType} in ${format.toUpperCase()} format...`);
 
         const branchSelect = document.getElementById("branchFilter");
@@ -378,12 +386,49 @@
             }
         }
 
-        const url = `/AdminData/ExportDataset?moduleType=${encodeURIComponent(entityType)}&format=${encodeURIComponent(format)}&branch=${encodeURIComponent(branchName)}&dateRange=${encodeURIComponent(dateRange)}${customDates}`;
+        const url = `/AdminData/ExportDataset?moduleType=${encodeURIComponent(entityType)}&format=json&branch=${encodeURIComponent(branchName)}&dateRange=${encodeURIComponent(dateRange)}${customDates}`;
         
-        window.location.href = url;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Dataset query failed.");
+            const data = await res.json();
 
-        setTimeout(() => {
-            toastr.success(`Processing dataset download.`);
-        }, 1200);
+            if (format.toLowerCase() === "csv") {
+                const ws = XLSX.utils.aoa_to_sheet([data.headers, ...data.rows]);
+                const csv = XLSX.utils.sheet_to_csv(ws);
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `${entityType.replace(/\s+/g, '_')}_export_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } 
+            else if (format.toLowerCase() === "pdf") {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'pt', 'a4');
+                doc.setFontSize(14);
+                doc.text(entityType, 40, 30);
+                doc.autoTable({
+                    head: [data.headers],
+                    body: data.rows,
+                    startY: 50,
+                    theme: 'grid',
+                    styles: { fontSize: 9, cellPadding: 6 },
+                    headStyles: { fillColor: [37, 99, 235] }
+                });
+                doc.save(`${entityType.replace(/\s+/g, '_')}_export_${new Date().toISOString().slice(0,10)}.pdf`);
+            } 
+            else {
+                const ws = XLSX.utils.aoa_to_sheet([data.headers, ...data.rows]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Data");
+                XLSX.writeFile(wb, `${entityType.replace(/\s+/g, '_')}_export_${new Date().toISOString().slice(0,10)}.xlsx`);
+            }
+            toastr.success("Dataset download completed.");
+        } catch (err) {
+            console.error(err);
+            toastr.error("Client-side export processing failed.");
+        }
     }
 </script>

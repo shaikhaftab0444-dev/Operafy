@@ -635,8 +635,26 @@ namespace ERP_System.Data
                         Username NVARCHAR(100) NOT NULL,
                         Email NVARCHAR(100) NOT NULL,
                         RequestDate DATETIME NOT NULL,
-                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending'
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending',
+                        Token NVARCHAR(MAX) NULL,
+                        ExpiryDate DATETIME NULL,
+                        RequestType NVARCHAR(100) NULL,
+                        DeliveryMethod NVARCHAR(100) NULL
                     );
+                END
+                ELSE
+                BEGIN
+                    IF COL_LENGTH('AITStudent.erp_AdminPasswordResets', 'Token') IS NULL
+                        ALTER TABLE AITStudent.erp_AdminPasswordResets ADD Token NVARCHAR(MAX) NULL;
+
+                    IF COL_LENGTH('AITStudent.erp_AdminPasswordResets', 'ExpiryDate') IS NULL
+                        ALTER TABLE AITStudent.erp_AdminPasswordResets ADD ExpiryDate DATETIME NULL;
+
+                    IF COL_LENGTH('AITStudent.erp_AdminPasswordResets', 'RequestType') IS NULL
+                        ALTER TABLE AITStudent.erp_AdminPasswordResets ADD RequestType NVARCHAR(100) NULL;
+
+                    IF COL_LENGTH('AITStudent.erp_AdminPasswordResets', 'DeliveryMethod') IS NULL
+                        ALTER TABLE AITStudent.erp_AdminPasswordResets ADD DeliveryMethod NVARCHAR(100) NULL;
                 END";
 
             // Ensure erp_AdminBranchHours table exists
@@ -827,8 +845,9 @@ namespace ERP_System.Data
             {
                 await context.AdminPasswordResets.AddRangeAsync(new List<AdminPasswordReset>
                 {
-                    new AdminPasswordReset { Username = "shaikhaftab", Email = "aftab@erp.com", RequestDate = DateTime.Today.AddDays(-1), Status = "Pending" },
-                    new AdminPasswordReset { Username = "numan", Email = "numan@erp.com", RequestDate = DateTime.Today.AddDays(-3), Status = "Completed" }
+                    new AdminPasswordReset { Username = "shaikhaftab", Email = "aftab@erp.com", RequestDate = DateTime.Today.AddDays(-1), Status = "Pending", RequestType = "Automated Self-Service", DeliveryMethod = "Email Magic Link" },
+                    new AdminPasswordReset { Username = "numan", Email = "numan@erp.com", RequestDate = DateTime.Today.AddDays(-3), Status = "Manual Override", RequestType = "Admin Override", DeliveryMethod = "Email OTP" },
+                    new AdminPasswordReset { Username = "rahul", Email = "rahul@erp.com", RequestDate = DateTime.Today.AddDays(-5), Status = "Token Expired", RequestType = "Automated Self-Service", DeliveryMethod = "Email Magic Link" }
                 });
             }
 

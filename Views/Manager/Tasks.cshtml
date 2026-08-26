@@ -1,0 +1,286 @@
+@model ERP_System.Models.ManagerDashboardViewModel
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Task Delegation - Operations Hub";
+}
+
+<!-- CDN references -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    }
+    .filter-pill {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .filter-pill.active {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        border-color: #2563eb !important;
+    }
+</style>
+
+<div class="container-fluid py-4 text-start">
+    
+    <!-- Top Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/Manager" class="text-decoration-none">Manager Portal</a></li>
+                    <li class="breadcrumb-item text-secondary">Tasks</li>
+                    <li class="breadcrumb-item active" aria-current="page">Delegation</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i>Task Delegation & Sprint Board</h4>
+            <p class="text-secondary small mb-0">Assign project deliverables, monitor task progression percentages, and verify priorities.</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
+                <i class="fa-solid fa-plus me-1.5"></i>Assign New Task
+            </button>
+        </div>
+    </div>
+
+    <!-- Status filter pills + Search bar -->
+    <div class="glass-panel p-3.5 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="taskSearchInput" class="form-control border-start-0" placeholder="Search task title or member..." onkeyup="filterTasks()" />
+                </div>
+            </div>
+            <div class="col-md-8 text-md-end">
+                <span class="badge bg-light text-secondary border filter-pill px-3 py-2 rounded-pill me-1 active" id="pill-all" onclick="filterByStatus('all')">All Tasks (@Model.TeamTasks.Count)</span>
+                <span class="badge bg-light text-secondary border filter-pill px-3 py-2 rounded-pill me-1" id="pill-inprogress" onclick="filterByStatus('In Progress')">In Progress (@Model.TeamTasks.Count(t => t.Status == "In Progress"))</span>
+                <span class="badge bg-light text-secondary border filter-pill px-3 py-2 rounded-pill me-1" id="pill-review" onclick="filterByStatus('Review')">In Review (@Model.TeamTasks.Count(t => t.Status == "Review"))</span>
+                <span class="badge bg-light text-secondary border filter-pill px-3 py-2 rounded-pill" id="pill-delayed" onclick="filterByStatus('Delayed')">Delayed (@Model.TeamTasks.Count(t => t.Status == "Delayed"))</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tasks Table Card -->
+    <div class="glass-panel p-4">
+        <div class="table-responsive">
+            <table class="table align-middle table-hover text-start mb-0" id="delegatedTasksTable" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Delegated Deliverable Title</th>
+                        <th>Assigned Team Member</th>
+                        <th>Target Due Date</th>
+                        <th>Task Priority</th>
+                        <th>Sprint Completion Progress</th>
+                        <th>Current Status</th>
+                    </tr>
+                </thead>
+                <tbody id="taskTableBody">
+                    @if (!Model.TeamTasks.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No delegated tasks active in this cycle.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var task in Model.TeamTasks)
+                        {
+                            var priorityClass = task.Priority == "Urgent" ? "bg-danger-subtle text-danger" : (task.Priority == "High" ? "bg-warning-subtle text-warning" : "bg-success-subtle text-success");
+                            var statusBadgeClass = task.Status == "In Progress" ? "bg-info text-white" : (task.Status == "Review" ? "bg-warning text-dark" : (task.Status == "Delayed" ? "bg-danger text-white" : "bg-success text-white"));
+
+                            <tr class="task-row-item" data-status="@task.Status">
+                                <td class="fw-bold text-dark">@task.Title</td>
+                                <td class="text-secondary fw-semibold">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center font-monospace" style="width: 24px; height: 24px; font-size: 0.65rem;">
+                                            @task.AssignedTo.Substring(0, Math.Min(2, task.AssignedTo.Length)).ToUpper()
+                                        </div>
+                                        <span>@task.AssignedTo</span>
+                                    </div>
+                                </td>
+                                <td class="text-secondary small font-monospace">@task.DueDate</td>
+                                <td><span class="badge @priorityClass border px-2.5 py-1">@task.Priority</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2" style="width: 140px;">
+                                        <div class="progress flex-fill" style="height: 6px;">
+                                            <div class="progress-bar bg-primary" role="progressbar" style="width: @task.Progress%"></div>
+                                        </div>
+                                        <span class="small font-monospace fw-bold text-secondary">@task.Progress%</span>
+                                    </div>
+                                </td>
+                                <td><span class="badge @statusBadgeClass px-2.5 py-1" style="font-size: 0.75rem;">@task.Status</span></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Assign New Task Modal -->
+<div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-panel border shadow-lg text-start">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="fw-bold text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i>Delegate New Deliverable</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assignTaskForm" onsubmit="submitNewTask(event)">
+                @Html.AntiForgeryToken()
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Deliverable Title</label>
+                        <input type="text" class="form-control" name="title" placeholder="Forecast sales Q3 metrics..." required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Assigned Team Member</label>
+                        <select class="form-select" name="assignedTo" required>
+                            <option value="">Select Employee...</option>
+                            @foreach (var m in Model.TeamAttendance)
+                            {
+                                <option value="@m.Name">@m.Name (@m.Role)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Task Priority</label>
+                        <select class="form-select" name="priority" required>
+                            <option value="Low">Low Priority</option>
+                            <option value="Medium" selected>Medium Priority</option>
+                            <option value="High">High Priority</option>
+                            <option value="Urgent">Urgent Priority</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Target Due Date</label>
+                        <input type="date" class="form-control" name="dueDate" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Detailed Description</label>
+                        <textarea class="form-control" name="description" rows="3" placeholder="Provide instructions..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Delegate Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const assignModal = new bootstrap.Modal(document.getElementById("assignTaskModal"));
+    let activeStatusFilter = "all";
+
+    // Filtering logic
+    function filterTasks() {
+        const searchVal = document.getElementById("taskSearchInput").value.toLowerCase();
+        const rows = document.querySelectorAll(".task-row-item");
+
+        rows.forEach(row => {
+            const title = row.cells[0].innerText.toLowerCase();
+            const member = row.cells[1].innerText.toLowerCase();
+            const status = row.getAttribute("data-status");
+
+            const matchesSearch = title.includes(searchVal) || member.includes(searchVal);
+            const matchesStatus = activeStatusFilter === "all" || status === activeStatusFilter;
+
+            if (matchesSearch && matchesStatus) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    function filterByStatus(status) {
+        // Toggle active pill state
+        document.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+        
+        if (status === "all") {
+            document.getElementById("pill-all").classList.add("active");
+        } else if (status === "In Progress") {
+            document.getElementById("pill-inprogress").classList.add("active");
+        } else if (status === "Review") {
+            document.getElementById("pill-review").classList.add("active");
+        } else if (status === "Delayed") {
+            document.getElementById("pill-delayed").classList.add("active");
+        }
+
+        activeStatusFilter = status;
+        filterTasks();
+    }
+
+    // Submit New Task Allocation via AJAX
+    function submitNewTask(e) {
+        e.preventDefault();
+        const form = document.getElementById("assignTaskForm");
+        const formData = new FormData(form);
+
+        toastr.info("Assigning deliverable task...");
+
+        fetch("/Manager/AssignTask", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                toastr.success(data.message);
+                assignModal.hide();
+                form.reset();
+
+                // Append new task to UI table
+                const tbody = document.getElementById("taskTableBody");
+                const priorityClass = data.task.priority === "Urgent" ? "bg-danger-subtle text-danger" : (data.task.priority === "High" ? "bg-warning-subtle text-warning" : "bg-success-subtle text-success");
+                const initials = data.task.assignedTo.substring(0, 2).toUpperCase();
+
+                const newRow = `
+                    <tr class="task-row-item" data-status="In Progress">
+                        <td class="fw-bold text-dark">${data.task.title}</td>
+                        <td class="text-secondary fw-semibold">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center font-monospace" style="width: 24px; height: 24px; font-size: 0.65rem;">
+                                    ${initials}
+                                </div>
+                                <span>${data.task.assignedTo}</span>
+                            </div>
+                        </td>
+                        <td class="text-secondary small font-monospace">${data.task.dueDate}</td>
+                        <td><span class="badge ${priorityClass} border px-2.5 py-1">${data.task.priority}</span></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2" style="width: 140px;">
+                                <div class="progress flex-fill" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 20%"></div>
+                                </div>
+                                <span class="small font-monospace fw-bold text-secondary">20%</span>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-info text-white px-2.5 py-1" style="font-size: 0.75rem;">In Progress</span></td>
+                    </tr>`;
+                
+                tbody.insertAdjacentHTML("afterbegin", newRow);
+            } else {
+                toastr.error(data.message);
+            }
+        });
+    }
+</script>
