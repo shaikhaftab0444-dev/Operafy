@@ -205,83 +205,94 @@ namespace ERP_System.Controllers
             return View(viewModel);
         }
 
-        // POST: /AdminData/ExportDataset
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ExportDataset(string entityType, string format, DateTime? fromDate, DateTime? toDate, int? branchId)
+        // GET: /AdminData/ExportDataset
+        [HttpGet]
+        public async Task<IActionResult> ExportDataset(string moduleType, string format, string branch = "All Branches", string dateRange = "All Time", DateTime? fromDate = null, DateTime? toDate = null)
         {
-            if (string.IsNullOrEmpty(entityType) || string.IsNullOrEmpty(format))
+            if (string.IsNullOrEmpty(moduleType) || string.IsNullOrEmpty(format))
             {
                 return BadRequest();
             }
 
-            int recordsCount = 0;
-            string csvContent = string.Empty;
-            string contentType = format.ToLower() == "csv" ? "text/csv" : (format.ToLower() == "pdf" ? "application/pdf" : "application/vnd.ms-excel");
-            string fileExtension = format.ToLower() == "csv" ? "csv" : (format.ToLower() == "pdf" ? "pdf" : "xls");
-            string filename = $"{entityType.Replace(" ", "_").ToLower()}_export_{DateTime.Now:yyyyMMdd_HHmmss}.{fileExtension}";
-
-            switch (entityType.ToLower())
+            int? branchId = null;
+            if (branch != "All Branches")
             {
-                case "employee directory master":
-                    var usersQuery = _context.Users.AsQueryable();
-                    if (branchId.HasValue && branchId > 0) usersQuery = usersQuery.Where(u => u.BranchId == branchId.Value);
-                    var users = await usersQuery.ToListAsync();
-                    recordsCount = users.Count;
-                    csvContent = "EmployeeCode,FullName,Email,Phone,Department,Designation\n" +
-                                 string.Join("\n", users.Select(u => $"\"{u.UserCode}\",\"{u.FullName}\",\"{u.Email}\",\"{u.MobileNumber ?? ""}\",\"\",\"\""));
-                    break;
+                var br = await _context.Branches.FirstOrDefaultAsync(b => b.BranchName == branch);
+                if (br != null) branchId = br.BranchId;
+            }
 
-                case "items & skus catalog":
-                    var productsQuery = _context.Products.AsQueryable();
-                    if (branchId.HasValue && branchId > 0) productsQuery = productsQuery.Where(p => p.BranchId == branchId.Value);
-                    var products = await productsQuery.ToListAsync();
-                    recordsCount = products.Count;
-                    csvContent = "ItemCode,ItemName,Category,StockQty,Price,Status\n" +
-                                 string.Join("\n", products.Select(p => $"\"{p.ProductId}\",\"{p.ProductName}\",\"{p.Category}\",\"{p.StockQty}\",\"{p.Revenue}\",\"{p.Status}\""));
-                    break;
+            DateTime? from = fromDate;
+            DateTime? to = toDate;
 
-                case "customers & clients directory":
-                    var customers = await _context.Customers.ToListAsync();
-                    recordsCount = customers.Count;
-                    csvContent = "CustomerCode,CompanyName,ContactName,Email,Phone\n" +
-                                 string.Join("\n", customers.Select(c => $"\"CUST{c.Id}\",\"{c.CustomerName}\",\"{c.CustomerName}\",\"{c.Email}\",\"{c.PhoneNumber}\""));
-                    break;
+            if (dateRange == "Current FY 2026-27")
+            {
+                from = new DateTime(2026, 4, 1);
+                to = new DateTime(2027, 3, 31);
+            }
+            else if (dateRange == "This Month")
+            {
+                var today = DateTime.Today;
+                from = new DateTime(today.Year, today.Month, 1);
+                to = from.Value.AddMonths(1).AddDays(-1);
+            }
 
-                case "vendors & suppliers list":
-                    var suppliers = await _context.Suppliers.ToListAsync();
-                    recordsCount = suppliers.Count;
-                    csvContent = "VendorCode,VendorName,ContactPerson,Email,Phone,Status\n" +
-                                 string.Join("\n", suppliers.Select(s => $"\"{s.SupplierCode}\",\"{s.SupplierName}\",\"{s.ContactPerson}\",\"{s.Email}\",\"{s.Phone}\",\"Active\""));
-                    break;
+            var data = await GetDatasetData(moduleType, from, to, branchId);
+            byte[] fileBytes;
+            string contentType;
+            string fileExtension = format.ToLower() == "csv" ? "csv" : (format.ToLower() == "pdf" ? "pdf" : "xlsx");
+            string filename = $"{moduleType.Replace(" ", "_").ToLower()}_export_{DateTime.Now:yyyyMMdd_HHmmss}.{fileExtension}";
 
-                case "chart of accounts & daybook":
-                    var txQuery = _context.Transactions.AsQueryable();
-                    if (fromDate.HasValue) txQuery = txQuery.Where(t => t.Date >= fromDate.Value);
-                    if (toDate.HasValue) txQuery = txQuery.Where(t => t.Date <= toDate.Value);
-                    var txs = await txQuery.ToListAsync();
-                    recordsCount = txs.Count;
-                    csvContent = "TransactionId,Type,Amount,Date,Status,Description\n" +
-                                 string.Join("\n", txs.Select(t => $"\"{t.TransactionId}\",\"{t.Type}\",\"{t.Amount}\",\"{t.Date:yyyy-MM-dd}\",\"{t.Status}\",\"{t.PartyName}\""));
-                    break;
+            if (format.ToLower() == "csv")
+            {
+                contentType = "text/csv";
+                var csv = new System.Text.StringBuilder();
+                csv.AppendLine(string.Join(",", data.Headers.Select(h => $"\"{h}\"")));
+                foreach (var r in data.Rows)
+                {
+                    csv.AppendLine(string.Join(",", r.Select(val => $"\"{val.Replace("\"", "\"\"")}\"")));
+                }
+                fileBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+            }
+            else if (format.ToLower() == "pdf")
+            {
+                contentType = "application/pdf";
+                fileBytes = GenerateSimplePdf(moduleType, data.Headers, data.Rows);
+            }
+            else
+            {
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                var html = new System.Text.StringBuilder();
+                html.Append("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+                html.Append("<head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Export</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>");
+                html.Append("<body><table border=\"1\">");
+                
+                html.Append("<tr>");
+                foreach (var h in data.Headers)
+                {
+                    html.Append($"<th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">{h}</th>");
+                }
+                html.Append("</tr>");
 
-                case "tax & gst hsn master":
-                    var taxSlabs = await _context.TaxSlabs.ToListAsync();
-                    recordsCount = taxSlabs.Count;
-                    csvContent = "TaxCode,Description,CombinedRate,CGST,SGST,IGST,Status\n" +
-                                 string.Join("\n", taxSlabs.Select(t => $"\"{t.TaxCode}\",\"{t.Description}\",\"{t.CombinedRate}\",\"{t.CGST}\",\"{t.SGST}\",\"{t.IGST}\",\"{(t.IsActive ? "Active" : "Inactive")}\""));
-                    break;
+                foreach (var r in data.Rows)
+                {
+                    html.Append("<tr>");
+                    foreach (var val in r)
+                    {
+                        html.Append($"<td>{val}</td>");
+                    }
+                    html.Append("</tr>");
+                }
 
-                default:
-                    return BadRequest("Unknown dataset type.");
+                html.Append("</table></body></html>");
+                fileBytes = System.Text.Encoding.UTF8.GetBytes(html.ToString());
             }
 
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
             var log = new ExportAuditLog
             {
-                DatasetName = entityType,
+                DatasetName = moduleType,
                 FileFormat = format.ToUpper(),
-                RecordsCount = recordsCount,
+                RecordsCount = data.Rows.Count,
                 ExportedBy = User.Identity?.Name ?? "Super Admin",
                 ExportedAt = DateTime.UtcNow,
                 IpAddress = clientIp,
@@ -291,12 +302,125 @@ namespace ERP_System.Controllers
             _context.ExportAuditLogs.Add(log);
             await _context.SaveChangesAsync();
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
-            return File(bytes, contentType, filename);
+            return File(fileBytes, contentType, filename);
         }
 
-        // GET: /AdminData/BackupHistory
-        [HttpGet]
+        private async Task<(List<string> Headers, List<List<string>> Rows)> GetDatasetData(string moduleType, DateTime? fromDate, DateTime? toDate, int? branchId)
+        {
+            var headers = new List<string>();
+            var rows = new List<List<string>>();
+
+            switch (moduleType.ToLower())
+            {
+                case "employee directory master":
+                    headers = new List<string> { "EmployeeCode", "FullName", "Email", "Phone", "Status" };
+                    var usersQuery = _context.Users.AsQueryable();
+                    if (branchId.HasValue) usersQuery = usersQuery.Where(u => u.BranchId == branchId.Value);
+                    var users = await usersQuery.ToListAsync();
+                    foreach (var u in users)
+                    {
+                        rows.Add(new List<string> { u.UserCode, u.FullName, u.Email, u.MobileNumber ?? "", u.IsActive ? "Active" : "Locked" });
+                    }
+                    break;
+
+                case "items & skus catalog":
+                    headers = new List<string> { "ItemCode", "ItemName", "Category", "StockQty", "Price", "Status" };
+                    var productsQuery = _context.Products.AsQueryable();
+                    if (branchId.HasValue) productsQuery = productsQuery.Where(p => p.BranchId == branchId.Value);
+                    var products = await productsQuery.ToListAsync();
+                    foreach (var p in products)
+                    {
+                        rows.Add(new List<string> { p.ProductId.ToString(), p.ProductName, p.Category, p.StockQty.ToString(), p.Revenue.ToString("F2"), p.Status });
+                    }
+                    break;
+
+                case "customers & clients directory":
+                    headers = new List<string> { "CustomerCode", "CompanyName", "Email", "Phone" };
+                    var customers = await _context.Customers.ToListAsync();
+                    foreach (var c in customers)
+                    {
+                        rows.Add(new List<string> { $"CUST{c.Id}", c.CustomerName, c.Email, c.PhoneNumber });
+                    }
+                    break;
+
+                case "vendors & suppliers list":
+                    headers = new List<string> { "VendorCode", "VendorName", "ContactPerson", "Email", "Phone" };
+                    var suppliers = await _context.Suppliers.ToListAsync();
+                    foreach (var s in suppliers)
+                    {
+                        rows.Add(new List<string> { s.SupplierCode ?? "", s.SupplierName, s.ContactPerson, s.Email, s.Phone });
+                    }
+                    break;
+
+                case "chart of accounts & daybook":
+                    headers = new List<string> { "TransactionId", "Type", "Amount", "Date", "Status", "PartyName" };
+                    var txQuery = _context.Transactions.AsQueryable();
+                    if (fromDate.HasValue) txQuery = txQuery.Where(t => t.Date >= fromDate.Value);
+                    if (toDate.HasValue) txQuery = txQuery.Where(t => t.Date <= toDate.Value);
+                    var txs = await txQuery.ToListAsync();
+                    foreach (var t in txs)
+                    {
+                        rows.Add(new List<string> { t.TransactionId.ToString(), t.Type, t.Amount.ToString("F2"), t.Date.ToString("yyyy-MM-dd"), t.Status, t.PartyName });
+                    }
+                    break;
+
+                case "tax & gst hsn master":
+                    headers = new List<string> { "TaxCode", "Description", "CombinedRate", "CGST", "SGST", "IGST", "Status" };
+                    var taxSlabs = await _context.TaxSlabs.ToListAsync();
+                    foreach (var t in taxSlabs)
+                    {
+                        rows.Add(new List<string> { t.TaxCode, t.Description, t.CombinedRate.ToString("F2"), t.CGST.ToString("F2"), t.SGST.ToString("F2"), t.IGST.ToString("F2"), t.IsActive ? "Active" : "Inactive" });
+                    }
+                    break;
+            }
+
+            return (headers, rows);
+        }
+
+        private byte[] GenerateSimplePdf(string title, List<string> headers, List<List<string>> rows)
+        {
+            using (var ms = new MemoryStream())
+            {
+                using (var writer = new StreamWriter(ms, System.Text.Encoding.ASCII))
+                {
+                    writer.Write("%PDF-1.4\n");
+                    writer.Write("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+                    writer.Write("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+                    
+                    var contentBuilder = new System.Text.StringBuilder();
+                    contentBuilder.Append("BT\n/F1 10 Tf\n40 750 Td\n14 TL\n");
+                    contentBuilder.Append($"({title}) Tj T*\n\n");
+                    
+                    string headerLine = string.Join("  |  ", headers);
+                    contentBuilder.Append($"({headerLine}) Tj T*\n");
+                    contentBuilder.Append("(----------------------------------------------------------------------------------------------------------------------) Tj T*\n");
+                    
+                    foreach (var row in rows)
+                    {
+                        string rowLine = string.Join("  |  ", row.Select(r => r.Replace("(", "\\(").Replace(")", "\\)")));
+                        if (rowLine.Length > 100) rowLine = rowLine.Substring(0, 97) + "...";
+                        contentBuilder.Append($"({rowLine}) Tj T*\n");
+                    }
+                    contentBuilder.Append("ET\n");
+                    
+                    string streamContent = contentBuilder.ToString();
+                    byte[] streamBytes = System.Text.Encoding.ASCII.GetBytes(streamContent);
+                    
+                    writer.Write("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Courier >> >> >> >>\nendobj\n");
+                    writer.Write($"4 0 obj\n<< /Length {streamBytes.Length} >>\nstream\n");
+                    writer.Flush();
+                    
+                    ms.Write(streamBytes, 0, streamBytes.Length);
+                    
+                    writer.Write("\nendstream\nendobj\n");
+                    writer.Write("xref\n0 5\n0000000000 65535 f\n");
+                    writer.Write("trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n0\n%%EOF\n");
+                    writer.Flush();
+                }
+                return ms.ToArray();
+            }
+        }
+
         // GET: /AdminData/BackupHistory
         [HttpGet]
         public async Task<IActionResult> BackupHistory()

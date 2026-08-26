@@ -1,65 +1,412 @@
-@model IEnumerable<ERP_System.Models.AdminLoginAudit>
+@model ERP_System.Models.LoginAuditViewModel
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Login Audit Report";
+    ViewData["Title"] = "Identity Access & Login Audit";
 }
 
+<!-- Premium Alert & Notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    }
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+    }
+    .pulse-green {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #10b981;
+        box-shadow: 0 0 8px #10b981;
+        animation: pulse-session 1.5s infinite;
+        margin-right: 6px;
+    }
+    @@keyframes pulse-session {
+        0% { transform: scale(0.9); opacity: 0.8; }
+        50% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(0.9); opacity: 0.8; }
+    }
+    .badge-success-glow {
+        background-color: #f0fdf4;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+        box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
+    }
+    .badge-warning-glow {
+        background-color: #fffbeb;
+        color: #92400e;
+        border: 1px solid #fef3c7;
+        box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+    }
+    .badge-danger-glow {
+        background-color: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fee2e2;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+    }
+</style>
+
 <div class="container-fluid py-4 text-start">
+
+    <!-- Top Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-shield text-primary me-2"></i>Login Audit Report</h4>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
+                <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Login Audits</li>
+                    <li class="breadcrumb-item text-secondary">Reports</li>
+                    <li class="breadcrumb-item active" aria-current="page">Authentication Logs</li>
                 </ol>
             </nav>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-user-shield text-primary me-2"></i>IAM Login Audit Trails</h4>
+            <p class="text-secondary small mb-0">Track employee identities logins history, session statuses, IP addresses, and device profiles.</p>
         </div>
     </div>
 
-    <!-- Login Audits Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm" style="max-width: 800px;">
-        <h5 class="fw-bold mb-3">Authentication History Log</h5>
+    <!-- Top Security KPI Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm text-start">
+                <span class="text-secondary small fw-bold">Total Logins Today</span>
+                <h4 class="fw-bold text-dark font-monospace mt-1 mb-0">@Model.TotalLoginsToday Logins</h4>
+                <span class="text-muted small" style="font-size: 0.75rem;">Successful access events</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm text-start d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="text-secondary small fw-bold">Active Live Sessions</span>
+                    <h4 class="fw-bold text-primary font-monospace mt-1 mb-0">@Model.ActiveLiveSessions Staff</h4>
+                    <span class="text-muted small" style="font-size: 0.75rem;"><span class="pulse-green"></span>Online sessions right now</span>
+                </div>
+                <div class="bg-primary-subtle text-primary rounded px-2 py-1 small">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm text-start d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="text-secondary small fw-bold">Failed Attempts</span>
+                    <h4 class="fw-bold mt-1 mb-0 @(Model.FailedAttempts > 0 ? "text-warning" : "text-success")">
+                        @Model.FailedAttempts Failed
+                    </h4>
+                    <span class="text-muted small" style="font-size: 0.75rem;">
+                        @if (Model.FailedAttempts > 0)
+                        {
+                            <span class="text-warning fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Investigate Logs</span>
+                        }
+                        else
+                        {
+                            <span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>No unauthorized hits</span>
+                        }
+                    </span>
+                </div>
+                <div class="bg-warning-subtle text-warning rounded px-2 py-1 small">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card p-3 shadow-sm text-start d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="text-secondary small fw-bold">Locked Accounts</span>
+                    <h4 class="fw-bold mt-1 mb-0 @(Model.LockedAccounts > 0 ? "text-danger" : "text-success")">
+                        @Model.LockedAccounts Accounts
+                    </h4>
+                    <span class="text-muted small" style="font-size: 0.75rem;">
+                        @if (Model.LockedAccounts > 0)
+                        {
+                            <span class="text-danger fw-bold"><i class="fa-solid fa-user-lock me-1"></i>Action Needed</span>
+                        }
+                        else
+                        {
+                            <span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>No locks active</span>
+                        }
+                    </span>
+                </div>
+                <div class="bg-danger-subtle text-danger rounded px-2 py-1 small">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Filter & Search Bar -->
+    <div class="glass-panel p-4 mb-4">
+        <form method="get" action="/AdminReports/LoginAudit" id="filterForm" class="row g-3">
+            <div class="col-md-2.5 text-start">
+                <label class="form-label small fw-bold text-secondary">Time Window</label>
+                <select class="form-select" id="datePreset" onchange="applyDatePreset(this.value)">
+                    <option value="All Time">All Time</option>
+                    <option value="Today">Today</option>
+                    <option value="Yesterday">Yesterday</option>
+                    <option value="Last 7 Days">Last 7 Days</option>
+                    <option value="Custom Range">Custom Date Range</option>
+                </select>
+            </div>
+
+            <!-- Custom Dates Input -->
+            <div class="col-md-4 d-none text-start" id="customDateRangeInputs">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary">Start Date</label>
+                        <input type="date" class="form-control" name="fromDate" id="filterStartDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-secondary">End Date</label>
+                        <input type="date" class="form-control" name="toDate" id="filterEndDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-2.5 text-start">
+                <label class="form-label small fw-bold text-secondary">Auth Status</label>
+                <select class="form-select" name="status" id="filterStatus">
+                    <option value="All Statuses">All Statuses</option>
+                    <option value="Success" selected="@(Model.SelectedStatus == "Success" ? "selected" : null)">Success</option>
+                    <option value="Failed: Bad Password" selected="@(Model.SelectedStatus == "Failed: Bad Password" ? "selected" : null)">Failed: Bad Password</option>
+                    <option value="Blocked / Locked" selected="@(Model.SelectedStatus == "Blocked / Locked" ? "selected" : null)">Blocked / Locked</option>
+                </select>
+            </div>
+
+            <div class="col-md-2.5 text-start">
+                <label class="form-label small fw-bold text-secondary">Identity Role</label>
+                <select class="form-select" name="role" id="filterRole">
+                    <option value="All Roles">All Roles</option>
+                    @foreach (var role in Model.RolesList)
+                    {
+                        <option value="@role" selected="@(Model.SelectedRole == role ? "selected" : null)">@role</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4 text-start">
+                <label class="form-label small fw-bold text-secondary">Search Keyword</label>
+                <input type="text" class="form-control" name="search" id="filterSearch" value="@Model.SearchQuery" placeholder="Search Name, Email, or IP Address..." />
+            </div>
+
+            <div class="col-md-12 d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary fw-semibold px-4">
+                        <i class="fa-solid fa-filter me-1.5"></i>Apply Parameters
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary fw-semibold px-3" onclick="resetFilters()">
+                        Reset
+                    </button>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-success fw-bold text-nowrap" onclick="exportLogs('xlsx')">
+                        <i class="fa-solid fa-file-excel me-1.5"></i>Export Excel
+                    </button>
+                    <button type="button" class="btn btn-outline-danger fw-bold text-nowrap" onclick="exportLogs('csv')">
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Responsive 3D Glassmorphic Table -->
+    <div class="glass-panel p-4">
+        <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
+            <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>IAM Access Logs History
+        </h5>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <table class="table align-middle table-hover text-start mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Username / Email</th>
-                        <th>IP Address</th>
-                        <th>Login Date & Time</th>
+                        <th>User & Identity</th>
+                        <th>Assigned Role</th>
+                        <th>IP Address & Location</th>
+                        <th>Device & Browser</th>
+                        <th>Login Timestamp</th>
+                        <th>Session Duration / Logout</th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model != null && Model.Any())
+                    @if (Model.Logs.Count == 0)
                     {
-                        @foreach (var audit in Model)
-                        {
-                            <tr>
-                                <td class="fw-bold text-dark">@audit.Username</td>
-                                <td><code>@audit.IpAddress</code></td>
-                                <td class="text-muted">@audit.LoginTime.ToString("dd MMM yyyy hh:mm tt")</td>
-                                <td>
-                                    @if (audit.Status == "Success")
-                                    {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5">Success</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5">Failed</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-inbox fs-3 d-block mb-2"></i>
+                                No login audit trail logs match the parameters.
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No login logs tracked.</td>
-                        </tr>
+                        @foreach (var log in Model.Logs)
+                        {
+                            var severityClass = log.Status switch
+                            {
+                                "Success" => "badge-success-glow",
+                                "Blocked / Locked" => "badge-danger-glow",
+                                _ => "badge-warning-glow"
+                            };
+
+                            var statusText = log.Status == "Success" ? "Success" : 
+                                            (log.Status == "Blocked / Locked" ? "Blocked / Locked" : "Failed: Bad Password");
+
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2 font-monospace small fw-bold" style="width:32px; height:32px; font-size: 0.75rem;">
+                                            @log.FullName.Substring(0, Math.Min(2, log.FullName.Length)).ToUpper()
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-dark d-block" style="font-size: 0.85rem;">@log.FullName</span>
+                                            <span class="text-secondary small font-monospace" style="font-size: 0.75rem;">@log.Username</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 font-monospace" style="font-size: 0.7rem;">@log.RoleName</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="text-secondary me-1.5"><i class="fa-solid fa-location-dot"></i></span>
+                                        <div>
+                                            <span class="font-monospace small text-dark d-block">@log.IpAddress</span>
+                                            <span class="small text-muted" style="font-size: 0.7rem;">Aurangabad, MH</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="small text-dark d-block"><i class="fa-solid fa-desktop text-secondary me-1"></i>@log.DeviceInfo</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="text-secondary me-2"><i class="fa-regular fa-clock"></i></span>
+                                        <span class="small font-monospace text-secondary">@log.LoginTime.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (log.SessionDuration == "Active Now")
+                                    {
+                                        <span class="text-success small fw-bold d-inline-flex align-items-center"><span class="pulse-green"></span>Active Now</span>
+                                    }
+                                    else if (log.SessionDuration == "Session Timeout")
+                                    {
+                                        <span class="text-warning small font-monospace"><i class="fa-solid fa-hourglass-end me-1"></i>Timeout</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-secondary small font-monospace">@log.SessionDuration</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge @severityClass border px-2.5 py-1 text-uppercase small">@statusText</span>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const start = document.getElementById("filterStartDate").value;
+        const end = document.getElementById("filterEndDate").value;
+        if (start || end) {
+            document.getElementById("datePreset").value = "Custom Range";
+            toggleCustomDates("Custom Range");
+        }
+    });
+
+    function applyDatePreset(val) {
+        toggleCustomDates(val);
+        if (val === "Custom Range") return;
+
+        const startInput = document.getElementById("filterStartDate");
+        const endInput = document.getElementById("filterEndDate");
+        const today = new Date();
+
+        if (val === "All Time") {
+            startInput.value = "";
+            endInput.value = "";
+        } else if (val === "Today") {
+            const dateStr = today.toISOString().split('T')[0];
+            startInput.value = dateStr;
+            endInput.value = dateStr;
+        } else if (val === "Yesterday") {
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const dateStr = yesterday.toISOString().split('T')[0];
+            startInput.value = dateStr;
+            endInput.value = dateStr;
+        } else if (val === "Last 7 Days") {
+            const last7 = new Date(today);
+            last7.setDate(today.getDate() - 7);
+            startInput.value = last7.toISOString().split('T')[0];
+            endInput.value = today.toISOString().split('T')[0];
+        }
+
+        document.getElementById("filterForm").submit();
+    }
+
+    function toggleCustomDates(val) {
+        const customDiv = document.getElementById("customDateRangeInputs");
+        if (val === "Custom Range") {
+            customDiv.classList.replace("d-none", "col-md-4");
+        } else {
+            customDiv.classList.replace("col-md-4", "d-none");
+        }
+    }
+
+    function resetFilters() {
+        document.getElementById("filterStartDate").value = "";
+        document.getElementById("filterEndDate").value = "";
+        document.getElementById("filterStatus").value = "All Statuses";
+        document.getElementById("filterRole").value = "All Roles";
+        document.getElementById("filterSearch").value = "";
+        document.getElementById("datePreset").value = "All Time";
+        document.getElementById("filterForm").submit();
+    }
+
+    function exportLogs(format) {
+        toastr.info(`Staging identity login audit report in ${format.toUpperCase()} format...`);
+
+        const start = document.getElementById("filterStartDate").value;
+        const end = document.getElementById("filterEndDate").value;
+        const status = document.getElementById("filterStatus").value;
+        const role = document.getElementById("filterRole").value;
+        const search = document.getElementById("filterSearch").value;
+
+        let exportUrl = `/AdminReports/ExportLoginAudit?format=${format}`;
+        if (start) exportUrl += `&fromDate=${encodeURIComponent(start)}`;
+        if (end) exportUrl += `&toDate=${encodeURIComponent(end)}`;
+        if (status) exportUrl += `&status=${encodeURIComponent(status)}`;
+        if (role) exportUrl += `&role=${encodeURIComponent(role)}`;
+        if (search) exportUrl += `&search=${encodeURIComponent(search)}`;
+
+        window.location.href = exportUrl;
+
+        setTimeout(() => {
+            toastr.success("Security log file download triggered.");
+        }, 1200);
+    }
+</script>

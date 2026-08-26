@@ -86,7 +86,7 @@
             <p class="text-secondary small mb-0">Broadcast updates, policies, and event news across corporate divisions and branch networks.</p>
         </div>
         <div>
-            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" onclick="openCreateModal()">
+            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#createAnnouncementModal">
                 <i class="fa-solid fa-plus me-1.5"></i>Post Announcement
             </button>
         </div>
@@ -96,18 +96,19 @@
     <div class="glass-panel p-3 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div class="d-flex flex-wrap gap-2" id="categoryFilters">
             <span class="filter-pill border bg-white text-secondary active" onclick="filterCategory('All', this)">All Notices</span>
-            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('Urgent / Broadcast', this)">🚨 Urgent / Alerts</span>
+            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('URGENT / CRITICAL', this)">🚨 Urgent / Alerts</span>
             <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('General', this)">📢 General Broadcasts</span>
-            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('HR Policy', this)">📑 Policies & Tax</span>
-            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('Holiday & Events', this)">🎉 Events & Celebrations</span>
+            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('HR & Policies', this)">📑 Policies & Tax</span>
+            <span class="filter-pill border bg-white text-secondary" onclick="filterCategory('Celebration', this)">🎉 Events & Celebrations</span>
         </div>
 
         <div class="d-flex align-items-center gap-2">
             <span class="small fw-bold text-secondary text-nowrap">Audience Scope:</span>
             <select class="form-select form-select-sm" id="audienceFilter" style="width: 180px;" onchange="filterAudience(this.value)">
                 <option value="All">All Staff</option>
-                <option value="Managers & Admins">Managers & Admins</option>
-                <option value="Sales Department">Sales Department</option>
+                <option value="Super Admin & Admins">Super Admin & Admins</option>
+                <option value="Sales Team">Sales Team</option>
+                <option value="HR Department">HR Department</option>
                 <option value="Accounts Team">Accounts Team</option>
             </select>
         </div>
@@ -128,14 +129,14 @@
             {
                 var priorityClass = a.Priority switch
                 {
-                    "Urgent / Broadcast" => "priority-urgent",
-                    "High" => "priority-high",
+                    "URGENT / CRITICAL" => "priority-urgent",
+                    "HIGH" => "priority-high",
                     _ => "priority-normal"
                 };
 
-                var priorityLabel = a.Priority == "Urgent / Broadcast" ? "🚨 Urgent" : (a.Priority == "High" ? "📢 High" : "📢 Normal");
+                var priorityLabel = a.Priority == "URGENT / CRITICAL" ? "🚨 Urgent" : (a.Priority == "HIGH" ? "📢 High" : "📢 Normal");
 
-                <div class="col-md-6 announcement-item" data-category="@a.Category" data-audience="@a.TargetAudience" data-priority="@a.Priority">
+                <div class="col-md-6 announcement-item" data-category="@a.Category" data-audience="@a.TargetAudience" data-priority="@a.Priority" id="announcement-card-@a.AnnouncementId">
                     <div class="announcement-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between @(a.IsPinned ? "pinned" : "")">
                         <div>
                             <!-- Header Row -->
@@ -145,7 +146,7 @@
                                     <span class="badge bg-light text-secondary border px-2 py-1 small">@a.Category</span>
                                     @if (a.IsPinned)
                                     {
-                                        <span class="text-primary" title="Pinned to top"><i class="fa-solid fa-thumbtack"></i></span>
+                                        <span class="text-primary pinned-icon" title="Pinned to top"><i class="fa-solid fa-thumbtack"></i></span>
                                     }
                                 </div>
                                 <div class="dropdown">
@@ -184,12 +185,12 @@
                             </div>
 
                             <!-- Content Body -->
-                            <h5 class="fw-bold text-dark mb-2">@a.Title</h5>
-                            <p class="text-secondary small mb-3" style="line-height: 1.5; white-space: pre-wrap;">@a.Content</p>
+                            <h5 class="fw-bold text-dark mb-2 card-title-text">@a.Title</h5>
+                            <p class="text-secondary small mb-3 card-content-text" style="line-height: 1.5; white-space: pre-wrap;">@a.Content</p>
 
                             @if (!string.IsNullOrEmpty(a.AttachmentUrl))
                             {
-                                <div class="mb-3">
+                                <div class="mb-3 attachment-pill-wrapper">
                                     <a href="@a.AttachmentUrl" target="_blank" class="btn btn-sm btn-light border px-3 text-start font-monospace small text-dark d-inline-flex align-items-center gap-2 rounded-pill">
                                         <i class="fa-solid fa-file-pdf text-danger"></i>
                                         <span>@a.AttachmentName</span>
@@ -211,8 +212,8 @@
                                 </div>
                             </div>
                             <div class="text-end">
-                                <span class="badge bg-light text-secondary border d-block font-monospace" style="font-size: 0.65rem;">Audience: @a.TargetAudience</span>
-                                <span class="badge bg-light text-secondary border mt-1 d-block font-monospace" style="font-size: 0.65rem;">Branch: @a.TargetBranch</span>
+                                <span class="badge bg-light text-secondary border d-block font-monospace audience-badge" style="font-size: 0.65rem;">Audience: @a.TargetAudience</span>
+                                <span class="badge bg-light text-secondary border mt-1 d-block font-monospace branch-badge" style="font-size: 0.65rem;">Branch: @a.TargetBranch</span>
                             </div>
                         </div>
                     </div>
@@ -223,15 +224,105 @@
 
 </div>
 
-<!-- Create & Edit Announcement Modal -->
+<!-- Create Announcement Modal (For New Posts) -->
+<div class="modal fade" id="createAnnouncementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-panel border shadow-lg text-start">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="fw-bold text-dark"><i class="fa-solid fa-bullhorn text-primary me-2"></i>Post New Announcement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createAnnouncementForm" onsubmit="submitNewAnnouncement(event)" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body py-3">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-secondary">Announcement Title</label>
+                            <input type="text" class="form-control" name="Title" placeholder="Enter notice headline..." required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Severity Priority</label>
+                            <select class="form-select" name="Priority" required>
+                                <option value="NORMAL">NORMAL</option>
+                                <option value="HIGH">HIGH</option>
+                                <option value="URGENT / CRITICAL">URGENT / CRITICAL</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Notice Category</label>
+                            <select class="form-select" name="Category" required>
+                                <option value="General">General</option>
+                                <option value="IT & Security">IT & Security</option>
+                                <option value="HR & Policies">HR & Policies</option>
+                                <option value="Compliance">Compliance</option>
+                                <option value="Celebration">Celebration</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Target Audience Scope</label>
+                            <select class="form-select" name="TargetAudience" required>
+                                <option value="All Staff">All Staff</option>
+                                <option value="Super Admin & Admins">Super Admin & Admins</option>
+                                <option value="Sales Team">Sales Team</option>
+                                <option value="HR Department">HR Department</option>
+                                <option value="Accounts Team">Accounts Team</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Target Branch</label>
+                            <select class="form-select" name="TargetBranch" required>
+                                <option value="All Branches">All Branches</option>
+                                <option value="Head Office">Head Office</option>
+                                <option value="Wainfo Main Office">Wainfo Main Office</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Expiry Date</label>
+                            <input type="date" class="form-control" name="ExpiryDate" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-secondary">Message Description</label>
+                            <textarea class="form-control" name="Content" rows="5" placeholder="Write full details..." required></textarea>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-secondary">File Attachment (.pdf, .jpg, .png)</label>
+                            <input type="file" class="form-control" name="AttachmentFile" accept=".pdf, .jpg, .jpeg, .png" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2">
+                                <input class="form-check-input" type="checkbox" role="switch" name="IsPinned" id="newIsPinned" value="true" />
+                                <input type="hidden" name="IsPinned" value="false" />
+                                <label class="form-check-label fw-bold small text-secondary" for="newIsPinned">Pin announcement to top of dashboard feed</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Publish Notice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Announcement Modal (Dynamic Standard Submission) -->
 <div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content glass-panel border shadow-lg text-start">
             <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="fw-bold text-dark" id="modalTitle"><i class="fa-solid fa-bullhorn text-primary me-2"></i>Post New Announcement</h5>
+                <h5 class="fw-bold text-dark" id="modalTitle"><i class="fa-solid fa-pencil-alt text-primary me-2"></i>Edit Announcement</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="announcementForm" method="post" enctype="multipart/form-data">
+            <form id="announcementForm" method="post" action="/AdminAnnouncements/EditAnnouncement" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="AnnouncementId" id="formAnnouncementId" />
 
@@ -239,35 +330,36 @@
                     <div class="row g-3">
                         <div class="col-md-12">
                             <label class="form-label small fw-bold text-secondary">Announcement Title</label>
-                            <input type="text" class="form-control" name="Title" id="formTitle" placeholder="Enter notice headline..." required />
+                            <input type="text" class="form-control" name="Title" id="formTitle" required />
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label small fw-bold text-secondary">Severity Priority</label>
                             <select class="form-select" name="Priority" id="formPriority" required>
-                                <option value="Normal">Normal</option>
-                                <option value="High">High</option>
-                                <option value="Urgent / Broadcast">Urgent / Broadcast</option>
+                                <option value="NORMAL">NORMAL</option>
+                                <option value="HIGH">HIGH</option>
+                                <option value="URGENT / CRITICAL">URGENT / CRITICAL</option>
                             </select>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label small fw-bold text-secondary">Notice Category</label>
                             <select class="form-select" name="Category" id="formCategory" required>
-                                <option value="General">General Broadcast</option>
-                                <option value="IT Infrastructure">IT Infrastructure</option>
-                                <option value="HR Policy">HR Policy & Tax</option>
-                                <option value="Compliance">Statutory Compliance</option>
-                                <option value="Holiday & Events">Holiday & Events</option>
+                                <option value="General">General</option>
+                                <option value="IT & Security">IT & Security</option>
+                                <option value="HR & Policies">HR & Policies</option>
+                                <option value="Compliance">Compliance</option>
+                                <option value="Celebration">Celebration</option>
                             </select>
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Target Audience</label>
+                            <label class="form-label small fw-bold text-secondary">Target Audience Scope</label>
                             <select class="form-select" name="TargetAudience" id="formAudience" required>
                                 <option value="All Staff">All Staff</option>
-                                <option value="Managers & Admins">Managers & Admins</option>
-                                <option value="Sales Department">Sales Department</option>
+                                <option value="Super Admin & Admins">Super Admin & Admins</option>
+                                <option value="Sales Team">Sales Team</option>
+                                <option value="HR Department">HR Department</option>
                                 <option value="Accounts Team">Accounts Team</option>
                             </select>
                         </div>
@@ -276,10 +368,8 @@
                             <label class="form-label small fw-bold text-secondary">Target Branch</label>
                             <select class="form-select" name="TargetBranch" id="formBranch" required>
                                 <option value="All Branches">All Branches</option>
-                                @foreach (var br in ViewBag.Branches)
-                                {
-                                    <option value="@br.BranchName">@br.BranchName</option>
-                                }
+                                <option value="Head Office">Head Office</option>
+                                <option value="Wainfo Main Office">Wainfo Main Office</option>
                             </select>
                         </div>
 
@@ -289,13 +379,13 @@
                         </div>
 
                         <div class="col-md-12">
-                            <label class="form-label small fw-bold text-secondary">Message / Notice Body</label>
-                            <textarea class="form-control" name="Content" id="formContent" rows="5" placeholder="Write full details..." required></textarea>
+                            <label class="form-label small fw-bold text-secondary">Message Description</label>
+                            <textarea class="form-control" name="Content" id="formContent" rows="5" required></textarea>
                         </div>
 
                         <div class="col-md-12">
                             <label class="form-label small fw-bold text-secondary">File Attachment (.pdf, .jpg, .png)</label>
-                            <input type="file" class="form-control" name="AttachmentFile" id="formAttachmentFile" accept=".pdf, .jpg, .jpeg, .png" />
+                            <input type="file" class="form-control" name="AttachmentFile" accept=".pdf, .jpg, .jpeg, .png" />
                         </div>
 
                         <div class="col-md-12">
@@ -309,7 +399,7 @@
                 </div>
                 <div class="modal-footer border-top-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary fw-bold px-4" id="btnSubmitModal">Publish Notice</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -322,29 +412,127 @@
 </form>
 
 <script>
-    const modal = new bootstrap.Modal(document.getElementById('announcementModal'));
+    const editModal = new bootstrap.Modal(document.getElementById('announcementModal'));
+    const createModal = new bootstrap.Modal(document.getElementById('createAnnouncementModal'));
 
-    // Open Modal for posting a new announcement
-    function openCreateModal() {
-        document.getElementById("modalTitle").innerHTML = '<i class="fa-solid fa-bullhorn text-primary me-2"></i>Post New Announcement';
-        document.getElementById("announcementForm").action = "/AdminAnnouncements/CreateAnnouncement";
-        document.getElementById("formAnnouncementId").value = "";
-        document.getElementById("formTitle").value = "";
-        document.getElementById("formContent").value = "";
-        document.getElementById("formPriority").value = "Normal";
-        document.getElementById("formCategory").value = "General";
-        document.getElementById("formAudience").value = "All Staff";
-        document.getElementById("formBranch").value = "All Branches";
-        document.getElementById("formExpiryDate").value = "";
-        document.getElementById("formIsPinned").checked = false;
-        document.getElementById("btnSubmitModal").textContent = "Publish Notice";
-        modal.show();
+    // Submit new announcement via AJAX
+    function submitNewAnnouncement(e) {
+        e.preventDefault();
+        const form = document.getElementById("createAnnouncementForm");
+        const formData = new FormData(form);
+
+        toastr.info("Publishing announcement notice...");
+
+        fetch("/AdminAnnouncements/CreateAnnouncement", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                toastr.success(data.message);
+                createModal.hide();
+                form.reset();
+
+                // Build HTML for the new card and prepend to grid
+                const priorityClass = data.priority === "URGENT / CRITICAL" ? "priority-urgent" : (data.priority === "HIGH" ? "priority-high" : "priority-normal");
+                const priorityLabel = data.priority === "URGENT / CRITICAL" ? "🚨 Urgent" : (data.priority === "HIGH" ? "📢 High" : "📢 Normal");
+                
+                let attachmentHtml = "";
+                if (data.attachmentUrl) {
+                    attachmentHtml = `
+                        <div class="mb-3 attachment-pill-wrapper">
+                            <a href="${data.attachmentUrl}" target="_blank" class="btn btn-sm btn-light border px-3 text-start font-monospace small text-dark d-inline-flex align-items-center gap-2 rounded-pill">
+                                <i class="fa-solid fa-file-pdf text-danger"></i>
+                                <span>${data.attachmentName}</span>
+                                <i class="fa-solid fa-download ms-1.5 text-secondary"></i>
+                            </a>
+                        </div>`;
+                }
+
+                const cardHtml = `
+                    <div class="col-md-6 announcement-item" data-category="${data.category}" data-audience="${data.targetAudience}" data-priority="${data.priority}" id="announcement-card-${data.announcementId}">
+                        <div class="announcement-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between ${data.isPinned ? "pinned" : ""}">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <span class="badge ${priorityClass} border px-2.5 py-1 text-uppercase small">${priorityLabel}</span>
+                                        <span class="badge bg-light text-secondary border px-2 py-1 small">${data.category}</span>
+                                        ${data.isPinned ? '<span class="text-primary pinned-icon" title="Pinned to top"><i class="fa-solid fa-thumbtack"></i></span>' : ''}
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-link btn-sm text-secondary p-0" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button class="dropdown-item small" onclick="openEditModal({
+                                                    id: ${data.announcementId},
+                                                    title: '${data.title}',
+                                                    content: '${data.content}',
+                                                    priority: '${data.priority}',
+                                                    category: '${data.category}',
+                                                    audience: '${data.targetAudience}',
+                                                    branch: '${data.targetBranch}',
+                                                    isPinned: ${data.isPinned},
+                                                    expiryDate: ''
+                                                })">
+                                                    <i class="fa-solid fa-pencil-alt me-2 small"></i>Edit post
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button class="dropdown-item small" onclick="togglePin(${data.announcementId})">
+                                                    <i class="fa-solid fa-thumbtack me-2 small"></i>${data.isPinned ? "Unpin post" : "Pin post"}
+                                                </button>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button class="dropdown-item text-danger small" onclick="deleteAnnouncement(${data.announcementId})">
+                                                    <i class="fa-solid fa-trash me-2 small"></i>Delete post
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2 card-title-text">${data.title}</h5>
+                                <p class="text-secondary small mb-3 card-content-text" style="line-height: 1.5; white-space: pre-wrap;">${data.content}</p>
+                                ${attachmentHtml}
+                            </div>
+                            <div class="border-top pt-3 mt-3 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2 font-monospace small fw-bold" style="width:28px; height:28px; font-size: 0.7rem;">
+                                        ${data.postedBy.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <span class="small fw-bold text-dark d-block">${data.postedBy}</span>
+                                        <span class="text-muted small" style="font-size: 0.7rem;">${data.createdAt}</span>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-light text-secondary border d-block font-monospace audience-badge" style="font-size: 0.65rem;">Audience: ${data.targetAudience}</span>
+                                    <span class="badge bg-light text-secondary border mt-1 d-block font-monospace branch-badge" style="font-size: 0.65rem;">Branch: ${data.targetBranch}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                const feed = document.getElementById("announcementsFeed");
+                const emptyDiv = document.getElementById("noNoticesDisplay");
+                if (emptyDiv) emptyDiv.style.display = "none";
+
+                feed.insertAdjacentHTML("afterbegin", cardHtml);
+            } else {
+                toastr.error(data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            toastr.error("An error occurred while publishing the announcement.");
+        });
     }
 
     // Open Modal for editing an announcement
     function openEditModal(a) {
-        document.getElementById("modalTitle").innerHTML = '<i class="fa-solid fa-pencil-alt text-primary me-2"></i>Edit Announcement';
-        document.getElementById("announcementForm").action = "/AdminAnnouncements/EditAnnouncement";
         document.getElementById("formAnnouncementId").value = a.id;
         document.getElementById("formTitle").value = a.title;
         document.getElementById("formContent").value = a.content;
@@ -354,8 +542,7 @@
         document.getElementById("formBranch").value = a.branch;
         document.getElementById("formExpiryDate").value = a.expiryDate || "";
         document.getElementById("formIsPinned").checked = a.isPinned;
-        document.getElementById("btnSubmitModal").textContent = "Save Changes";
-        modal.show();
+        editModal.show();
     }
 
     // Toggle pin/unpin status
@@ -414,7 +601,8 @@
                             text: data.message,
                             confirmButtonColor: '#2563eb'
                         }).then(() => {
-                            window.location.reload();
+                            const card = document.getElementById(`announcement-card-${id}`);
+                            if (card) card.remove();
                         });
                     } else {
                         toastr.error(data.message);
@@ -443,8 +631,8 @@
             let match = false;
             if (cat === "All") {
                 match = true;
-            } else if (cat === "Urgent / Broadcast") {
-                match = (cardPri === "Urgent / Broadcast");
+            } else if (cat === "URGENT / CRITICAL") {
+                match = (cardPri === "URGENT / CRITICAL");
             } else {
                 match = (cardCat === cat);
             }

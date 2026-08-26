@@ -86,9 +86,9 @@ namespace ERP_System.Controllers
             return View(viewModel);
         }
 
-        // GET: /AdminReports/ExportActivityLog
+        // GET: /AdminReports/ExportUserActivity
         [HttpGet]
-        public async Task<IActionResult> ExportActivityLog(string format, DateTime? startDate, DateTime? endDate, string? userName, string? moduleName, string? severity, string? search)
+        public async Task<IActionResult> ExportUserActivity(string format, DateTime? startDate, DateTime? endDate, string? userName, string? moduleName, string? severity, string? search)
         {
             var query = _context.AuditLogs.AsQueryable();
 
@@ -107,24 +107,129 @@ namespace ERP_System.Controllers
 
             var logs = await query.OrderByDescending(l => l.Timestamp).ToListAsync();
 
-            string contentType = format.ToLower() == "csv" ? "text/csv" : "application/vnd.ms-excel";
-            string fileExtension = format.ToLower() == "csv" ? "csv" : "xls";
-            string filename = $"audit_log_export_{DateTime.Now:yyyyMMdd_HHmmss}.{fileExtension}";
+            if (format.ToLower() == "csv")
+            {
+                string csvContent = "Timestamp,User,Role,Module,Action,Description,IP Address,Status\n" +
+                                     string.Join("\n", logs.Select(l => 
+                                         $"\"{l.Timestamp:yyyy-MM-dd HH:mm:ss}\",\"{l.FullName}\",\"{l.RoleName}\",\"{l.Module}\",\"{l.ActionSubject}\",\"{l.Description.Replace("\"", "\"\"")}\",\"{l.IpAddress}\",\"{l.Severity}\""));
+                var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
+                return File(bytes, "text/csv", $"user_activity_{DateTime.Now:yyyyMMdd}.csv");
+            }
+            else
+            {
+                var html = new System.Text.StringBuilder();
+                html.Append("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+                html.Append("<head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Activity</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>");
+                html.Append("<body><table border=\"1\">");
+                
+                html.Append("<tr><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Timestamp</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">User</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Role</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Module</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Action</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Description</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">IP Address</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Status</th></tr>");
+                foreach (var l in logs)
+                {
+                    html.Append($"<tr><td>{l.Timestamp:yyyy-MM-dd HH:mm:ss}</td><td>{l.FullName}</td><td>{l.RoleName}</td><td>{l.Module}</td><td>{l.ActionSubject}</td><td>{l.Description}</td><td>{l.IpAddress}</td><td>{l.Severity}</td></tr>");
+                }
+                html.Append("</table></body></html>");
+                var bytes = System.Text.Encoding.UTF8.GetBytes(html.ToString());
+                return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"user_activity_{DateTime.Now:yyyyMMdd}.xlsx");
+            }
+        }
 
-            string csvContent = "Timestamp,User,Role,Module,ActionSubject,Description,IPAddress,Device,Severity\n" +
-                                 string.Join("\n", logs.Select(l => 
-                                     $"\"{l.Timestamp:yyyy-MM-dd HH:mm:ss}\",\"{l.FullName}\",\"{l.RoleName}\",\"{l.Module}\",\"{l.ActionSubject}\",\"{l.Description.Replace("\"", "\"\"")}\",\"{l.IpAddress}\",\"{l.Device}\",\"{l.Severity}\""));
-
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
-            return File(bytes, contentType, filename);
+        // GET: /AdminReports/ExportActivityLog
+        [HttpGet]
+        public async Task<IActionResult> ExportActivityLog(string format, DateTime? startDate, DateTime? endDate, string? userName, string? moduleName, string? severity, string? search)
+        {
+            return RedirectToAction(nameof(ExportUserActivity), new { format, startDate, endDate, userName, moduleName, severity, search });
         }
 
         // GET: /AdminReports/LoginAudit
         [HttpGet]
-        public async Task<IActionResult> LoginAudit()
+        public async Task<IActionResult> LoginAudit(DateTime? fromDate, DateTime? toDate, string? status, string? role, string? search)
         {
-            var audits = await _context.AdminLoginAudits.OrderByDescending(l => l.AuditId).ToListAsync();
-            return View(audits);
+            var query = _context.AdminLoginAudits.AsQueryable();
+
+            // Apply filters
+            if (fromDate.HasValue)
+            {
+                query = query.Where(l => l.LoginTime >= fromDate.Value);
+            }
+            if (toDate.HasValue)
+            {
+                query = query.Where(l => l.LoginTime <= toDate.Value.AddDays(1).AddTicks(-1));
+            }
+            if (!string.IsNullOrEmpty(status) && status != "All Statuses")
+            {
+                query = query.Where(l => l.Status == status);
+            }
+            if (!string.IsNullOrEmpty(role) && role != "All Roles")
+            {
+                query = query.Where(l => l.RoleName == role);
+            }
+            if (!string.IsNullOrEmpty(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(l => l.Username.ToLower().Contains(searchLower) || 
+                                         l.FullName.ToLower().Contains(searchLower) || 
+                                         l.IpAddress.ToLower().Contains(searchLower));
+            }
+
+            var logsList = await query.OrderByDescending(l => l.LoginTime).ToListAsync();
+            var allLogs = await _context.AdminLoginAudits.ToListAsync();
+
+            // Metrics
+            int totalLoginsToday = allLogs.Count(l => l.LoginTime.Date == DateTime.Today && l.Status == "Success");
+            int activeLiveSessions = allLogs.Count(l => l.SessionDuration == "Active Now" && l.Status == "Success");
+            int failedAttempts = allLogs.Count(l => l.Status.Contains("Failed"));
+            int lockedAccounts = allLogs.Count(l => l.Status == "Blocked / Locked");
+
+            var rolesList = allLogs.Select(l => l.RoleName).Distinct().OrderBy(r => r).ToList();
+
+            var viewModel = new LoginAuditViewModel
+            {
+                Logs = logsList,
+                FromDate = fromDate,
+                ToDate = toDate,
+                SelectedStatus = status,
+                SelectedRole = role,
+                SearchQuery = search,
+                TotalLoginsToday = totalLoginsToday,
+                ActiveLiveSessions = activeLiveSessions,
+                FailedAttempts = failedAttempts,
+                LockedAccounts = lockedAccounts,
+                RolesList = rolesList
+            };
+
+            return View(viewModel);
+        }
+
+        // GET: /AdminReports/ExportLoginAudit
+        [HttpGet]
+        public async Task<IActionResult> ExportLoginAudit(string format, DateTime? fromDate, DateTime? toDate, string? status, string? role, string? search)
+        {
+            var query = _context.AdminLoginAudits.AsQueryable();
+
+            if (fromDate.HasValue) query = query.Where(l => l.LoginTime >= fromDate.Value);
+            if (toDate.HasValue) query = query.Where(l => l.LoginTime <= toDate.Value.AddDays(1).AddTicks(-1));
+            if (!string.IsNullOrEmpty(status) && status != "All Statuses") query = query.Where(l => l.Status == status);
+            if (!string.IsNullOrEmpty(role) && role != "All Roles") query = query.Where(l => l.RoleName == role);
+            if (!string.IsNullOrEmpty(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(l => l.Username.ToLower().Contains(searchLower) || 
+                                         l.FullName.ToLower().Contains(searchLower) || 
+                                         l.IpAddress.ToLower().Contains(searchLower));
+            }
+
+            var logs = await query.OrderByDescending(l => l.LoginTime).ToListAsync();
+
+            string contentType = format.ToLower() == "csv" ? "text/csv" : "application/vnd.ms-excel";
+            string fileExtension = format.ToLower() == "csv" ? "csv" : "xls";
+            string filename = $"login_audit_export_{DateTime.Now:yyyyMMdd_HHmmss}.{fileExtension}";
+
+            var csvContent = "Timestamp,User,Email,Role,IPAddress,Device,Duration,Status\n" +
+                             string.Join("\n", logs.Select(l => 
+                                 $"\"{l.LoginTime:yyyy-MM-dd HH:mm:ss}\",\"{l.FullName}\",\"{l.Username}\",\"{l.RoleName}\",\"{l.IpAddress}\",\"{l.DeviceInfo}\",\"{l.SessionDuration}\",\"{l.Status}\""));
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
+            return File(bytes, contentType, filename);
         }
 
         // GET: /AdminReports/BranchSummary
@@ -205,42 +310,81 @@ namespace ERP_System.Controllers
         public async Task<IActionResult> ExportBranchSummary(string format)
         {
             var branchList = await _context.Branches.ToListAsync();
-            var csvLines = new List<string> { "BranchCode,BranchName,Location,StaffCount,Revenue,Expenses,StockValuation,TransactionCount,Status" };
 
-            foreach (var br in branchList)
+            if (format.ToLower() == "csv")
             {
-                int staffCount = await _context.Users.CountAsync(u => u.BranchId == br.BranchId);
-                decimal multiplier = br.BranchName.Contains("Head") ? 1.0m : 0.6m;
+                var csvLines = new List<string> { "BranchCode,BranchName,Location,StaffCount,Revenue,Expenses,StockValuation,TransactionCount,Status" };
 
-                decimal revenue = await _context.Transactions
-                    .Where(t => (t.Type == "Sales Invoice" || t.Type == "Payment Receipt") && t.Status == "Success")
-                    .SumAsync(t => t.Amount) * multiplier;
+                foreach (var br in branchList)
+                {
+                    int staffCount = await _context.Users.CountAsync(u => u.BranchId == br.BranchId);
+                    decimal multiplier = br.BranchName.Contains("Head") ? 1.0m : 0.6m;
 
-                decimal expenses = await _context.Transactions
-                    .Where(t => (t.Type == "Purchase Order" || t.Type == "Expense Entry") && t.Status == "Success")
-                    .SumAsync(t => t.Amount) * multiplier;
+                    decimal revenue = await _context.Transactions
+                        .Where(t => (t.Type == "Sales Invoice" || t.Type == "Payment Receipt") && t.Status == "Success")
+                        .SumAsync(t => t.Amount) * multiplier;
 
-                decimal stockValuation = await _context.Products
-                    .Where(p => p.BranchId == br.BranchId)
-                    .SumAsync(p => p.Revenue);
+                    decimal expenses = await _context.Transactions
+                        .Where(t => (t.Type == "Purchase Order" || t.Type == "Expense Entry") && t.Status == "Success")
+                        .SumAsync(t => t.Amount) * multiplier;
 
-                int txCount = (int)(await _context.Transactions.CountAsync() * multiplier);
+                    decimal stockValuation = await _context.Products
+                        .Where(p => p.BranchId == br.BranchId)
+                        .SumAsync(p => p.Revenue);
 
-                if (staffCount == 0) staffCount = br.BranchName.Contains("Head") ? 3 : 3;
-                if (revenue == 0) revenue = br.BranchName.Contains("Head") ? 9500000 : 5500000;
-                if (expenses == 0) expenses = br.BranchName.Contains("Head") ? 1250000 : 820000;
-                if (stockValuation == 0) stockValuation = br.BranchName.Contains("Head") ? 4520000 : 2800000;
-                if (txCount == 0) txCount = 15;
+                    int txCount = (int)(await _context.Transactions.CountAsync() * multiplier);
 
-                csvLines.Add($"\"{br.BranchCode ?? "BR"}\",\"{br.BranchName}\",\"Aurangabad, MH\",{staffCount},{revenue},{expenses},{stockValuation},{txCount},\"Active\"");
+                    if (staffCount == 0) staffCount = br.BranchName.Contains("Head") ? 3 : 3;
+                    if (revenue == 0) revenue = br.BranchName.Contains("Head") ? 9500000 : 5500000;
+                    if (expenses == 0) expenses = br.BranchName.Contains("Head") ? 1250000 : 820000;
+                    if (stockValuation == 0) stockValuation = br.BranchName.Contains("Head") ? 4520000 : 2800000;
+                    if (txCount == 0) txCount = 15;
+
+                    csvLines.Add($"\"{br.BranchCode ?? "BR"}\",\"{br.BranchName}\",\"Aurangabad, MH\",{staffCount},{revenue},{expenses},{stockValuation},{txCount},\"Active\"");
+                }
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(string.Join("\n", csvLines));
+                return File(bytes, "text/csv", $"branch_performance_{DateTime.Now:yyyyMMdd}.csv");
             }
+            else
+            {
+                var html = new System.Text.StringBuilder();
+                html.Append("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+                html.Append("<head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>BranchSummary</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>");
+                html.Append("<body><table border=\"1\">");
+                
+                html.Append("<tr><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">BranchCode</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">BranchName</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Location</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">StaffCount</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Revenue</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Expenses</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">StockValuation</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">TransactionCount</th><th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">Status</th></tr>");
+                foreach (var br in branchList)
+                {
+                    int staffCount = await _context.Users.CountAsync(u => u.BranchId == br.BranchId);
+                    decimal multiplier = br.BranchName.Contains("Head") ? 1.0m : 0.6m;
 
-            string contentType = format.ToLower() == "csv" ? "text/csv" : "application/vnd.ms-excel";
-            string fileExtension = format.ToLower() == "csv" ? "csv" : "xls";
-            string filename = $"branch_performance_{DateTime.Now:yyyyMMdd_HHmmss}.{fileExtension}";
+                    decimal revenue = await _context.Transactions
+                        .Where(t => (t.Type == "Sales Invoice" || t.Type == "Payment Receipt") && t.Status == "Success")
+                        .SumAsync(t => t.Amount) * multiplier;
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(string.Join("\n", csvLines));
-            return File(bytes, contentType, filename);
+                    decimal expenses = await _context.Transactions
+                        .Where(t => (t.Type == "Purchase Order" || t.Type == "Expense Entry") && t.Status == "Success")
+                        .SumAsync(t => t.Amount) * multiplier;
+
+                    decimal stockValuation = await _context.Products
+                        .Where(p => p.BranchId == br.BranchId)
+                        .SumAsync(p => p.Revenue);
+
+                    int txCount = (int)(await _context.Transactions.CountAsync() * multiplier);
+
+                    if (staffCount == 0) staffCount = br.BranchName.Contains("Head") ? 3 : 3;
+                    if (revenue == 0) revenue = br.BranchName.Contains("Head") ? 9500000 : 5500000;
+                    if (expenses == 0) expenses = br.BranchName.Contains("Head") ? 1250000 : 820000;
+                    if (stockValuation == 0) stockValuation = br.BranchName.Contains("Head") ? 4520000 : 2800000;
+                    if (txCount == 0) txCount = 15;
+
+                    html.Append($"<tr><td>{br.BranchCode ?? "BR"}</td><td>{br.BranchName}</td><td>Aurangabad, MH</td><td>{staffCount}</td><td>{revenue}</td><td>{expenses}</td><td>{stockValuation}</td><td>{txCount}</td><td>Active</td></tr>");
+                }
+                html.Append("</table></body></html>");
+                var bytes = System.Text.Encoding.UTF8.GetBytes(html.ToString());
+                return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"branch_performance_{DateTime.Now:yyyyMMdd}.xlsx");
+            }
         }
     }
 }

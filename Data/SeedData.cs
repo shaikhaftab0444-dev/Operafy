@@ -732,8 +732,31 @@ namespace ERP_System.Data
                         Username NVARCHAR(100) NOT NULL,
                         IpAddress NVARCHAR(50) NOT NULL,
                         LoginTime DATETIME NOT NULL,
-                        Status NVARCHAR(50) NOT NULL DEFAULT 'Success'
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Success',
+                        FullName NVARCHAR(150) NOT NULL DEFAULT 'System User',
+                        RoleName NVARCHAR(50) NOT NULL DEFAULT 'Employee',
+                        DeviceInfo NVARCHAR(150) NOT NULL DEFAULT 'Chrome / Win11',
+                        SessionDuration NVARCHAR(100) NOT NULL DEFAULT 'Active Now'
                     );
+                END
+                ELSE
+                BEGIN
+                    IF COL_LENGTH('AITStudent.erp_AdminLoginAudits', 'FullName') IS NULL
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_AdminLoginAudits ADD FullName NVARCHAR(150) NOT NULL DEFAULT 'System User';
+                    END;
+                    IF COL_LENGTH('AITStudent.erp_AdminLoginAudits', 'RoleName') IS NULL
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_AdminLoginAudits ADD RoleName NVARCHAR(50) NOT NULL DEFAULT 'Employee';
+                    END;
+                    IF COL_LENGTH('AITStudent.erp_AdminLoginAudits', 'DeviceInfo') IS NULL
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_AdminLoginAudits ADD DeviceInfo NVARCHAR(150) NOT NULL DEFAULT 'Chrome / Win11';
+                    END;
+                    IF COL_LENGTH('AITStudent.erp_AdminLoginAudits', 'SessionDuration') IS NULL
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_AdminLoginAudits ADD SessionDuration NVARCHAR(100) NOT NULL DEFAULT 'Active Now';
+                    END;
                 END";
 
             // Ensure erp_AdminAnnouncements table exists
@@ -832,10 +855,75 @@ namespace ERP_System.Data
 
             if (!await context.AdminLoginAudits.AnyAsync())
             {
+                var today = DateTime.Today;
                 await context.AdminLoginAudits.AddRangeAsync(new List<AdminLoginAudit>
                 {
-                    new AdminLoginAudit { Username = "admin@erp.com", IpAddress = "192.168.1.15", LoginTime = DateTime.Now.AddHours(-2), Status = "Success" },
-                    new AdminLoginAudit { Username = "hiring@erp.com", IpAddress = "192.168.1.18", LoginTime = DateTime.Now.AddHours(-5), Status = "Success" }
+                    new AdminLoginAudit 
+                    { 
+                        Username = "admin@erp.com", 
+                        FullName = "Admin User",
+                        RoleName = "Super Admin",
+                        IpAddress = "192.168.1.1", 
+                        DeviceInfo = "Chrome 127 • Win 11",
+                        LoginTime = today.AddHours(1).AddMinutes(13), 
+                        SessionDuration = "Active Now",
+                        Status = "Success" 
+                    },
+                    new AdminLoginAudit 
+                    { 
+                        Username = "hiring@erp.com", 
+                        FullName = "Sneha Patil",
+                        RoleName = "HR Manager",
+                        IpAddress = "192.168.1.18", 
+                        DeviceInfo = "Edge 126 • Win 11",
+                        LoginTime = today.AddDays(-2).AddHours(10).AddMinutes(13), 
+                        SessionDuration = "Logged Out (2h 45m)",
+                        Status = "Success" 
+                    },
+                    new AdminLoginAudit 
+                    { 
+                        Username = "sales1@erp.com", 
+                        FullName = "Numan Khan",
+                        RoleName = "Sales Executive",
+                        IpAddress = "192.168.1.24", 
+                        DeviceInfo = "Safari 17 • iOS Mobile",
+                        LoginTime = today.AddDays(-2).AddHours(9).AddMinutes(40), 
+                        SessionDuration = "Logged Out (4h 10m)",
+                        Status = "Success" 
+                    },
+                    new AdminLoginAudit 
+                    { 
+                        Username = "unknown_user@erp.com", 
+                        FullName = "Unregistered User",
+                        RoleName = "External Entity",
+                        IpAddress = "45.118.60.2", 
+                        DeviceInfo = "Firefox 125 • Linux",
+                        LoginTime = today.AddDays(-2).AddHours(3).AddMinutes(22), 
+                        SessionDuration = "N/A",
+                        Status = "Failed: Bad Password" 
+                    },
+                    new AdminLoginAudit 
+                    { 
+                        Username = "payroll_temp@erp.com", 
+                        FullName = "Temporary Payroll Clerk",
+                        RoleName = "Accountant",
+                        IpAddress = "192.168.1.5", 
+                        DeviceInfo = "Chrome 127 • Win 11",
+                        LoginTime = today.AddDays(-1).AddHours(15).AddMinutes(4), 
+                        SessionDuration = "N/A",
+                        Status = "Blocked / Locked" 
+                    },
+                    new AdminLoginAudit 
+                    { 
+                        Username = "sales2@erp.com", 
+                        FullName = "Amit Sharma",
+                        RoleName = "Sales Executive",
+                        IpAddress = "192.168.1.33", 
+                        DeviceInfo = "Chrome 127 • Android",
+                        LoginTime = today.AddHours(-10).AddMinutes(30), 
+                        SessionDuration = "Session Timeout",
+                        Status = "Success" 
+                    }
                 });
             }
 
