@@ -1,0 +1,350 @@
+@model ERP_System.Models.ManagerDashboardViewModel
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Approval Center - Operations";
+}
+
+<!-- CDN references -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    }
+    .nav-tabs-custom {
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .nav-tabs-custom .nav-link {
+        border: none;
+        color: #64748b;
+        font-weight: 600;
+        padding: 12px 24px;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    .nav-tabs-custom .nav-link.active {
+        color: #2563eb;
+        background: transparent;
+    }
+    .nav-tabs-custom .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #2563eb;
+    }
+</style>
+
+<div class="container-fluid py-4 text-start">
+    
+    <!-- Top Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/Manager" class="text-decoration-none">Manager Portal</a></li>
+                    <li class="breadcrumb-item text-secondary">Approvals</li>
+                    <li class="breadcrumb-item active" aria-current="page">Approval Center</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-clipboard-check text-primary me-2"></i>Unified Approval Center</h4>
+            <p class="text-secondary small mb-0">Evaluate employee submissions, timecard regularizations, and departmental travel or logistics claims.</p>
+        </div>
+    </div>
+
+    <!-- Search / Filter controls -->
+    <div class="glass-panel p-3.5 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="approvalSearchInput" class="form-control border-start-0" placeholder="Search by employee name or reason..." onkeyup="filterApprovals()" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select id="typeFilter" class="form-select" onchange="filterApprovals()">
+                    <option value="">All Categories</option>
+                    <option value="Leave">Leave Requests</option>
+                    <option value="Regularization">Attendance Regularization</option>
+                    <option value="Reimbursement">Expense Reimbursements</option>
+                </select>
+            </div>
+            <div class="col-md-4 text-end text-muted small">
+                Total Pending Submissions: <span class="fw-bold text-dark font-monospace" id="totalPendingBadge">@Model.PendingApprovals.Count</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approvals list card container -->
+    <div class="glass-panel p-4">
+        
+        <!-- Tab Controls -->
+        <ul class="nav nav-tabs nav-tabs-custom mb-4" id="approvalsTabControl" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-pane" type="button" role="tab">
+                    📝 All Pending (@Model.PendingApprovals.Count)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="leaves-tab" data-bs-toggle="tab" data-bs-target="#leaves-pane" type="button" role="tab">
+                    🏖️ Leave Applications (@Model.PendingApprovals.Count(a => a.Type.Contains("Leave")))
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="reg-tab" data-bs-toggle="tab" data-bs-target="#reg-pane" type="button" role="tab">
+                    ⏱️ Regularizations (@Model.PendingApprovals.Count(a => a.Type.Contains("Regularization")))
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="claims-tab" data-bs-toggle="tab" data-bs-target="#claims-pane" type="button" role="tab">
+                    💵 Logistics & Expenses (@Model.PendingApprovals.Count(a => a.Type.Contains("Reimbursement")))
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="approvalsTabContent">
+            <!-- All Pending Tab Pane -->
+            <div class="tab-pane fade show active" id="all-pane" role="tabpanel" tabindex="0">
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover text-start mb-0" id="allApprovalsTable" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee details</th>
+                                <th>Claim Category</th>
+                                <th>Requested / Duration Dates</th>
+                                <th>Reason / Note</th>
+                                <th>Submitted Date</th>
+                                <th class="text-center" style="width: 22%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approvalsTableBody">
+                            @if (!Model.PendingApprovals.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">No pending approvals logged in this cycle.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var approval in Model.PendingApprovals)
+                                {
+                                    <tr id="approval-all-row-@approval.Id" data-category="@approval.Type" class="approval-row-item">
+                                        <td class="fw-bold text-dark">@approval.EmployeeName</td>
+                                        <td><span class="badge bg-light text-secondary border">@approval.Type</span></td>
+                                        <td class="fw-bold text-secondary">@approval.Dates</td>
+                                        <td class="text-muted small">@approval.Reason</td>
+                                        <td class="text-secondary small font-monospace">@approval.RequestedOn</td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="approveRecord(@approval.Id)"><i class="fa-solid fa-check"></i> Approve</button>
+                                            <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="rejectRecord(@approval.Id)"><i class="fa-solid fa-xmark"></i> Reject</button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Leaves Only Tab Pane -->
+            <div class="tab-pane fade" id="leaves-pane" role="tabpanel" tabindex="0">
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover text-start mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee details</th>
+                                <th>Leave Category</th>
+                                <th>Duration Dates</th>
+                                <th>Reason / Statement</th>
+                                <th class="text-center" style="width: 22%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var approval in Model.PendingApprovals.Where(a => a.Type.Contains("Leave")))
+                            {
+                                <tr id="approval-leave-row-@approval.Id">
+                                    <td class="fw-bold text-dark">@approval.EmployeeName</td>
+                                    <td><span class="badge bg-light text-secondary border">@approval.Type</span></td>
+                                    <td class="fw-bold text-secondary">@approval.Dates</td>
+                                    <td class="text-muted small">@approval.Reason</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="approveRecord(@approval.Id, 'leave')"><i class="fa-solid fa-check"></i> Approve</button>
+                                        <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="rejectRecord(@approval.Id, 'leave')"><i class="fa-solid fa-xmark"></i> Reject</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Regularizations Only Tab Pane -->
+            <div class="tab-pane fade" id="reg-pane" role="tabpanel" tabindex="0">
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover text-start mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee Name</th>
+                                <th>Timecard Date</th>
+                                <th>Reason For Regularization</th>
+                                <th class="text-center" style="width: 22%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var approval in Model.PendingApprovals.Where(a => a.Type.Contains("Regularization")))
+                            {
+                                <tr id="approval-reg-row-@approval.Id">
+                                    <td class="fw-bold text-dark">@approval.EmployeeName</td>
+                                    <td class="fw-bold text-secondary">@approval.Dates</td>
+                                    <td class="text-muted small">@approval.Reason</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="approveRecord(@approval.Id, 'reg')"><i class="fa-solid fa-check"></i> Approve</button>
+                                        <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="rejectRecord(@approval.Id, 'reg')"><i class="fa-solid fa-xmark"></i> Reject</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Expenses Only Tab Pane -->
+            <div class="tab-pane fade" id="claims-pane" role="tabpanel" tabindex="0">
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover text-start mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee Name</th>
+                                <th>Expense Category</th>
+                                <th>Amount Claimed</th>
+                                <th>Description / Purpose</th>
+                                <th class="text-center" style="width: 22%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var approval in Model.PendingApprovals.Where(a => a.Type.Contains("Reimbursement")))
+                            {
+                                <tr id="approval-claim-row-@approval.Id">
+                                    <td class="fw-bold text-dark">@approval.EmployeeName</td>
+                                    <td><span class="badge bg-light text-secondary border">@approval.Type</span></td>
+                                    <td class="fw-bold text-success font-monospace">@approval.Reason.Split('-').Last().Trim()</td>
+                                    <td class="text-muted small">@approval.Dates</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="approveRecord(@approval.Id, 'claim')"><i class="fa-solid fa-check"></i> Approve</button>
+                                        <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="rejectRecord(@approval.Id, 'claim')"><i class="fa-solid fa-xmark"></i> Reject</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Filtering logic
+    function filterApprovals() {
+        const searchVal = document.getElementById("approvalSearchInput").value.toLowerCase();
+        const typeFilter = document.getElementById("typeFilter").value.toLowerCase();
+        const rows = document.querySelectorAll(".approval-row-item");
+
+        rows.forEach(row => {
+            const name = row.cells[0].innerText.toLowerCase();
+            const reason = row.cells[3].innerText.toLowerCase();
+            const category = row.getAttribute("data-category").toLowerCase();
+
+            const matchesSearch = name.includes(searchVal) || reason.includes(searchVal);
+            const matchesType = typeFilter === "" || category.includes(typeFilter);
+
+            if (matchesSearch && matchesType) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    // Approve / Reject actions
+    function approveRecord(id, tab = 'all') {
+        toastr.info("Processing approval transaction...");
+
+        fetch(`/Manager/ApproveLeave?id=${id}&actionType=Approve`, {
+            method: "POST"
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                toastr.success(data.message);
+                removeRowFromDOM(id);
+            } else {
+                toastr.error(data.message);
+            }
+        });
+    }
+
+    function rejectRecord(id, tab = 'all') {
+        Swal.fire({
+            title: 'Reject Request?',
+            text: 'Provide comments for rejection:',
+            input: 'text',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, reject'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/Manager/ApproveLeave?id=${id}&actionType=Reject`, {
+                    method: "POST"
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        toastr.success(data.message);
+                        removeRowFromDOM(id);
+                    } else {
+                        toastr.error(data.message);
+                    }
+                });
+            }
+        });
+    }
+
+    function removeRowFromDOM(id) {
+        // Remove from all tab sheets if exists
+        const allRow = document.getElementById(`approval-all-row-${id}`);
+        if (allRow) allRow.remove();
+
+        const leaveRow = document.getElementById(`approval-leave-row-${id}`);
+        if (leaveRow) leaveRow.remove();
+
+        const regRow = document.getElementById(`approval-reg-row-${id}`);
+        if (regRow) regRow.remove();
+
+        const claimRow = document.getElementById(`approval-claim-row-${id}`);
+        if (claimRow) claimRow.remove();
+
+        // Decrement pending counter
+        const countBadge = document.getElementById("totalPendingBadge");
+        if (countBadge) {
+            let count = parseInt(countBadge.innerText);
+            if (count > 0) {
+                count--;
+                countBadge.innerText = count;
+            }
+        }
+    }
+</script>

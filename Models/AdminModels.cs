@@ -24,6 +24,11 @@ namespace ERP_System.Models
         [Required]
         [StringLength(50)]
         public string Status { get; set; } = "Pending"; // Pending, Completed, Rejected
+
+        public string? Token { get; set; }
+        public DateTime? ExpiryDate { get; set; }
+        public string? RequestType { get; set; }
+        public string? DeliveryMethod { get; set; }
     }
 
     [Table("erp_AdminBranchHours")]
