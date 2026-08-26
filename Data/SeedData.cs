@@ -1573,41 +1573,6 @@ namespace ERP_System.Data
             }
         }
 
-        public static async Task InitializeAuditLogsAsync(ApplicationDbContext context)
-        {
-            string createTableSql = @"
-                IF OBJECT_ID('AITStudent.erp_AuditLogs', 'U') IS NULL
-                BEGIN
-                    CREATE TABLE AITStudent.erp_AuditLogs (
-                        LogId INT IDENTITY(1,1) PRIMARY KEY,
-                        Timestamp DATETIME NOT NULL DEFAULT GETDATE(),
-                        FullName NVARCHAR(150) NOT NULL,
-                        RoleName NVARCHAR(50) NOT NULL,
-                        Module NVARCHAR(100) NOT NULL,
-                        ActionSubject NVARCHAR(255) NOT NULL,
-                        Description NVARCHAR(1000) NOT NULL,
-                        IpAddress NVARCHAR(50) NOT NULL,
-                        Device NVARCHAR(150) NOT NULL DEFAULT 'Chrome / Win11',
-                        Severity NVARCHAR(50) NOT NULL DEFAULT 'Success'
-                    );
-                END";
-
-            await context.Database.ExecuteSqlRawAsync(createTableSql);
-
-            if (!await context.AuditLogs.AnyAsync())
-            {
-                var today = DateTime.UtcNow;
-                await context.AuditLogs.AddRangeAsync(new List<AuditLogEntry>
-                {
-                    new AuditLogEntry { Timestamp = today.Date.AddHours(11).AddMinutes(56), FullName = "Admin User", RoleName = "Super Admin", Module = "Settings", ActionSubject = "Regional Settings Updated", Description = "Updated base currency configuration to USD and number formatting style to Millions.", IpAddress = "192.168.1.1", Device = "Chrome / Win11", Severity = "Success" },
-                    new AuditLogEntry { Timestamp = today.Date.AddHours(10).AddMinutes(53), FullName = "Admin User", RoleName = "Super Admin", Module = "Security & RBAC", ActionSubject = "Role Permissions Modified", Description = "Updated permissions matrix for role: Manager. Enabled View and Create permissions for ESS sub-modules.", IpAddress = "192.168.1.1", Device = "Firefox / macOS", Severity = "Success" },
-                    new AuditLogEntry { Timestamp = today.Date.AddHours(9).AddMinutes(15), FullName = "Sneha Patil", RoleName = "HR Manager", Module = "HRMS", ActionSubject = "Biometric Attendance Uploaded", Description = "Uploaded daily biometric punch sync records for Transit Logistics Hub.", IpAddress = "192.168.1.18", Device = "Edge / Win11", Severity = "Success" },
-                    new AuditLogEntry { Timestamp = today.Date.AddHours(8).AddMinutes(30), FullName = "Numan Khan", RoleName = "Sales Executive", Module = "CRM", ActionSubject = "Sales Quotation Created", Description = "Created new sales quotation #QT-2026-089 for AIT Technologies.", IpAddress = "192.168.1.24", Device = "Chrome / Android", Severity = "Success" },
-                    new AuditLogEntry { Timestamp = today.Date.AddDays(-1).AddHours(15), FullName = "Admin User", RoleName = "Super Admin", Module = "Security & RBAC", ActionSubject = "System Access Lockdown", Description = "Failed security verification limit exceeded for user: payroll_temp@erp.com. Locked account access.", IpAddress = "192.168.1.5", Device = "Chrome / Win11", Severity = "Security Alert" },
-                    new AuditLogEntry { Timestamp = today.Date.AddDays(-2).AddHours(14), FullName = "Auditor User", RoleName = "Auditor", Module = "Financials", ActionSubject = "Ledger Audit Export", Description = "Exported General Ledger transaction sheets for period Q2 FY2026-27.", IpAddress = "10.0.0.45", Device = "Safari / iPadOS", Severity = "Warning" }
-                });
-                await context.SaveChangesAsync();
-            }
-        }
+        
     }
 }

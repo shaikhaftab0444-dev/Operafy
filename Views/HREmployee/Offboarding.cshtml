@@ -2,160 +2,1969 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Offboarding & Exit Clearances";
+
+    var totalExits = Model?.Count() ?? 0;
+    var pendingExits = Model?.Count(o => o.FfStatus != "Settled") ?? 0;
+    var settledExits = Model?.Count(o => o.FfStatus == "Settled") ?? 0;
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-xmark text-primary me-2"></i>Offboarding & Exits</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Offboarding & Exits</li>
-                </ol>
-            </nav>
+<div class="offboarding-page container-fluid py-4 text-start">
+
+    <!-- =========================================================
+         PAGE HEADER
+         ========================================================= -->
+
+    <div class="offboarding-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+
+        <div class="offboarding-title-section">
+
+            <div class="offboarding-title-icon">
+                <i class="fa-solid fa-user-xmark"></i>
+            </div>
+
+            <div>
+                <h4 class="fw-bold mb-1">Offboarding & Exits</h4>
+
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0 small">
+
+                        <li class="breadcrumb-item">
+                            <a href="/HR" class="text-decoration-none">
+                                HR Dashboard
+                            </a>
+                        </li>
+
+                        <li class="breadcrumb-item active" aria-current="page">
+                            Offboarding & Exits
+                        </li>
+
+                    </ol>
+                </nav>
+            </div>
+
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#initiateExitModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Initiate Exit
+
+
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm initiate-exit-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#initiateExitModal">
+
+            <i class="fa-solid fa-plus me-1"></i>
+            Initiate Exit
+
         </button>
+
     </div>
 
-    <!-- Offboarding Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
+
+    <!-- =========================================================
+         SUMMARY CARDS
+         ========================================================= -->
+
+    <div class="offboarding-summary-row mb-4">
+
+        <!-- Total -->
+        <div class="offboarding-summary-card">
+
+            <div class="summary-icon summary-primary">
+                <i class="fa-solid fa-users"></i>
+            </div>
+
+            <div class="summary-content">
+
+                <span class="summary-label">
+                    Total Exit Cases
+                </span>
+
+                <strong class="summary-value">
+                    @totalExits
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- Pending -->
+        <div class="offboarding-summary-card">
+
+            <div class="summary-icon summary-warning">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+
+            <div class="summary-content">
+
+                <span class="summary-label">
+                    In Progress
+                </span>
+
+                <strong class="summary-value">
+                    @pendingExits
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- Settled -->
+        <div class="offboarding-summary-card">
+
+            <div class="summary-icon summary-success">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+
+            <div class="summary-content">
+
+                <span class="summary-label">
+                    Fully Settled
+                </span>
+
+                <strong class="summary-value">
+                    @settledExits
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         OFFBOARDING TABLE CARD
+         ========================================================= -->
+
+    <div class="offboarding-table-card bg-white border rounded-3 shadow-sm">
+
+        <!-- Card Header -->
+
+        <div class="offboarding-card-header">
+
+            <div>
+
+                <h5 class="fw-bold mb-1">
+                    <i class="fa-solid fa-right-from-bracket me-2 text-primary"></i>
+                    Employee Exit Management
+                </h5>
+
+                <p class="offboarding-subtitle mb-0">
+                    Track exit clearance, asset handover, interviews and final settlement.
+                </p>
+
+            </div>
+
+
+            <div class="offboarding-record-count">
+
+                <i class="fa-solid fa-layer-group me-1"></i>
+
+                @totalExits
+                @(totalExits == 1 ? "Record" : "Records")
+
+            </div>
+
+        </div>
+
+
+        <!-- Table -->
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+
+            <table class="table offboarding-table table-hover align-middle mb-0">
+
+                <thead>
+
                     <tr>
+
                         <th>Employee</th>
+
                         <th>Resignation Date</th>
+
                         <th>Last Working Day</th>
+
                         <th>Asset Return</th>
+
                         <th>IT Clearance</th>
+
                         <th>Finance Clearance</th>
+
                         <th>Exit Interview</th>
-                        <th>F&F Status</th>
+
+                        <th>F&amp;F Status</th>
+
                     </tr>
+
                 </thead>
+
+
                 <tbody>
+
                     @if (Model != null && Model.Any())
                     {
                         @foreach (var o in Model)
                         {
+                            var isAssetReturned = o.AssetReturn == "Returned";
+                            var isITCleared = o.ITClearance == "Cleared";
+                            var isFinanceCleared = !string.IsNullOrEmpty(o.FinanceClearance) && o.FinanceClearance.Contains("Cleared");
+                            var isInterviewDone = o.ExitInterview == "Done";
+                            var isSettled = o.FfStatus == "Settled";
+
                             <tr>
-                                <td class="fw-bold text-dark">@o.EmployeeName</td>
-                                <td class="text-muted">@o.ResignationDate.ToString("dd MMM yyyy")</td>
-                                <td class="text-muted">@o.LastWorkingDay.ToString("dd MMM yyyy")</td>
+
+                                <!-- Employee -->
+
                                 <td>
-                                    @{
-                                        var assetClass = o.AssetReturn == "Returned" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning";
-                                    }
-                                    <span class="badge @assetClass">@o.AssetReturn</span>
+
+                                    <div class="employee-cell">
+
+                                        <div class="employee-avatar">
+
+                                            @if (!string.IsNullOrEmpty(o.EmployeeName))
+                                            {
+                                                @o.EmployeeName.Substring(0, 1).ToUpper()
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-user"></i>
+                                            }
+
+                                        </div>
+
+                                        <div class="employee-info">
+
+                                            <span class="employee-name">
+                                                @o.EmployeeName
+                                            </span>
+
+                                            <small>
+                                                Employee Exit Process
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
                                 </td>
+
+
+                                <!-- Resignation Date -->
+
                                 <td>
-                                    @{
-                                        var itClass = o.ITClearance == "Cleared" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning";
-                                    }
-                                    <span class="badge @itClass">@o.ITClearance</span>
+
+                                    <div class="date-cell">
+
+                                        <i class="fa-regular fa-calendar"></i>
+
+                                        <span>
+                                            @o.ResignationDate.ToString("dd MMM yyyy")
+                                        </span>
+
+                                    </div>
+
                                 </td>
+
+
+                                <!-- Last Working Day -->
+
                                 <td>
-                                    @{
-                                        var finClass = o.FinanceClearance.Contains("Cleared") ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning";
-                                    }
-                                    <span class="badge @finClass">@o.FinanceClearance</span>
+
+                                    <div class="date-cell">
+
+                                        <i class="fa-solid fa-calendar-day"></i>
+
+                                        <span>
+                                            @o.LastWorkingDay.ToString("dd MMM yyyy")
+                                        </span>
+
+                                    </div>
+
                                 </td>
+
+
+                                <!-- Asset Return -->
+
                                 <td>
-                                    @{
-                                        var exitClass = o.ExitInterview == "Done" ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary";
+
+                                    @if (isAssetReturned)
+                                    {
+                                        <span class="status-pill status-success">
+
+                                            <i class="fa-solid fa-box-open"></i>
+
+                                            @o.AssetReturn
+
+                                        </span>
                                     }
-                                    <span class="badge @exitClass">@o.ExitInterview</span>
+                                    else
+                                    {
+                                        <span class="status-pill status-warning">
+
+                                            <i class="fa-solid fa-clock"></i>
+
+                                            @o.AssetReturn
+
+                                        </span>
+                                    }
+
                                 </td>
+
+
+                                <!-- IT Clearance -->
+
                                 <td>
-                                    @{
-                                        var ffClass = o.FfStatus == "Settled" ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary";
+
+                                    @if (isITCleared)
+                                    {
+                                        <span class="status-pill status-success">
+
+                                            <i class="fa-solid fa-laptop-code"></i>
+
+                                            @o.ITClearance
+
+                                        </span>
                                     }
-                                    <span class="badge @ffClass">@o.FfStatus</span>
+                                    else
+                                    {
+                                        <span class="status-pill status-warning">
+
+                                            <i class="fa-solid fa-hourglass-half"></i>
+
+                                            @o.ITClearance
+
+                                        </span>
+                                    }
+
                                 </td>
+
+
+                                <!-- Finance Clearance -->
+
+                                <td>
+
+                                    @if (isFinanceCleared)
+                                    {
+                                        <span class="status-pill status-success">
+
+                                            <i class="fa-solid fa-check"></i>
+
+                                            @o.FinanceClearance
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-pill status-warning">
+
+                                            <i class="fa-solid fa-clock"></i>
+
+                                            @o.FinanceClearance
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- Exit Interview -->
+
+                                <td>
+
+                                    @if (isInterviewDone)
+                                    {
+                                        <span class="status-pill status-success">
+
+                                            <i class="fa-solid fa-comments"></i>
+
+                                            @o.ExitInterview
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-pill status-neutral">
+
+                                            <i class="fa-regular fa-clock"></i>
+
+                                            @o.ExitInterview
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- F&F Status -->
+
+                                <td>
+
+                                    @if (isSettled)
+                                    {
+                                        <span class="status-pill status-success">
+
+                                            <i class="fa-solid fa-circle-check"></i>
+
+                                            @o.FfStatus
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-pill status-neutral">
+
+                                            <i class="fa-solid fa-spinner"></i>
+
+                                            @o.FfStatus
+
+                                        </span>
+                                    }
+
+                                </td>
+
                             </tr>
                         }
                     }
                     else
                     {
+                        <!-- Empty State -->
+
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">No exits recorded in database.</td>
+
+                            <td colspan="8">
+
+                                <div class="offboarding-empty-state">
+
+                                    <div class="empty-state-icon">
+                                        <i class="fa-solid fa-user-xmark"></i>
+                                    </div>
+
+                                    <h6>
+                                        No Exit Cases Found
+                                    </h6>
+
+                                    <p>
+                                        No employee offboarding or exit records have been added yet.
+                                    </p>
+
+                                    <button class="btn btn-primary btn-sm rounded-pill px-3"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#initiateExitModal">
+
+                                        <i class="fa-solid fa-plus me-1"></i>
+                                        Initiate First Exit
+
+                                    </button>
+
+                                </div>
+
+                            </td>
+
                         </tr>
                     }
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Initiate Exit Modal -->
-<div class="modal fade text-start" id="initiateExitModal" tabindex="-1" aria-labelledby="initiateExitModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+
+<!-- =========================================================
+     INITIATE EXIT MODAL
+     ========================================================= -->
+
+<div class="modal fade exit-modal text-start"
+     id="initiateExitModal"
+     tabindex="-1"
+     aria-labelledby="initiateExitModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
         <div class="modal-content">
+
             <form action="/HREmployee/CreateOffboarding" method="post">
+
                 @Html.AntiForgeryToken()
+
+
+                <!-- Modal Header -->
+
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="initiateExitModalLabel">Initiate Employee Offboarding</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    <div class="modal-title-wrapper">
+
+                        <div class="modal-title-icon">
+                            <i class="fa-solid fa-user-xmark"></i>
+                        </div>
+
+                        <div>
+
+                            <h5 class="modal-title fw-bold mb-0"
+                                id="initiateExitModalLabel">
+
+                                Initiate Employee Offboarding
+
+                            </h5>
+
+                            <small>
+                                Start the employee exit and clearance process
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
                 </div>
+
+
+                <!-- Modal Body -->
+
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Employee Name</label>
-                        <input type="text" name="EmployeeName" class="form-control" placeholder="e.g. Vikram Singh" required />
+
+                    <div class="exit-form-section-title">
+
+                        <span class="section-number">1</span>
+
+                        <div>
+
+                            <strong>Employee &amp; Exit Details</strong>
+
+                            <small>
+                                Provide employee and exit schedule information.
+                            </small>
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Resignation Submission Date</label>
-                        <input type="date" name="ResignationDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+
+
+                    <div class="row g-3 mb-4">
+
+                        <!-- Employee Name -->
+
+                        <div class="col-md-12">
+
+                            <div class="form-field">
+
+                                <label class="form-label small fw-semibold">
+
+                                    Employee Name
+
+                                    <span class="required-star">*</span>
+
+                                </label>
+
+                                <div class="input-with-icon">
+
+                                    <i class="fa-solid fa-user"></i>
+
+                                    <input type="text"
+                                           name="EmployeeName"
+                                           class="form-control"
+                                           placeholder="e.g. Vikram Singh"
+                                           required />
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Resignation Date -->
+
+                        <div class="col-md-6">
+
+                            <div class="form-field">
+
+                                <label class="form-label small fw-semibold">
+
+                                    Resignation Submission Date
+
+                                    <span class="required-star">*</span>
+
+                                </label>
+
+                                <div class="input-with-icon">
+
+                                    <i class="fa-regular fa-calendar"></i>
+
+                                    <input type="date"
+                                           name="ResignationDate"
+                                           class="form-control"
+                                           value="@DateTime.Now.ToString("yyyy-MM-dd")"
+                                           required />
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Last Working Day -->
+
+                        <div class="col-md-6">
+
+                            <div class="form-field">
+
+                                <label class="form-label small fw-semibold">
+
+                                    Last Working Day
+
+                                    <span class="required-star">*</span>
+
+                                </label>
+
+                                <div class="input-with-icon">
+
+                                    <i class="fa-solid fa-calendar-day"></i>
+
+                                    <input type="date"
+                                           name="LastWorkingDay"
+                                           class="form-control"
+                                           value="@DateTime.Now.AddDays(30).ToString("yyyy-MM-dd")"
+                                           required />
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Last Working Day</label>
-                        <input type="date" name="LastWorkingDay" class="form-control" value="@DateTime.Now.AddDays(30).ToString("yyyy-MM-dd")" required />
+
+
+                    <div class="exit-form-section-title">
+
+                        <span class="section-number">2</span>
+
+                        <div>
+
+                            <strong>Clearance &amp; Settlement Status</strong>
+
+                            <small>
+                                Record the current status of the exit process.
+                            </small>
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Asset Handover Status</label>
-                        <select name="AssetReturn" class="form-select" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Returned">Returned</option>
-                            <option value="N/A">N/A</option>
-                        </select>
+
+
+                    <div class="row g-3">
+
+                        <!-- Asset -->
+
+                        <div class="col-md-6">
+
+                            <div class="form-field">
+
+                                <label class="form-label small fw-semibold">
+                                    Asset Handover Status
+                                </label>
+
+                                <div class="input-with-icon">
+
+                                    <i class="fa-solid fa-box"></i>
+
+                                    <select name="AssetReturn"
+                                            class="form-select"
+                                            required>
+
+                                        <option value="Pending">
+                                            Pending
+                                        </option>
+
+                                        <option value="Returned">
+                                            Returned
+                                        </option>
+
+                                        <option value="N/A">
+                                            N/A
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- IT -->
+
+                        <div class="col-md-6">
+
+                            <div class="form-field">
+
+                                <label class="form-label small fw-semibold">
+                                    IT Clearance
+                                </label>
+
+                                <div class="input-with-icon">
+
+                                    <i class="fa-solid fa-laptop-code"></i>
+
+                                    <select name="ITClearance"
+                                            class="form-select"
+                                            required>
+
+                                        <option value="Pending">
+                                            Pending
+                                        </option>
+
+                                        <option value="Cleared">
+                                            Cleared
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Finance -->
+
+                        <div class="col-md-6">
+
+                            <div class="form-field">
+
+                                <label class="form-label small fw-semibold">
+                                    Finance &amp; HR Clearance
+                                </label>
+
+                                <div class="input-with-icon">
+
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+
+                                    <select name="FinanceClearance"
+                                            class="form-select"
+                                            required>
+
+                                        <option value="Pending">
+                                            Pending
+                                        </option>
+
+                                        <option value="Pending Review">
+                                            Pending Review
+                                        </option>
+
+                                        <option value="Cleared &amp; Approved">
+                                            Cleared &amp; Approved
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Exit Interview -->
+
+                        <div class="col-md-6">
+
+                            <div class="form-field">
+
+                                <label class="form-label small fw-semibold">
+                                    Exit Interview Conducted
+                                </label>
+
+                                <div class="input-with-icon">
+
+                                    <i class="fa-solid fa-comments"></i>
+
+                                    <select name="ExitInterview"
+                                            class="form-select"
+                                            required>
+
+                                        <option value="Pending">
+                                            Pending
+                                        </option>
+
+                                        <option value="Done">
+                                            Done
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- F&F -->
+
+                        <div class="col-md-12">
+
+                            <div class="form-field">
+
+                                <label class="form-label small fw-semibold">
+                                    Settlement &amp; F&amp;F Status
+                                </label>
+
+                                <div class="input-with-icon">
+
+                                    <i class="fa-solid fa-money-bill-transfer"></i>
+
+                                    <select name="FfStatus"
+                                            class="form-select"
+                                            required>
+
+                                        <option value="In Progress">
+                                            In Progress
+                                        </option>
+
+                                        <option value="Settled">
+                                            Settled
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">IT Clearance</label>
-                        <select name="ITClearance" class="form-select" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Cleared">Cleared</option>
-                        </select>
+
+
+                    <!-- Information Box -->
+
+                    <div class="exit-info-box">
+
+                        <div class="info-box-icon">
+
+                            <i class="fa-solid fa-circle-info"></i>
+
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Offboarding Process
+                            </strong>
+
+                            <p class="mb-0">
+                                Review employee clearance, company assets, IT access, finance approvals and final settlement before closing the exit process.
+                            </p>
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Finance & HR Clearance</label>
-                        <select name="FinanceClearance" class="form-select" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Pending Review">Pending Review</option>
-                            <option value="Cleared & Approved">Cleared & Approved</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Exit Interview Conducted</label>
-                        <select name="ExitInterview" class="form-select" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Done">Done</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Settlement & F&F Status</label>
-                        <select name="FfStatus" class="form-select" required>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Settled">Settled</option>
-                        </select>
-                    </div>
+
                 </div>
+
+
+                <!-- Modal Footer -->
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Initiate Exit</button>
+
+                    <button type="button"
+                            class="btn btn-outline-secondary rounded-pill px-3 btn-sm"
+                            data-bs-dismiss="modal">
+
+                        <i class="fa-solid fa-xmark me-1"></i>
+                        Cancel
+
+                    </button>
+
+
+                    <button type="submit"
+                            class="btn btn-primary rounded-pill px-3 btn-sm submit-exit-btn">
+
+                        <i class="fa-solid fa-right-from-bracket me-1"></i>
+                        Initiate Exit
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
+
+
+<!-- =========================================================
+     OFFBOARDING PAGE CSS & ANIMATIONS
+     ========================================================= -->
+
+<style>
+
+    /* =========================================================
+           PAGE VARIABLES
+           ========================================================= */
+
+    .offboarding-page {
+        --ob-primary: #0d6efd;
+        --ob-primary-dark: #0a58ca;
+        --ob-success: #198754;
+        --ob-warning: #b7791f;
+        --ob-danger: #dc3545;
+        --ob-text: #27364b;
+        --ob-muted: #667085;
+        --ob-border: #e7ebf0;
+        --ob-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
+        --ob-shadow-hover: 0 16px 38px rgba(15, 23, 42, 0.09);
+    }
+
+
+    /* =========================================================
+           PAGE ENTRANCE
+           ========================================================= */
+
+    .offboarding-page {
+        animation: offboardingPageEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+
+    @@keyframes offboardingPageEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    /* =========================================================
+           HEADER
+           ========================================================= */
+
+    .offboarding-header {
+        animation: offboardingHeaderEnter 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+
+    @@keyframes offboardingHeaderEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    /* =========================================================
+           TITLE
+           ========================================================= */
+
+    .offboarding-title-section {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+    }
+
+
+    .offboarding-title-icon {
+        width: 46px;
+        height: 46px;
+        min-width: 46px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ob-primary);
+        background: linear-gradient( 135deg, #edf5ff, #f7faff );
+        border: 1px solid #dceaff;
+        box-shadow: 0 6px 16px rgba(13, 110, 253, 0.09);
+        transition: all 0.25s ease;
+    }
+
+
+    .offboarding-title-section:hover .offboarding-title-icon {
+        transform: translateY(-2px) rotate(-4deg);
+        box-shadow: 0 10px 22px rgba(13, 110, 253, 0.15);
+    }
+
+
+    .offboarding-title-section h4 {
+        color: var(--ob-text);
+    }
+
+
+    .offboarding-page .breadcrumb-item a {
+        color: #667085;
+        transition: color 0.2s ease;
+    }
+
+
+        .offboarding-page .breadcrumb-item a:hover {
+            color: var(--ob-primary) !important;
+        }
+
+
+    /* =========================================================
+           INITIATE EXIT BUTTON
+           ========================================================= */
+
+    .initiate-exit-btn {
+        box-shadow: 0 6px 16px rgba(13, 110, 253, 0.18) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+
+        .initiate-exit-btn:hover {
+            transform: translateY(-2px);
+            background-color: var(--ob-primary-dark);
+            box-shadow: 0 10px 23px rgba(13, 110, 253, 0.26) !important;
+        }
+
+
+        .initiate-exit-btn:active {
+            transform: scale(0.97);
+        }
+
+
+        .initiate-exit-btn .fa-plus {
+            transition: transform 0.22s ease;
+        }
+
+
+        .initiate-exit-btn:hover .fa-plus {
+            transform: rotate(90deg);
+        }
+
+
+    /* =========================================================
+           SUMMARY CARDS
+           ========================================================= */
+
+    .offboarding-summary-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        animation: summaryCardsEnter 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+    }
+
+
+    @@keyframes summaryCardsEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .offboarding-summary-card {
+        min-height: 94px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 17px 18px;
+        background: #ffffff;
+        border: 1px solid var(--ob-border);
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.035);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+
+        .offboarding-summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 13px 30px rgba(15, 23, 42, 0.075);
+            border-color: #dce5ef;
+        }
+
+
+    .summary-icon {
+        width: 47px;
+        height: 47px;
+        min-width: 47px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        transition: transform 0.25s ease;
+    }
+
+
+    .offboarding-summary-card:hover .summary-icon {
+        transform: scale(1.08) rotate(-3deg);
+    }
+
+
+    .summary-primary {
+        color: #0d6efd;
+        background: #edf5ff;
+    }
+
+
+    .summary-warning {
+        color: #b7791f;
+        background: #fff8e7;
+    }
+
+
+    .summary-success {
+        color: #198754;
+        background: #eaf8f1;
+    }
+
+
+    .summary-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+
+    .summary-label {
+        color: var(--ob-muted);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+
+    .summary-value {
+        color: var(--ob-text);
+        font-size: 1.3rem;
+        line-height: 1.2;
+    }
+
+
+    /* =========================================================
+           TABLE CARD
+           ========================================================= */
+
+    .offboarding-table-card {
+        overflow: hidden;
+        border-color: var(--ob-border) !important;
+        box-shadow: var(--ob-shadow) !important;
+        animation: tableCardEnter 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+        transition: box-shadow 0.25s ease;
+    }
+
+
+    @@keyframes tableCardEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .offboarding-table-card:hover {
+        box-shadow: var(--ob-shadow-hover) !important;
+    }
+
+
+    /* =========================================================
+           TABLE CARD HEADER
+           ========================================================= */
+
+    .offboarding-card-header {
+        padding: 18px 22px;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid #edf0f4;
+        background: linear-gradient( 180deg, #ffffff, #fbfcfe );
+    }
+
+
+        .offboarding-card-header h5 {
+            color: var(--ob-text);
+        }
+
+
+    .offboarding-subtitle {
+        color: #8a94a6;
+        font-size: 0.78rem;
+    }
+
+
+    .offboarding-record-count {
+        white-space: nowrap;
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: #f3f7fc;
+        border: 1px solid #e4ebf3;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+
+        .offboarding-record-count i {
+            color: var(--ob-primary);
+        }
+
+
+    /* =========================================================
+           TABLE
+           ========================================================= */
+
+    .offboarding-table {
+        font-size: 0.82rem;
+        min-width: 1150px;
+    }
+
+
+        .offboarding-table thead th {
+            padding: 13px 16px;
+            background: #f8fafc;
+            color: #667085;
+            border-bottom: 1px solid #e7ebf0;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.45px;
+            white-space: nowrap;
+        }
+
+
+        .offboarding-table tbody td {
+            padding: 15px 16px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #475467;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+
+        .offboarding-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+
+        .offboarding-table tbody tr {
+            animation: offboardingRowEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            transition: background-color 0.22s ease;
+        }
+
+
+            .offboarding-table tbody tr:nth-child(1) {
+                animation-delay: 0.25s;
+            }
+
+
+            .offboarding-table tbody tr:nth-child(2) {
+                animation-delay: 0.30s;
+            }
+
+
+            .offboarding-table tbody tr:nth-child(3) {
+                animation-delay: 0.35s;
+            }
+
+
+            .offboarding-table tbody tr:nth-child(4) {
+                animation-delay: 0.40s;
+            }
+
+
+            .offboarding-table tbody tr:nth-child(5) {
+                animation-delay: 0.45s;
+            }
+
+
+            .offboarding-table tbody tr:nth-child(n+6) {
+                animation-delay: 0.50s;
+            }
+
+
+    @@keyframes offboardingRowEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(7px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .offboarding-table.table-hover > tbody > tr:hover {
+        background: #f8fbff;
+    }
+
+
+    /* =========================================================
+           EMPLOYEE CELL
+           ========================================================= */
+
+    .employee-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+
+    .employee-avatar {
+        width: 35px;
+        height: 35px;
+        min-width: 35px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient( 135deg, #eaf3ff, #f7faff );
+        color: var(--ob-primary);
+        border: 1px solid #dceaff;
+        font-size: 0.76rem;
+        font-weight: 700;
+        transition: transform 0.22s ease;
+    }
+
+
+    .offboarding-table tbody tr:hover .employee-avatar {
+        transform: scale(1.08) rotate(-3deg);
+    }
+
+
+    .employee-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+
+    .employee-name {
+        color: #344054;
+        font-weight: 650;
+        transition: color 0.2s ease;
+    }
+
+
+    .offboarding-table tbody tr:hover .employee-name {
+        color: var(--ob-primary);
+    }
+
+
+    .employee-info small {
+        color: #98a2b3;
+        font-size: 0.66rem;
+    }
+
+
+    /* =========================================================
+           DATE CELL
+           ========================================================= */
+
+    .date-cell {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: #667085;
+        font-size: 0.76rem;
+    }
+
+
+        .date-cell i {
+            color: #98a2b3;
+            font-size: 0.75rem;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+
+    .offboarding-table tbody tr:hover .date-cell i {
+        color: var(--ob-primary);
+        transform: scale(1.08);
+    }
+
+
+    /* =========================================================
+           STATUS PILLS
+           ========================================================= */
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+
+        .status-pill i {
+            font-size: 0.68rem;
+        }
+
+
+    .offboarding-table tbody tr:hover .status-pill {
+        transform: translateY(-1px);
+    }
+
+
+    .status-success {
+        color: #16804f;
+        background: #eaf8f1;
+        border: 1px solid #d8f0e4;
+    }
+
+
+    .status-warning {
+        color: #a66c0f;
+        background: #fff8e8;
+        border: 1px solid #f5e8bf;
+    }
+
+
+    .status-neutral {
+        color: #667085;
+        background: #f2f4f7;
+        border: 1px solid #eaecf0;
+    }
+
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .offboarding-empty-state {
+        min-height: 260px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 35px 20px;
+    }
+
+
+    .empty-state-icon {
+        width: 66px;
+        height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        color: var(--ob-primary);
+        background: #f0f6ff;
+        margin-bottom: 15px;
+        font-size: 24px;
+    }
+
+
+    .offboarding-empty-state h6 {
+        color: var(--ob-text);
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+
+    .offboarding-empty-state p {
+        color: #8a94a6;
+        font-size: 0.8rem;
+        margin-bottom: 16px;
+    }
+
+
+    /* =========================================================
+           MODAL ANIMATION
+           ========================================================= */
+
+    .exit-modal .modal-dialog {
+        transform: translateY(18px) scale(0.97);
+        opacity: 0;
+        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+    }
+
+
+    .exit-modal.show .modal-dialog {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+
+    .exit-modal .modal-content {
+        border: 1px solid #e5eaf0;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 25px 65px rgba(15, 23, 42, 0.17);
+    }
+
+
+    /* =========================================================
+           MODAL HEADER
+           ========================================================= */
+
+    .exit-modal .modal-header {
+        padding: 18px 21px;
+        background: linear-gradient( 135deg, #ffffff, #f7faff );
+        border-bottom: 1px solid #edf0f4;
+    }
+
+
+    .modal-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+
+    .modal-title-icon {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        color: var(--ob-primary);
+        background: #edf5ff;
+        border: 1px solid #dceaff;
+    }
+
+
+    .modal-title-wrapper small {
+        display: block;
+        color: #8a94a6;
+        margin-top: 2px;
+        font-size: 0.7rem;
+    }
+
+
+    .exit-modal .btn-close {
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+
+        .exit-modal .btn-close:hover {
+            transform: rotate(90deg) scale(1.05);
+            opacity: 0.65;
+        }
+
+
+    /* =========================================================
+           MODAL BODY
+           ========================================================= */
+
+    .exit-modal .modal-body {
+        padding: 22px 21px;
+    }
+
+
+    /* =========================================================
+           FORM SECTIONS
+           ========================================================= */
+
+    .exit-form-section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 11px;
+        margin-bottom: 17px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+
+    .section-number {
+        width: 26px;
+        height: 26px;
+        min-width: 26px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--ob-primary);
+        color: #ffffff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.16);
+    }
+
+
+    .exit-form-section-title div {
+        display: flex;
+        flex-direction: column;
+    }
+
+
+    .exit-form-section-title strong {
+        color: #344054;
+        font-size: 0.82rem;
+    }
+
+
+    .exit-form-section-title small {
+        color: #98a2b3;
+        font-size: 0.67rem;
+    }
+
+
+    /* =========================================================
+           FORM FIELDS
+           ========================================================= */
+
+    .form-field {
+        animation: formFieldEnter 0.4s ease both;
+    }
+
+
+    @@keyframes formFieldEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .exit-modal .form-label {
+        color: #475467;
+        margin-bottom: 7px;
+    }
+
+
+    .required-star {
+        color: var(--ob-danger);
+    }
+
+
+    .input-with-icon {
+        position: relative;
+    }
+
+
+        .input-with-icon > i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #98a2b3;
+            font-size: 13px;
+            z-index: 5;
+            pointer-events: none;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+
+        .input-with-icon .form-control,
+        .input-with-icon .form-select {
+            padding-left: 38px;
+        }
+
+
+        .input-with-icon:focus-within > i {
+            color: var(--ob-primary);
+            transform: translateY(-50%) scale(1.08);
+        }
+
+
+    .exit-modal .form-control,
+    .exit-modal .form-select {
+        min-height: 41px;
+        border: 1px solid #dfe5ec;
+        border-radius: 9px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+
+        .exit-modal .form-control:hover,
+        .exit-modal .form-select:hover {
+            border-color: #cbd5e1;
+        }
+
+
+        .exit-modal .form-control:focus,
+        .exit-modal .form-select:focus {
+            border-color: rgba(13, 110, 253, 0.55);
+            box-shadow: 0 0 0 0.18rem rgba(13, 110, 253, 0.10);
+            transform: translateY(-1px);
+        }
+
+
+        .exit-modal .form-control::placeholder {
+            color: #a3acb9;
+            font-size: 0.78rem;
+        }
+
+
+    /* =========================================================
+           INFORMATION BOX
+           ========================================================= */
+
+    .exit-info-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        padding: 13px 14px;
+        margin-top: 22px;
+        border-radius: 11px;
+        border: 1px solid #dceaff;
+        background: #f5f9ff;
+        color: #526176;
+        font-size: 0.73rem;
+        animation: infoBoxEnter 0.45s ease 0.15s both;
+    }
+
+
+    @@keyframes infoBoxEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+
+    .info-box-icon {
+        color: var(--ob-primary);
+        font-size: 15px;
+        margin-top: 1px;
+    }
+
+
+    .exit-info-box strong {
+        display: block;
+        color: #344054;
+        margin-bottom: 3px;
+    }
+
+
+    /* =========================================================
+           MODAL FOOTER
+           ========================================================= */
+
+    .exit-modal .modal-footer {
+        padding: 14px 21px;
+        background: #fbfcfe;
+        border-top: 1px solid #edf0f4;
+    }
+
+
+        .exit-modal .modal-footer .btn {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+
+            .exit-modal .modal-footer .btn:hover {
+                transform: translateY(-2px);
+            }
+
+
+            .exit-modal .modal-footer .btn:active {
+                transform: scale(0.97);
+            }
+
+
+    .submit-exit-btn {
+        box-shadow: 0 5px 14px rgba(13, 110, 253, 0.16);
+    }
+
+
+    /* =========================================================
+           MODAL BACKDROP
+           ========================================================= */
+
+    .modal-backdrop.show {
+        opacity: 0.42;
+    }
+
+
+    /* =========================================================
+           TABLE SCROLLBAR
+           ========================================================= */
+
+    .offboarding-page .table-responsive::-webkit-scrollbar {
+        height: 6px;
+    }
+
+
+    .offboarding-page .table-responsive::-webkit-scrollbar-track {
+        background: #f1f3f6;
+        border-radius: 10px;
+    }
+
+
+    .offboarding-page .table-responsive::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+
+        .offboarding-page .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 767.98px) {
+        .offboarding-page
+
+    {
+        padding-top: 1rem !important;
+    }
+
+
+    .initiate-exit-btn {
+        width: 100%;
+    }
+
+
+    .offboarding-summary-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+
+    .offboarding-summary-card {
+        min-height: 80px;
+    }
+
+
+    .offboarding-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px;
+    }
+
+
+    .offboarding-record-count {
+        align-self: flex-start;
+    }
+
+
+    .exit-modal .modal-dialog {
+        margin: 0.75rem;
+    }
+
+
+    .exit-modal .modal-content {
+        border-radius: 14px;
+    }
+
+
+    .exit-modal .modal-body {
+        padding: 18px 16px;
+    }
+
+    }
+
+
+    @@media (max-width: 420px) {
+        .offboarding-title-icon
+
+    {
+        width: 41px;
+        height: 41px;
+        min-width: 41px;
+    }
+
+
+    .offboarding-title-section h4 {
+        font-size: 1rem;
+    }
+
+
+    .exit-modal .modal-header {
+        padding: 15px;
+    }
+
+
+    .exit-modal .modal-footer {
+        padding: 12px 15px;
+    }
+
+
+    .modal-title-icon {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+    }
+
+    }
+
+
+    /* =========================================================
+           REDUCED MOTION
+           ========================================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .offboarding-page *, .offboarding-page *::before, .offboarding-page *::after, .exit-modal *, .exit-modal *::before, .exit-modal *::after
+
+    {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    }
+</style>

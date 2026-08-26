@@ -1,0 +1,86 @@
+@model ERP_System.Models.Payslip
+@{
+    var company = ViewBag.Company as ERP_System.Models.Company ?? new ERP_System.Models.Company();
+}
+
+<div class="p-2 border rounded-3 bg-white text-start">
+    <!-- Company Header -->
+    <div class="row align-items-center mb-3 pb-3 border-bottom">
+        <div class="col-8">
+            <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-building text-primary me-2"></i>@(company.CompanyName)</h4>
+            <div class="text-muted small">@(company.AddressLine1), @(company.City), @(company.State) - @(company.Country)</div>
+        </div>
+        <div class="col-4 text-end">
+            <div class="badge bg-primary px-3 py-2 fs-6">SALARY SLIP</div>
+            <div class="text-muted extra-small mt-1">Period: <strong>@Model.PayPeriod</strong></div>
+        </div>
+    </div>
+
+    <!-- Employee Information Grid -->
+    <div class="row g-2 mb-3 bg-light p-3 rounded-3 border small">
+        <div class="col-md-6"><strong>Employee Name:</strong> @(Model.User?.FullName)</div>
+        <div class="col-md-6"><strong>Employee ID:</strong> @(Model.User?.UserCode)</div>
+        <div class="col-md-6"><strong>Designation / Role:</strong> @(Model.User?.Role?.RoleName)</div>
+        <div class="col-md-6"><strong>Branch:</strong> @(Model.User?.Branch?.BranchName ?? "Head Office")</div>
+        <div class="col-md-6"><strong>Total Working Days:</strong> @Model.TotalWorkingDays Days</div>
+        <div class="col-md-6"><strong>Paid Days:</strong> <span class="text-success fw-bold">@Model.PaidDays Days</span> (LOP: @Model.UnpaidLeaveDays Days)</div>
+    </div>
+
+    <!-- Salary Breakdown Table (Earnings vs Deductions) -->
+    <div class="row g-3 mb-3">
+        <!-- EARNINGS COLUMN -->
+        <div class="col-md-6">
+            <div class="border rounded-3 p-3 h-100">
+                <h6 class="fw-bold text-success border-bottom pb-2 mb-2"><i class="fa-solid fa-plus-circle me-1"></i>Earnings & Allowances</h6>
+                <div class="d-flex justify-content-between mb-1 small"><span>Basic Salary</span><span>₹@Model.BasicSalary.ToString("N2")</span></div>
+                <div class="d-flex justify-content-between mb-1 small"><span>House Rent Allowance (HRA)</span><span>₹@Model.HRA.ToString("N2")</span></div>
+                <div class="d-flex justify-content-between mb-1 small"><span>Conveyance Allowance</span><span>₹@Model.TransportAllowance.ToString("N2")</span></div>
+                <div class="d-flex justify-content-between mb-1 small"><span>Medical Allowance</span><span>₹@Model.MedicalAllowance.ToString("N2")</span></div>
+                <div class="d-flex justify-content-between mb-1 small"><span>Leave Travel Allowance (LTA)</span><span>₹@Model.LTA.ToString("N2")</span></div>
+                <div class="d-flex justify-content-between mb-1 small"><span>Special Allowance</span><span>₹@Model.SpecialAllowance.ToString("N2")</span></div>
+                @if (Model.BonusIncentives > 0)
+                {
+                    <div class="d-flex justify-content-between mb-1 small text-success fw-semibold"><span>Bonus & Incentives</span><span>₹@Model.BonusIncentives.ToString("N2")</span></div>
+                }
+                @if (Model.OvertimePay > 0)
+                {
+                    <div class="d-flex justify-content-between mb-1 small text-info fw-semibold"><span>Overtime Pay</span><span>₹@Model.OvertimePay.ToString("N2")</span></div>
+                }
+                <hr class="my-2">
+                <div class="d-flex justify-content-between fw-bold text-dark"><span>Gross Salary</span><span>₹@Model.GrossSalary.ToString("N2")</span></div>
+            </div>
+        </div>
+
+        <!-- DEDUCTIONS COLUMN -->
+        <div class="col-md-6">
+            <div class="border rounded-3 p-3 h-100">
+                <h6 class="fw-bold text-danger border-bottom pb-2 mb-2"><i class="fa-solid fa-minus-circle me-1"></i>Statutory & Other Deductions</h6>
+                <div class="d-flex justify-content-between mb-1 small"><span>Provident Fund (EPF)</span><span>₹@Model.ProvidentFund.ToString("N2")</span></div>
+                <div class="d-flex justify-content-between mb-1 small"><span>ESI Contribution</span><span>₹@Model.ESI.ToString("N2")</span></div>
+                <div class="d-flex justify-content-between mb-1 small"><span>Professional Tax (PT)</span><span>₹@Model.ProfessionalTax.ToString("N2")</span></div>
+                <div class="d-flex justify-content-between mb-1 small"><span>Income Tax (TDS)</span><span>₹@Model.TDS.ToString("N2")</span></div>
+                @if (Model.LOPDeduction > 0)
+                {
+                    <div class="d-flex justify-content-between mb-1 small text-danger"><span>Loss of Pay (LOP)</span><span>₹@Model.LOPDeduction.ToString("N2")</span></div>
+                }
+                <hr class="my-2">
+                <div class="d-flex justify-content-between fw-bold text-danger"><span>Total Deductions</span><span>₹@Model.TotalDeductions.ToString("N2")</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NET SALARY SUMMARY BOX -->
+    <div class="bg-success-subtle border border-success p-3 rounded-3 d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <div class="text-success-emphasis small fw-bold">NET TAKE HOME SALARY</div>
+            <div class="text-muted extra-small">Paid on @Model.PaymentDate.ToString("dd MMMM yyyy")</div>
+        </div>
+        <h3 class="fw-bold text-success mb-0">₹@Model.NetSalary.ToString("N2")</h3>
+    </div>
+
+    <div class="text-center mt-3">
+        <a href="/HRPayroll/DownloadPayslipPdf/@Model.PayslipId" target="_blank" class="btn btn-primary btn-sm rounded-pill px-4">
+            <i class="fa-solid fa-print me-1.5"></i>Print / Save PDF
+        </a>
+    </div>
+</div>

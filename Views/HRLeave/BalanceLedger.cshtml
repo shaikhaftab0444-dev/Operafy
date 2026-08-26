@@ -5,75 +5,954 @@
     var approvedLeaves = ViewBag.ApprovedLeaves as List<ERP_System.Models.ESSLeaveApplication> ?? new List<ERP_System.Models.ESSLeaveApplication>();
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+    /* =====================================================
+           LEAVE BALANCE LEDGER - PREMIUM UI
+           ===================================================== */
+
+    .leave-ledger-page {
+        animation: ledgerPageEnter .6s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    @@keyframes ledgerPageEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* =====================================================
+           HEADER
+           ===================================================== */
+
+    .ledger-header {
+        animation: ledgerHeaderEnter .55s ease-out both;
+    }
+
+    @@keyframes ledgerHeaderEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .ledger-title {
+        color: var(--text-color, #1f2937);
+        letter-spacing: -0.5px;
+    }
+
+    .ledger-title-icon {
+        width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: rgba(13, 110, 253, 0.10);
+        color: var(--bs-primary);
+        transition: all .3s ease;
+    }
+
+    .ledger-header:hover .ledger-title-icon {
+        transform: rotate(-7deg) scale(1.08);
+        background: rgba(13, 110, 253, 0.16);
+    }
+
+    .ledger-breadcrumb a {
+        transition: color .2s ease;
+    }
+
+        .ledger-breadcrumb a:hover {
+            color: var(--bs-primary) !important;
+        }
+
+    /* =====================================================
+           SUMMARY CARDS
+           ===================================================== */
+
+    .ledger-summary-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 125px;
+        border: 1px solid #edf0f5 !important;
+        transition: transform .28s ease, box-shadow .28s ease;
+        animation: summaryCardEnter .55s ease-out both;
+    }
+
+        .ledger-summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 16px 35px rgba(30, 41, 59, .10) !important;
+        }
+
+        .ledger-summary-card::after {
+            content: "";
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            right: -45px;
+            top: -45px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: .035;
+            transition: transform .35s ease;
+        }
+
+        .ledger-summary-card:hover::after {
+            transform: scale(1.45);
+        }
+
+    @@keyframes summaryCardEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    }
+
+    .ledger-summary-card:nth-child(1) {
+        animation-delay: .08s;
+    }
+
+    .ledger-summary-card:nth-child(2) {
+        animation-delay: .14s;
+    }
+
+    .ledger-summary-card:nth-child(3) {
+        animation-delay: .20s;
+    }
+
+    .ledger-summary-card:nth-child(4) {
+        animation-delay: .26s;
+    }
+
+    .ledger-summary-icon {
+        width: 54px;
+        height: 54px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 17px;
+        transition: transform .3s ease;
+    }
+
+    .ledger-summary-card:hover .ledger-summary-icon {
+        transform: rotate(-6deg) scale(1.08);
+    }
+
+    .ledger-summary-label {
+        font-size: .72rem;
+        letter-spacing: .6px;
+    }
+
+    .ledger-summary-value {
+        letter-spacing: -.5px;
+    }
+
+    /* =====================================================
+           MAIN LEDGER CARD
+           ===================================================== */
+
+    .ledger-card {
+        overflow: hidden;
+        border: 1px solid #e8ecf2 !important;
+        animation: ledgerCardEnter .65s ease-out .15s both;
+        transition: box-shadow .3s ease;
+    }
+
+        .ledger-card:hover {
+            box-shadow: 0 16px 40px rgba(30, 41, 59, .08) !important;
+        }
+
+    @@keyframes ledgerCardEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .ledger-card-header {
+        padding-bottom: 17px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+    .ledger-staff-badge {
+        background: #f8f9fb !important;
+        transition: all .25s ease;
+    }
+
+    .ledger-card:hover .ledger-staff-badge {
+        color: var(--bs-primary) !important;
+        border-color: rgba(13, 110, 253, .25) !important;
+    }
+
+    /* =====================================================
+           SEARCH
+           ===================================================== */
+
+    .ledger-search {
+        position: relative;
+        min-width: 280px;
+    }
+
+        .ledger-search .form-control {
+            padding-left: 39px;
+            border-radius: 999px;
+            border-color: #e0e5ec;
+            transition: all .25s ease;
+        }
+
+            .ledger-search .form-control:focus {
+                border-color: rgba(13, 110, 253, .6);
+                box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .08);
+            }
+
+    .ledger-search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #8a94a6;
+        z-index: 5;
+        pointer-events: none;
+    }
+
+    /* =====================================================
+           TABLE
+           ===================================================== */
+
+    .ledger-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .ledger-table thead th {
+            white-space: nowrap;
+            padding: 14px 14px;
+            font-size: .70rem;
+            letter-spacing: .55px;
+            text-transform: uppercase;
+            color: #697386;
+            border-bottom-width: 1px;
+        }
+
+        .ledger-table tbody tr {
+            transition: background-color .2s ease, transform .2s ease;
+            animation: ledgerRowEnter .4s ease-out both;
+        }
+
+            .ledger-table tbody tr:nth-child(1) {
+                animation-delay: .05s;
+            }
+
+            .ledger-table tbody tr:nth-child(2) {
+                animation-delay: .10s;
+            }
+
+            .ledger-table tbody tr:nth-child(3) {
+                animation-delay: .15s;
+            }
+
+            .ledger-table tbody tr:nth-child(4) {
+                animation-delay: .20s;
+            }
+
+            .ledger-table tbody tr:nth-child(5) {
+                animation-delay: .25s;
+            }
+
+            .ledger-table tbody tr:hover {
+                background: rgba(13, 110, 253, .025);
+            }
+
+        .ledger-table tbody td {
+            padding: 15px 14px;
+            border-color: #f0f2f5;
+            vertical-align: middle;
+        }
+
+    @@keyframes ledgerRowEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    }
+
+    /* =====================================================
+           EMPLOYEE
+           ===================================================== */
+
+    .ledger-employee {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 180px;
+    }
+
+    .ledger-avatar {
+        width: 38px;
+        height: 38px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(13, 110, 253, .15), rgba(13, 110, 253, .06));
+        color: var(--bs-primary);
+        font-size: .82rem;
+        font-weight: 800;
+        transition: transform .25s ease;
+    }
+
+    .ledger-table tbody tr:hover .ledger-avatar {
+        transform: rotate(-5deg) scale(1.08);
+    }
+
+    .ledger-employee-name {
+        color: var(--text-color, #1f2937);
+        font-size: .86rem;
+        font-weight: 700;
+        transition: color .2s ease;
+    }
+
+    .ledger-table tbody tr:hover .ledger-employee-name {
+        color: var(--bs-primary);
+    }
+
+    .ledger-employee-code {
+        font-size: .70rem;
+        color: #8b95a5;
+        margin-top: 2px;
+    }
+
+    /* =====================================================
+           LEAVE BALANCE BOX
+           ===================================================== */
+
+    .leave-balance-cell {
+        min-width: 145px;
+    }
+
+    .leave-balance-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 7px;
+    }
+
+    .leave-balance-value {
+        font-size: .88rem;
+        font-weight: 800;
+    }
+
+    .leave-balance-used {
+        font-size: .68rem;
+        color: #8b95a5;
+    }
+
+    .ledger-progress {
+        height: 6px;
+        background: #edf1f5;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+        .ledger-progress .progress-bar {
+            border-radius: 999px;
+            animation: progressFill 1.2s cubic-bezier(.22,.61,.36,1) both;
+            transform-origin: left center;
+        }
+
+    @@keyframes progressFill {
+        from
+
+    {
+        transform: scaleX(0);
+    }
+
+    to {
+        transform: scaleX(1);
+    }
+
+    }
+
+    .leave-type-tag {
+        font-size: .62rem;
+        font-weight: 800;
+        letter-spacing: .35px;
+        text-transform: uppercase;
+    }
+
+    /* =====================================================
+           TOTAL USED
+           ===================================================== */
+
+    .total-used-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: #f8f9fb;
+        border: 1px solid #e4e8ee;
+        font-size: .76rem;
+        font-weight: 700;
+        color: #4b5563;
+        transition: all .2s ease;
+    }
+
+    .ledger-table tbody tr:hover .total-used-badge {
+        transform: scale(1.04);
+        border-color: rgba(13, 110, 253, .25);
+        color: var(--bs-primary);
+    }
+
+    /* =====================================================
+           EMPTY STATE
+           ===================================================== */
+
+    .ledger-empty-state {
+        padding: 55px 20px !important;
+        animation: ledgerPageEnter .5s ease both;
+    }
+
+        .ledger-empty-state .empty-icon {
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+            border-radius: 20px;
+            background: #f4f6f9;
+            color: #9aa3af;
+            font-size: 1.5rem;
+        }
+
+    /* =====================================================
+           RESPONSIVE
+           ===================================================== */
+
+    @@media (max-width: 767.98px) {
+        .ledger-header
+
+    {
+        align-items: flex-start !important;
+    }
+
+    .ledger-title-icon {
+        width: 39px;
+        height: 39px;
+        border-radius: 12px;
+    }
+
+    .ledger-search {
+        width: 100%;
+        min-width: auto;
+    }
+
+        .ledger-search .form-control {
+            width: 100%;
+        }
+
+    .ledger-card {
+        padding: 1rem !important;
+    }
+
+    .ledger-card-header {
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+
+    }
+
+    /* =====================================================
+           REDUCED MOTION
+           ===================================================== */
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after
+
+    {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    }
+</style>
+
+<div class="container-fluid py-4 text-start leave-ledger-page">
+
+    <!-- =================================================
+         HEADER
+         ================================================= -->
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 ledger-header">
+
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-scale-balanced text-primary me-2"></i>Leave Balance Ledger</h4>
+            <h4 class="fw-bold mb-1 ledger-title">
+                <span class="ledger-title-icon me-2">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </span>
+                Leave Balance Ledger
+            </h4>
+
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Leave Balance Ledger</li>
+                <ol class="breadcrumb mb-0 small ledger-breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/HR" class="text-decoration-none">
+                            HR Dashboard
+                        </a>
+                    </li>
+
+                    <li class="breadcrumb-item active" aria-current="page">
+                        Leave Balance Ledger
+                    </li>
                 </ol>
             </nav>
         </div>
+
+        <div class="ledger-search">
+            <i class="fa-solid fa-magnifying-glass ledger-search-icon"></i>
+
+            <input type="text"
+                   id="employeeSearch"
+                   class="form-control form-control-sm"
+                   placeholder="Search employee or employee ID..." />
+        </div>
+
     </div>
 
-    <!-- Balance Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0 text-secondary">Employee Live Leave Entitlements & Consumption</h6>
-            <span class="badge bg-light text-dark border">@Model.Count() Active Staff</span>
+    <!-- =================================================
+         SUMMARY CARDS
+         ================================================= -->
+
+    <div class="row g-3 mb-4">
+
+        <!-- Active Staff -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card shadow-sm rounded-3 p-3 ledger-summary-card">
+
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase ledger-summary-label">
+                            Active Staff
+                        </div>
+
+                        <h3 class="fw-bold text-dark mb-0 mt-2 ledger-summary-value">
+                            @Model.Count()
+                        </h3>
+                    </div>
+
+                    <div class="ledger-summary-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="fa-solid fa-users fa-lg"></i>
+                    </div>
+                </div>
+
+            </div>
         </div>
+
+        <!-- Casual Leave -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card shadow-sm rounded-3 p-3 ledger-summary-card"
+                 style="animation-delay: .14s;">
+
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase ledger-summary-label">
+                            CL Yearly Allocation
+                        </div>
+
+                        <h3 class="fw-bold text-dark mb-0 mt-2 ledger-summary-value">
+                            12 <span class="fs-6 text-muted">Days</span>
+                        </h3>
+                    </div>
+
+                    <div class="ledger-summary-icon bg-info bg-opacity-10 text-info">
+                        <i class="fa-solid fa-calendar-day fa-lg"></i>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Sick Leave -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card shadow-sm rounded-3 p-3 ledger-summary-card"
+                 style="animation-delay: .20s;">
+
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase ledger-summary-label">
+                            SL Yearly Allocation
+                        </div>
+
+                        <h3 class="fw-bold text-dark mb-0 mt-2 ledger-summary-value">
+                            8 <span class="fs-6 text-muted">Days</span>
+                        </h3>
+                    </div>
+
+                    <div class="ledger-summary-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="fa-solid fa-kit-medical fa-lg"></i>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Earned Leave -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card shadow-sm rounded-3 p-3 ledger-summary-card"
+                 style="animation-delay: .26s;">
+
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase ledger-summary-label">
+                            EL Yearly Allocation
+                        </div>
+
+                        <h3 class="fw-bold text-dark mb-0 mt-2 ledger-summary-value">
+                            15 <span class="fs-6 text-muted">Days</span>
+                        </h3>
+                    </div>
+
+                    <div class="ledger-summary-icon bg-success bg-opacity-10 text-success">
+                        <i class="fa-solid fa-award fa-lg"></i>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =================================================
+         MAIN TABLE
+         ================================================= -->
+
+    <div class="bg-white rounded-3 p-4 shadow-sm ledger-card">
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center ledger-card-header mb-3">
+
+            <div>
+                <h6 class="fw-bold mb-1 text-secondary">
+                    Employee Leave Entitlements
+                </h6>
+
+                <div class="small text-muted">
+                    Live balance based on approved leave applications
+                </div>
+            </div>
+
+            <span class="badge text-dark border rounded-pill px-3 py-2 ledger-staff-badge">
+                <i class="fa-solid fa-users me-1 text-primary"></i>
+                @Model.Count() Active Staff
+            </span>
+
+        </div>
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+
+            <table class="table table-hover align-middle mb-0 ledger-table"
+                   style="font-size: 0.85rem;">
+
                 <thead class="table-light">
                     <tr>
-                        <th>Employee ID</th>
-                        <th>Employee Name</th>
-                        <th>Casual Leave (CL)</th>
-                        <th>Sick Leave (SL)</th>
-                        <th>Earned Leave (EL)</th>
+                        <th>Employee</th>
+                        <th>Casual Leave</th>
+                        <th>Sick Leave</th>
+                        <th>Earned Leave</th>
                         <th>Total Days Used</th>
                     </tr>
                 </thead>
+
                 <tbody>
+
                     @if (Model != null && Model.Any())
                     {
                         foreach (var u in Model)
                         {
-                            var userLeaves = approvedLeaves.Where(l => l.UserId == u.UserId).ToList();
-                            int casualUsed = userLeaves.Where(l => l.LeaveType == "Casual Leave").Sum(l => l.TotalDays);
-                            int sickUsed = userLeaves.Where(l => l.LeaveType == "Sick Leave").Sum(l => l.TotalDays);
-                            int earnedUsed = userLeaves.Where(l => l.LeaveType == "Earned Leave").Sum(l => l.TotalDays);
+                            var userLeaves = approvedLeaves
+                            .Where(l => l.UserId == u.UserId)
+                            .ToList();
+
+                            int casualUsed = userLeaves
+                            .Where(l => l.LeaveType == "Casual Leave")
+                            .Sum(l => l.TotalDays);
+
+                            int sickUsed = userLeaves
+                            .Where(l => l.LeaveType == "Sick Leave")
+                            .Sum(l => l.TotalDays);
+
+                            int earnedUsed = userLeaves
+                            .Where(l => l.LeaveType == "Earned Leave")
+                            .Sum(l => l.TotalDays);
+
                             int casualRem = Math.Max(0, 12 - casualUsed);
                             int sickRem = Math.Max(0, 8 - sickUsed);
                             int earnedRem = Math.Max(0, 15 - earnedUsed);
-                            int totalUsed = casualUsed + sickUsed + earnedUsed;
 
-                            <tr>
-                                <td class="fw-bold text-dark">@(string.IsNullOrEmpty(u.UserCode) ? $"EMP-00{u.UserId}" : u.UserCode)</td>
-                                <td class="fw-semibold text-dark">@u.FullName</td>
+                            int totalUsed =
+                            casualUsed +
+                            sickUsed +
+                            earnedUsed;
+
+                            int casualPercentage =
+                            Math.Min(100, (int)Math.Round(casualUsed / 12.0 * 100));
+
+                            int sickPercentage =
+                            Math.Min(100, (int)Math.Round(sickUsed / 8.0 * 100));
+
+                            int earnedPercentage =
+                            Math.Min(100, (int)Math.Round(earnedUsed / 15.0 * 100));
+
+                            var employeeCode =
+                            string.IsNullOrEmpty(u.UserCode)
+                            ? $"EMP-00{u.UserId}"
+                            : u.UserCode;
+
+                            var initials = string.IsNullOrWhiteSpace(u.FullName)
+                            ? "U"
+                            : string.Concat(
+                            u.FullName
+                            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                            .Take(2)
+                            .Select(x => char.ToUpper(x[0]))
+                            );
+
+                            <tr class="employee-row">
+
+                                <!-- Employee -->
                                 <td>
-                                    <span class="fw-bold text-primary">@casualRem / 12</span> <small class="text-muted">(Used: @casualUsed)</small>
+                                    <div class="ledger-employee">
+
+                                        <div class="ledger-avatar">
+                                            @initials
+                                        </div>
+
+                                        <div>
+                                            <div class="ledger-employee-name">
+                                                @u.FullName
+                                            </div>
+
+                                            <div class="ledger-employee-code">
+                                                @employeeCode
+                                            </div>
+                                        </div>
+
+                                    </div>
                                 </td>
+
+                                <!-- Casual Leave -->
+                                <td class="leave-balance-cell">
+
+                                    <div class="leave-balance-top">
+
+                                        <div>
+                                            <span class="leave-balance-value text-primary">
+                                                @casualRem / 12
+                                            </span>
+
+                                            <span class="leave-type-tag text-muted ms-1">
+                                                CL
+                                            </span>
+                                        </div>
+
+                                        <span class="leave-balance-used">
+                                            Used @casualUsed
+                                        </span>
+
+                                    </div>
+
+                                    <div class="progress ledger-progress">
+
+                                        <div class="progress-bar bg-primary"
+                                             style="width: @casualPercentage%">
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+                                <!-- Sick Leave -->
+                                <td class="leave-balance-cell">
+
+                                    <div class="leave-balance-top">
+
+                                        <div>
+                                            <span class="leave-balance-value text-info">
+                                                @sickRem / 8
+                                            </span>
+
+                                            <span class="leave-type-tag text-muted ms-1">
+                                                SL
+                                            </span>
+                                        </div>
+
+                                        <span class="leave-balance-used">
+                                            Used @sickUsed
+                                        </span>
+
+                                    </div>
+
+                                    <div class="progress ledger-progress">
+
+                                        <div class="progress-bar bg-info"
+                                             style="width: @sickPercentage%">
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+                                <!-- Earned Leave -->
+                                <td class="leave-balance-cell">
+
+                                    <div class="leave-balance-top">
+
+                                        <div>
+                                            <span class="leave-balance-value text-success">
+                                                @earnedRem / 15
+                                            </span>
+
+                                            <span class="leave-type-tag text-muted ms-1">
+                                                EL
+                                            </span>
+                                        </div>
+
+                                        <span class="leave-balance-used">
+                                            Used @earnedUsed
+                                        </span>
+
+                                    </div>
+
+                                    <div class="progress ledger-progress">
+
+                                        <div class="progress-bar bg-success"
+                                             style="width: @earnedPercentage%">
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+                                <!-- Total Used -->
                                 <td>
-                                    <span class="fw-bold text-info">@sickRem / 8</span> <small class="text-muted">(Used: @sickUsed)</small>
+
+                                    <span class="total-used-badge">
+
+                                        <i class="fa-solid fa-calendar-check"></i>
+
+                                        @totalUsed Days
+
+                                    </span>
+
                                 </td>
-                                <td>
-                                    <span class="fw-bold text-success">@earnedRem / 15</span> <small class="text-muted">(Used: @earnedUsed)</small>
-                                </td>
-                                <td><span class="badge bg-light text-dark border">@totalUsed Days</span></td>
+
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">No employees found.</td>
+                            <td colspan="5"
+                                class="text-center text-muted ledger-empty-state">
+
+                                <div class="empty-icon">
+                                    <i class="fa-solid fa-users-slash"></i>
+                                </div>
+
+                                <h6 class="fw-bold text-dark mb-1">
+                                    No employees found
+                                </h6>
+
+                                <div class="small">
+                                    Employee leave balances will appear here.
+                                </div>
+
+                            </td>
                         </tr>
                     }
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const searchInput = document.getElementById("employeeSearch");
+
+        if (!searchInput) return;
+
+        searchInput.addEventListener("input", function () {
+
+            const searchValue =
+                this.value.toLowerCase().trim();
+
+            const rows =
+                document.querySelectorAll(".employee-row");
+
+            rows.forEach(function (row) {
+
+                const rowText =
+                    row.innerText.toLowerCase();
+
+                row.style.display =
+                    rowText.includes(searchValue)
+                        ? ""
+                        : "none";
+            });
+
+        });
+
+    });
+</script>

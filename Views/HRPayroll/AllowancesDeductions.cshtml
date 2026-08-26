@@ -1,12 +1,30 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Allowances & Deductions Master";
+    var allowances = ViewBag.Allowances as List<ERP_System.Models.AllowanceDeductionMaster> ?? new List<ERP_System.Models.AllowanceDeductionMaster>();
+    var deductions = ViewBag.Deductions as List<ERP_System.Models.AllowanceDeductionMaster> ?? new List<ERP_System.Models.AllowanceDeductionMaster>();
 }
 
 <div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-exclamation me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-percent text-primary me-2"></i>Allowances & Deductions</h4>
+            <h4 class="fw-bold mb-1"><i class="fa-solid fa-percent text-primary me-2"></i>Allowances & Deductions Master</h4>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 small">
                     <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
@@ -14,50 +32,278 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm"><i class="fa-solid fa-plus me-1.5"></i>Create Component</button>
+        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#createModal" onclick="openCreateModal()">
+            <i class="fa-solid fa-plus me-1.5"></i>Create Component
+        </button>
     </div>
 
-    <!-- Components Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Component Name</th>
-                        <th>Type</th>
-                        <th>Taxability</th>
-                        <th>Calculation Basis</th>
-                        <th>Default Amount/Rate</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">House Rent Allowance (HRA)</td>
-                        <td><span class="badge bg-success-subtle text-success">Allowance</span></td>
-                        <td>Partially Exempt</td>
-                        <td>Percentage of Basic</td>
-                        <td>40% / 50%</td>
-                        <td>Active</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Professional Tax (PT)</td>
-                        <td><span class="badge bg-danger-subtle text-danger">Deduction</span></td>
-                        <td>Fully Deductible</td>
-                        <td>Slab Based (State Law)</td>
-                        <td>₹200 / month</td>
-                        <td>Active</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Conveyance Allowance</td>
-                        <td><span class="badge bg-success-subtle text-success">Allowance</span></td>
-                        <td>Fully Taxable</td>
-                        <td>Fixed Value</td>
-                        <td>₹1,600 / month</td>
-                        <td>Active</td>
-                    </tr>
-                </tbody>
-            </table>
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="bg-white border rounded-3 p-3 shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">Configured Allowances</div>
+                    <h3 class="fw-bold mb-0 text-success">@allowances.Count</h3>
+                </div>
+                <div class="bg-success-subtle text-success p-3 rounded-circle">
+                    <i class="fa-solid fa-hand-holding-dollar fa-lg"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="bg-white border rounded-3 p-3 shadow-sm d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">Configured Deductions</div>
+                    <h3 class="fw-bold mb-0 text-danger">@deductions.Count</h3>
+                </div>
+                <div class="bg-danger-subtle text-danger p-3 rounded-circle">
+                    <i class="fa-solid fa-minus-circle fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-bordered mb-4" id="componentTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold text-dark" id="allowances-tab" data-bs-toggle="tab" data-bs-target="#allowances-pane" type="button" role="tab">
+                <i class="fa-solid fa-arrow-trend-up text-success me-1.5"></i>Earnings & Allowances (@allowances.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold text-dark" id="deductions-tab" data-bs-toggle="tab" data-bs-target="#deductions-pane" type="button" role="tab">
+                <i class="fa-solid fa-arrow-trend-down text-danger me-1.5"></i>Statutory & Custom Deductions (@deductions.Count)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="componentTabsContent">
+        <!-- TAB 1: ALLOWANCES -->
+        <div class="tab-pane fade show active" id="allowances-pane" role="tabpanel">
+            <div class="bg-white border rounded-3 p-4 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Component Name</th>
+                                <th>Code</th>
+                                <th>Type</th>
+                                <th>Taxability</th>
+                                <th>Calculation Basis</th>
+                                <th>Default Value/Rate</th>
+                                <th>Pay Frequency</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!allowances.Any())
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">No allowances created yet.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in allowances)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-dark">@item.ComponentName</td>
+                                        <td><code>@item.ComponentCode</code></td>
+                                        <td><span class="badge bg-success-subtle text-success">Allowance</span></td>
+                                        <td>@item.Taxability</td>
+                                        <td>@item.CalculationBasis</td>
+                                        <td class="fw-semibold">
+                                            @(item.CalculationBasis.Contains("Percentage") ? $"{item.DefaultValueOrRate}%" : $"₹{item.DefaultValueOrRate:N0}")
+                                        </td>
+                                        <td>@item.PayFrequency</td>
+                                        <td>
+                                            @if (item.IsActive)
+                                            {
+                                                <span class="badge bg-success-subtle text-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <form asp-action="ToggleComponentStatus" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.ComponentId" />
+                                                    <button type="submit" class="btn btn-outline-warning btn-xs rounded-circle me-1" title="Toggle Status"><i class="fa-solid fa-power-off"></i></button>
+                                                </form>
+
+                                                <form asp-action="DeleteComponent" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this allowance?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.ComponentId" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-xs rounded-circle" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DEDUCTIONS -->
+        <div class="tab-pane fade" id="deductions-pane" role="tabpanel">
+            <div class="bg-white border rounded-3 p-4 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Component Name</th>
+                                <th>Code</th>
+                                <th>Type</th>
+                                <th>Taxability</th>
+                                <th>Calculation Basis</th>
+                                <th>Default Value/Rate</th>
+                                <th>Max Cap Limit</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!deductions.Any())
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">No deductions created yet.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in deductions)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-dark">@item.ComponentName</td>
+                                        <td><code>@item.ComponentCode</code></td>
+                                        <td><span class="badge bg-danger-subtle text-danger">Deduction</span></td>
+                                        <td>@item.Taxability</td>
+                                        <td>@item.CalculationBasis</td>
+                                        <td class="fw-semibold">
+                                            @(item.CalculationBasis.Contains("Percentage") ? $"{item.DefaultValueOrRate}%" : $"₹{item.DefaultValueOrRate:N0}")
+                                        </td>
+                                        <td>@(item.MaxLimit > 0 ? $"₹{item.MaxLimit:N0}" : "No Limit")</td>
+                                        <td>
+                                            @if (item.IsActive)
+                                            {
+                                                <span class="badge bg-success-subtle text-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <form asp-action="ToggleComponentStatus" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.ComponentId" />
+                                                    <button type="submit" class="btn btn-outline-warning btn-xs rounded-circle me-1" title="Toggle Status"><i class="fa-solid fa-power-off"></i></button>
+                                                </form>
+
+                                                <form asp-action="DeleteComponent" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this deduction?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.ComponentId" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-xs rounded-circle" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CREATE / EDIT COMPONENT MODAL -->
+<div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="modalTitle"><i class="fa-solid fa-plus-circle text-primary me-2"></i>Create Salary Component</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="SaveComponent" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ComponentId" id="compFieldId" value="0" />
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold">Component Name <span class="text-danger">*</span></label>
+                            <input type="text" name="ComponentName" class="form-control form-control-sm" required placeholder="e.g. Telephone Allowance">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Code <span class="text-danger">*</span></label>
+                            <input type="text" name="ComponentCode" class="form-control form-control-sm" required placeholder="e.g. TEL">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Component Type</label>
+                            <select name="ComponentType" class="form-select form-select-sm">
+                                <option value="Allowance">Allowance (Earning)</option>
+                                <option value="Deduction">Deduction</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Taxability Status</label>
+                            <select name="Taxability" class="form-select form-select-sm">
+                                <option value="Fully Taxable">Fully Taxable</option>
+                                <option value="Partially Exempt">Partially Exempt</option>
+                                <option value="Tax Exempt">Tax Exempt</option>
+                                <option value="Fully Deductible">Fully Deductible</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Calculation Basis</label>
+                            <select name="CalculationBasis" class="form-select form-select-sm">
+                                <option value="Fixed Amount">Fixed Amount</option>
+                                <option value="Percentage of Basic">Percentage of Basic</option>
+                                <option value="Percentage of CTC">Percentage of CTC</option>
+                                <option value="Slab Based">Slab Based</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Default Value or Rate (%)</label>
+                            <input type="number" step="0.01" name="DefaultValueOrRate" class="form-control form-control-sm" value="0.00">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Max Limit / Cap (₹)</label>
+                            <input type="number" step="0.01" name="MaxLimit" class="form-control form-control-sm" value="0.00">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Pay Frequency</label>
+                            <select name="PayFrequency" class="form-select form-select-sm">
+                                <option value="Monthly">Monthly</option>
+                                <option value="Yearly">Yearly</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="IsActive" value="true" checked id="compActive">
+                                <label class="form-check-label small fw-bold" for="compActive">Component Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fa-solid fa-save me-1"></i>Save Component</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

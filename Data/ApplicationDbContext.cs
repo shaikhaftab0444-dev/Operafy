@@ -73,6 +73,14 @@ namespace ERP_System.Data
         public DbSet<HROvertimeRecord> HROvertimeRecords { get; set; }
         public DbSet<HRAttendanceRegularization> HRAttendanceRegularizations { get; set; }
 
+        public DbSet<SalaryStructureMaster> SalaryStructureMasters { get; set; }
+        public DbSet<EmployeeSalaryAssignment> EmployeeSalaryAssignments { get; set; }
+        public DbSet<AllowanceDeductionMaster> AllowanceDeductionMasters { get; set; }
+        public DbSet<StatutoryConfiguration> StatutoryConfigurations { get; set; }
+        public DbSet<StatutoryFilingLog> StatutoryFilingLogs { get; set; }
+        public DbSet<BonusIncentive> BonusIncentives { get; set; }
+        public DbSet<PayrollRun> PayrollRuns { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -116,6 +124,14 @@ namespace ERP_System.Data
             modelBuilder.Entity<ImportLog>().ToTable("erp_ImportLogs");
             modelBuilder.Entity<ExportAuditLog>().ToTable("erp_ExportAuditLogs");
             modelBuilder.Entity<AuditLogEntry>().ToTable("erp_AuditLogs");
+
+            modelBuilder.Entity<SalaryStructureMaster>().ToTable("erp_SalaryStructureMasters");
+            modelBuilder.Entity<EmployeeSalaryAssignment>().ToTable("erp_EmployeeSalaryAssignments");
+            modelBuilder.Entity<AllowanceDeductionMaster>().ToTable("erp_AllowanceDeductionMasters");
+            modelBuilder.Entity<StatutoryConfiguration>().ToTable("erp_StatutoryConfigurations");
+            modelBuilder.Entity<StatutoryFilingLog>().ToTable("erp_StatutoryFilingLogs");
+            modelBuilder.Entity<BonusIncentive>().ToTable("erp_BonusIncentives");
+            modelBuilder.Entity<PayrollRun>().ToTable("erp_PayrollRuns");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();
