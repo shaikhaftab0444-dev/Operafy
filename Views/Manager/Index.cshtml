@@ -1,449 +1,2700 @@
 @model ERP_System.Models.ManagerDashboardViewModel
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Manager Dashboard - Operations Hub";
+    ViewData["Title"] = "Operations Command Center";
 }
 
-<!-- Notification CDN libraries & Chart.js -->
+<!-- CDN References -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    /* =========================================================
+           OPERATIONS COMMAND CENTER - PREMIUM DESIGN A
+           Light Enterprise Dashboard
+        ========================================================== */
+
+    .operations-page {
+        --ops-primary: #2563eb;
+        --ops-primary-dark: #1d4ed8;
+        --ops-primary-soft: #eff6ff;
+        --ops-secondary: #7c3aed;
+        --ops-success: #10b981;
+        --ops-success-dark: #059669;
+        --ops-success-soft: #ecfdf5;
+        --ops-warning: #f59e0b;
+        --ops-warning-dark: #d97706;
+        --ops-warning-soft: #fffbeb;
+        --ops-danger: #ef4444;
+        --ops-danger-dark: #dc2626;
+        --ops-danger-soft: #fef2f2;
+        --ops-info: #06b6d4;
+        --ops-info-dark: #0891b2;
+        --ops-info-soft: #ecfeff;
+        --ops-dark: #182235;
+        --ops-text: #334155;
+        --ops-muted: #64748b;
+        --ops-light-muted: #94a3b8;
+        --ops-border: #e5eaf1;
+        --ops-bg: #f6f8fc;
+        --ops-card: #ffffff;
+        color: var(--ops-text);
     }
-    .metric-card {
-        background: #ffffff;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        .operations-page,
+        .operations-page * {
+            box-sizing: border-box;
+        }
+
+    /* =========================================================
+           PAGE HEADER
+        ========================================================== */
+
+    .ops-header {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+        animation: opsFadeUp .6s ease both;
     }
-    .metric-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+
+    .ops-breadcrumb {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-bottom: 8px;
+        font-size: .79rem;
     }
-    .pulse-dot {
-        width: 8px;
-        height: 8px;
-        background-color: #10b981;
-        border-radius: 50%;
-        display: inline-block;
-        animation: pulse 1.5s infinite;
+
+        .ops-breadcrumb a {
+            color: var(--ops-primary);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+            .ops-breadcrumb a:hover {
+                color: var(--ops-primary-dark);
+            }
+
+        .ops-breadcrumb .separator {
+            color: #cbd5e1;
+            font-size: .65rem;
+        }
+
+        .ops-breadcrumb .current {
+            color: var(--ops-muted);
+            font-weight: 600;
+        }
+
+    .ops-title-row {
+        display: flex;
+        align-items: center;
+        gap: 13px;
     }
-    @@keyframes pulse {
-        0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-        100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+
+    .ops-title-icon {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 48px;
+        overflow: hidden;
+        border-radius: 15px;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        font-size: 1.15rem;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, .22);
     }
-    .avatar-wrapper {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
+
+        .ops-title-icon::after {
+            content: "";
+            position: absolute;
+            width: 45px;
+            height: 45px;
+            top: -22px;
+            right: -22px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.18);
+        }
+
+    .ops-page-title {
+        margin: 0 0 4px;
+        color: var(--ops-dark);
+        font-size: 1.65rem;
+        font-weight: 800;
+        letter-spacing: -.5px;
+    }
+
+    .ops-page-subtitle {
+        margin: 0;
+        color: var(--ops-muted);
+        font-size: .82rem;
+    }
+
+    .ops-header-action {
+        min-height: 46px;
+        padding: 0 22px;
+        border: 0;
+        border-radius: 14px;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        font-size: .84rem;
+        font-weight: 800;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, .22);
+        transition: transform .25s ease, box-shadow .25s ease;
+        white-space: nowrap;
+    }
+
+        .ops-header-action:hover {
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 18px 32px rgba(37, 99, 235, .30);
+        }
+
+    /* =========================================================
+           KPI CARDS
+        ========================================================== */
+
+    .ops-stat-card {
+        position: relative;
+        height: 100%;
+        min-height: 172px;
+        padding: 19px 20px 18px;
+        overflow: hidden;
+        border: 1px solid var(--ops-border);
+        border-radius: 19px;
+        background: #fff;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .045);
+        transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+        animation: opsFadeUp .6s ease both;
+    }
+
+        .ops-stat-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, .10);
+            border-color: #d8e1ee;
+        }
+
+        .ops-stat-card::before {
+            content: "";
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            right: -55px;
+            bottom: -75px;
+            border-radius: 50%;
+            opacity: .75;
+        }
+
+    .ops-stat-blue::before {
+        background: #eff6ff;
+    }
+
+    .ops-stat-warning::before {
+        background: #fff7ed;
+    }
+
+    .ops-stat-info::before {
+        background: #ecfeff;
+    }
+
+    .ops-stat-success::before {
+        background: #ecfdf5;
+    }
+
+    .ops-stat-card.delay-1 {
+        animation-delay: .04s;
+    }
+
+    .ops-stat-card.delay-2 {
+        animation-delay: .10s;
+    }
+
+    .ops-stat-card.delay-3 {
+        animation-delay: .16s;
+    }
+
+    .ops-stat-card.delay-4 {
+        animation-delay: .22s;
+    }
+
+    .ops-stat-blue {
+        border-top: 3px solid var(--ops-primary);
+    }
+
+    .ops-stat-warning {
+        border-top: 3px solid var(--ops-warning-dark);
+    }
+
+    .ops-stat-info {
+        border-top: 3px solid var(--ops-info-dark);
+    }
+
+    .ops-stat-success {
+        border-top: 3px solid var(--ops-success);
+    }
+
+    .ops-stat-top {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .ops-stat-label {
+        color: var(--ops-muted);
+        font-size: .69rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .055em;
+    }
+
+    .ops-stat-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        font-size: 1rem;
+    }
+
+    .ops-icon-blue {
+        color: var(--ops-primary);
+        background: var(--ops-primary-soft);
+    }
+
+    .ops-icon-warning {
+        color: var(--ops-warning-dark);
+        background: var(--ops-warning-soft);
+    }
+
+    .ops-icon-info {
+        color: var(--ops-info-dark);
+        background: var(--ops-info-soft);
+    }
+
+    .ops-icon-success {
+        color: var(--ops-success-dark);
+        background: var(--ops-success-soft);
+    }
+
+    .ops-stat-value {
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        color: var(--ops-dark);
+        font-size: 1.65rem;
+        font-weight: 800;
+        letter-spacing: -.6px;
+        line-height: 1.15;
+    }
+
+    .ops-stat-bottom {
+        position: relative;
+        z-index: 2;
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 14px;
+    }
+
+    .ops-status-text {
+        color: var(--ops-success-dark);
+        font-size: .73rem;
         font-weight: 700;
-        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
+    .ops-pulse-green,
+    .ops-pulse-amber {
+        width: 7px;
+        height: 7px;
+        display: inline-block;
+        border-radius: 50%;
+        vertical-align: middle;
+    }
+
+    .ops-pulse-green {
+        background: #22c55e;
+        box-shadow: 0 0 0 0 rgba(34,197,94,.5);
+        animation: opsPulseGreen 2s infinite;
+    }
+
+    .ops-pulse-amber {
+        background: #f59e0b;
+        box-shadow: 0 0 0 0 rgba(245,158,11,.5);
+        animation: opsPulseAmber 2s infinite;
+    }
+
+    .ops-avatar-stack {
+        display: flex;
+        align-items: center;
+        padding-left: 8px;
+    }
+
+    .ops-avatar {
+        width: 29px;
+        height: 29px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: -8px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        color: #fff;
+        font-size: .55rem;
+        font-weight: 800;
+        transition: transform .2s ease;
+    }
+
+        .ops-avatar:hover {
+            z-index: 5;
+            transform: translateY(-4px);
+        }
+
+    .ops-avatar-blue {
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+    }
+
+    .ops-avatar-green {
+        background: linear-gradient(135deg, #10b981, #34d399);
+    }
+
+    .ops-avatar-orange {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    }
+
+    .ops-avatar-slate {
+        background: #64748b;
+    }
+
+    .ops-avatar-cyan {
+        background: linear-gradient(135deg, #06b6d4, #22d3ee);
+    }
+
+    .ops-warning-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 9px;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        color: #b45309;
+        background: #fffbeb;
+        font-size: .66rem;
+        font-weight: 800;
+    }
+
+    .ops-sprint-meta {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 11px;
+        color: var(--ops-muted);
+        font-size: .66rem;
+        font-weight: 700;
+    }
+
+    .ops-delayed {
+        color: var(--ops-danger-dark);
+    }
+
+    .ops-progress {
+        position: relative;
+        z-index: 2;
+        height: 7px;
+        margin-top: 8px;
+        overflow: hidden;
+        border-radius: 50px;
+        background: #e0f2fe;
+    }
+
+        .ops-progress .progress-bar {
+            border-radius: 50px;
+            background: linear-gradient(90deg, #0891b2, #22d3ee);
+        }
+
+    .ops-rating {
+        color: var(--ops-muted);
+        font-size: .71rem;
+        font-weight: 600;
+    }
+
+    .ops-trend {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 9px;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        color: #15803d;
+        background: #f0fdf4;
+        font-size: .68rem;
+        font-weight: 800;
+    }
+
+    /* =========================================================
+           MAIN CARD
+        ========================================================== */
+
+    .ops-card {
+        height: 100%;
+        overflow: hidden;
+        border: 1px solid var(--ops-border);
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 10px 30px rgba(15,23,42,.045);
+        animation: opsFadeUp .7s ease both;
+        transition: transform .25s ease, box-shadow .25s ease;
+    }
+
+        .ops-card:hover {
+            box-shadow: 0 18px 38px rgba(15,23,42,.07);
+        }
+
+    .ops-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 18px 21px;
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    .ops-card-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .ops-card-title-icon {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 38px;
+        border-radius: 12px;
+        color: var(--ops-primary);
+        background: var(--ops-primary-soft);
+        font-size: .92rem;
+    }
+
+        .ops-card-title-icon.warning {
+            color: var(--ops-warning-dark);
+            background: var(--ops-warning-soft);
+        }
+
+        .ops-card-title-icon.info {
+            color: var(--ops-info-dark);
+            background: var(--ops-info-soft);
+        }
+
+        .ops-card-title-icon.success {
+            color: var(--ops-success-dark);
+            background: var(--ops-success-soft);
+        }
+
+    .ops-card-title {
+        margin: 0;
+        color: var(--ops-dark);
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .ops-card-subtitle {
+        margin: 3px 0 0;
+        color: var(--ops-muted);
+        font-size: .70rem;
+    }
+
+    .ops-card-body {
+        padding: 20px;
+    }
+
+    /* =========================================================
+           FILTERS
+        ========================================================== */
+
+    .ops-filter-group {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px;
+        border: 1px solid #e7ecf3;
+        border-radius: 12px;
+        background: #f8fafc;
+        white-space: nowrap;
+    }
+
+    .ops-filter-btn {
+        min-height: 31px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 9px;
+        color: var(--ops-muted);
+        background: transparent;
+        font-size: .68rem;
+        font-weight: 800;
+        transition: all .2s ease;
+    }
+
+        .ops-filter-btn.active {
+            color: var(--ops-primary);
+            background: #fff;
+            box-shadow: 0 3px 10px rgba(15,23,42,.08);
+        }
+
+        .ops-filter-btn:hover {
+            color: var(--ops-primary);
+        }
+
+    /* =========================================================
+           GRAPH AREA
+        ========================================================== */
+
+    .ops-chart-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .ops-mini-summary {
+        padding: 12px;
+        border: 1px solid #edf1f6;
+        border-radius: 13px;
+        background: #fafcff;
+    }
+
+    .ops-mini-summary-label {
+        color: var(--ops-muted);
+        font-size: .63rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .ops-mini-summary-value {
+        margin-top: 5px;
+        color: var(--ops-dark);
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .ops-chart-area {
+        position: relative;
+        height: 270px;
+    }
+
+    /* =========================================================
+           ATTENDANCE
+        ========================================================== */
+
+    .ops-attendance-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .ops-attendance-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid #edf1f6;
+        border-radius: 13px;
+        background: #fbfcfe;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+        .ops-attendance-item:hover {
+            transform: translateX(4px);
+            border-color: #bfdbfe;
+            box-shadow: 0 8px 18px rgba(15,23,42,.05);
+        }
+
+    .ops-attendance-person {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 10px;
+    }
+
+    .ops-attendance-avatar {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: #fff;
+        background: linear-gradient(135deg, #64748b, #334155);
+        font-size: .57rem;
+        font-weight: 800;
+        box-shadow: 0 4px 10px rgba(71,85,105,.18);
+    }
+
+    .ops-attendance-name {
+        overflow: hidden;
+        color: var(--ops-text);
+        font-size: .75rem;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ops-attendance-role {
+        overflow: hidden;
+        margin-top: 2px;
+        color: var(--ops-light-muted);
+        font-size: .64rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ops-attendance-right {
+        flex: 0 0 auto;
+        text-align: right;
+    }
+
+    .ops-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 8px;
+        border-radius: 8px;
+        font-size: .63rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .ops-status-present {
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        background: #f0fdf4;
+    }
+
+    .ops-status-late {
+        color: #b45309;
+        border: 1px solid #fde68a;
+        background: #fffbeb;
+    }
+
+    .ops-status-leave {
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        background: #fef2f2;
+    }
+
+    .ops-clock-time {
+        margin-top: 3px;
+        color: var(--ops-light-muted);
+        font-size: .60rem;
+    }
+
+    /* =========================================================
+           APPROVALS
+        ========================================================== */
+
+    .ops-approval-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ops-approval-card {
+        padding: 15px;
+        border: 1px solid #e9eef5;
+        border-radius: 15px;
+        background: #fff;
+        transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+
+        .ops-approval-card:hover {
+            transform: translateY(-3px);
+            border-color: #bfdbfe;
+            box-shadow: 0 12px 22px rgba(15,23,42,.06);
+        }
+
+    .ops-approval-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .ops-approval-name {
+        color: var(--ops-text);
+        font-size: .80rem;
+        font-weight: 800;
+    }
+
+    .ops-approval-type {
+        margin-top: 4px;
+        color: var(--ops-primary);
+        font-size: .66rem;
+        font-weight: 700;
+    }
+
+    .ops-request-date {
+        padding: 4px 7px;
+        border: 1px solid #e2e8f0;
+        border-radius: 7px;
+        color: var(--ops-muted);
+        background: #f8fafc;
+        font-size: .60rem;
+        white-space: nowrap;
+    }
+
+    .ops-approval-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin-top: 11px;
+        color: var(--ops-muted);
+        font-size: .66rem;
+    }
+
+        .ops-approval-info strong {
+            color: #475569;
+        }
+
+    .ops-approval-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 7px;
+        margin-top: 13px;
+    }
+
+    .ops-approve-btn,
+    .ops-reject-btn {
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 9px;
+        font-size: .67rem;
+        font-weight: 800;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .ops-approve-btn:hover,
+        .ops-reject-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .ops-approve-btn {
+        border: 0;
+        color: #fff;
+        background: linear-gradient(135deg, #10b981, #059669);
+        box-shadow: 0 6px 14px rgba(16,185,129,.16);
+    }
+
+        .ops-approve-btn:hover {
+            color: #fff;
+        }
+
+    .ops-reject-btn {
+        border: 1px solid #fecaca;
+        color: var(--ops-danger-dark);
+        background: #fff;
+    }
+
+        .ops-reject-btn:hover {
+            color: #b91c1c;
+            background: var(--ops-danger-soft);
+        }
+
+    /* =========================================================
+           TASKS
+        ========================================================== */
+
+    .ops-task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ops-task-card {
+        padding: 15px;
+        border: 1px solid #e9eef5;
+        border-radius: 15px;
+        background: #fbfcfe;
+        transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+
+        .ops-task-card:hover {
+            transform: translateY(-3px);
+            border-color: #bfdbfe;
+            box-shadow: 0 12px 22px rgba(15,23,42,.06);
+        }
+
+    .ops-task-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .ops-task-title {
+        margin: 0;
+        color: var(--ops-text);
+        font-size: .78rem;
+        font-weight: 800;
+        line-height: 1.4;
+    }
+
+    .ops-priority {
+        padding: 4px 7px;
+        border-radius: 7px;
+        font-size: .60rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .ops-priority-danger {
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        background: #fef2f2;
+    }
+
+    .ops-priority-warning {
+        color: #b45309;
+        border: 1px solid #fde68a;
+        background: #fffbeb;
+    }
+
+    .ops-priority-success {
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        background: #f0fdf4;
+    }
+
+    .ops-task-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .ops-task-person {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 7px;
+    }
+
+    .ops-task-avatar {
+        width: 25px;
+        height: 25px;
+        flex: 0 0 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: #fff;
+        background: linear-gradient(135deg, #64748b, #334155);
+        font-size: .52rem;
+        font-weight: 800;
+    }
+
+    .ops-task-assignee {
+        overflow: hidden;
+        color: var(--ops-muted);
+        font-size: .65rem;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ops-task-due {
+        color: var(--ops-light-muted);
+        font-size: .63rem;
+        white-space: nowrap;
+    }
+
+    .ops-task-bottom {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 12px;
+    }
+
+    .ops-task-progress {
+        flex: 1;
+        height: 7px;
+        overflow: hidden;
+        border-radius: 50px;
+        background: #e2e8f0;
+    }
+
+        .ops-task-progress .progress-bar {
+            border-radius: 50px;
+            background: linear-gradient(90deg, #2563eb, #60a5fa);
+        }
+
+    .ops-task-percent {
+        color: var(--ops-muted);
+        font-size: .64rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .ops-task-status {
+        padding: 4px 7px;
+        border-radius: 7px;
+        font-size: .58rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .ops-status-progress {
+        color: #0369a1;
+        background: #e0f2fe;
+    }
+
+    .ops-status-review {
+        color: #92400e;
+        background: #fef3c7;
+    }
+
+    .ops-status-delayed {
+        color: #b91c1c;
+        background: #fee2e2;
+    }
+
+    .ops-status-completed {
+        color: #15803d;
+        background: #dcfce7;
+    }
+
+    /* =========================================================
+           EMPTY STATE
+        ========================================================== */
+
+    .ops-empty {
+        padding: 45px 20px;
+        color: var(--ops-light-muted);
+        text-align: center;
+        font-size: .78rem;
+    }
+
+    .ops-empty-icon {
+        width: 54px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 11px;
+        border-radius: 16px;
+        color: var(--ops-primary);
+        background: var(--ops-primary-soft);
+        font-size: 1.2rem;
+    }
+
+    /* =========================================================
+           MODAL
+        ========================================================== */
+
+    .ops-modal .modal-content {
+        overflow: hidden;
+        border: 0;
+        border-radius: 20px;
+        box-shadow: 0 25px 60px rgba(15,23,42,.18);
+    }
+
+    .ops-modal-header {
+        position: relative;
+        padding: 21px 22px;
+        overflow: hidden;
+        color: #fff;
+        background: linear-gradient(135deg, #172033, #1d4ed8);
+    }
+
+        .ops-modal-header::after {
+            content: "";
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            top: -75px;
+            right: -30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.07);
+        }
+
+    .ops-modal-title {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .ops-modal-subtitle {
+        position: relative;
+        z-index: 1;
+        margin: 5px 0 0;
+        color: rgba(255,255,255,.68);
+        font-size: .72rem;
+    }
+
+    .ops-modal .modal-body {
+        padding: 22px;
+    }
+
+    .ops-modal .modal-footer {
+        padding: 15px 22px;
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .ops-modal .form-label {
+        margin-bottom: 7px;
+        color: #475569;
+        font-size: .72rem;
+        font-weight: 800;
+    }
+
+    .ops-modal .form-control,
+    .ops-modal .form-select {
+        min-height: 43px;
+        border: 1px solid #dbe3ee;
+        border-radius: 10px;
+        color: #334155;
+        font-size: .8rem;
+        box-shadow: none;
+    }
+
+        .ops-modal .form-control:focus,
+        .ops-modal .form-select:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 4px rgba(37,99,235,.08);
+        }
+
+    .ops-modal textarea.form-control {
+        min-height: auto;
+    }
+
+    .ops-modal-cancel {
+        min-height: 40px;
+        border-radius: 10px;
+        font-size: .76rem;
+        font-weight: 700;
+    }
+
+    .ops-modal-submit {
+        min-height: 40px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 10px;
+        font-size: .76rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        box-shadow: 0 8px 18px rgba(37,99,235,.18);
+    }
+
+        .ops-modal-submit:hover {
+            transform: translateY(-2px);
+        }
+
+    /* =========================================================
+           ANIMATIONS
+        ========================================================== */
+
+    @@keyframes opsFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes opsPulseGreen {
+        0% {
+            box-shadow: 0 0 0 0 rgba(34,197,94,.45);
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px rgba(34,197,94,0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(34,197,94,0);
+        }
+    }
+
+    @@keyframes opsPulseAmber {
+        0% {
+            box-shadow: 0 0 0 0 rgba(245,158,11,.45);
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px rgba(245,158,11,0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(245,158,11,0);
+        }
+    }
+
+    .fade-out-card {
+        opacity: 0;
+        transform: scale(.92);
+        transition: all .4s ease;
+    }
+
+    /* =========================================================
+           RESPONSIVE
+        ========================================================== */
+
+    @@media (max-width: 991.98px) {
+
+        .ops-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .ops-header-action {
+            width: 100%;
+        }
+
+        .ops-chart-area {
+            height: 300px;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+
+        .operations-page {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        .ops-page-title {
+            font-size: 1.3rem;
+        }
+
+        .ops-card-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .ops-filter-group {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .ops-filter-btn {
+            flex: 1;
+            padding-left: 7px;
+            padding-right: 7px;
+        }
+
+        .ops-chart-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+
+        .ops-stat-card,
+        .ops-card-body,
+        .ops-card-header {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .ops-task-meta {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .ops-task-bottom {
+            flex-wrap: wrap;
+        }
+
+        .ops-task-progress {
+            min-width: 100%;
+            order: 1;
+        }
+
+        .ops-task-percent {
+            order: 2;
+        }
+
+        .ops-task-status {
+            order: 3;
+        }
+
+        .ops-approve-btn,
+        .ops-reject-btn {
+            flex: 1;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+
+        .operations-page *,
+        .operations-page *::before,
+        .operations-page *::after {
+            animation-duration: .01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: .01ms !important;
+        }
     }
 </style>
 
-<div class="container-fluid py-4 text-start">
-    
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="/Manager" class="text-decoration-none">Manager Portal</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-                </ol>
-            </nav>
-            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Manager Dashboard</h4>
-            <p class="text-secondary small mb-0">Overview of active sprint status, live attendance rosters, and daily approvals.</p>
-        </div>
-        <div>
-            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
-                <i class="fa-solid fa-plus me-1.5"></i>Assign New Task
-            </button>
-        </div>
-    </div>
 
-    <!-- Top KPI cards row -->
+<div class="container-fluid py-4 text-start operations-page">
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+    <div class="ops-header">
+
+        <div>
+
+            <div class="ops-breadcrumb">
+                <a href="/Manager">Manager Portal</a>
+
+                <span class="separator">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </span>
+
+                <span class="current">Operations</span>
+
+                <span class="separator">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </span>
+
+                <span class="current">Command Center</span>
+            </div>
+
+            <div class="ops-title-row">
+
+                <div class="ops-title-icon">
+                    <i class="fa-solid fa-solar-panel"></i>
+                </div>
+
+                <div>
+                    <h1 class="ops-page-title">
+                        Operations Command Center
+                    </h1>
+
+                    <p class="ops-page-subtitle">
+                        High-end overview of sprint velocities, live attendance, and daily approval requests.
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <button type="button"
+                class="btn ops-header-action"
+                data-bs-toggle="modal"
+                data-bs-target="#assignTaskModal">
+
+            <i class="fa-solid fa-plus me-2"></i>
+            Assign New Task
+
+        </button>
+
+    </div>
+    <!-- =====================================================
+             KPI METRICS
+        ====================================================== -->
     <div class="row g-3 mb-4">
-        <!-- Card 1 -->
-        <div class="col-md-3">
-            <div class="metric-card p-3.5 shadow-sm d-flex align-items-center gap-3">
-                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-users fs-5"></i>
+
+        <!-- HEADCOUNT -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="ops-stat-card ops-stat-blue delay-1">
+
+                <div class="ops-stat-top">
+
+                    <div class="ops-stat-label">
+                        Direct Team Headcount
+                    </div>
+
+                    <div class="ops-stat-icon ops-icon-blue">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+
                 </div>
-                <div>
-                    <span class="text-secondary small d-block">Direct Team Headcount</span>
-                    <h5 class="fw-bold mb-0 text-dark">
-                        @Model.TotalTeamCount Staff 
-                        <span class="small text-muted font-normal ms-1">• @Model.PresentTodayCount Active <span class="pulse-dot ms-0.5"></span></span>
-                    </h5>
+
+                <h3 class="ops-stat-value">
+                    @Model.TotalTeamCount Staff
+                </h3>
+
+                <div class="ops-stat-bottom">
+
+                    <div class="ops-status-text">
+                        <span class="ops-pulse-green me-1"></span>
+                        @Model.PresentTodayCount On-Duty Today
+                    </div>
+
+                    <div class="ops-avatar-stack">
+                        <div class="ops-avatar ops-avatar-blue">NK</div>
+                        <div class="ops-avatar ops-avatar-green">AS</div>
+                        <div class="ops-avatar ops-avatar-orange">SP</div>
+                        <div class="ops-avatar ops-avatar-cyan">+1</div>
+                    </div>
+
                 </div>
+
             </div>
+
         </div>
 
-        <!-- Card 2 -->
-        <div class="col-md-3">
-            <div class="metric-card p-3.5 shadow-sm d-flex align-items-center gap-3">
-                <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-clock-rotate-left fs-5"></i>
+
+        <!-- APPROVALS -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="ops-stat-card ops-stat-warning delay-2">
+
+                <div class="ops-stat-top">
+
+                    <div class="ops-stat-label">
+                        Pending Action Items
+                    </div>
+
+                    <div class="ops-stat-icon ops-icon-warning">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+
                 </div>
-                <div>
-                    <span class="text-secondary small d-block">Pending Action Items</span>
-                    <h5 class="fw-bold mb-0 text-dark" id="pendingApprovalsKpi">@Model.PendingApprovalsCount Waiting</h5>
+
+                <h3 class="ops-stat-value"
+                    id="pendingApprovalsCounter">
+
+                    @Model.PendingApprovalsCount Approvals
+
+                </h3>
+
+                <div class="ops-stat-bottom">
+
+                    <span class="ops-warning-chip">
+                        <i class="fa-solid fa-bolt"></i>
+                        2 Leave • 1 Expense
+                    </span>
+
                 </div>
+
             </div>
+
         </div>
 
-        <!-- Card 3 -->
-        <div class="col-md-3">
-            <div class="metric-card p-3.5 shadow-sm d-flex align-items-center gap-3">
-                <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-list-check fs-5"></i>
+
+        <!-- TASK VELOCITY -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="ops-stat-card ops-stat-info delay-3">
+
+                <div class="ops-stat-top">
+
+                    <div class="ops-stat-label">
+                        Sprint & Task Velocity
+                    </div>
+
+                    <div class="ops-stat-icon ops-icon-info">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+
                 </div>
-                <div>
-                    <span class="text-secondary small d-block">Active Department Tasks</span>
-                    <h5 class="fw-bold mb-0 text-dark">@Model.ActiveTasksCount In Progress <span class="small text-danger font-normal ms-1">• @Model.DelayedTasksCount Delayed</span></h5>
+
+                <h3 class="ops-stat-value">
+                    @Model.ActiveTasksCount Active Tasks
+                </h3>
+
+                <div class="ops-sprint-meta">
+
+                    <span class="ops-delayed">
+                        <i class="fa-solid fa-circle-exclamation me-1"></i>
+                        1 Delayed
+                    </span>
+
+                    <span>78% Sprint Target</span>
+
                 </div>
+
+                <div class="progress ops-progress">
+
+                    <div class="progress-bar"
+                         role="progressbar"
+                         style="width: 78%">
+                    </div>
+
+                </div>
+
             </div>
+
         </div>
 
-        <!-- Card 4 -->
-        <div class="col-md-3">
-            <div class="metric-card p-3.5 shadow-sm d-flex align-items-center gap-3">
-                <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-chart-line fs-5"></i>
+
+        <!-- EFFICIENCY -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="ops-stat-card ops-stat-success delay-4">
+
+                <div class="ops-stat-top">
+
+                    <div class="ops-stat-label">
+                        Department Efficiency
+                    </div>
+
+                    <div class="ops-stat-icon ops-icon-success">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+
                 </div>
-                <div>
-                    <span class="text-secondary small d-block">Productivity Rate</span>
-                    <h5 class="fw-bold mb-0 text-dark">@Model.ProductivityRate <span class="small text-success font-normal ms-1"><i class="fa-solid fa-arrow-trend-up"></i> Target</span></h5>
+
+                <h3 class="ops-stat-value">
+                    @Model.ProductivityRate
+                </h3>
+
+                <div class="ops-stat-bottom">
+
+                    <span class="ops-rating">
+                        Operational Rating
+                    </span>
+
+                    <span class="ops-trend">
+                        <i class="fa-solid fa-arrow-up"></i>
+                        +3.4%
+                    </span>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
-    <!-- Middle Row: Analytics + Live Attendance -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-8">
-            <div class="glass-panel p-4 h-100">
-                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
-                    <i class="fa-solid fa-chart-simple text-primary me-2"></i>Team Workload & Sprint Progress
-                </h5>
-                <div style="height: 280px; position: relative;">
-                    <canvas id="teamWorkloadChart"></canvas>
-                </div>
-            </div>
-        </div>
 
-        <div class="col-lg-4">
-            <div class="glass-panel p-4 h-100">
-                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
-                    <i class="fa-solid fa-business-time text-primary me-2"></i>Today's Attendance Status
-                </h5>
-                <div class="d-flex flex-column gap-3">
-                    @foreach (var m in Model.TeamAttendance)
-                    {
-                        var badgeClass = m.Status == "Present" ? "bg-success-subtle text-success" : (m.Status == "Late" ? "bg-warning-subtle text-warning" : "bg-danger-subtle text-danger");
-                        <div class="d-flex align-items-center justify-content-between p-2.5 bg-light rounded-3 border">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-secondary text-white avatar-wrapper d-flex align-items-center justify-content-center me-2.5 font-monospace">
-                                    @m.Avatar
-                                </div>
-                                <div>
-                                    <span class="fw-bold text-dark d-block" style="font-size: 0.85rem;">@m.Name</span>
-                                    <span class="text-muted small" style="font-size: 0.7rem;">@m.Role</span>
-                                </div>
+    <!-- =====================================================
+         ANALYTICS + ATTENDANCE
+    ====================================================== -->
+    <div class="row g-4 mb-4">
+
+        <!-- WORKLOAD GRAPH -->
+        <div class="col-lg-8">
+
+            <div class="ops-card">
+
+                <div class="ops-card-header">
+
+                    <div class="ops-card-title-wrap">
+
+                        <div class="ops-card-title-icon">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+
+                        <div>
+                            <h5 class="ops-card-title">
+                                Sprint Performance Overview
+                            </h5>
+
+                            <p class="ops-card-subtitle">
+                                Track completed, active and review workload across the team.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="ops-filter-group">
+
+                        <button class="ops-filter-btn active"
+                                onclick="updateChartFilter('week', this)">
+                            This Week
+                        </button>
+
+                        <button class="ops-filter-btn"
+                                onclick="updateChartFilter('sprint', this)">
+                            Current Sprint
+                        </button>
+
+                        <button class="ops-filter-btn"
+                                onclick="updateChartFilter('month', this)">
+                            This Month
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="ops-card-body">
+
+                    <div class="ops-chart-summary">
+
+                        <div class="ops-mini-summary">
+                            <div class="ops-mini-summary-label">
+                                Completion
                             </div>
-                            <div class="text-end">
-                                <span class="badge @badgeClass border px-2.5 py-1" style="font-size: 0.7rem;">@m.Status</span>
-                                <span class="text-muted small d-block mt-0.5" style="font-size: 0.65rem;">In: @m.ClockInTime</span>
+
+                            <div class="ops-mini-summary-value">
+                                78%
                             </div>
                         </div>
-                    }
+
+
+                        <div class="ops-mini-summary">
+                            <div class="ops-mini-summary-label">
+                                Active Work
+                            </div>
+
+                            <div class="ops-mini-summary-value">
+                                @Model.ActiveTasksCount Tasks
+                            </div>
+                        </div>
+
+
+                        <div class="ops-mini-summary">
+                            <div class="ops-mini-summary-label">
+                                Team Trend
+                            </div>
+
+                            <div class="ops-mini-summary-value">
+                                <span style="color:#059669;">+12.4%</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="ops-chart-area">
+                        <canvas id="teamWorkloadChart"></canvas>
+                    </div>
+
                 </div>
+
             </div>
+
         </div>
+
+
+        <!-- LIVE ATTENDANCE -->
+        <div class="col-lg-4">
+
+            <div class="ops-card">
+
+                <div class="ops-card-header">
+
+                    <div class="ops-card-title-wrap">
+
+                        <div class="ops-card-title-icon info">
+                            <i class="fa-solid fa-radar"></i>
+                        </div>
+
+                        <div>
+                            <h5 class="ops-card-title">
+                                Live Attendance Radar
+                            </h5>
+
+                            <p class="ops-card-subtitle">
+                                Real-time team availability.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="ops-card-body">
+
+                    <div class="ops-attendance-list">
+
+                        @foreach (var m in Model.TeamAttendance)
+                        {
+                            var attendanceStatusClass =
+                            m.Status == "Present"
+                            ? "ops-status-present"
+                            : (m.Status == "Late"
+                            ? "ops-status-late"
+                            : "ops-status-leave");
+
+                            <div class="ops-attendance-item">
+
+                                <div class="ops-attendance-person">
+
+                                    <div class="ops-attendance-avatar">
+                                        @m.Avatar
+                                    </div>
+
+                                    <div style="min-width:0;">
+
+                                        <div class="ops-attendance-name">
+                                            @m.Name
+                                        </div>
+
+                                        <div class="ops-attendance-role">
+                                            @m.Role
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="ops-attendance-right">
+
+                                    <span class="ops-status-badge @attendanceStatusClass">
+
+                                        @if (m.Status == "Present")
+                                        {
+                                            <span class="ops-pulse-green"></span>
+                                        }
+                                        else if (m.Status == "Late")
+                                        {
+                                            <span class="ops-pulse-amber"></span>
+                                        }
+
+                                        @m.Status
+
+                                    </span>
+
+                                    <div class="ops-clock-time">
+                                        In: @m.ClockInTime
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <!-- Bottom Row: Quick Approvals + Active Tasks -->
+
+    <!-- =====================================================
+         APPROVALS + DELIVERABLES
+    ====================================================== -->
     <div class="row g-4">
-        <!-- Quick Approvals -->
+
+        <!-- APPROVAL INBOX -->
         <div class="col-lg-6">
-            <div class="glass-panel p-4 h-100">
-                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
-                    <i class="fa-solid fa-clipboard-check text-warning me-2"></i>Quick Approvals Inbox
-                </h5>
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover text-start" style="font-size: 0.825rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Employee & Type</th>
-                                <th>Details / Duration</th>
-                                <th class="text-center" style="width: 32%;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!Model.PendingApprovals.Any())
-                            {
-                                <tr>
-                                    <td colspan="3" class="text-center py-4 text-muted">No pending approvals waiting.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var approval in Model.PendingApprovals)
-                                {
-                                    <tr id="approval-row-@approval.Id">
-                                        <td>
-                                            <span class="fw-bold text-dark d-block">@approval.EmployeeName</span>
-                                            <span class="text-secondary small">@approval.Type</span>
-                                        </td>
-                                        <td>
-                                            <span class="d-block text-secondary" style="font-size: 0.75rem;">@approval.Dates</span>
-                                            <span class="text-muted small" style="font-size: 0.7rem;">Reason: @approval.Reason</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="submitApproval(@approval.Id, 'Approve')"><i class="fa-solid fa-check"></i> Approve</button>
-                                            <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="submitApproval(@approval.Id, 'Reject')"><i class="fa-solid fa-xmark"></i> Reject</button>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
+
+            <div class="ops-card">
+
+                <div class="ops-card-header">
+
+                    <div class="ops-card-title-wrap">
+
+                        <div class="ops-card-title-icon warning">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+
+                        <div>
+                            <h5 class="ops-card-title">
+                                Instant Approval Inbox
+                            </h5>
+
+                            <p class="ops-card-subtitle">
+                                Review and action pending employee requests.
+                            </p>
+                        </div>
+
+                    </div>
+
                 </div>
+
+
+                <div class="ops-card-body">
+
+                    <div class="ops-approval-list"
+                         id="approvalInboxContainer">
+
+                        @if (!Model.PendingApprovals.Any())
+                        {
+                            <div class="ops-empty">
+
+                                <div class="ops-empty-icon">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+
+                                No pending approval items.
+
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var approval in Model.PendingApprovals)
+                            {
+                                <div class="ops-approval-card"
+                                     id="approval-card-@approval.Id">
+
+                                    <div class="ops-approval-top">
+
+                                        <div>
+
+                                            <div class="ops-approval-name">
+                                                @approval.EmployeeName
+                                            </div>
+
+                                            <div class="ops-approval-type">
+                                                @approval.Type
+                                            </div>
+
+                                        </div>
+
+
+                                        <span class="ops-request-date">
+                                            @approval.RequestedOn
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="ops-approval-info">
+
+                                        <span>
+                                            <strong>Dates:</strong>
+                                            @approval.Dates
+                                        </span>
+
+                                        <span>
+                                            <strong>Reason:</strong>
+                                            @approval.Reason
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="ops-approval-actions">
+
+                                        <button type="button"
+                                                class="btn ops-approve-btn"
+                                                onclick="handleQuickApproval(@approval.Id, 'Approve')">
+
+                                            <i class="fa-solid fa-check me-1"></i>
+                                            Approve
+
+                                        </button>
+
+
+                                        <button type="button"
+                                                class="btn ops-reject-btn"
+                                                onclick="handleQuickApproval(@approval.Id, 'Reject')">
+
+                                            <i class="fa-solid fa-xmark me-1"></i>
+                                            Reject
+
+                                        </button>
+
+                                    </div>
+
+                                </div>
+                            }
+                        }
+
+                    </div>
+
+                </div>
+
             </div>
+
         </div>
 
-        <!-- Team Tasks Grid -->
+
+        <!-- ACTIVE DELIVERABLES -->
         <div class="col-lg-6">
-            <div class="glass-panel p-4 h-100">
-                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
-                    <i class="fa-solid fa-list-check text-primary me-2"></i>Active Team Tasks Board
-                </h5>
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover text-start" style="font-size: 0.825rem;" id="teamTasksTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Task Title</th>
-                                <th>Assigned To</th>
-                                <th>Progress</th>
-                                <th>Priority</th>
-                            </tr>
-                        </thead>
-                        <tbody id="teamTasksBody">
-                            @foreach (var task in Model.TeamTasks)
-                            {
-                                var priorityClass = task.Priority == "Urgent" ? "bg-danger-subtle text-danger" : (task.Priority == "High" ? "bg-warning-subtle text-warning" : "bg-success-subtle text-success");
-                                <tr>
-                                    <td class="fw-bold text-dark">@task.Title</td>
-                                    <td class="text-secondary">@task.AssignedTo</td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2" style="width: 100px;">
-                                            <div class="progress flex-fill" style="height: 5px;">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @task.Progress%"></div>
-                                            </div>
-                                            <span class="small font-monospace">@task.Progress%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="badge @priorityClass border px-2 py-1">@task.Priority</span></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+
+            <div class="ops-card">
+
+                <div class="ops-card-header">
+
+                    <div class="ops-card-title-wrap">
+
+                        <div class="ops-card-title-icon success">
+                            <i class="fa-solid fa-list-check"></i>
+                        </div>
+
+                        <div>
+                            <h5 class="ops-card-title">
+                                Active Sprint Deliverables
+                            </h5>
+
+                            <p class="ops-card-subtitle">
+                                Current assignments and team execution progress.
+                            </p>
+                        </div>
+
+                    </div>
+
                 </div>
+
+
+                <div class="ops-card-body">
+
+                    <div class="ops-task-list"
+                         id="taskGridContainer">
+
+                        @foreach (var task in Model.TeamTasks)
+                        {
+                            var priorityClass =
+                            task.Priority == "Urgent"
+                            ? "ops-priority-danger"
+                            : (task.Priority == "High"
+                            ? "ops-priority-warning"
+                            : "ops-priority-success");
+
+                            var statusClass =
+                            task.Status == "In Progress"
+                            ? "ops-status-progress"
+                            : (task.Status == "Review"
+                            ? "ops-status-review"
+                            : (task.Status == "Delayed"
+                            ? "ops-status-delayed"
+                            : "ops-status-completed"));
+
+                            <div class="ops-task-card">
+
+                                <div class="ops-task-top">
+
+                                    <h6 class="ops-task-title">
+                                        @task.Title
+                                    </h6>
+
+                                    <span class="ops-priority @priorityClass">
+                                        @task.Priority
+                                    </span>
+
+                                </div>
+
+
+                                <div class="ops-task-meta">
+
+                                    <div class="ops-task-person">
+
+                                        <div class="ops-task-avatar">
+                                            @task.AssignedTo.Substring(0, Math.Min(2, task.AssignedTo.Length)).ToUpper()
+                                        </div>
+
+                                        <span class="ops-task-assignee">
+                                            @task.AssignedTo
+                                        </span>
+
+                                    </div>
+
+
+                                    <span class="ops-task-due">
+                                        <i class="fa-solid fa-calendar-days me-1"></i>
+                                        Due: @task.DueDate
+                                    </span>
+
+                                </div>
+
+
+                                <div class="ops-task-bottom">
+
+                                    <div class="progress ops-task-progress">
+
+                                        <div class="progress-bar"
+                                             role="progressbar"
+                                             style="width: @task.Progress%">
+                                        </div>
+
+                                    </div>
+
+
+                                    <span class="ops-task-percent">
+                                        @task.Progress%
+                                    </span>
+
+
+                                    <span class="ops-task-status @statusClass">
+                                        @task.Status
+                                    </span>
+
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
             </div>
+
         </div>
+
     </div>
 
 </div>
 
-<!-- Assign New Task Modal -->
-<div class="modal fade" id="assignTaskModal" tabindex="-1" aria-hidden="true">
+
+<!-- =========================================================
+     ASSIGN NEW TASK MODAL
+========================================================== -->
+<div class="modal fade ops-modal"
+     id="assignTaskModal"
+     tabindex="-1"
+     aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-panel border shadow-lg text-start">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="fw-bold text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i>Delegate New Deliverable</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+        <div class="modal-content">
+
+            <div class="ops-modal-header">
+
+                <div>
+
+                    <h5 class="ops-modal-title">
+                        <i class="fa-solid fa-list-check me-2"></i>
+                        Delegate New Deliverable
+                    </h5>
+
+                    <p class="ops-modal-subtitle">
+                        Assign a task to your team and track execution progress.
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="btn-close btn-close-white position-relative"
+                        style="z-index:2;"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
             </div>
-            <form id="assignTaskForm" onsubmit="submitNewTask(event)">
+
+
+            <form id="assignTaskForm"
+                  onsubmit="submitNewTask(event)">
+
                 @Html.AntiForgeryToken()
-                <div class="modal-body py-3">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Deliverable Title</label>
-                        <input type="text" class="form-control" name="title" placeholder="Forecast sales Q3 metrics..." required />
-                    </div>
+
+
+                <div class="modal-body">
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Assigned Team Member</label>
-                        <select class="form-select" name="assignedTo" required>
-                            <option value="">Select Employee...</option>
+
+                        <label class="form-label">
+                            Deliverable Title
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="title"
+                               placeholder="Forecast sales Q3 metrics..."
+                               required />
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Assigned Team Member
+                        </label>
+
+                        <select class="form-select"
+                                name="assignedTo"
+                                required>
+
+                            <option value="">
+                                Select Employee...
+                            </option>
+
                             @foreach (var m in Model.TeamAttendance)
                             {
-                                <option value="@m.Name">@m.Name (@m.Role)</option>
+                                <option value="@m.Name">
+                                    @m.Name (@m.Role)
+                                </option>
                             }
+
                         </select>
+
                     </div>
 
+
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Task Priority</label>
-                        <select class="form-select" name="priority" required>
-                            <option value="Low">Low Priority</option>
-                            <option value="Medium" selected>Medium Priority</option>
-                            <option value="High">High Priority</option>
-                            <option value="Urgent">Urgent Priority</option>
+
+                        <label class="form-label">
+                            Task Priority
+                        </label>
+
+                        <select class="form-select"
+                                name="priority"
+                                required>
+
+                            <option value="Low">
+                                Low Priority
+                            </option>
+
+                            <option value="Medium"
+                                    selected>
+                                Medium Priority
+                            </option>
+
+                            <option value="High">
+                                High Priority
+                            </option>
+
+                            <option value="Urgent">
+                                Urgent Priority
+                            </option>
+
                         </select>
+
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Target Due Date</label>
-                        <input type="date" class="form-control" name="dueDate" required />
-                    </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Detailed Description</label>
-                        <textarea class="form-control" name="description" rows="3" placeholder="Provide instructions..."></textarea>
+
+                        <label class="form-label">
+                            Target Due Date
+                        </label>
+
+                        <input type="date"
+                               class="form-control"
+                               name="dueDate"
+                               required />
+
                     </div>
+
+
+                    <div class="mb-0">
+
+                        <label class="form-label">
+                            Detailed Description
+                        </label>
+
+                        <textarea class="form-control"
+                                  name="description"
+                                  rows="3"
+                                  placeholder="Provide instructions..."></textarea>
+
+                    </div>
+
                 </div>
-                <div class="modal-footer border-top-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary fw-bold px-4">Delegate Task</button>
+
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light border ops-modal-cancel"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+
+                    <button type="submit"
+                            class="btn btn-primary ops-modal-submit">
+
+                        <i class="fa-solid fa-paper-plane me-1"></i>
+                        Delegate Task
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
 
+
 <script>
-    const assignModal = new bootstrap.Modal(document.getElementById("assignTaskModal"));
 
-    // Render Sprint workload chart
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById("teamWorkloadChart").getContext("2d");
-        
-        // Dynamic labels and datasets mapped to TeamAttendance tasks
-        const labels = ['Numan Khan', 'Aftab Shaik', 'Sneha Patil', 'Rohan Sharma', 'Zoya Malik', 'Sameer Verma'];
-        const completedData = [3, 4, 1, 2, 2, 3];
-        const activeData = [2, 1, 0, 1, 1, 1];
+    let workloadChart = null;
 
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Completed Tasks',
-                        data: completedData,
-                        backgroundColor: '#10b981',
-                        borderRadius: 6
-                    },
-                    {
-                        label: 'Active Tasks',
-                        data: activeData,
-                        backgroundColor: '#2563eb',
-                        borderRadius: 6
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#f1f5f9' }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
+
+    const assignModal =
+        new bootstrap.Modal(
+            document.getElementById("assignTaskModal")
+        );
+
+
+    const chartFilterData = {
+
+        week: {
+            completed: [3, 5, 4, 7, 5, 8],
+            inprogress: [6, 7, 5, 8, 6, 9],
+            review: [2, 3, 2, 4, 3, 5]
+        },
+
+        sprint: {
+            completed: [8, 12, 10, 15, 13, 18],
+            inprogress: [11, 14, 12, 16, 15, 19],
+            review: [4, 5, 4, 6, 5, 7]
+        },
+
+        month: {
+            completed: [18, 24, 20, 29, 27, 34],
+            inprogress: [22, 27, 24, 31, 29, 36],
+            review: [7, 9, 8, 11, 10, 13]
+        }
+
+    };
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const chartCanvas =
+            document.getElementById("teamWorkloadChart");
+
+
+        if (!chartCanvas) {
+            return;
+        }
+
+
+        const ctx =
+            chartCanvas.getContext("2d");
+
+
+        const labels = [
+            'Numan Khan',
+            'Aftab Shaik',
+            'Sneha Patil',
+            'Rohan Sharma',
+            'Zoya Malik',
+            'Sameer Verma'
+        ];
+
+
+        const completedGradient =
+            ctx.createLinearGradient(0, 0, 0, 350);
+
+        completedGradient.addColorStop(0, 'rgba(37, 99, 235, .95)');
+        completedGradient.addColorStop(1, 'rgba(96, 165, 250, .25)');
+
+
+        const activeGradient =
+            ctx.createLinearGradient(0, 0, 0, 350);
+
+        activeGradient.addColorStop(0, 'rgba(6, 182, 212, .85)');
+        activeGradient.addColorStop(1, 'rgba(34, 211, 238, .20)');
+
+
+        const reviewGradient =
+            ctx.createLinearGradient(0, 0, 0, 350);
+
+        reviewGradient.addColorStop(0, 'rgba(245, 158, 11, .85)');
+        reviewGradient.addColorStop(1, 'rgba(251, 191, 36, .20)');
+
+
+        workloadChart =
+            new Chart(ctx, {
+
+                type: 'line',
+
+                data: {
+
+                    labels: labels,
+
+                    datasets: [
+
+                        {
+                            label: 'Completed',
+                            data: chartFilterData.week.completed,
+                            borderColor: '#2563eb',
+                            backgroundColor: completedGradient,
+                            fill: true,
+                            tension: .42,
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#2563eb',
+                            pointBorderWidth: 2
+                        },
+
+                        {
+                            label: 'Active',
+                            data: chartFilterData.week.inprogress,
+                            borderColor: '#06b6d4',
+                            backgroundColor: activeGradient,
+                            fill: true,
+                            tension: .42,
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#06b6d4',
+                            pointBorderWidth: 2
+                        },
+
+                        {
+                            label: 'Review',
+                            data: chartFilterData.week.review,
+                            borderColor: '#f59e0b',
+                            backgroundColor: reviewGradient,
+                            fill: true,
+                            tension: .42,
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#f59e0b',
+                            pointBorderWidth: 2
+                        }
+
+                    ]
+
                 },
-                plugins: {
-                    legend: { position: 'top' }
+
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+
+                    animation: {
+                        duration: 1100,
+                        easing: 'easeOutQuart'
+                    },
+
+
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            grid: {
+                                color: '#edf2f7',
+                                drawBorder: false
+                            },
+
+                            border: {
+                                display: false
+                            },
+
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    size: 10
+                                },
+                                padding: 8
+                            }
+
+                        },
+
+
+                        x: {
+
+                            grid: {
+                                display: false
+                            },
+
+                            border: {
+                                display: false
+                            },
+
+                            ticks: {
+                                color: '#64748b',
+                                font: {
+                                    size: 10,
+                                    weight: '600'
+                                }
+                            }
+
+                        }
+
+                    },
+
+
+                    plugins: {
+
+                        legend: {
+
+                            position: 'top',
+
+                            align: 'start',
+
+                            labels: {
+
+                                color: '#64748b',
+
+                                usePointStyle: true,
+
+                                pointStyle: 'circle',
+
+                                boxWidth: 8,
+
+                                boxHeight: 8,
+
+                                padding: 20,
+
+                                font: {
+                                    size: 10,
+                                    weight: '700'
+                                }
+
+                            }
+
+                        },
+
+
+                        tooltip: {
+
+                            backgroundColor: '#182235',
+
+                            titleColor: '#ffffff',
+
+                            bodyColor: '#dbeafe',
+
+                            padding: 12,
+
+                            cornerRadius: 10,
+
+                            displayColors: true,
+
+                            boxPadding: 5
+
+                        }
+
+                    }
+
                 }
-            }
-        });
+
+            });
+
     });
 
-    // Submit Approval / Rejection via AJAX
-    function submitApproval(id, actionType) {
-        toastr.info("Processing approval transaction...");
 
-        fetch(`/Manager/ApproveLeave?id=${id}&actionType=${actionType}`, {
-            method: "POST"
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                toastr.success(data.message);
-                document.getElementById(`approval-row-${id}`).remove();
-                decrementKpiCounter();
-            } else {
-                toastr.error(data.message);
-            }
-        });
-    }
+    function updateChartFilter(filterKey, element) {
 
-    // Submit New Task Allocation via AJAX
-    function submitNewTask(e) {
-        e.preventDefault();
-        const form = document.getElementById("assignTaskForm");
-        const formData = new FormData(form);
+        document
+            .querySelectorAll(".ops-filter-btn")
+            .forEach(button => {
 
-        toastr.info("Assigning deliverable task...");
+                button.classList.remove("active");
 
-        fetch("/Manager/AssignTask", {
-            method: "POST",
-            body: formData
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                toastr.success(data.message);
-                assignModal.hide();
-                form.reset();
+            });
 
-                // Append new task to UI active task grid
-                const tbody = document.getElementById("teamTasksBody");
-                const priorityClass = data.task.priority === "Urgent" ? "bg-danger-subtle text-danger" : (data.task.priority === "High" ? "bg-warning-subtle text-warning" : "bg-success-subtle text-success");
 
-                const newRow = `
-                    <tr>
-                        <td class="fw-bold text-dark">${data.task.title}</td>
-                        <td class="text-secondary">${data.task.assignedTo}</td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2" style="width: 100px;">
-                                <div class="progress flex-fill" style="height: 5px;">
-                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 20%"></div>
-                                </div>
-                                <span class="small font-monospace">20%</span>
-                            </div>
-                        </td>
-                        <td><span class="badge ${priorityClass} border px-2 py-1">${data.task.priority}</span></td>
-                    </tr>`;
-                
-                tbody.insertAdjacentHTML("afterbegin", newRow);
-            } else {
-                toastr.error(data.message);
-            }
-        });
-    }
+        element.classList.add("active");
 
-    function decrementKpiCounter() {
-        const kpi = document.getElementById("pendingApprovalsKpi");
-        if (kpi) {
-            let count = parseInt(kpi.innerText.split(" ")[0]);
-            if (count > 0) {
-                count--;
-                kpi.innerText = `${count} Waiting`;
-            }
+
+        const dataSet =
+            chartFilterData[filterKey];
+
+
+        if (workloadChart && dataSet) {
+
+            workloadChart.data.datasets[0].data =
+                dataSet.completed;
+
+            workloadChart.data.datasets[1].data =
+                dataSet.inprogress;
+
+            workloadChart.data.datasets[2].data =
+                dataSet.review;
+
+
+            workloadChart.update();
+
         }
+
     }
+
+
+    function handleQuickApproval(id, actionType) {
+
+        toastr.info(
+            `Sending ${actionType.toLowerCase()} request...`
+        );
+
+
+        fetch(
+            `/Manager/ApproveLeave?id=${id}&actionType=${actionType}`,
+            {
+                method: "POST"
+            }
+        )
+            .then(res => res.json())
+
+            .then(data => {
+
+                if (data.success) {
+
+                    toastr.success(
+                        data.message
+                    );
+
+
+                    const card =
+                        document.getElementById(
+                            `approval-card-${id}`
+                        );
+
+
+                    if (card) {
+
+                        card.classList.add(
+                            "fade-out-card"
+                        );
+
+
+                        setTimeout(() => {
+
+                            card.remove();
+
+                            decrementCounter();
+
+                        }, 400);
+
+                    }
+
+                }
+                else {
+
+                    toastr.error(
+                        data.message
+                    );
+
+                }
+
+            })
+
+            .catch(() => {
+
+                toastr.error(
+                    "Something went wrong while processing the request."
+                );
+
+            });
+
+    }
+
+
+    function submitNewTask(e) {
+
+        e.preventDefault();
+
+
+        const form =
+            document.getElementById(
+                "assignTaskForm"
+            );
+
+
+        const formData =
+            new FormData(form);
+
+
+        toastr.info(
+            "Delegating new task..."
+        );
+
+
+        fetch(
+            "/Manager/AssignTask",
+            {
+                method: "POST",
+                body: formData
+            }
+        )
+            .then(res => res.json())
+
+            .then(data => {
+
+                if (data.success) {
+
+                    toastr.success(
+                        data.message
+                    );
+
+
+                    assignModal.hide();
+
+                    form.reset();
+
+
+                    const grid =
+                        document.getElementById(
+                            "taskGridContainer"
+                        );
+
+
+                    const priorityClass =
+                        data.task.priority === "Urgent"
+                            ? "ops-priority-danger"
+                            : (
+                                data.task.priority === "High"
+                                    ? "ops-priority-warning"
+                                    : "ops-priority-success"
+                            );
+
+
+                    const initials =
+                        data.task.assignedTo
+                            .substring(0, 2)
+                            .toUpperCase();
+
+
+                    const taskHtml = `
+
+                        <div class="ops-task-card">
+
+                            <div class="ops-task-top">
+
+                                <h6 class="ops-task-title">
+                                    ${data.task.title}
+                                </h6>
+
+                                <span class="ops-priority ${priorityClass}">
+                                    ${data.task.priority}
+                                </span>
+
+                            </div>
+
+
+                            <div class="ops-task-meta">
+
+                                <div class="ops-task-person">
+
+                                    <div class="ops-task-avatar">
+                                        ${initials}
+                                    </div>
+
+                                    <span class="ops-task-assignee">
+                                        ${data.task.assignedTo}
+                                    </span>
+
+                                </div>
+
+
+                                <span class="ops-task-due">
+                                    <i class="fa-solid fa-calendar-days me-1"></i>
+                                    Due: ${data.task.dueDate}
+                                </span>
+
+                            </div>
+
+
+                            <div class="ops-task-bottom">
+
+                                <div class="progress ops-task-progress">
+
+                                    <div class="progress-bar"
+                                         role="progressbar"
+                                         style="width: 20%">
+                                    </div>
+
+                                </div>
+
+
+                                <span class="ops-task-percent">
+                                    20%
+                                </span>
+
+
+                                <span class="ops-task-status ops-status-progress">
+                                    In Progress
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+
+                    grid.insertAdjacentHTML(
+                        "afterbegin",
+                        taskHtml
+                    );
+
+                }
+                else {
+
+                    toastr.error(
+                        data.message
+                    );
+
+                }
+
+            })
+
+            .catch(() => {
+
+                toastr.error(
+                    "Something went wrong while delegating the task."
+                );
+
+            });
+
+    }
+
+
+    function decrementCounter() {
+
+        const kpi =
+            document.getElementById(
+                "pendingApprovalsCounter"
+            );
+
+
+        if (kpi) {
+
+            let count =
+                parseInt(
+                    kpi.innerText.split(" ")[0]
+                );
+
+
+            if (count > 0) {
+
+                count--;
+
+
+                kpi.innerText =
+                    `${count} Approvals`;
+
+            }
+
+        }
+
+    }
+
 </script>

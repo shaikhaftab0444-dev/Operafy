@@ -1,10 +1,11 @@
-@model ERP_System.Models.ManagerDashboardViewModel
+@model IEnumerable<ERP_System.Models.ApprovalItemViewModel>
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Approval Center - Operations";
+    ViewData["Title"] = "Unified Approval Center";
+    var activeCategory = ViewBag.ActiveCategory ?? "All";
 }
 
-<!-- CDN references -->
+<!-- CDN References -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
@@ -18,35 +19,55 @@
         border-radius: 16px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
     }
-    .nav-tabs-custom {
-        border-bottom: 2px solid #e2e8f0;
+    .avatar-wrapper {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: #64748b;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.8rem;
     }
-    .nav-tabs-custom .nav-link {
+    .btn-group-glass {
+        background: rgba(241, 245, 249, 0.8);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 30px;
+        padding: 4px;
+    }
+    .btn-group-glass .btn-filter {
         border: none;
+        background: transparent;
         color: #64748b;
+        font-size: 0.775rem;
         font-weight: 600;
-        padding: 12px 24px;
-        position: relative;
+        padding: 8px 16px;
+        border-radius: 20px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .btn-group-glass .btn-filter.active {
+        background: #ffffff;
+        color: #2563eb;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .fade-out-row {
+        opacity: 0;
+        transform: translateX(30px);
+        transition: all 0.5s ease;
+    }
+    .hover-lift {
         transition: all 0.2s ease;
     }
-    .nav-tabs-custom .nav-link.active {
-        color: #2563eb;
-        background: transparent;
-    }
-    .nav-tabs-custom .nav-link.active::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background-color: #2563eb;
+    .hover-lift:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
     }
 </style>
 
 <div class="container-fluid py-4 text-start">
+    <div style="display:none;">@Html.AntiForgeryToken()</div>
     
-    <!-- Top Header -->
+    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <nav aria-label="breadcrumb">
@@ -57,219 +78,123 @@
                 </ol>
             </nav>
             <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-clipboard-check text-primary me-2"></i>Unified Approval Center</h4>
-            <p class="text-secondary small mb-0">Evaluate employee submissions, timecard regularizations, and departmental travel or logistics claims.</p>
+            <p class="text-secondary small mb-0">Approve or reject timecard regularizations, expense receipts, and vacation requests.</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline-primary px-3.5 py-2 rounded-pill fw-bold hover-lift" onclick="triggerBulkApproval()">
+                <i class="fa-solid fa-check-double me-1.5"></i>Bulk Approve Selected
+            </button>
         </div>
     </div>
 
-    <!-- Search / Filter controls -->
-    <div class="glass-panel p-3.5 mb-4">
-        <div class="row g-3 align-items-center">
-            <div class="col-md-5">
-                <div class="input-group">
-                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
-                    <input type="text" id="approvalSearchInput" class="form-control border-start-0" placeholder="Search by employee name or reason..." onkeyup="filterApprovals()" />
-                </div>
-            </div>
-            <div class="col-md-3">
-                <select id="typeFilter" class="form-select" onchange="filterApprovals()">
-                    <option value="">All Categories</option>
-                    <option value="Leave">Leave Requests</option>
-                    <option value="Regularization">Attendance Regularization</option>
-                    <option value="Reimbursement">Expense Reimbursements</option>
-                </select>
-            </div>
-            <div class="col-md-4 text-end text-muted small">
-                Total Pending Submissions: <span class="fw-bold text-dark font-monospace" id="totalPendingBadge">@Model.PendingApprovals.Count</span>
-            </div>
+    <!-- Category Filters Tab Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div class="btn-group-glass d-flex">
+            <a href="/Manager/Approvals?category=All" class="btn-filter @(activeCategory == "All" ? "active" : "")">📝 All Requests</a>
+            <a href="/Manager/Approvals?category=Leave" class="btn-filter @(activeCategory == "Leave" ? "active" : "")">🏖️ Leaves</a>
+            <a href="/Manager/Approvals?category=Regularization" class="btn-filter @(activeCategory == "Regularization" ? "active" : "")">⏱️ Regularization</a>
+            <a href="/Manager/Approvals?category=Expense" class="btn-filter @(activeCategory == "Expense" ? "active" : "")">💵 Expenses</a>
         </div>
-    </div>
-
-    <!-- Approvals list card container -->
-    <div class="glass-panel p-4">
         
-        <!-- Tab Controls -->
-        <ul class="nav nav-tabs nav-tabs-custom mb-4" id="approvalsTabControl" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-pane" type="button" role="tab">
-                    📝 All Pending (@Model.PendingApprovals.Count)
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="leaves-tab" data-bs-toggle="tab" data-bs-target="#leaves-pane" type="button" role="tab">
-                    🏖️ Leave Applications (@Model.PendingApprovals.Count(a => a.Type.Contains("Leave")))
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="reg-tab" data-bs-toggle="tab" data-bs-target="#reg-pane" type="button" role="tab">
-                    ⏱️ Regularizations (@Model.PendingApprovals.Count(a => a.Type.Contains("Regularization")))
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="claims-tab" data-bs-toggle="tab" data-bs-target="#claims-pane" type="button" role="tab">
-                    💵 Logistics & Expenses (@Model.PendingApprovals.Count(a => a.Type.Contains("Reimbursement")))
-                </button>
-            </li>
-        </ul>
-
-        <!-- Tab Content -->
-        <div class="tab-content" id="approvalsTabContent">
-            <!-- All Pending Tab Pane -->
-            <div class="tab-pane fade show active" id="all-pane" role="tabpanel" tabindex="0">
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover text-start mb-0" id="allApprovalsTable" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Employee details</th>
-                                <th>Claim Category</th>
-                                <th>Requested / Duration Dates</th>
-                                <th>Reason / Note</th>
-                                <th>Submitted Date</th>
-                                <th class="text-center" style="width: 22%;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="approvalsTableBody">
-                            @if (!Model.PendingApprovals.Any())
-                            {
-                                <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted">No pending approvals logged in this cycle.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var approval in Model.PendingApprovals)
-                                {
-                                    <tr id="approval-all-row-@approval.Id" data-category="@approval.Type" class="approval-row-item">
-                                        <td class="fw-bold text-dark">@approval.EmployeeName</td>
-                                        <td><span class="badge bg-light text-secondary border">@approval.Type</span></td>
-                                        <td class="fw-bold text-secondary">@approval.Dates</td>
-                                        <td class="text-muted small">@approval.Reason</td>
-                                        <td class="text-secondary small font-monospace">@approval.RequestedOn</td>
-                                        <td class="text-center">
-                                            <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="approveRecord(@approval.Id)"><i class="fa-solid fa-check"></i> Approve</button>
-                                            <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="rejectRecord(@approval.Id)"><i class="fa-solid fa-xmark"></i> Reject</button>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Leaves Only Tab Pane -->
-            <div class="tab-pane fade" id="leaves-pane" role="tabpanel" tabindex="0">
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover text-start mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Employee details</th>
-                                <th>Leave Category</th>
-                                <th>Duration Dates</th>
-                                <th>Reason / Statement</th>
-                                <th class="text-center" style="width: 22%;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var approval in Model.PendingApprovals.Where(a => a.Type.Contains("Leave")))
-                            {
-                                <tr id="approval-leave-row-@approval.Id">
-                                    <td class="fw-bold text-dark">@approval.EmployeeName</td>
-                                    <td><span class="badge bg-light text-secondary border">@approval.Type</span></td>
-                                    <td class="fw-bold text-secondary">@approval.Dates</td>
-                                    <td class="text-muted small">@approval.Reason</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="approveRecord(@approval.Id, 'leave')"><i class="fa-solid fa-check"></i> Approve</button>
-                                        <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="rejectRecord(@approval.Id, 'leave')"><i class="fa-solid fa-xmark"></i> Reject</button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Regularizations Only Tab Pane -->
-            <div class="tab-pane fade" id="reg-pane" role="tabpanel" tabindex="0">
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover text-start mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Employee Name</th>
-                                <th>Timecard Date</th>
-                                <th>Reason For Regularization</th>
-                                <th class="text-center" style="width: 22%;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var approval in Model.PendingApprovals.Where(a => a.Type.Contains("Regularization")))
-                            {
-                                <tr id="approval-reg-row-@approval.Id">
-                                    <td class="fw-bold text-dark">@approval.EmployeeName</td>
-                                    <td class="fw-bold text-secondary">@approval.Dates</td>
-                                    <td class="text-muted small">@approval.Reason</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="approveRecord(@approval.Id, 'reg')"><i class="fa-solid fa-check"></i> Approve</button>
-                                        <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="rejectRecord(@approval.Id, 'reg')"><i class="fa-solid fa-xmark"></i> Reject</button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Expenses Only Tab Pane -->
-            <div class="tab-pane fade" id="claims-pane" role="tabpanel" tabindex="0">
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover text-start mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Employee Name</th>
-                                <th>Expense Category</th>
-                                <th>Amount Claimed</th>
-                                <th>Description / Purpose</th>
-                                <th class="text-center" style="width: 22%;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var approval in Model.PendingApprovals.Where(a => a.Type.Contains("Reimbursement")))
-                            {
-                                <tr id="approval-claim-row-@approval.Id">
-                                    <td class="fw-bold text-dark">@approval.EmployeeName</td>
-                                    <td><span class="badge bg-light text-secondary border">@approval.Type</span></td>
-                                    <td class="fw-bold text-success font-monospace">@approval.Reason.Split('-').Last().Trim()</td>
-                                    <td class="text-muted small">@approval.Dates</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-success px-2.5 rounded-pill me-1" onclick="approveRecord(@approval.Id, 'claim')"><i class="fa-solid fa-check"></i> Approve</button>
-                                        <button class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="rejectRecord(@approval.Id, 'claim')"><i class="fa-solid fa-xmark"></i> Reject</button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="input-group" style="max-width: 300px;">
+                <span class="input-group-text bg-white border-end-0 text-muted" style="border-radius: 20px 0 0 20px;"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" id="approvalsFilterSearch" class="form-control border-start-0" placeholder="Filter by employee name..." onkeyup="localSearchApprovals()" style="border-radius: 0 20px 20px 0; height: 38px; font-size: 0.85rem;" />
             </div>
         </div>
-
     </div>
+
+    <!-- Approvals list table card -->
+    <div class="glass-panel p-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-start" style="font-size: 0.85rem;" id="approvalsDataTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 4%;" class="text-center">
+                            <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onclick="toggleSelectAll(this)" />
+                        </th>
+                        <th style="width: 22%;">Employee details</th>
+                        <th style="width: 18%;">Claim Category</th>
+                        <th style="width: 20%;">Duration / Dates</th>
+                        <th>Reason / Purpose</th>
+                        <th style="width: 10%;">Attachment</th>
+                        <th style="width: 16%;" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">No pending approvals logged in this category.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var request in Model)
+                        {
+                            <tr id="approval-tr-row-@request.Id" class="approval-data-row">
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input row-selection-checkbox" data-id="@request.Id" />
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-wrapper d-flex align-items-center justify-content-center me-2.5 font-monospace text-uppercase">
+                                            @request.Avatar
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-dark d-block">@request.EmployeeName</span>
+                                            <span class="text-muted small" style="font-size: 0.725rem;">@request.Role</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border px-2 py-1">@request.ClaimCategory</span>
+                                </td>
+                                <td class="fw-semibold text-secondary">
+                                    @request.Duration
+                                    <span class="text-muted small d-block" style="font-size: 0.7rem; font-weight: normal;">Submitted: @request.SubmittedDate</span>
+                                </td>
+                                <td class="text-muted small">@request.Reason</td>
+                                <td>
+                                    @if (request.HasAttachment)
+                                    {
+                                        <a href="/Manager/DownloadReceipt?filename=@request.AttachmentName" target="_blank" class="text-primary text-decoration-none fw-semibold small">
+                                            <i class="fa-solid fa-file-pdf text-danger me-1"></i>Receipt
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-secondary small">N/A</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-success px-2.5 py-1 rounded-pill me-1 text-white fw-semibold" onclick="processApprovalAction(@request.Id, 'Approve')">
+                                        <i class="fa-solid fa-check me-0.5"></i>Approve
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger px-2.5 py-1 rounded-pill fw-semibold" onclick="processApprovalAction(@request.Id, 'Reject')">
+                                        <i class="fa-solid fa-xmark me-0.5"></i>Reject
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    // Filtering logic
-    function filterApprovals() {
-        const searchVal = document.getElementById("approvalSearchInput").value.toLowerCase();
-        const typeFilter = document.getElementById("typeFilter").value.toLowerCase();
-        const rows = document.querySelectorAll(".approval-row-item");
+    // Search filter local
+    function localSearchApprovals() {
+        const query = document.getElementById("approvalsFilterSearch").value.toLowerCase();
+        const rows = document.querySelectorAll(".approval-data-row");
 
         rows.forEach(row => {
-            const name = row.cells[0].innerText.toLowerCase();
-            const reason = row.cells[3].innerText.toLowerCase();
-            const category = row.getAttribute("data-category").toLowerCase();
-
-            const matchesSearch = name.includes(searchVal) || reason.includes(searchVal);
-            const matchesType = typeFilter === "" || category.includes(typeFilter);
-
-            if (matchesSearch && matchesType) {
+            const name = row.cells[1].innerText.toLowerCase();
+            const reason = row.cells[4].innerText.toLowerCase();
+            if (name.includes(query) || reason.includes(query)) {
                 row.style.display = "";
             } else {
                 row.style.display = "none";
@@ -277,74 +202,228 @@
         });
     }
 
-    // Approve / Reject actions
-    function approveRecord(id, tab = 'all') {
-        toastr.info("Processing approval transaction...");
-
-        fetch(`/Manager/ApproveLeave?id=${id}&actionType=Approve`, {
-            method: "POST"
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                toastr.success(data.message);
-                removeRowFromDOM(id);
-            } else {
-                toastr.error(data.message);
-            }
+    // Toggle Select All checkboxes
+    function toggleSelectAll(master) {
+        document.querySelectorAll(".row-selection-checkbox").forEach(chk => {
+            chk.checked = master.checked;
         });
     }
 
-    function rejectRecord(id, tab = 'all') {
-        Swal.fire({
-            title: 'Reject Request?',
-            text: 'Provide comments for rejection:',
-            input: 'text',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Yes, reject'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/Manager/ApproveLeave?id=${id}&actionType=Reject`, {
-                    method: "POST"
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        toastr.success(data.message);
-                        removeRowFromDOM(id);
-                    } else {
-                        toastr.error(data.message);
+    // Action single approval
+    function processApprovalAction(id, actionType) {
+        if (actionType === "Reject") {
+            if (typeof Swal !== 'undefined') {
+                // Rejection reason prompt using SweetAlert
+                Swal.fire({
+                    title: 'Reject Request?',
+                    text: 'Provide remarks or comments for rejection:',
+                    input: 'text',
+                    inputPlaceholder: 'Insufficient documentation / mismatch dates...',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Yes, reject request',
+                    preConfirm: (value) => {
+                        if (!value) {
+                            Swal.showValidationMessage('Please write a rejection reason.');
+                        }
+                        return value;
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        sendApprovalAjax(id, 'Reject', result.value);
                     }
                 });
+            } else {
+                // Standard prompt fallback
+                const remarks = prompt("Provide remarks or comments for rejection:");
+                if (remarks !== null) {
+                    if (remarks.trim() === "") {
+                        alert("Rejection reason is required.");
+                    } else {
+                        sendApprovalAjax(id, 'Reject', remarks);
+                    }
+                }
+            }
+        } else {
+            sendApprovalAjax(id, 'Approve');
+        }
+    }
+
+    // Send single AJAX approval
+    function sendApprovalAjax(id, actionType, remarks = "") {
+        if (typeof toastr !== 'undefined') {
+            toastr.info(`Sending ${actionType.toLowerCase()} request...`);
+        }
+
+        const formData = new FormData();
+        formData.append("id", id);
+        formData.append("actionType", actionType);
+        formData.append("remarks", remarks);
+
+        // Retrieve token
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (tokenInput) {
+            formData.append("__RequestVerificationToken", tokenInput.value);
+        }
+
+        fetch("/Manager/ProcessApproval", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error("HTTP " + res.status + " " + res.statusText);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(data.message);
+                } else {
+                    alert(data.message);
+                }
+                
+                // Row removal animation
+                const row = document.getElementById(`approval-tr-row-${id}`);
+                if (row) {
+                    row.classList.add("fade-out-row");
+                    setTimeout(() => {
+                        row.remove();
+                        checkEmptyTable();
+                    }, 500);
+                }
+            } else {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(data.message);
+                } else {
+                    alert("Error: " + data.message);
+                }
+            }
+        })
+        .catch(err => {
+            console.error("AJAX Error details: ", err);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire("Action Failed", err.message, "error");
+            } else {
+                alert("Action Failed: " + err.message);
             }
         });
     }
 
-    function removeRowFromDOM(id) {
-        // Remove from all tab sheets if exists
-        const allRow = document.getElementById(`approval-all-row-${id}`);
-        if (allRow) allRow.remove();
+    // Bulk Approval Trigger
+    function triggerBulkApproval() {
+        const selectedCheckboxes = document.querySelectorAll(".row-selection-checkbox:checked");
+        if (selectedCheckboxes.length === 0) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('No Requests Selected', 'Please check the box next to requests to approve them in bulk.', 'info');
+            } else {
+                alert('No Requests Selected. Please check the box next to requests to approve them in bulk.');
+            }
+            return;
+        }
 
-        const leaveRow = document.getElementById(`approval-leave-row-${id}`);
-        if (leaveRow) leaveRow.remove();
+        const ids = Array.from(selectedCheckboxes).map(chk => parseInt(chk.getAttribute("data-id")));
 
-        const regRow = document.getElementById(`approval-reg-row-${id}`);
-        if (regRow) regRow.remove();
-
-        const claimRow = document.getElementById(`approval-claim-row-${id}`);
-        if (claimRow) claimRow.remove();
-
-        // Decrement pending counter
-        const countBadge = document.getElementById("totalPendingBadge");
-        if (countBadge) {
-            let count = parseInt(countBadge.innerText);
-            if (count > 0) {
-                count--;
-                countBadge.innerText = count;
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Bulk Approve Requests?',
+                text: `You are about to approve ${ids.length} selected requests at once.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, approve all'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    sendBulkApprovalAjax(ids);
+                }
+            });
+        } else {
+            if (confirm(`You are about to approve ${ids.length} selected requests at once. Proceed?`)) {
+                sendBulkApprovalAjax(ids);
             }
         }
+    }
+
+    function sendBulkApprovalAjax(ids) {
+        if (typeof toastr !== 'undefined') {
+            toastr.info("Processing bulk approval...");
+        }
+
+        const headers = {
+            "Content-Type": "application/json"
+        };
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (tokenInput) {
+            headers["RequestVerificationToken"] = tokenInput.value;
+        }
+
+        fetch("/Manager/BulkApprove", {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(ids)
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error("HTTP " + res.status + " " + res.statusText);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(data.message);
+                } else {
+                    alert(data.message);
+                }
+                
+                // Remove all approved rows with fade out
+                ids.forEach(id => {
+                    const row = document.getElementById(`approval-tr-row-${id}`);
+                    if (row) {
+                        row.classList.add("fade-out-row");
+                        setTimeout(() => {
+                            row.remove();
+                            checkEmptyTable();
+                        }, 500);
+                    }
+                });
+                document.getElementById("selectAllCheckbox").checked = false;
+            } else {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(data.message);
+                } else {
+                    alert("Error: " + data.message);
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Bulk AJAX Error details: ", err);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire("Bulk Action Failed", err.message, "error");
+            } else {
+                alert("Bulk Action Failed: " + err.message);
+            }
+        });
+    }
+
+    function checkEmptyTable() {
+        const tbody = document.querySelector("#approvalsDataTable tbody");
+        const remainingRows = tbody.querySelectorAll(".approval-data-row");
+        if (remainingRows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No pending approvals logged in this category.</td></tr>';
+        }
+    }
+
+    function viewReceiptFile(filename) {
+        Swal.fire({
+            title: 'Attachment Receipt',
+            text: `Viewing document: ${filename}`,
+            icon: 'info',
+            footer: '<span class="small text-secondary">PDF stream verification is active in ERP document system</span>'
+        });
     }
 </script>

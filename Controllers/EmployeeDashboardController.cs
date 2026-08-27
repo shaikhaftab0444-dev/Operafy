@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERP_System.Models;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -39,25 +40,28 @@ namespace ERP_System.Controllers
             var activityLogs = await _context.ActivityLogs
                 .OrderByDescending(a => a.CreatedAt)
                 .Take(5)
-                .ToListAsync();
+                .ToListAsync() ?? new List<ActivityLog>();
 
             var transactions = await _context.Transactions
                 .OrderByDescending(t => t.Date)
                 .Take(5)
-                .ToListAsync();
+                .ToListAsync() ?? new List<Transaction>();
 
             var myPayslips = await _context.Payslips
                 .Where(p => p.UserId == userId)
                 .OrderByDescending(p => p.PayslipId)
                 .Take(5)
-                .ToListAsync();
+                .ToListAsync() ?? new List<Payslip>();
 
-            ViewBag.CurrentUser = currentUser;
-            ViewBag.ActivityLogs = activityLogs;
-            ViewBag.Transactions = transactions;
-            ViewBag.MyPayslips = myPayslips;
+            var viewModel = new EmployeeDashboardViewModel
+            {
+                CurrentUser = currentUser,
+                RecentPayslips = myPayslips,
+                ActivityLogs = activityLogs,
+                Transactions = transactions
+            };
 
-            return View();
+            return View(viewModel);
         }
     }
 }

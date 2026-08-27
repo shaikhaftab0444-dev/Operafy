@@ -1,6 +1,7 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Leave Balance Summary";
+
     int casualTaken = ViewBag.CasualTaken ?? 0;
     int sickTaken = ViewBag.SickTaken ?? 0;
     int earnedTaken = ViewBag.EarnedTaken ?? 0;
@@ -12,89 +13,1405 @@
     int casualRemaining = Math.Max(0, casualTotal - casualTaken);
     int sickRemaining = Math.Max(0, sickTotal - sickTaken);
     int earnedRemaining = Math.Max(0, earnedTotal - earnedTaken);
+
+    int totalLeave = casualTotal + sickTotal + earnedTotal;
+    int totalTaken = casualTaken + sickTaken + earnedTaken;
+    int totalRemaining = casualRemaining + sickRemaining + earnedRemaining;
+
+    int casualPercentage = casualTotal > 0
+        ? Math.Min(100, Math.Max(0, (casualRemaining * 100) / casualTotal))
+        : 0;
+
+    int sickPercentage = sickTotal > 0
+        ? Math.Min(100, Math.Max(0, (sickRemaining * 100) / sickTotal))
+        : 0;
+
+    int earnedPercentage = earnedTotal > 0
+        ? Math.Min(100, Math.Max(0, (earnedRemaining * 100) / earnedTotal))
+        : 0;
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-scale-balanced text-primary me-2"></i>Leave Balance Summary</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Leave Balance</li>
-                </ol>
-            </nav>
+<style>
+    /* =========================================================
+           LEAVE BALANCE - PREMIUM ESS DESIGN
+           ========================================================= */
+
+    .leave-balance-page {
+        animation: pageReveal 0.55s ease both;
+    }
+
+    @@keyframes pageReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* =========================================================
+           HEADER
+           ========================================================= */
+
+    .balance-header {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
+        border: 1px solid #e6ebf2;
+        border-radius: 19px;
+        padding: 21px 24px;
+        margin-bottom: 22px;
+        box-shadow: 0 9px 30px rgba(15, 23, 42, 0.05);
+        animation: headerReveal 0.65s ease both;
+    }
+
+    @@keyframes headerReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .balance-header::before {
+        content: "";
+        position: absolute;
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        right: -110px;
+        top: -150px;
+        background: rgba(13, 110, 253, 0.05);
+        pointer-events: none;
+    }
+
+    .balance-header::after {
+        content: "";
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        right: 120px;
+        bottom: -65px;
+        background: rgba(13, 110, 253, 0.035);
+        pointer-events: none;
+    }
+
+    .balance-header-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .header-icon {
+        width: 47px;
+        height: 47px;
+        min-width: 47px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #edf5ff;
+        color: #0d6efd;
+        font-size: 1.05rem;
+        box-shadow: inset 0 0 0 1px rgba(13, 110, 253, 0.06);
+        animation: iconPulse 3s ease-in-out infinite;
+    }
+
+    @@keyframes iconPulse {
+        0%, 100%
+
+    {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+
+    }
+
+    .balance-title {
+        color: #1e293b;
+        font-size: 1.25rem;
+        font-weight: 750;
+        letter-spacing: -0.025em;
+    }
+
+    .balance-subtitle {
+        color: #8a95a6;
+        font-size: 0.71rem;
+    }
+
+    .breadcrumb {
+        --bs-breadcrumb-divider: "/";
+    }
+
+    .breadcrumb-item {
+        font-size: 0.69rem;
+    }
+
+        .breadcrumb-item a {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        .breadcrumb-item.active {
+            color: #8b95a4;
+        }
+
+    .apply-leave-btn {
+        position: relative;
+        z-index: 3;
+        border: 0;
+        border-radius: 10px;
+        padding: 9px 16px;
+        font-size: 0.71rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #0d6efd, #438dfc);
+        box-shadow: 0 7px 18px rgba(13, 110, 253, 0.2);
+        transition: all 0.25s ease;
+    }
+
+        .apply-leave-btn:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 11px 24px rgba(13, 110, 253, 0.27);
+        }
+
+    /* =========================================================
+           OVERVIEW STRIP
+           ========================================================= */
+
+    .leave-overview {
+        background: #ffffff;
+        border: 1px solid #e8edf3;
+        border-radius: 17px;
+        padding: 17px 20px;
+        margin-bottom: 22px;
+        box-shadow: 0 7px 25px rgba(15, 23, 42, 0.045);
+        animation: overviewReveal 0.7s ease 0.08s both;
+    }
+
+    @@keyframes overviewReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .overview-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .overview-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f2f6fb;
+        color: #64748b;
+        font-size: 0.78rem;
+    }
+
+    .overview-label {
+        color: #929baa;
+        font-size: 0.64rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 2px;
+    }
+
+    .overview-value {
+        color: #263244;
+        font-size: 0.88rem;
+        font-weight: 750;
+    }
+
+    .overview-divider {
+        width: 1px;
+        height: 30px;
+        background: #edf0f4;
+    }
+
+    /* =========================================================
+           BALANCE CARDS
+           ========================================================= */
+
+    .balance-card {
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        background: #ffffff;
+        border: 1px solid #e6ebf2;
+        border-radius: 18px;
+        padding: 21px;
+        box-shadow: 0 9px 30px rgba(15, 23, 42, 0.055);
+        transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+        animation: cardReveal 0.65s ease both;
+    }
+
+        .balance-card:nth-child(1) {
+            animation-delay: 0.12s;
+        }
+
+        .balance-card:nth-child(2) {
+            animation-delay: 0.18s;
+        }
+
+        .balance-card:nth-child(3) {
+            animation-delay: 0.24s;
+        }
+
+    @@keyframes cardReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .balance-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.09);
+    }
+
+    .balance-card::before {
+        content: "";
+        position: absolute;
+        width: 145px;
+        height: 145px;
+        border-radius: 50%;
+        right: -65px;
+        top: -80px;
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .casual-card::before {
+        background: rgba(13, 110, 253, 0.07);
+    }
+
+    .sick-card::before {
+        background: rgba(25, 135, 84, 0.07);
+    }
+
+    .earned-card::before {
+        background: rgba(13, 202, 240, 0.08);
+    }
+
+    .balance-card-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .leave-type-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 19px;
+    }
+
+    .leave-type-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .leave-type-icon {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        font-size: 0.8rem;
+    }
+
+    .casual-icon {
+        background: #edf5ff;
+        color: #0d6efd;
+    }
+
+    .sick-icon {
+        background: #edf9f2;
+        color: #198754;
+    }
+
+    .earned-icon {
+        background: #ecfbfe;
+        color: #0891b2;
+    }
+
+    .leave-name {
+        color: #344054;
+        font-size: 0.76rem;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: 0.035em;
+        margin-bottom: 2px;
+    }
+
+    .leave-code {
+        color: #9aa3b1;
+        font-size: 0.63rem;
+    }
+
+    .remaining-label {
+        color: #9aa3b1;
+        font-size: 0.63rem;
+        font-weight: 600;
+    }
+
+    .balance-number {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        margin-bottom: 15px;
+    }
+
+        .balance-number strong {
+            color: #1f2937;
+            font-size: 1.72rem;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .balance-number span {
+            color: #9aa3b1;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+    .progress-wrapper {
+        margin-bottom: 11px;
+    }
+
+    .progress {
+        height: 7px;
+        background: #edf1f5;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .balance-progress {
+        height: 100%;
+        border-radius: 20px;
+        width: 0;
+        animation: progressGrow 1.2s ease 0.45s forwards;
+    }
+
+    .casual-progress {
+        background: linear-gradient(90deg, #0d6efd, #63a0ff);
+    }
+
+    .sick-progress {
+        background: linear-gradient(90deg, #198754, #4fc68b);
+    }
+
+    .earned-progress {
+        background: linear-gradient(90deg, #0dcaf0, #55d8ed);
+    }
+
+    @@keyframes progressGrow {
+        from
+
+    {
+        width: 0;
+    }
+
+    to {
+        width: var(--progress-width);
+    }
+
+    }
+
+    .balance-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .taken-text {
+        color: #8993a3;
+        font-size: 0.66rem;
+    }
+
+    .percentage-text {
+        color: #687386;
+        font-size: 0.65rem;
+        font-weight: 750;
+    }
+
+    /* =========================================================
+           LEDGER CARD
+           ========================================================= */
+
+    .ledger-card {
+        background: #ffffff;
+        border: 1px solid #e7ecf2;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 10px 32px rgba(15, 23, 42, 0.055);
+        animation: ledgerReveal 0.7s ease 0.3s both;
+    }
+
+    @@keyframes ledgerReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .ledger-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 20px 22px;
+        background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+        border-bottom: 1px solid #edf0f4;
+    }
+
+    .ledger-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .ledger-icon {
+        width: 39px;
+        height: 39px;
+        min-width: 39px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f0f6ff;
+        color: #0d6efd;
+        font-size: 0.82rem;
+    }
+
+    .ledger-title {
+        color: #263244;
+        font-size: 0.94rem;
+        font-weight: 750;
+        margin: 0;
+    }
+
+    .ledger-subtitle {
+        color: #99a2af;
+        font-size: 0.65rem;
+        margin: 3px 0 0;
+    }
+
+    .ledger-badge {
+        background: #f5f7fa;
+        color: #687386;
+        border: 1px solid #e7ebf0;
+        border-radius: 30px;
+        padding: 6px 10px;
+        font-size: 0.62rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+           TABLE
+           ========================================================= */
+
+    .ledger-table {
+        min-width: 650px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .ledger-table thead th {
+            background: #f8fafc;
+            color: #738095;
+            font-size: 0.65rem;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 13px 20px;
+            border-bottom: 1px solid #e8edf2;
+            white-space: nowrap;
+        }
+
+        .ledger-table tbody td {
+            color: #5e6979;
+            font-size: 0.76rem;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f2f5;
+            background: #ffffff;
+            vertical-align: middle;
+            transition: background 0.2s ease;
+        }
+
+        .ledger-table tbody tr {
+            transition: transform 0.2s ease;
+        }
+
+            .ledger-table tbody tr:hover td {
+                background: #f9fbff;
+            }
+
+            .ledger-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .ledger-leave-name {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #263244;
+        font-weight: 700;
+    }
+
+    .ledger-dot {
+        width: 7px;
+        height: 7px;
+        min-width: 7px;
+        border-radius: 50%;
+    }
+
+    .casual-dot {
+        background: #0d6efd;
+    }
+
+    .sick-dot {
+        background: #198754;
+    }
+
+    .earned-dot {
+        background: #0dcaf0;
+    }
+
+    .days-value {
+        color: #526071;
+        font-weight: 600;
+    }
+
+    .taken-value {
+        color: #b16d18;
+        font-weight: 650;
+    }
+
+    .closing-value {
+        color: #16834d;
+        font-weight: 750;
+    }
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 991.98px) {
+        .balance-header
+
+    {
+        border-radius: 17px;
+    }
+
+    .leave-overview {
+        padding: 15px;
+    }
+
+    .overview-divider {
+        display: none;
+    }
+
+    .overview-item {
+        padding: 5px 0;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .container-fluid.py-4
+
+    {
+        padding-top: 16px !important;
+    }
+
+    .balance-header {
+        padding: 17px;
+        border-radius: 15px;
+    }
+
+    .balance-header-content {
+        align-items: flex-start !important;
+    }
+
+    .header-icon {
+        width: 41px;
+        height: 41px;
+        min-width: 41px;
+        border-radius: 11px;
+    }
+
+    .balance-title {
+        font-size: 1.05rem;
+    }
+
+    .balance-subtitle {
+        font-size: 0.66rem;
+    }
+
+    .apply-leave-btn {
+        width: 100%;
+        margin-top: 12px;
+    }
+
+    .leave-overview {
+        border-radius: 15px;
+    }
+
+    .overview-item {
+        justify-content: flex-start;
+    }
+
+    .balance-card {
+        border-radius: 16px;
+        padding: 19px;
+    }
+
+    .ledger-card {
+        border-radius: 16px;
+    }
+
+    .ledger-header {
+        padding: 17px;
+    }
+
+    .ledger-table {
+        min-width: 630px;
+    }
+
+        .ledger-table thead th,
+        .ledger-table tbody td {
+            padding-left: 14px;
+            padding-right: 14px;
+        }
+
+    }
+
+    @@media (max-width: 575.98px) {
+        .balance-header
+
+    {
+        margin-bottom: 16px;
+    }
+
+    .balance-title {
+        font-size: 0.98rem;
+    }
+
+    .header-icon {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+    }
+
+    .overview-item {
+        gap: 9px;
+    }
+
+    .overview-icon {
+        width: 33px;
+        height: 33px;
+        min-width: 33px;
+    }
+
+    .overview-label {
+        font-size: 0.59rem;
+    }
+
+    .overview-value {
+        font-size: 0.8rem;
+    }
+
+    .leave-type-row {
+        margin-bottom: 16px;
+    }
+
+    .balance-number strong {
+        font-size: 1.55rem;
+    }
+
+    .ledger-title {
+        font-size: 0.86rem;
+    }
+
+    .ledger-subtitle {
+        font-size: 0.61rem;
+    }
+
+    .ledger-badge {
+        display: none;
+    }
+
+    }
+
+    /* =========================================================
+           REDUCED MOTION
+           ========================================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .leave-balance-page, .balance-header, .leave-overview, .balance-card, .ledger-card, .header-icon
+
+    {
+        animation: none !important;
+    }
+
+    .balance-progress {
+        animation: none !important;
+        width: var(--progress-width) !important;
+    }
+
+    .balance-card,
+    .apply-leave-btn {
+        transition: none !important;
+    }
+
+    }
+</style>
+
+
+<div class="container-fluid py-4 text-start leave-balance-page">
+
+    <!-- =========================================================
+         PAGE HEADER
+         ========================================================= -->
+
+    <div class="balance-header">
+
+        <div class="balance-header-content">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                <div class="d-flex align-items-center gap-3">
+
+                    <div class="header-icon">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                    </div>
+
+                    <div>
+
+                        <h4 class="balance-title mb-1">
+                            Leave Balance Summary
+                        </h4>
+
+                        <p class="balance-subtitle mb-1">
+                            Track your available leave balance and usage.
+                        </p>
+
+                        <nav aria-label="breadcrumb">
+
+                            <ol class="breadcrumb mb-0">
+
+                                <li class="breadcrumb-item">
+                                    <a href="/EmployeeDashboard" class="text-decoration-none">
+                                        ESS
+                                    </a>
+                                </li>
+
+                                <li class="breadcrumb-item active" aria-current="page">
+                                    Leave Balance
+                                </li>
+
+                            </ol>
+
+                        </nav>
+
+                    </div>
+
+                </div>
+
+                <a href="/ESSLeave/Apply"
+                   class="btn btn-primary apply-leave-btn">
+
+                    <i class="fa-solid fa-plus me-2"></i>
+                    Apply for Leave
+
+                </a>
+
+            </div>
+
         </div>
-        <a href="/ESSLeave/Apply" class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm">
-            <i class="fa-solid fa-plus me-1.5"></i>Apply for Leave
-        </a>
+
     </div>
 
-    <!-- Balance cards -->
+
+    <!-- =========================================================
+         LEAVE OVERVIEW
+         ========================================================= -->
+
+    <div class="leave-overview">
+
+        <div class="row align-items-center g-3">
+
+            <div class="col-md-4">
+
+                <div class="overview-item">
+
+                    <div class="overview-icon">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="overview-label">
+                            Total Available
+                        </div>
+
+                        <div class="overview-value">
+                            @totalRemaining Days
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="overview-item">
+
+                    <div class="overview-icon">
+                        <i class="fa-solid fa-calendar-minus"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="overview-label">
+                            Total Taken
+                        </div>
+
+                        <div class="overview-value">
+                            @totalTaken Days
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="overview-item">
+
+                    <div class="overview-icon">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="overview-label">
+                            Annual Allocation
+                        </div>
+
+                        <div class="overview-value">
+                            @totalLeave Days
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         BALANCE CARDS
+         ========================================================= -->
+
     <div class="row g-4 mb-4">
+
+        <!-- Casual Leave -->
+
         <div class="col-md-4">
-            <div class="bg-white border rounded-3 p-4 shadow-sm border-start border-4 border-primary">
-                <h6 class="fw-bold text-muted text-uppercase mb-2">Casual Leave (CL)</h6>
-                <div class="d-flex justify-content-between align-items-baseline">
-                    <h3 class="fw-bold text-dark mb-0">@casualRemaining / @casualTotal</h3>
-                    <span class="text-muted small">@casualTaken taken</span>
+
+            <div class="balance-card casual-card">
+
+                <div class="balance-card-content">
+
+                    <div class="leave-type-row">
+
+                        <div class="leave-type-info">
+
+                            <div class="leave-type-icon casual-icon">
+                                <i class="fa-solid fa-umbrella-beach"></i>
+                            </div>
+
+                            <div>
+
+                                <div class="leave-name">
+                                    Casual Leave
+                                </div>
+
+                                <div class="leave-code">
+                                    CL • Annual Allocation
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <span class="remaining-label">
+                            Available
+                        </span>
+
+                    </div>
+
+                    <div class="balance-number">
+
+                        <strong>
+                            @casualRemaining
+                        </strong>
+
+                        <span>
+                            / @casualTotal days
+                        </span>
+
+                    </div>
+
+                    <div class="progress-wrapper">
+
+                        <div class="progress">
+
+                            <div class="balance-progress casual-progress"
+                                 role="progressbar"
+                                 aria-valuenow="@casualPercentage"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 style="--progress-width: @casualPercentage%;">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="balance-footer">
+
+                        <span class="taken-text">
+                            @casualTaken days taken
+                        </span>
+
+                        <span class="percentage-text">
+                            @casualPercentage% remaining
+                        </span>
+
+                    </div>
+
                 </div>
+
             </div>
+
         </div>
+
+
+        <!-- Sick Leave -->
+
         <div class="col-md-4">
-            <div class="bg-white border rounded-3 p-4 shadow-sm border-start border-4 border-success">
-                <h6 class="fw-bold text-muted text-uppercase mb-2">Sick Leave (SL)</h6>
-                <div class="d-flex justify-content-between align-items-baseline">
-                    <h3 class="fw-bold text-dark mb-0">@sickRemaining / @sickTotal</h3>
-                    <span class="text-muted small">@sickTaken taken</span>
+
+            <div class="balance-card sick-card">
+
+                <div class="balance-card-content">
+
+                    <div class="leave-type-row">
+
+                        <div class="leave-type-info">
+
+                            <div class="leave-type-icon sick-icon">
+                                <i class="fa-solid fa-heart-pulse"></i>
+                            </div>
+
+                            <div>
+
+                                <div class="leave-name">
+                                    Sick Leave
+                                </div>
+
+                                <div class="leave-code">
+                                    SL • Annual Allocation
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <span class="remaining-label">
+                            Available
+                        </span>
+
+                    </div>
+
+                    <div class="balance-number">
+
+                        <strong>
+                            @sickRemaining
+                        </strong>
+
+                        <span>
+                            / @sickTotal days
+                        </span>
+
+                    </div>
+
+                    <div class="progress-wrapper">
+
+                        <div class="progress">
+
+                            <div class="balance-progress sick-progress"
+                                 role="progressbar"
+                                 aria-valuenow="@sickPercentage"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 style="--progress-width: @sickPercentage%;">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="balance-footer">
+
+                        <span class="taken-text">
+                            @sickTaken days taken
+                        </span>
+
+                        <span class="percentage-text">
+                            @sickPercentage% remaining
+                        </span>
+
+                    </div>
+
                 </div>
+
             </div>
+
         </div>
+
+
+        <!-- Earned Leave -->
+
         <div class="col-md-4">
-            <div class="bg-white border rounded-3 p-4 shadow-sm border-start border-4 border-info">
-                <h6 class="fw-bold text-muted text-uppercase mb-2">Earned Leave (EL)</h6>
-                <div class="d-flex justify-content-between align-items-baseline">
-                    <h3 class="fw-bold text-dark mb-0">@earnedRemaining / @earnedTotal</h3>
-                    <span class="text-muted small">@earnedTaken taken</span>
+
+            <div class="balance-card earned-card">
+
+                <div class="balance-card-content">
+
+                    <div class="leave-type-row">
+
+                        <div class="leave-type-info">
+
+                            <div class="leave-type-icon earned-icon">
+                                <i class="fa-solid fa-award"></i>
+                            </div>
+
+                            <div>
+
+                                <div class="leave-name">
+                                    Earned Leave
+                                </div>
+
+                                <div class="leave-code">
+                                    EL • Annual Allocation
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <span class="remaining-label">
+                            Available
+                        </span>
+
+                    </div>
+
+                    <div class="balance-number">
+
+                        <strong>
+                            @earnedRemaining
+                        </strong>
+
+                        <span>
+                            / @earnedTotal days
+                        </span>
+
+                    </div>
+
+                    <div class="progress-wrapper">
+
+                        <div class="progress">
+
+                            <div class="balance-progress earned-progress"
+                                 role="progressbar"
+                                 aria-valuenow="@earnedPercentage"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 style="--progress-width: @earnedPercentage%;">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="balance-footer">
+
+                        <span class="taken-text">
+                            @earnedTaken days taken
+                        </span>
+
+                        <span class="percentage-text">
+                            @earnedPercentage% remaining
+                        </span>
+
+                    </div>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
-    <!-- Detailed Ledger -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Leave Ledger Summary</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Leave Type</th>
-                        <th>Opening Balance</th>
-                        <th>Leaves Taken</th>
-                        <th>Closing Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Casual Leave</td>
-                        <td>@casualTotal Days</td>
-                        <td>@casualTaken Days</td>
-                        <td>@casualRemaining Days</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Sick Leave</td>
-                        <td>@sickTotal Days</td>
-                        <td>@sickTaken Days</td>
-                        <td>@sickRemaining Days</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Earned Leave</td>
-                        <td>@earnedTotal Days</td>
-                        <td>@earnedTaken Days</td>
-                        <td>@earnedRemaining Days</td>
-                    </tr>
-                </tbody>
-            </table>
+
+    <!-- =========================================================
+         LEAVE LEDGER
+         ========================================================= -->
+
+    <div class="ledger-card">
+
+        <div class="ledger-header">
+
+            <div class="ledger-title-wrapper">
+
+                <div class="ledger-icon">
+                    <i class="fa-solid fa-table-list"></i>
+                </div>
+
+                <div>
+
+                    <h5 class="ledger-title">
+                        Leave Ledger Summary
+                    </h5>
+
+                    <p class="ledger-subtitle">
+                        Detailed breakdown of your annual leave balance
+                    </p>
+
+                </div>
+
+            </div>
+
+            <span class="ledger-badge">
+                Current Leave Year
+            </span>
+
         </div>
+
+
+        <div class="table-responsive">
+
+            <table class="table ledger-table align-middle mb-0">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Leave Type
+                        </th>
+
+                        <th>
+                            Opening Balance
+                        </th>
+
+                        <th>
+                            Leaves Taken
+                        </th>
+
+                        <th>
+                            Closing Balance
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <!-- Casual Leave -->
+
+                    <tr>
+
+                        <td>
+
+                            <div class="ledger-leave-name">
+
+                                <span class="ledger-dot casual-dot"></span>
+
+                                Casual Leave
+
+                            </div>
+
+                        </td>
+
+                        <td>
+                            <span class="days-value">
+                                @casualTotal Days
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="taken-value">
+                                @casualTaken Days
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="closing-value">
+                                @casualRemaining Days
+                            </span>
+                        </td>
+
+                    </tr>
+
+
+                    <!-- Sick Leave -->
+
+                    <tr>
+
+                        <td>
+
+                            <div class="ledger-leave-name">
+
+                                <span class="ledger-dot sick-dot"></span>
+
+                                Sick Leave
+
+                            </div>
+
+                        </td>
+
+                        <td>
+                            <span class="days-value">
+                                @sickTotal Days
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="taken-value">
+                                @sickTaken Days
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="closing-value">
+                                @sickRemaining Days
+                            </span>
+                        </td>
+
+                    </tr>
+
+
+                    <!-- Earned Leave -->
+
+                    <tr>
+
+                        <td>
+
+                            <div class="ledger-leave-name">
+
+                                <span class="ledger-dot earned-dot"></span>
+
+                                Earned Leave
+
+                            </div>
+
+                        </td>
+
+                        <td>
+                            <span class="days-value">
+                                @earnedTotal Days
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="taken-value">
+                                @earnedTaken Days
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="closing-value">
+                                @earnedRemaining Days
+                            </span>
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
     </div>
+
 </div>

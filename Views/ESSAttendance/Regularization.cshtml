@@ -1,39 +1,927 @@
 @model IEnumerable<ERP_System.Models.HRAttendanceRegularization>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Attendance Regularization Requests";
 }
 
-<div class="container-fluid py-4 text-start">
+<style>
+    /* =========================================================
+           ATTENDANCE REGULARIZATION - PREMIUM ERP UI
+           ========================================================= */
+
+    .regularization-page {
+        animation: pageFadeIn 0.55s ease both;
+    }
+
+    @@keyframes pageFadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* Header */
+    .page-header-card {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+        border-radius: 18px;
+        padding: 22px 24px;
+        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+        margin-bottom: 22px;
+    }
+
+        .page-header-card::before {
+            content: "";
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: rgba(13, 110, 253, 0.055);
+            right: -70px;
+            top: -90px;
+            pointer-events: none;
+        }
+
+        .page-header-card::after {
+            content: "";
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(13, 110, 253, 0.035);
+            right: 90px;
+            bottom: -65px;
+            pointer-events: none;
+        }
+
+    .page-title-wrap {
+        position: relative;
+        z-index: 2;
+    }
+
+    .page-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d6efd, #4f8dfd);
+        color: #fff;
+        font-size: 19px;
+        box-shadow: 0 8px 18px rgba(13, 110, 253, 0.22);
+        animation: iconFloat 3s ease-in-out infinite;
+    }
+
+    @@keyframes iconFloat {
+        0%, 100%
+
+    {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-3px);
+    }
+
+    }
+
+    .page-title {
+        font-size: 1.25rem;
+        font-weight: 750;
+        color: #172033;
+        letter-spacing: -0.02em;
+        margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+        font-size: 0.79rem;
+        color: #7a8496;
+        margin-bottom: 0;
+    }
+
+    .breadcrumb {
+        margin-top: 7px;
+    }
+
+    .breadcrumb-item {
+        font-size: 0.74rem;
+    }
+
+        .breadcrumb-item a {
+            color: #6c7a91;
+            transition: color 0.2s ease;
+        }
+
+            .breadcrumb-item a:hover {
+                color: #0d6efd;
+            }
+
+        .breadcrumb-item.active {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+    /* New Request Button */
+    .new-request-btn {
+        position: relative;
+        z-index: 3;
+        border: 0;
+        background: linear-gradient(135deg, #0d6efd, #2563eb);
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.22);
+        transition: all 0.25s ease;
+        font-weight: 650;
+        padding: 10px 18px;
+    }
+
+        .new-request-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(13, 110, 253, 0.28);
+            background: linear-gradient(135deg, #0b5ed7, #1d4ed8);
+        }
+
+        .new-request-btn:active {
+            transform: translateY(0);
+        }
+
+    /* Alerts */
+    .custom-alert {
+        border: 0;
+        border-radius: 14px;
+        padding: 13px 16px;
+        box-shadow: 0 7px 20px rgba(15, 23, 42, 0.06);
+        animation: alertSlide 0.45s ease both;
+    }
+
+    @@keyframes alertSlide {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* Main History Card */
+    .history-card {
+        background: #fff;
+        border: 1px solid #edf0f5;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 10px 35px rgba(15, 23, 42, 0.055);
+        animation: cardRise 0.6s ease both;
+    }
+
+    @@keyframes cardRise {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .history-card-header {
+        padding: 20px 22px;
+        border-bottom: 1px solid #eef1f5;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    }
+
+    .history-heading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .history-heading-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eef5ff;
+        color: #0d6efd;
+        font-size: 15px;
+    }
+
+    .history-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #202939;
+        margin: 0;
+    }
+
+    .history-description {
+        color: #8a94a6;
+        font-size: 0.75rem;
+        margin: 3px 0 0;
+    }
+
+    .request-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 30px;
+        background: #f4f7fb;
+        border: 1px solid #e9edf3;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 650;
+    }
+
+        .request-count i {
+            color: #0d6efd;
+        }
+
+    /* Table */
+    .table-container {
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    .regularization-table {
+        min-width: 1050px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .regularization-table thead th {
+            background: #f8fafc;
+            color: #64748b;
+            border-bottom: 1px solid #e9edf3;
+            border-top: 0;
+            font-size: 0.7rem;
+            font-weight: 750;
+            letter-spacing: 0.035em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            padding: 14px 16px;
+            vertical-align: middle;
+        }
+
+        .regularization-table tbody td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #475569;
+            font-size: 0.8rem;
+            vertical-align: middle;
+            background: #fff;
+            transition: background 0.2s ease;
+        }
+
+        .regularization-table tbody tr {
+            transition: all 0.22s ease;
+        }
+
+            .regularization-table tbody tr:hover td {
+                background: #f9fbff;
+            }
+
+            .regularization-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .date-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+    }
+
+    .date-icon {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #f1f5ff;
+        color: #0d6efd;
+        font-size: 13px;
+    }
+
+    .date-main {
+        color: #1f2937;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    .date-label {
+        display: block;
+        color: #94a3b8;
+        font-size: 0.66rem;
+        margin-top: 2px;
+    }
+
+    /* Time Badges */
+    .time-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 8px;
+        padding: 6px 9px;
+        font-size: 0.72rem;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+
+    .incorrect-time {
+        background: #fff1f2;
+        color: #dc3545;
+        border: 1px solid #ffe0e3;
+    }
+
+    .correct-time {
+        background: #eff6ff;
+        color: #0d6efd;
+        border: 1px solid #dceaff;
+    }
+
+    /* Reason */
+    .reason-text {
+        max-width: 235px;
+        line-height: 1.5;
+        color: #64748b;
+    }
+
+    .remarks-text {
+        max-width: 200px;
+        line-height: 1.5;
+        color: #64748b;
+    }
+
+    .muted-dash {
+        color: #c0c7d1;
+        font-weight: 600;
+    }
+
+    /* Status */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .status-approved {
+        background: #ecfdf3;
+        color: #16834d;
+        border: 1px solid #d3f5e1;
+    }
+
+        .status-approved .status-dot {
+            background: #20a464;
+        }
+
+    .status-rejected {
+        background: #fff1f2;
+        color: #d93648;
+        border: 1px solid #ffe0e3;
+    }
+
+        .status-rejected .status-dot {
+            background: #dc3545;
+        }
+
+    .status-pending {
+        background: #fff8e7;
+        color: #a66b00;
+        border: 1px solid #ffedbd;
+    }
+
+        .status-pending .status-dot {
+            background: #f0ad00;
+            animation: statusPulse 1.8s infinite;
+        }
+
+    @@keyframes statusPulse {
+        0%, 100%
+
+    {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.45;
+        transform: scale(1.3);
+    }
+
+    }
+
+    /* Empty State */
+    .empty-state {
+        padding: 65px 20px !important;
+        text-align: center;
+    }
+
+    .empty-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        background: #f5f7fa;
+        color: #9aa5b5;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 25px;
+        margin-bottom: 15px;
+    }
+
+    .empty-title {
+        color: #344054;
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 5px;
+    }
+
+    .empty-description {
+        color: #98a2b3;
+        font-size: 0.77rem;
+        margin: 0;
+    }
+
+    /* Modal */
+    .regularization-modal {
+        border: 0;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, 0.18);
+    }
+
+    .modal-header-custom {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #f7faff 0%, #ffffff 100%);
+        border-bottom: 1px solid #edf0f5;
+        padding: 20px 24px;
+    }
+
+        .modal-header-custom::after {
+            content: "";
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: rgba(13, 110, 253, 0.055);
+            right: -45px;
+            top: -70px;
+        }
+
+    .modal-title-wrap {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .modal-title-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eaf2ff;
+        color: #0d6efd;
+        font-size: 16px;
+    }
+
+    .modal-title-main {
+        color: #1f2937;
+        font-size: 1rem;
+        font-weight: 750;
+        margin: 0;
+    }
+
+    .modal-title-sub {
+        color: #8a94a6;
+        font-size: 0.7rem;
+        margin: 2px 0 0;
+    }
+
+    .modal-body-custom {
+        padding: 24px;
+        background: #fff;
+    }
+
+    .form-section-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: #344054;
+        font-size: 0.76rem;
+        font-weight: 700;
+        margin-bottom: 7px;
+    }
+
+        .form-section-label i {
+            color: #0d6efd;
+            font-size: 11px;
+        }
+
+    .form-control-modern {
+        border: 1px solid #dfe4ea;
+        border-radius: 10px;
+        min-height: 40px;
+        font-size: 0.8rem;
+        color: #344054;
+        background-color: #fff;
+        padding: 9px 12px;
+        transition: all 0.22s ease;
+        box-shadow: none;
+    }
+
+        .form-control-modern:hover {
+            border-color: #c8d1dc;
+        }
+
+        .form-control-modern:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.09);
+            outline: none;
+        }
+
+    textarea.form-control-modern {
+        min-height: 95px;
+        resize: vertical;
+    }
+
+    .form-hint {
+        display: block;
+        color: #98a2b3;
+        font-size: 0.67rem;
+        margin-top: 5px;
+    }
+
+    .modal-footer-custom {
+        background: #f9fafb;
+        border-top: 1px solid #edf0f5;
+        padding: 13px 24px;
+    }
+
+    .modal-cancel-btn,
+    .modal-submit-btn {
+        font-size: 0.76rem;
+        font-weight: 650;
+        min-height: 36px;
+        transition: all 0.22s ease;
+    }
+
+        .modal-cancel-btn:hover {
+            transform: translateY(-1px);
+        }
+
+    .modal-submit-btn {
+        border: 0;
+        background: linear-gradient(135deg, #0d6efd, #2563eb);
+        box-shadow: 0 6px 15px rgba(13, 110, 253, 0.18);
+    }
+
+        .modal-submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 9px 20px rgba(13, 110, 253, 0.25);
+        }
+
+    /* Responsive */
+    @@media (max-width: 991.98px) {
+        .page-header-card
+
+    {
+        padding: 19px;
+    }
+
+    .page-title {
+        font-size: 1.12rem;
+    }
+
+    .history-card-header {
+        padding: 17px 18px;
+    }
+
+    .regularization-table thead th,
+    .regularization-table tbody td {
+        padding: 13px 14px;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .regularization-page
+
+    {
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+
+    .page-header-card {
+        padding: 17px;
+        border-radius: 15px;
+    }
+
+    .page-header-content {
+        align-items: flex-start !important;
+        flex-direction: column;
+    }
+
+    .header-main {
+        width: 100%;
+    }
+
+    .header-action {
+        width: 100%;
+    }
+
+    .new-request-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .page-icon {
+        width: 43px;
+        height: 43px;
+        min-width: 43px;
+        border-radius: 12px;
+    }
+
+    .page-title {
+        font-size: 1.05rem;
+    }
+
+    .history-card {
+        border-radius: 15px;
+    }
+
+    .history-card-header {
+        padding: 16px;
+    }
+
+    .history-header-content {
+        align-items: flex-start !important;
+    }
+
+    .request-count {
+        margin-top: 4px;
+    }
+
+    .modal-body-custom {
+        padding: 19px;
+    }
+
+    .modal-header-custom {
+        padding: 17px 19px;
+    }
+
+    .modal-footer-custom {
+        padding: 12px 19px;
+    }
+
+    .modal-submit-btn,
+    .modal-cancel-btn {
+        width: 100%;
+    }
+
+    .modal-footer-custom {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    }
+
+    @@media (max-width: 575.98px) {
+        .container-fluid.py-4
+
+    {
+        padding-top: 15px !important;
+    }
+
+    .page-header-card {
+        margin-bottom: 16px;
+    }
+
+    .page-title-wrap {
+        width: 100%;
+    }
+
+    .page-title-row {
+        align-items: flex-start !important;
+    }
+
+    .breadcrumb {
+        margin-top: 6px;
+    }
+
+    .history-heading-icon {
+        width: 34px;
+        height: 34px;
+    }
+
+    .history-title {
+        font-size: 0.9rem;
+    }
+
+    .history-description {
+        font-size: 0.69rem;
+    }
+
+    .request-count {
+        font-size: 0.67rem;
+        padding: 5px 8px;
+    }
+
+    .modal-dialog {
+        margin: 10px;
+    }
+
+    .regularization-modal {
+        border-radius: 16px;
+    }
+
+    .modal-title-main {
+        font-size: 0.92rem;
+    }
+
+    .modal-title-sub {
+        font-size: 0.65rem;
+    }
+
+    }
+
+    /* Reduced Motion */
+    @@media (prefers-reduced-motion: reduce) {
+        .regularization-page, .history-card, .custom-alert, .page-icon, .status-pending .status-dot
+
+    {
+        animation: none !important;
+    }
+
+    .new-request-btn,
+    .regularization-table tbody tr,
+    .form-control-modern,
+    .modal-submit-btn {
+        transition: none !important;
+    }
+
+    }
+</style>
+
+<div class="container-fluid py-4 text-start regularization-page">
+
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success alert-dismissible fade show custom-alert mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"></button>
         </div>
     }
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-envelope-open-text text-primary me-2"></i>Attendance Regularization Requests</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Regularization Requests</li>
-                </ol>
-            </nav>
+    <!-- =========================================================
+         PAGE HEADER
+         ========================================================= -->
+    <div class="page-header-card">
+
+        <div class="d-flex justify-content-between gap-3 page-header-content">
+
+            <div class="d-flex align-items-center gap-3 header-main page-title-wrap">
+
+                <div class="page-icon">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                </div>
+
+                <div>
+                    <div class="d-flex align-items-center gap-2 page-title-row">
+                        <div>
+                            <h4 class="page-title">
+                                Attendance Regularization Requests
+                            </h4>
+
+                            <p class="page-subtitle">
+                                Review and manage your attendance correction requests
+                            </p>
+                        </div>
+                    </div>
+
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item">
+                                <a href="/EmployeeDashboard" class="text-decoration-none">
+                                    ESS
+                                </a>
+                            </li>
+
+                            <li class="breadcrumb-item active" aria-current="page">
+                                Regularization Requests
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+
+            </div>
+
+            <div class="header-action d-flex align-items-center position-relative">
+
+                <button class="btn btn-primary rounded-pill new-request-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#regularizationModal">
+                    <i class="fa-solid fa-plus me-2"></i>
+                    New Request
+                </button>
+
+            </div>
+
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#regularizationModal">
-            <i class="fa-solid fa-plus me-1.5"></i>New Request
-        </button>
+
     </div>
 
-    <!-- Requests History Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Regularization Request History</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+    <!-- =========================================================
+         REQUEST HISTORY
+         ========================================================= -->
+    <div class="history-card">
+
+        <div class="history-card-header">
+
+            <div class="d-flex justify-content-between align-items-center gap-3 history-header-content">
+
+                <div class="history-heading">
+
+                    <div class="history-heading-icon">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+
+                    <div>
+                        <h5 class="history-title">
+                            Regularization Request History
+                        </h5>
+
+                        <p class="history-description">
+                            Track the status and details of your submitted requests
+                        </p>
+                    </div>
+
+                </div>
+
+                @if (Model != null && Model.Any())
+                {
+                    <div class="request-count">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>@Model.Count() Request@(Model.Count() == 1 ? "" : "s")</span>
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+        <div class="table-container">
+
+            <table class="table align-middle regularization-table">
+
+                <thead>
                     <tr>
                         <th>Correction Date</th>
                         <th>Incorrect Punch</th>
@@ -44,82 +932,311 @@
                         <th>HR Remarks</th>
                     </tr>
                 </thead>
+
                 <tbody>
+
                     @if (Model != null && Model.Any())
                     {
                         @foreach (var item in Model)
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@item.CorrectionDate.ToString("dd MMM yyyy")</td>
-                                <td><span class="badge bg-danger-subtle text-danger">@item.IncorrectPunch</span></td>
-                                <td class="fw-semibold text-primary">@item.RequestedCorrectTime</td>
-                                <td class="text-muted small" style="max-width: 250px;">@item.Reason</td>
-                                <td>@item.RequestDate.ToString("dd MMM yyyy")</td>
+
+                                <!-- Correction Date -->
                                 <td>
+                                    <div class="date-cell">
+
+                                        <div class="date-icon">
+                                            <i class="fa-regular fa-calendar"></i>
+                                        </div>
+
+                                        <div>
+                                            <span class="date-main">
+                                                @item.CorrectionDate.ToString("dd MMM yyyy")
+                                            </span>
+
+                                            <span class="date-label">
+                                                Correction date
+                                            </span>
+                                        </div>
+
+                                    </div>
+                                </td>
+
+                                <!-- Incorrect Punch -->
+                                <td>
+                                    <span class="time-badge incorrect-time">
+                                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                                        @item.IncorrectPunch
+                                    </span>
+                                </td>
+
+                                <!-- Requested Correct Time -->
+                                <td>
+                                    <span class="time-badge correct-time">
+                                        <i class="fa-solid fa-clock"></i>
+                                        @item.RequestedCorrectTime
+                                    </span>
+                                </td>
+
+                                <!-- Reason -->
+                                <td>
+                                    <div class="reason-text">
+                                        @item.Reason
+                                    </div>
+                                </td>
+
+                                <!-- Request Date -->
+                                <td>
+                                    <div class="date-cell">
+
+                                        <div class="date-icon">
+                                            <i class="fa-regular fa-calendar-plus"></i>
+                                        </div>
+
+                                        <div>
+                                            <span class="date-main">
+                                                @item.RequestDate.ToString("dd MMM yyyy")
+                                            </span>
+
+                                            <span class="date-label">
+                                                Submitted
+                                            </span>
+                                        </div>
+
+                                    </div>
+                                </td>
+
+                                <!-- Status -->
+                                <td>
+
                                     @if (item.Status == "Approved")
                                     {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Approved</span>
+                                        <span class="status-badge status-approved">
+                                            <span class="status-dot"></span>
+                                            Approved
+                                        </span>
                                     }
                                     else if (item.Status == "Rejected")
                                     {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">Rejected</span>
+                                        <span class="status-badge status-rejected">
+                                            <span class="status-dot"></span>
+                                            Rejected
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Pending Review</span>
+                                        <span class="status-badge status-pending">
+                                            <span class="status-dot"></span>
+                                            Pending Review
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- HR Remarks -->
+                                <td>
+                                    @if (string.IsNullOrEmpty(item.AdminRemarks))
+                                    {
+                                        <span class="muted-dash">—</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="remarks-text">
+                                            @item.AdminRemarks
+                                        </div>
                                     }
                                 </td>
-                                <td class="text-muted small">@(string.IsNullOrEmpty(item.AdminRemarks) ? "-" : item.AdminRemarks)</td>
+
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">No attendance regularization requests submitted yet. Click "New Request" to create one.</td>
+
+                            <td colspan="7" class="empty-state">
+
+                                <div class="empty-icon">
+                                    <i class="fa-solid fa-calendar-xmark"></i>
+                                </div>
+
+                                <div class="empty-title">
+                                    No Regularization Requests Yet
+                                </div>
+
+                                <p class="empty-description">
+                                    You haven't submitted any attendance regularization requests.
+                                    Click <strong>New Request</strong> to create one.
+                                </p>
+
+                            </td>
+
                         </tr>
                     }
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Regularization Modal -->
-<div class="modal fade text-start" id="regularizationModal" tabindex="-1" aria-labelledby="regularizationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content rounded-3 border-0 shadow">
+
+<!-- =============================================================
+     REGULARIZATION REQUEST MODAL
+     ============================================================= -->
+
+<div class="modal fade text-start"
+     id="regularizationModal"
+     tabindex="-1"
+     aria-labelledby="regularizationModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content regularization-modal">
+
             <form action="/ESSAttendance/RequestRegularization" method="post">
+
                 @Html.AntiForgeryToken()
-                <div class="modal-header bg-light border-bottom px-4 py-3">
-                    <h5 class="modal-title fw-bold" id="regularizationModalLabel"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Request Attendance Correction</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Date of Correction</label>
-                        <input type="date" name="Date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Actual Check-In Time</label>
-                            <input type="time" name="CheckInTime" class="form-control" value="09:00" required />
+
+                <!-- Modal Header -->
+                <div class="modal-header-custom">
+
+                    <div class="modal-title-wrap">
+
+                        <div class="modal-title-icon">
+                            <i class="fa-solid fa-pen-to-square"></i>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Actual Check-Out Time</label>
-                            <input type="time" name="CheckOutTime" class="form-control" value="18:00" required />
+
+                        <div>
+                            <h5 class="modal-title-main" id="regularizationModalLabel">
+                                Request Attendance Correction
+                            </h5>
+
+                            <p class="modal-title-sub">
+                                Submit your attendance correction request to HR
+                            </p>
                         </div>
+
                     </div>
+
+                    <button type="button"
+                            class="btn-close position-absolute end-0 top-0 m-3"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body-custom">
+
+                    <!-- Date -->
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Reason for Correction</label>
-                        <textarea name="Reason" class="form-control" rows="3" placeholder="Provide detailed reason (e.g. Card misread, Client meeting offsite)" required></textarea>
+
+                        <label class="form-section-label">
+                            <i class="fa-regular fa-calendar"></i>
+                            Date of Correction
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="date"
+                               name="Date"
+                               class="form-control form-control-modern"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               required />
+
+                        <span class="form-hint">
+                            Select the date for which the attendance needs correction.
+                        </span>
+
                     </div>
+
+                    <!-- Check In / Check Out -->
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-12 col-sm-6">
+
+                            <label class="form-section-label">
+                                <i class="fa-solid fa-right-to-bracket"></i>
+                                Actual Check-In Time
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="time"
+                                   name="CheckInTime"
+                                   class="form-control form-control-modern"
+                                   value="09:00"
+                                   required />
+
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+
+                            <label class="form-section-label">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                                Actual Check-Out Time
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="time"
+                                   name="CheckOutTime"
+                                   class="form-control form-control-modern"
+                                   value="18:00"
+                                   required />
+
+                        </div>
+
+                    </div>
+
+                    <!-- Reason -->
+                    <div class="mb-1">
+
+                        <label class="form-section-label">
+                            <i class="fa-solid fa-message"></i>
+                            Reason for Correction
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <textarea name="Reason"
+                                  class="form-control form-control-modern"
+                                  rows="3"
+                                  placeholder="Provide detailed reason (e.g. Card misread, Client meeting offsite)"
+                                  required></textarea>
+
+                        <span class="form-hint">
+                            Please provide enough information for HR to review your request.
+                        </span>
+
+                    </div>
+
                 </div>
-                <div class="modal-footer bg-light border-top px-4 py-2">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 btn-sm"><i class="fa-solid fa-paper-plane me-1.5"></i>Submit Request to HR</button>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer-custom d-flex justify-content-end gap-2">
+
+                    <button type="button"
+                            class="btn btn-outline-secondary rounded-pill px-4 modal-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary rounded-pill px-4 modal-submit-btn">
+                        <i class="fa-solid fa-paper-plane me-2"></i>
+                        Submit Request to HR
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
