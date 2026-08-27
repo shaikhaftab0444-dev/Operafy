@@ -81,6 +81,22 @@ namespace ERP_System.Data
         public DbSet<BonusIncentive> BonusIncentives { get; set; }
         public DbSet<PayrollRun> PayrollRuns { get; set; }
 
+        // ATS & Recruitment DbSets
+        public DbSet<JobOpening> JobOpenings { get; set; }
+        public DbSet<Candidate> Candidates { get; set; }
+        public DbSet<CandidateApplication> CandidateApplications { get; set; }
+        public DbSet<CandidateStageHistory> CandidateStageHistories { get; set; }
+        public DbSet<InterviewSchedule> InterviewSchedules { get; set; }
+        public DbSet<InterviewFeedback> InterviewFeedbacks { get; set; }
+        public DbSet<OfferLetter> OfferLetters { get; set; }
+
+        // Performance & Appraisals DbSets
+        public DbSet<OkrObjective> OkrObjectives { get; set; }
+        public DbSet<KeyResult> KeyResults { get; set; }
+        public DbSet<KpiItem> Kpis { get; set; }
+        public DbSet<AppraisalCycle> AppraisalCycles { get; set; }
+        public DbSet<EmployeeAppraisal> EmployeeAppraisals { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -132,6 +148,20 @@ namespace ERP_System.Data
             modelBuilder.Entity<StatutoryFilingLog>().ToTable("erp_StatutoryFilingLogs");
             modelBuilder.Entity<BonusIncentive>().ToTable("erp_BonusIncentives");
             modelBuilder.Entity<PayrollRun>().ToTable("erp_PayrollRuns");
+
+            modelBuilder.Entity<JobOpening>().ToTable("erp_JobOpenings");
+            modelBuilder.Entity<Candidate>().ToTable("erp_Candidates");
+            modelBuilder.Entity<CandidateApplication>().ToTable("erp_CandidateApplications");
+            modelBuilder.Entity<CandidateStageHistory>().ToTable("erp_CandidateStageHistories");
+            modelBuilder.Entity<InterviewSchedule>().ToTable("erp_InterviewSchedules");
+            modelBuilder.Entity<InterviewFeedback>().ToTable("erp_InterviewFeedbacks");
+            modelBuilder.Entity<OfferLetter>().ToTable("erp_OfferLetters");
+
+            modelBuilder.Entity<OkrObjective>().ToTable("erp_Okrs");
+            modelBuilder.Entity<KeyResult>().ToTable("erp_KeyResults");
+            modelBuilder.Entity<KpiItem>().ToTable("erp_Kpis");
+            modelBuilder.Entity<AppraisalCycle>().ToTable("erp_AppraisalCycles");
+            modelBuilder.Entity<EmployeeAppraisal>().ToTable("erp_EmployeeAppraisals");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

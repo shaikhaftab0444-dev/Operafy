@@ -1,55 +1,2285 @@
+@model IEnumerable<ERP_System.Models.JobOpening>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Job Openings (ATS)";
+
+    var departments = ViewBag.Departments as List<ERP_System.Models.Department>
+                      ?? new List<ERP_System.Models.Department>();
+
+    var designations = ViewBag.Designations as List<ERP_System.Models.Designation>
+                       ?? new List<ERP_System.Models.Designation>();
+
+    var users = ViewBag.Users as List<ERP_System.Models.User>
+                ?? new List<ERP_System.Models.User>();
+
+    var jobs = Model?.ToList() ?? new List<ERP_System.Models.JobOpening>();
+
+    var totalJobs = jobs.Count;
+    var openJobs = jobs.Count(j => j.Status == "Open");
+    var onHoldJobs = jobs.Count(j => j.Status == "On Hold");
+    var closedJobs = jobs.Count(j => j.Status == "Closed");
+
+    var totalVacancies = jobs.Sum(j => j.Vacancies);
+
+    var totalApplicants = jobs.Sum(j => j.Applications?.Count ?? 0);
+
+    var remoteJobs = jobs.Count(j =>
+        j.WorkMode == "Remote" ||
+        j.WorkMode == "Hybrid");
+
+    var fillRate = totalVacancies > 0
+        ? Math.Min(100, (totalApplicants * 100) / totalVacancies)
+        : 0;
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-briefcase text-primary me-2"></i>Job Openings</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Job Openings</li>
-                </ol>
-            </nav>
+<style>
+
+    /* =========================================================
+           PREMIUM ATS JOB OPENINGS
+        ========================================================== */
+
+    .ats-page {
+        --ats-primary: #2563eb;
+        --ats-primary-dark: #1d4ed8;
+        --ats-primary-soft: #eff6ff;
+        --ats-purple: #7c3aed;
+        --ats-purple-soft: #f5f3ff;
+        --ats-success: #16a34a;
+        --ats-success-soft: #f0fdf4;
+        --ats-warning: #d97706;
+        --ats-warning-soft: #fffbeb;
+        --ats-danger: #dc2626;
+        --ats-danger-soft: #fef2f2;
+        --ats-dark: #172033;
+        --ats-text: #334155;
+        --ats-muted: #64748b;
+        --ats-light-muted: #94a3b8;
+        --ats-border: #e2e8f0;
+        --ats-card: #ffffff;
+        color: var(--ats-text);
+    }
+
+        .ats-page,
+        .ats-page * {
+            box-sizing: border-box;
+        }
+
+
+    /* =========================================================
+           ALERTS
+        ========================================================== */
+
+    .ats-alert {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 0;
+        border-radius: 16px;
+        padding: 15px 18px;
+        margin-bottom: 22px;
+        font-size: .82rem;
+        font-weight: 600;
+        box-shadow: 0 10px 25px rgba(15,23,42,.05);
+        animation: atsSlideDown .5s ease both;
+    }
+
+    .ats-alert-success {
+        color: #15803d;
+        background: #f0fdf4;
+        border-left: 4px solid #22c55e;
+    }
+
+    .ats-alert-danger {
+        color: #b91c1c;
+        background: #fef2f2;
+        border-left: 4px solid #ef4444;
+    }
+
+
+    /* =========================================================
+           PAGE HEADER
+        ========================================================== */
+
+    .ats-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+        animation: atsFadeUp .55s ease both;
+    }
+
+    .ats-breadcrumb {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: .75rem;
+        font-weight: 600;
+    }
+
+        .ats-breadcrumb a {
+            color: var(--ats-primary);
+            text-decoration: none;
+        }
+
+            .ats-breadcrumb a:hover {
+                color: var(--ats-primary-dark);
+            }
+
+    .ats-breadcrumb-separator {
+        color: #cbd5e1;
+        font-size: .65rem;
+    }
+
+    .ats-breadcrumb-current {
+        color: var(--ats-muted);
+    }
+
+    .ats-title-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .ats-title-icon {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 50px;
+        border-radius: 16px;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        font-size: 1.25rem;
+        box-shadow: 0 12px 25px rgba(37,99,235,.22);
+    }
+
+    .ats-page-title {
+        margin: 0 0 4px;
+        color: var(--ats-dark);
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -.4px;
+    }
+
+    .ats-page-subtitle {
+        margin: 0;
+        color: var(--ats-muted);
+        font-size: .8rem;
+    }
+
+    .ats-create-btn {
+        min-height: 46px;
+        padding: 0 20px;
+        border: 0;
+        border-radius: 14px;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        font-size: .82rem;
+        font-weight: 800;
+        box-shadow: 0 10px 22px rgba(37,99,235,.22);
+        transition: all .25s ease;
+        white-space: nowrap;
+    }
+
+        .ats-create-btn:hover {
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 16px 30px rgba(37,99,235,.30);
+        }
+
+
+    /* =========================================================
+           KPI CARDS
+        ========================================================== */
+
+    .ats-stat-card {
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        min-height: 145px;
+        padding: 19px 20px;
+        background: #fff;
+        border: 1px solid var(--ats-border);
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(15,23,42,.045);
+        transition: all .25s ease;
+        animation: atsFadeUp .6s ease both;
+    }
+
+        .ats-stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 18px 35px rgba(15,23,42,.09);
+        }
+
+        .ats-stat-card::after {
+            content: "";
+            position: absolute;
+            width: 115px;
+            height: 115px;
+            right: -42px;
+            bottom: -55px;
+            border-radius: 50%;
+            background: rgba(37,99,235,.035);
+        }
+
+    .ats-stat-delay-1 {
+        animation-delay: .05s;
+    }
+
+    .ats-stat-delay-2 {
+        animation-delay: .11s;
+    }
+
+    .ats-stat-delay-3 {
+        animation-delay: .17s;
+    }
+
+    .ats-stat-delay-4 {
+        animation-delay: .23s;
+    }
+
+    .ats-stat-blue {
+        border-top: 3px solid #2563eb;
+    }
+
+    .ats-stat-purple {
+        border-top: 3px solid #7c3aed;
+    }
+
+    .ats-stat-success {
+        border-top: 3px solid #16a34a;
+    }
+
+    .ats-stat-warning {
+        border-top: 3px solid #d97706;
+    }
+
+    .ats-stat-top {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+    }
+
+    .ats-stat-label {
+        color: var(--ats-muted);
+        font-size: .68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .ats-stat-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        font-size: .95rem;
+    }
+
+    .ats-icon-blue {
+        color: #2563eb;
+        background: #eff6ff;
+    }
+
+    .ats-icon-purple {
+        color: #7c3aed;
+        background: #f5f3ff;
+    }
+
+    .ats-icon-success {
+        color: #16a34a;
+        background: #f0fdf4;
+    }
+
+    .ats-icon-warning {
+        color: #d97706;
+        background: #fffbeb;
+    }
+
+    .ats-stat-value {
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        color: var(--ats-dark);
+        font-size: 1.65rem;
+        font-weight: 800;
+        letter-spacing: -.5px;
+        line-height: 1;
+    }
+
+    .ats-stat-meta {
+        position: relative;
+        z-index: 2;
+        margin-top: 12px;
+        color: var(--ats-muted);
+        font-size: .72rem;
+        font-weight: 600;
+    }
+
+    .ats-stat-highlight {
+        color: var(--ats-success);
+        font-weight: 800;
+    }
+
+    .ats-progress {
+        height: 6px;
+        margin-top: 11px;
+        overflow: hidden;
+        border-radius: 50px;
+        background: #e2e8f0;
+    }
+
+        .ats-progress .progress-bar {
+            border-radius: 50px;
+            background: linear-gradient(90deg,#2563eb,#60a5fa);
+        }
+
+    .ats-mini-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 8px;
+        border-radius: 8px;
+        color: #7c3aed;
+        background: #f5f3ff;
+        font-size: .67rem;
+        font-weight: 800;
+    }
+
+
+    /* =========================================================
+           FILTER PANEL
+        ========================================================== */
+
+    .ats-filter-card {
+        padding: 18px;
+        margin-bottom: 24px;
+        background: #fff;
+        border: 1px solid var(--ats-border);
+        border-radius: 19px;
+        box-shadow: 0 10px 30px rgba(15,23,42,.04);
+        animation: atsFadeUp .65s ease both;
+        animation-delay: .18s;
+    }
+
+    .ats-filter-title-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 15px;
+    }
+
+    .ats-filter-title-icon {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: .8rem;
+    }
+
+    .ats-filter-title {
+        margin: 0;
+        color: var(--ats-dark);
+        font-size: .85rem;
+        font-weight: 800;
+    }
+
+    .ats-filter-subtitle {
+        margin: 2px 0 0;
+        color: var(--ats-light-muted);
+        font-size: .67rem;
+    }
+
+    .ats-search-wrap {
+        position: relative;
+    }
+
+    .ats-search-icon {
+        position: absolute;
+        top: 50%;
+        left: 13px;
+        color: #94a3b8;
+        font-size: .78rem;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    .ats-search-input {
+        padding-left: 38px !important;
+    }
+
+    .ats-filter-card .form-control,
+    .ats-filter-card .form-select {
+        min-height: 42px;
+        border: 1px solid #dbe3ee;
+        border-radius: 11px;
+        color: #475569;
+        font-size: .76rem;
+        font-weight: 600;
+        box-shadow: none;
+    }
+
+        .ats-filter-card .form-control:focus,
+        .ats-filter-card .form-select:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 4px rgba(37,99,235,.08);
+        }
+
+    .ats-filter-btn {
+        min-height: 42px;
+        border: 0;
+        border-radius: 11px;
+        color: #fff;
+        background: linear-gradient(135deg,#2563eb,#1d4ed8);
+        font-size: .75rem;
+        font-weight: 800;
+        transition: all .2s ease;
+    }
+
+        .ats-filter-btn:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 9px 18px rgba(37,99,235,.20);
+        }
+
+    .ats-reset-btn {
+        min-height: 42px;
+        border: 1px solid var(--ats-border);
+        border-radius: 11px;
+        color: var(--ats-muted);
+        background: #fff;
+        font-size: .75rem;
+        font-weight: 700;
+        transition: all .2s ease;
+    }
+
+        .ats-reset-btn:hover {
+            color: var(--ats-danger);
+            border-color: #fecaca;
+            background: #fef2f2;
+        }
+
+
+    /* =========================================================
+           TABLE CARD
+        ========================================================== */
+
+    .ats-table-card {
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid var(--ats-border);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(15,23,42,.045);
+        animation: atsFadeUp .75s ease both;
+        animation-delay: .25s;
+    }
+
+    .ats-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 19px 21px;
+        border-bottom: 1px solid var(--ats-border);
+    }
+
+    .ats-table-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .ats-table-title-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        color: #7c3aed;
+        background: #f5f3ff;
+    }
+
+    .ats-table-title {
+        margin: 0;
+        color: var(--ats-dark);
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .ats-table-subtitle {
+        margin: 3px 0 0;
+        color: var(--ats-muted);
+        font-size: .7rem;
+    }
+
+    .ats-opening-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 11px;
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: .7rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .ats-table {
+        margin: 0;
+        font-size: .78rem;
+    }
+
+        .ats-table thead th {
+            padding: 13px 14px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #64748b;
+            background: #f8fafc;
+            font-size: .66rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            white-space: nowrap;
+        }
+
+        .ats-table tbody td {
+            padding: 15px 14px;
+            border-color: #eef2f7;
+            color: #475569;
+            vertical-align: middle;
+        }
+
+        .ats-table tbody tr {
+            transition: all .2s ease;
+        }
+
+            .ats-table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+    .ats-job-code {
+        display: inline-flex;
+        align-items: center;
+        min-width: 70px;
+        padding: 6px 9px;
+        border-radius: 8px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: .68rem;
+        font-weight: 800;
+    }
+
+    .ats-job-title {
+        color: #1e293b;
+        font-size: .8rem;
+        font-weight: 800;
+    }
+
+    .ats-job-meta {
+        margin-top: 4px;
+        color: #94a3b8;
+        font-size: .67rem;
+    }
+
+    .ats-department-name {
+        color: #475569;
+        font-weight: 700;
+    }
+
+    .ats-vacancy-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        color: #475569;
+        background: #f8fafc;
+        font-size: .67rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .ats-work-mode {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border-radius: 8px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: .67rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .ats-candidate-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 9px;
+        border-radius: 9px;
+        color: #fff;
+        background: linear-gradient(135deg,#2563eb,#1d4ed8);
+        font-size: .66rem;
+        font-weight: 800;
+        text-decoration: none;
+        box-shadow: 0 5px 12px rgba(37,99,235,.15);
+        transition: all .2s ease;
+        white-space: nowrap;
+    }
+
+        .ats-candidate-link:hover {
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+    .ats-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 9px;
+        font-size: .66rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .ats-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+
+    .ats-status-open {
+        color: #15803d;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+    }
+
+        .ats-status-open .ats-status-dot {
+            background: #22c55e;
+            animation: atsPulse 2s infinite;
+        }
+
+    .ats-status-hold {
+        color: #b45309;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+    }
+
+        .ats-status-hold .ats-status-dot {
+            background: #f59e0b;
+        }
+
+    .ats-status-closed {
+        color: #64748b;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+        .ats-status-closed .ats-status-dot {
+            background: #64748b;
+        }
+
+    .ats-status-draft {
+        color: #0369a1;
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+    }
+
+        .ats-status-draft .ats-status-dot {
+            background: #0ea5e9;
+        }
+
+    .ats-status-archived {
+        color: #475569;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+    }
+
+        .ats-status-archived .ats-status-dot {
+            background: #475569;
+        }
+
+    .ats-action-btn {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        color: #64748b;
+        background: #fff;
+        transition: all .2s ease;
+    }
+
+        .ats-action-btn:hover {
+            color: #2563eb;
+            border-color: #bfdbfe;
+            background: #eff6ff;
+            transform: translateY(-2px);
+        }
+
+    .ats-dropdown {
+        min-width: 220px;
+        padding: 7px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        box-shadow: 0 15px 35px rgba(15,23,42,.12);
+    }
+
+        .ats-dropdown .dropdown-item {
+            padding: 9px 10px;
+            border-radius: 9px;
+            font-size: .72rem;
+            font-weight: 600;
+        }
+
+            .ats-dropdown .dropdown-item:hover {
+                background: #f8fafc;
+            }
+
+        .ats-dropdown button.dropdown-item {
+            width: 100%;
+            border: 0;
+            text-align: left;
+            background: transparent;
+        }
+
+
+    /* =========================================================
+           EMPTY STATE
+        ========================================================== */
+
+    .ats-empty-state {
+        padding: 65px 20px;
+        text-align: center;
+    }
+
+    .ats-empty-icon {
+        width: 68px;
+        height: 68px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        border-radius: 20px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: 1.5rem;
+    }
+
+    .ats-empty-title {
+        margin: 0 0 7px;
+        color: var(--ats-dark);
+        font-size: .95rem;
+        font-weight: 800;
+    }
+
+    .ats-empty-text {
+        margin: 0;
+        color: var(--ats-muted);
+        font-size: .75rem;
+    }
+
+
+    /* =========================================================
+           MODAL
+        ========================================================== */
+
+    .ats-modal .modal-content {
+        overflow: hidden;
+        border: 0;
+        border-radius: 20px;
+        box-shadow: 0 25px 60px rgba(15,23,42,.18);
+    }
+
+    .ats-modal-header {
+        position: relative;
+        padding: 22px 24px;
+        color: #fff;
+        background: linear-gradient(135deg,#172033,#2563eb);
+    }
+
+        .ats-modal-header::after {
+            content: "";
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            top: -75px;
+            right: -35px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.07);
+        }
+
+    .ats-modal-title {
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .ats-modal-subtitle {
+        position: relative;
+        z-index: 2;
+        margin: 5px 0 0;
+        color: rgba(255,255,255,.70);
+        font-size: .72rem;
+    }
+
+    .ats-modal .modal-body {
+        padding: 24px;
+    }
+
+    .ats-modal .modal-footer {
+        padding: 15px 24px;
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .ats-modal .form-label {
+        margin-bottom: 7px;
+        color: #475569;
+        font-size: .7rem;
+        font-weight: 800;
+    }
+
+    .ats-modal .form-control,
+    .ats-modal .form-select {
+        min-height: 42px;
+        border: 1px solid #dbe3ee;
+        border-radius: 10px;
+        color: #334155;
+        font-size: .78rem;
+        box-shadow: none;
+    }
+
+        .ats-modal .form-control:focus,
+        .ats-modal .form-select:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 4px rgba(37,99,235,.08);
+        }
+
+    .ats-modal textarea.form-control {
+        min-height: auto;
+    }
+
+    .ats-modal-cancel {
+        min-height: 40px;
+        padding: 0 17px;
+        border-radius: 10px;
+        font-size: .75rem;
+        font-weight: 700;
+    }
+
+    .ats-modal-submit {
+        min-height: 40px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 10px;
+        font-size: .75rem;
+        font-weight: 800;
+        background: linear-gradient(135deg,#2563eb,#1d4ed8);
+        box-shadow: 0 8px 18px rgba(37,99,235,.18);
+    }
+
+        .ats-modal-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 22px rgba(37,99,235,.25);
+        }
+
+
+    /* =========================================================
+           ANIMATIONS
+        ========================================================== */
+
+    @@keyframes atsFadeUp {
+
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes atsSlideDown {
+
+        from {
+            opacity: 0;
+            transform: translateY(-12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes atsPulse {
+
+        0% {
+            box-shadow: 0 0 0 0 rgba(34,197,94,.45);
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px rgba(34,197,94,0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(34,197,94,0);
+        }
+    }
+
+
+    /* =========================================================
+           RESPONSIVE
+        ========================================================== */
+
+    @@media (max-width: 991.98px) {
+
+        .ats-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .ats-create-btn {
+            width: 100%;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+
+        .ats-page {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        .ats-page-title {
+            font-size: 1.25rem;
+        }
+
+        .ats-page-subtitle {
+            font-size: .72rem;
+        }
+
+        .ats-title-icon {
+            width: 44px;
+            height: 44px;
+            flex-basis: 44px;
+        }
+
+        .ats-filter-card,
+        .ats-table-header {
+            padding: 16px;
+        }
+
+        .ats-table-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .ats-opening-count {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+
+        .ats-header {
+            gap: 16px;
+        }
+
+        .ats-stat-card {
+            min-height: 135px;
+            padding: 16px;
+        }
+
+        .ats-modal .modal-body,
+        .ats-modal .modal-footer {
+            padding: 18px;
+        }
+
+        .ats-modal .modal-footer {
+            flex-direction: column-reverse;
+        }
+
+            .ats-modal .modal-footer .btn {
+                width: 100%;
+            }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+
+        .ats-page *,
+        .ats-page *::before,
+        .ats-page *::after {
+            animation-duration: .01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: .01ms !important;
+        }
+    }
+</style>
+
+
+<div class="container-fluid py-4 text-start ats-page">
+
+    <!-- =====================================================
+         ALERTS
+    ====================================================== -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert ats-alert ats-alert-success alert-dismissible fade show" role="alert">
+
+            <i class="fa-solid fa-circle-check fs-5"></i>
+
+            <span>
+                @TempData["SuccessMessage"]
+            </span>
+
+            <button type="button"
+                    class="btn-close ms-auto"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
+            </button>
+
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm"><i class="fa-solid fa-plus me-1.5"></i>Create Opening</button>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert ats-alert ats-alert-danger alert-dismissible fade show" role="alert">
+
+            <i class="fa-solid fa-triangle-exclamation fs-5"></i>
+
+            <span>
+                @TempData["ErrorMessage"]
+            </span>
+
+            <button type="button"
+                    class="btn-close ms-auto"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="ats-header">
+
+        <div>
+
+            <div class="ats-breadcrumb">
+
+                <a href="/HR">
+                    HR Dashboard
+                </a>
+
+                <span class="ats-breadcrumb-separator">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </span>
+
+                <span class="ats-breadcrumb-current">
+                    Recruitment
+                </span>
+
+                <span class="ats-breadcrumb-separator">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </span>
+
+                <span class="ats-breadcrumb-current">
+                    Job Openings
+                </span>
+
+            </div>
+
+
+            <div class="ats-title-row">
+
+                <div class="ats-title-icon">
+                    <i class="fa-solid fa-briefcase"></i>
+                </div>
+
+
+                <div>
+
+                    <h1 class="ats-page-title">
+                        Job Openings
+                    </h1>
+
+                    <p class="ats-page-subtitle">
+                        Manage active positions, vacancies and candidate recruitment pipelines.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <button type="button"
+                class="btn ats-create-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#createJobModal">
+
+            <i class="fa-solid fa-plus me-2"></i>
+            Create Opening
+
+        </button>
+
     </div>
 
-    <!-- Openings Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Job Code</th>
-                        <th>Job Title</th>
-                        <th>Department</th>
-                        <th>Experience Required</th>
-                        <th>Applicants</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">JOB-1021</td>
-                        <td>Junior Sales Representative</td>
-                        <td>Sales & Marketing</td>
-                        <td>1-2 Years</td>
-                        <td>14 Candidates</td>
-                        <td><span class="badge bg-success-subtle text-success">Open & Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">JOB-1022</td>
-                        <td>Lead Full-stack Developer</td>
-                        <td>Software Engineering</td>
-                        <td>5+ Years</td>
-                        <td>8 Candidates</td>
-                        <td><span class="badge bg-success-subtle text-success">Open & Active</span></td>
-                    </tr>
-                </tbody>
-            </table>
+
+    <!-- =====================================================
+         KPI CARDS
+    ====================================================== -->
+
+    <div class="row g-3 mb-4">
+
+        <!-- Total Openings -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="ats-stat-card ats-stat-blue ats-stat-delay-1">
+
+                <div class="ats-stat-top">
+
+                    <span class="ats-stat-label">
+                        Total Openings
+                    </span>
+
+                    <div class="ats-stat-icon ats-icon-blue">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+
+                </div>
+
+                <h3 class="ats-stat-value">
+                    @totalJobs
+                </h3>
+
+                <div class="ats-stat-meta">
+                    <span class="ats-stat-highlight">
+                        @openJobs Active
+                    </span>
+                    recruitment position@(openJobs == 1 ? "" : "s")
+                </div>
+
+            </div>
+
         </div>
+
+
+        <!-- Vacancies -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="ats-stat-card ats-stat-purple ats-stat-delay-2">
+
+                <div class="ats-stat-top">
+
+                    <span class="ats-stat-label">
+                        Total Vacancies
+                    </span>
+
+                    <div class="ats-stat-icon ats-icon-purple">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </div>
+
+                </div>
+
+                <h3 class="ats-stat-value">
+                    @totalVacancies
+                </h3>
+
+                <div class="ats-stat-meta">
+                    <span class="ats-mini-badge">
+                        <i class="fa-solid fa-people-group"></i>
+                        @totalApplicants Applicants
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Applicants -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="ats-stat-card ats-stat-success ats-stat-delay-3">
+
+                <div class="ats-stat-top">
+
+                    <span class="ats-stat-label">
+                        Talent Pipeline
+                    </span>
+
+                    <div class="ats-stat-icon ats-icon-success">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+
+                </div>
+
+                <h3 class="ats-stat-value">
+                    @totalApplicants
+                </h3>
+
+                <div class="ats-stat-meta">
+                    Total candidates across all openings
+                </div>
+
+                <div class="progress ats-progress">
+
+                    <div class="progress-bar"
+                         role="progressbar"
+                         style="width: @fillRate%">
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- On Hold -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="ats-stat-card ats-stat-warning ats-stat-delay-4">
+
+                <div class="ats-stat-top">
+
+                    <span class="ats-stat-label">
+                        Recruitment Status
+                    </span>
+
+                    <div class="ats-stat-icon ats-icon-warning">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+
+                </div>
+
+                <h3 class="ats-stat-value">
+                    @onHoldJobs
+                </h3>
+
+                <div class="ats-stat-meta">
+                    <span class="ats-stat-highlight">
+                        @closedJobs Closed
+                    </span>
+                    &nbsp;•&nbsp;
+                    @remoteJobs Remote / Hybrid
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
+
+
+    <!-- =====================================================
+         FILTERS
+    ====================================================== -->
+
+    <div class="ats-filter-card">
+
+        <div class="ats-filter-title-row">
+
+            <div class="ats-filter-title-icon">
+                <i class="fa-solid fa-sliders"></i>
+            </div>
+
+            <div>
+
+                <h6 class="ats-filter-title">
+                    Search & Filter Openings
+                </h6>
+
+                <p class="ats-filter-subtitle">
+                    Find positions quickly using department, status or employment filters.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form method="get"
+              action="/HRRecruitment/JobOpenings"
+              class="row g-3 align-items-end">
+
+
+            <!-- Search -->
+            <div class="col-xl-3 col-md-6">
+
+                <div class="ats-search-wrap">
+
+                    <i class="fa-solid fa-magnifying-glass ats-search-icon"></i>
+
+                    <input type="text"
+                           name="search"
+                           class="form-control ats-search-input"
+                           placeholder="Search title or job code..."
+                           value="@ViewBag.Search" />
+
+                </div>
+
+            </div>
+
+
+            <!-- Department -->
+            <div class="col-xl-2 col-md-6">
+
+                <select name="departmentId"
+                        class="form-select"
+                        onchange="this.form.submit()">
+
+                    <option value="">
+                        All Departments
+                    </option>
+
+                    @foreach (var d in departments)
+                    {
+                        <option value="@d.DepartmentId"
+                                selected="@(ViewBag.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">
+                            @d.DepartmentName
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+
+            <!-- Status -->
+            <div class="col-xl-2 col-md-6">
+
+                <select name="status"
+                        class="form-select"
+                        onchange="this.form.submit()">
+
+                    <option value="All">
+                        All Statuses
+                    </option>
+
+                    <option value="Open"
+                            selected="@(ViewBag.SelectedStatus == "Open" ? "selected" : null)">
+                        Open & Active
+                    </option>
+
+                    <option value="On Hold"
+                            selected="@(ViewBag.SelectedStatus == "On Hold" ? "selected" : null)">
+                        On Hold
+                    </option>
+
+                    <option value="Closed"
+                            selected="@(ViewBag.SelectedStatus == "Closed" ? "selected" : null)">
+                        Closed
+                    </option>
+
+                    <option value="Draft"
+                            selected="@(ViewBag.SelectedStatus == "Draft" ? "selected" : null)">
+                        Draft
+                    </option>
+
+                    <option value="Archived"
+                            selected="@(ViewBag.SelectedStatus == "Archived" ? "selected" : null)">
+                        Archived
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Employment -->
+            <div class="col-xl-2 col-md-6">
+
+                <select name="employmentType"
+                        class="form-select"
+                        onchange="this.form.submit()">
+
+                    <option value="All">
+                        All Employment Types
+                    </option>
+
+                    <option value="Full-Time"
+                            selected="@(ViewBag.SelectedEmploymentType == "Full-Time" ? "selected" : null)">
+                        Full-Time
+                    </option>
+
+                    <option value="Part-Time"
+                            selected="@(ViewBag.SelectedEmploymentType == "Part-Time" ? "selected" : null)">
+                        Part-Time
+                    </option>
+
+                    <option value="Contract"
+                            selected="@(ViewBag.SelectedEmploymentType == "Contract" ? "selected" : null)">
+                        Contract
+                    </option>
+
+                    <option value="Internship"
+                            selected="@(ViewBag.SelectedEmploymentType == "Internship" ? "selected" : null)">
+                        Internship
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Buttons -->
+            <div class="col-xl-3 col-md-12">
+
+                <div class="d-flex gap-2">
+
+                    <button type="submit"
+                            class="btn ats-filter-btn flex-grow-1">
+
+                        <i class="fa-solid fa-filter me-1"></i>
+                        Apply Filters
+
+                    </button>
+
+                    <a href="/HRRecruitment/JobOpenings"
+                       class="btn ats-reset-btn">
+
+                        <i class="fa-solid fa-rotate-left"></i>
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- =====================================================
+         OPENINGS TABLE
+    ====================================================== -->
+
+    <div class="ats-table-card">
+
+        <div class="ats-table-header">
+
+            <div class="ats-table-title-wrap">
+
+                <div class="ats-table-title-icon">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+
+                <div>
+
+                    <h5 class="ats-table-title">
+                        Recruitment Positions
+                    </h5>
+
+                    <p class="ats-table-subtitle">
+                        Track job openings, candidates and recruitment progress.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="ats-opening-count">
+
+                <i class="fa-solid fa-briefcase"></i>
+
+                @totalJobs Opening@(totalJobs == 1 ? "" : "s")
+
+            </div>
+
+        </div>
+
+
+        @if (jobs.Any())
+        {
+            <div class="table-responsive">
+
+                <table class="table ats-table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Job Code</th>
+                            <th>Position</th>
+                            <th>Department</th>
+                            <th>Vacancies</th>
+                            <th>Experience</th>
+                            <th>Work Mode</th>
+                            <th>Candidates</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @foreach (var job in jobs)
+                        {
+                            int applicantCount = job.Applications?.Count ?? 0;
+
+                            string statusClass = job.Status switch
+                            {
+                                "Open" => "ats-status-open",
+                                "On Hold" => "ats-status-hold",
+                                "Closed" => "ats-status-closed",
+                                "Draft" => "ats-status-draft",
+                                "Archived" => "ats-status-archived",
+                                _ => "ats-status-closed"
+                            };
+
+                            <tr>
+
+                                <!-- Job Code -->
+                                <td>
+
+                                    <span class="ats-job-code">
+                                        @job.JobCode
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Position -->
+                                <td>
+
+                                    <div class="ats-job-title">
+                                        @job.JobTitle
+                                    </div>
+
+                                    <div class="ats-job-meta">
+
+                                        <i class="fa-solid fa-location-dot me-1"></i>
+
+                                        @job.JobLocation
+
+                                        <span class="mx-1">•</span>
+
+                                        @job.EmploymentType
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- Department -->
+                                <td>
+
+                                    <span class="ats-department-name">
+                                        @(job.Department?.DepartmentName ?? "N/A")
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Vacancies -->
+                                <td>
+
+                                    <span class="ats-vacancy-badge">
+
+                                        <i class="fa-solid fa-user-plus"></i>
+
+                                        @job.Vacancies Open
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Experience -->
+                                <td>
+
+                                    @(string.IsNullOrEmpty(job.ExperienceRequired)
+                                                                ? "1-3 Years"
+                                                                : job.ExperienceRequired)
+
+                        </td>
+
+
+                                <!-- Work Mode -->
+                                <td>
+
+                                    <span class="ats-work-mode">
+
+                                @if (job.WorkMode == "Remote")
+                                        {
+                                            <i class="fa-solid fa-laptop-house"></i>
+                                        }
+                                        else if (job.WorkMode == "Hybrid")
+                                        {
+                                            <i class="fa-solid fa-house-laptop"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fa-solid fa-building"></i>
+                                        }
+
+                                        @job.WorkMode
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Candidates -->
+                                <td>
+
+                                    <a href="/HRRecruitment/CandidatePipeline?jobId=@job.JobId"
+                                       class="ats-candidate-link">
+
+                                        <i class="fa-solid fa-users"></i>
+
+                                        @applicantCount Candidate@(applicantCount == 1 ? "" : "s")
+
+                                    </a>
+
+                                </td>
+
+
+                                <!-- Status -->
+                                <td>
+
+                                    <span class="ats-status @statusClass">
+
+                                        <span class="ats-status-dot"></span>
+
+                                        @job.Status
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Actions -->
+                                <td class="text-end">
+
+                                    <div class="dropdown">
+
+                                        <button class="btn ats-action-btn"
+                                                type="button"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false">
+
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+
+                                        </button>
+
+
+                                        <ul class="dropdown-menu dropdown-menu-end ats-dropdown">
+
+                                            <li>
+
+                                                <a class="dropdown-item"
+                                                   href="#"
+                                                   onclick="viewJobDetails(@job.JobId)">
+
+                                                    <i class="fa-solid fa-eye me-2 text-info"></i>
+                                                    View Details
+
+                                                </a>
+
+                                            </li>
+
+
+                                            <li>
+
+                                                <a class="dropdown-item"
+                                                   href="/HRRecruitment/CandidatePipeline?jobId=@job.JobId">
+
+                                                    <i class="fa-solid fa-users me-2 text-primary"></i>
+                                                    View Candidates (@applicantCount)
+
+                                                </a>
+
+                                            </li>
+
+
+                                            <li>
+
+                                                <hr class="dropdown-divider">
+
+                                            </li>
+
+
+                                            <li>
+
+                                                <form method="post"
+                                                      action="/HRRecruitment/DuplicateJobOpening">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="jobId"
+                                                           value="@job.JobId" />
+
+                                                    <button type="submit"
+                                                            class="dropdown-item">
+
+                                                        <i class="fa-solid fa-copy me-2 text-warning"></i>
+                                                        Duplicate Opening
+
+                                                    </button>
+
+                                                </form>
+
+                                            </li>
+
+
+                                            @if (job.Status == "Open")
+                                            {
+                                                <li>
+
+                                                    <form method="post"
+                                                          action="/HRRecruitment/ChangeJobStatus">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <input type="hidden"
+                                                               name="jobId"
+                                                               value="@job.JobId" />
+
+                                                        <input type="hidden"
+                                                               name="status"
+                                                               value="On Hold" />
+
+                                                        <button type="submit"
+                                                                class="dropdown-item">
+
+                                                            <i class="fa-solid fa-pause me-2 text-warning"></i>
+                                                            Put On Hold
+
+                                                        </button>
+
+                                                    </form>
+
+                                                </li>
+
+
+                                                <li>
+
+                                                    <form method="post"
+                                                          action="/HRRecruitment/ChangeJobStatus">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <input type="hidden"
+                                                               name="jobId"
+                                                               value="@job.JobId" />
+
+                                                        <input type="hidden"
+                                                               name="status"
+                                                               value="Closed" />
+
+                                                        <button type="submit"
+                                                                class="dropdown-item">
+
+                                                            <i class="fa-solid fa-lock me-2 text-secondary"></i>
+                                                            Close Opening
+
+                                                        </button>
+
+                                                    </form>
+
+                                                </li>
+                                            }
+                                            else
+                                            {
+                                                <li>
+
+                                                    <form method="post"
+                                                          action="/HRRecruitment/ChangeJobStatus">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <input type="hidden"
+                                                               name="jobId"
+                                                               value="@job.JobId" />
+
+                                                        <input type="hidden"
+                                                               name="status"
+                                                               value="Open" />
+
+                                                        <button type="submit"
+                                                                class="dropdown-item">
+
+                                                            <i class="fa-solid fa-play me-2 text-success"></i>
+                                                            Reopen Position
+
+                                                        </button>
+
+                                                    </form>
+
+                                                </li>
+                                            }
+
+
+                                            <li>
+
+                                                <hr class="dropdown-divider">
+
+                                            </li>
+
+
+                                            <li>
+
+                                                <form method="post"
+                                                      action="/HRRecruitment/DeleteJobOpening"
+                                                      onsubmit="return confirm('Are you sure you want to delete this Job Opening?');">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="jobId"
+                                                           value="@job.JobId" />
+
+                                                    <button type="submit"
+                                                            class="dropdown-item text-danger">
+
+                                                        <i class="fa-solid fa-trash me-2"></i>
+                                                        Delete Opening
+
+                                                    </button>
+
+                                                </form>
+
+                                            </li>
+
+                                        </ul>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+        }
+        else
+        {
+            <div class="ats-empty-state">
+
+                <div class="ats-empty-icon">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+
+                <h6 class="ats-empty-title">
+                    No Job Openings Found
+                </h6>
+
+                <p class="ats-empty-text">
+                    No job openings are available for the selected search and filters.
+                </p>
+
+            </div>
+        }
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     CREATE JOB OPENING MODAL
+========================================================== -->
+
+<div class="modal fade ats-modal"
+     id="createJobModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+
+            <!-- Modal Header -->
+
+            <div class="ats-modal-header">
+
+                <div>
+
+                    <h5 class="ats-modal-title">
+
+                        <i class="fa-solid fa-plus-circle me-2"></i>
+
+                        Create New Job Opening
+
+                    </h5>
+
+                    <p class="ats-modal-subtitle">
+                        Configure a new position and publish it to your recruitment pipeline.
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="btn-close btn-close-white position-relative"
+                        style="z-index:3;"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+
+            <!-- Form -->
+
+            <form method="post"
+                  action="/HRRecruitment/CreateJobOpening">
+
+                @Html.AntiForgeryToken()
+
+
+                <div class="modal-body text-start">
+
+                    <div class="row g-3">
+
+
+                        <!-- Job Title -->
+
+                        <div class="col-md-8">
+
+                            <label class="form-label">
+
+                                Job Title
+                                <span class="text-danger">*</span>
+
+                            </label>
+
+                            <input type="text"
+                                   name="JobTitle"
+                                   class="form-control"
+                                   required
+                                   placeholder="e.g. Senior Software Engineer" />
+
+                        </div>
+
+
+                        <!-- Job Code -->
+
+                        <div class="col-md-4">
+
+                            <label class="form-label">
+                                Job Code
+                            </label>
+
+                            <input type="text"
+                                   name="JobCode"
+                                   class="form-control"
+                                   placeholder="e.g. JOB-1025" />
+
+                        </div>
+
+
+                        <!-- Department -->
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+
+                                Department
+                                <span class="text-danger">*</span>
+
+                            </label>
+
+                            <select name="DepartmentId"
+                                    class="form-select"
+                                    required>
+
+                                <option value="">
+                                    -- Select Department --
+                                </option>
+
+                                @foreach (var d in departments)
+                                {
+                                    <option value="@d.DepartmentId">
+                                        @d.DepartmentName
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Designation -->
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Designation
+                            </label>
+
+                            <select name="DesignationId"
+                                    class="form-select">
+
+                                <option value="">
+                                    -- Select Designation --
+                                </option>
+
+                                @foreach (var desg in designations)
+                                {
+                                    <option value="@desg.DesignationId">
+                                        @desg.JobTitle
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Employment -->
+
+                        <div class="col-md-4">
+
+                            <label class="form-label">
+                                Employment Type
+                            </label>
+
+                            <select name="EmploymentType"
+                                    class="form-select">
+
+                                <option value="Full-Time">
+                                    Full-Time
+                                </option>
+
+                                <option value="Part-Time">
+                                    Part-Time
+                                </option>
+
+                                <option value="Contract">
+                                    Contract
+                                </option>
+
+                                <option value="Internship">
+                                    Internship
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Work Mode -->
+
+                        <div class="col-md-4">
+
+                            <label class="form-label">
+                                Work Mode
+                            </label>
+
+                            <select name="WorkMode"
+                                    class="form-select">
+
+                                <option value="On-site">
+                                    On-site
+                                </option>
+
+                                <option value="Remote">
+                                    Remote
+                                </option>
+
+                                <option value="Hybrid">
+                                    Hybrid
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Vacancies -->
+
+                        <div class="col-md-4">
+
+                            <label class="form-label">
+                                Vacancies
+                            </label>
+
+                            <input type="number"
+                                   name="Vacancies"
+                                   class="form-control"
+                                   value="1"
+                                   min="1"
+                                   required />
+
+                        </div>
+
+
+                        <!-- Experience -->
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Experience Required
+                            </label>
+
+                            <input type="text"
+                                   name="ExperienceRequired"
+                                   class="form-control"
+                                   placeholder="e.g. 2-5 Years" />
+
+                        </div>
+
+
+                        <!-- Location -->
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Job Location
+                            </label>
+
+                            <input type="text"
+                                   name="JobLocation"
+                                   class="form-control"
+                                   value="Headquarters" />
+
+                        </div>
+
+
+                        <!-- Minimum Salary -->
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Minimum Salary (CTC PA)
+                            </label>
+
+                            <input type="number"
+                                   name="MinimumSalary"
+                                   class="form-control"
+                                   placeholder="e.g. 400000" />
+
+                        </div>
+
+
+                        <!-- Maximum Salary -->
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Maximum Salary (CTC PA)
+                            </label>
+
+                            <input type="number"
+                                   name="MaximumSalary"
+                                   class="form-control"
+                                   placeholder="e.g. 800000" />
+
+                        </div>
+
+
+                        <!-- Skills -->
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Required Skills
+                            </label>
+
+                            <input type="text"
+                                   name="RequiredSkills"
+                                   class="form-control"
+                                   placeholder="e.g. C#, ASP.NET Core, SQL Server, Communication" />
+
+                        </div>
+
+
+                        <!-- Description -->
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Job Description
+                            </label>
+
+                            <textarea name="JobDescription"
+                                      class="form-control"
+                                      rows="4"
+                                      placeholder="Provide an overview of the role, responsibilities and requirements..."></textarea>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Modal Footer -->
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light border ats-modal-cancel"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+
+                    <button type="submit"
+                            class="btn btn-primary ats-modal-submit">
+
+                        <i class="fa-solid fa-briefcase me-1"></i>
+
+                        Create Opening
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
 </div>

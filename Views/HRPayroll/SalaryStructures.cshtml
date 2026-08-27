@@ -1,400 +1,1844 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Salary Structures & Employee CTC";
+
     var structures = ViewBag.Structures as List<ERP_System.Models.SalaryStructureMaster> ?? new List<ERP_System.Models.SalaryStructureMaster>();
     var assignments = ViewBag.Assignments as List<ERP_System.Models.EmployeeSalaryAssignment> ?? new List<ERP_System.Models.EmployeeSalaryAssignment>();
     var employees = ViewBag.ActiveEmployees as List<ERP_System.Models.User> ?? new List<ERP_System.Models.User>();
 }
 
-<div class="container-fluid py-4 text-start">
+<style>
+    /* =========================================================
+           SALARY STRUCTURE & CTC - PREMIUM ERP PAGE DESIGN
+           ========================================================= */
+
+    .salary-page {
+        animation: salaryPageFadeIn 0.55s ease-out;
+    }
+
+    @@keyframes salaryPageFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* -------------------- Header -------------------- */
+
+    .salary-page-header {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
+        border: 1px solid rgba(13, 110, 253, 0.09);
+        border-radius: 22px;
+        padding: 1.4rem 1.6rem;
+        box-shadow: 0 10px 35px rgba(25, 52, 90, 0.06);
+    }
+
+        .salary-page-header::before {
+            content: "";
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            right: -90px;
+            top: -150px;
+            border-radius: 50%;
+            background: rgba(13, 110, 253, 0.06);
+            pointer-events: none;
+        }
+
+    .salary-page-header-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .salary-header-icon {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0d6efd, #4c8dff);
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.22);
+    }
+
+    .salary-page-title {
+        color: #1f2937;
+        font-size: 1.25rem;
+        letter-spacing: -0.02em;
+    }
+
+    .salary-page-subtitle {
+        color: #6b7280;
+        font-size: 0.82rem;
+    }
+
+    .salary-breadcrumb {
+        margin-top: 0.2rem;
+    }
+
+        .salary-breadcrumb .breadcrumb {
+            margin-bottom: 0;
+            font-size: 0.78rem;
+        }
+
+        .salary-breadcrumb .breadcrumb-item a {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+    /* -------------------- Buttons -------------------- */
+
+    .salary-action-btn {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0.55rem 1rem;
+        transition: all 0.25s ease;
+    }
+
+        .salary-action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .salary-action-btn-primary {
+        border: 1px solid transparent;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0d6efd, #367eff);
+        box-shadow: 0 7px 18px rgba(13, 110, 253, 0.2);
+    }
+
+        .salary-action-btn-primary:hover {
+            color: #ffffff;
+            box-shadow: 0 11px 25px rgba(13, 110, 253, 0.28);
+        }
+
+    .salary-action-btn-outline {
+        color: #0d6efd;
+        background: #ffffff;
+        border: 1px solid rgba(13, 110, 253, 0.22);
+    }
+
+        .salary-action-btn-outline:hover {
+            color: #0d6efd;
+            border-color: rgba(13, 110, 253, 0.4);
+            background: #f7faff;
+            box-shadow: 0 8px 18px rgba(13, 110, 253, 0.08);
+        }
+
+    /* -------------------- Alerts -------------------- */
+
+    .salary-alert {
+        border: none;
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        box-shadow: 0 8px 24px rgba(30, 41, 59, 0.07);
+        animation: salarySlideDown 0.4s ease-out;
+    }
+
+    @@keyframes salarySlideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* -------------------- Stats Cards -------------------- */
+
+    .salary-stat-card {
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        background: #ffffff;
+        border: 1px solid #edf0f5;
+        border-radius: 18px;
+        padding: 1.15rem 1.2rem;
+        box-shadow: 0 8px 28px rgba(31, 41, 55, 0.05);
+        transition: all 0.28s ease;
+        animation: salaryCardUp 0.5s ease-out both;
+    }
+
+        .salary-stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(13, 110, 253, 0.18);
+            box-shadow: 0 16px 35px rgba(31, 41, 55, 0.09);
+        }
+
+        .salary-stat-card::after {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            right: -35px;
+            bottom: -40px;
+            border-radius: 50%;
+            opacity: 0.05;
+            background: currentColor;
+        }
+
+        .salary-stat-card:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        .salary-stat-card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .salary-stat-card:nth-child(3) {
+            animation-delay: 0.15s;
+        }
+
+    @@keyframes salaryCardUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .salary-stat-label {
+        color: #7b8494;
+        font-size: 0.73rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.045em;
+        margin-bottom: 0.35rem;
+    }
+
+    .salary-stat-value {
+        color: #202938;
+        font-size: 1.55rem;
+        font-weight: 750;
+        line-height: 1;
+        margin: 0;
+    }
+
+    .salary-stat-icon {
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+    }
+
+        .salary-stat-icon.primary {
+            color: #0d6efd;
+            background: rgba(13, 110, 253, 0.1);
+        }
+
+        .salary-stat-icon.success {
+            color: #198754;
+            background: rgba(25, 135, 84, 0.1);
+        }
+
+        .salary-stat-icon.info {
+            color: #0dcaf0;
+            background: rgba(13, 202, 240, 0.12);
+        }
+
+    /* -------------------- Tabs -------------------- */
+
+    .salary-tabs-wrapper {
+        background: #ffffff;
+        border: 1px solid #edf0f5;
+        border-radius: 16px;
+        padding: 0.35rem 0.5rem 0;
+        box-shadow: 0 5px 20px rgba(31, 41, 55, 0.04);
+    }
+
+    .salary-tabs {
+        gap: 0.25rem;
+        border-bottom: none;
+    }
+
+        .salary-tabs .nav-item {
+            margin-bottom: 0;
+        }
+
+        .salary-tabs .nav-link {
+            position: relative;
+            color: #6b7280;
+            background: transparent;
+            border: none;
+            border-radius: 10px 10px 0 0;
+            padding: 0.8rem 1rem;
+            font-size: 0.82rem;
+            transition: all 0.25s ease;
+        }
+
+            .salary-tabs .nav-link:hover {
+                color: #0d6efd;
+                background: rgba(13, 110, 253, 0.045);
+            }
+
+            .salary-tabs .nav-link.active {
+                color: #0d6efd;
+                background: #ffffff;
+            }
+
+                .salary-tabs .nav-link.active::after {
+                    content: "";
+                    position: absolute;
+                    height: 3px;
+                    left: 1rem;
+                    right: 1rem;
+                    bottom: 0;
+                    border-radius: 10px 10px 0 0;
+                    background: #0d6efd;
+                }
+
+    /* -------------------- Content Cards -------------------- */
+
+    .salary-content-card {
+        background: #ffffff;
+        border: 1px solid #edf0f5;
+        border-radius: 18px;
+        box-shadow: 0 8px 28px rgba(31, 41, 55, 0.05);
+        overflow: hidden;
+    }
+
+    .salary-card-top {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #edf0f5;
+        background: linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+    }
+
+    .salary-card-title {
+        margin: 0;
+        color: #273244;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .salary-card-description {
+        color: #8a94a3;
+        font-size: 0.75rem;
+        margin-top: 0.15rem;
+    }
+
+    .salary-table-area {
+        padding: 0;
+    }
+
+    /* -------------------- Search -------------------- */
+
+    .salary-search-group {
+        max-width: 430px;
+    }
+
+        .salary-search-group .input-group-text {
+            color: #8a94a3;
+            background: #f8f9fb;
+            border-color: #e7eaf0;
+            border-radius: 10px 0 0 10px;
+        }
+
+        .salary-search-group .form-control {
+            min-height: 39px;
+            color: #374151;
+            border-color: #e7eaf0;
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+            box-shadow: none;
+            font-size: 0.82rem;
+        }
+
+            .salary-search-group .form-control:focus {
+                border-color: #86b7fe;
+                box-shadow: none;
+            }
+
+    /* -------------------- Tables -------------------- */
+
+    .salary-table {
+        margin-bottom: 0;
+        font-size: 0.82rem;
+    }
+
+        .salary-table thead th {
+            color: #697386;
+            background: #f8f9fb;
+            border-top: none;
+            border-bottom: 1px solid #e9edf2;
+            padding: 0.85rem 1rem;
+            font-size: 0.68rem;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: 0.045em;
+            white-space: nowrap;
+        }
+
+        .salary-table tbody td {
+            padding: 0.95rem 1rem;
+            vertical-align: middle;
+            border-color: #eef0f3;
+            color: #566171;
+        }
+
+        .salary-table tbody tr {
+            transition: all 0.2s ease;
+        }
+
+            .salary-table tbody tr:hover {
+                background: #fbfcff;
+            }
+
+    .salary-structure-name {
+        color: #263244;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+
+    .salary-structure-description {
+        color: #9199a6;
+        font-size: 0.72rem;
+        margin-top: 0.15rem;
+        max-width: 260px;
+    }
+
+    .salary-department-badge {
+        display: inline-flex;
+        align-items: center;
+        color: #5f6b7a;
+        background: #f8f9fb;
+        border: 1px solid #e6e9ee;
+        border-radius: 7px;
+        padding: 0.25rem 0.45rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin: 0.1rem;
+    }
+
+    .salary-component-value {
+        color: #273244;
+        font-weight: 700;
+    }
+
+    .salary-rule-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 30px;
+        padding: 0.26rem 0.42rem;
+        border-radius: 7px;
+        color: #697386;
+        background: #f3f5f7;
+        border: 1px solid #e7eaee;
+        font-size: 0.65rem;
+        font-weight: 700;
+        margin-right: 0.2rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .salary-special-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.36rem 0.55rem;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 650;
+        color: #0d6efd;
+        background: rgba(13, 110, 253, 0.08);
+    }
+
+    .salary-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.32rem;
+        padding: 0.35rem 0.55rem;
+        border-radius: 20px;
+        font-size: 0.69rem;
+        font-weight: 700;
+    }
+
+        .salary-status-badge.active {
+            color: #198754;
+            background: rgba(25, 135, 84, 0.1);
+        }
+
+        .salary-status-badge.inactive {
+            color: #dc3545;
+            background: rgba(220, 53, 69, 0.09);
+        }
+
+    /* -------------------- Employee -------------------- */
+
+    .salary-employee-avatar {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        color: #0d6efd;
+        background: rgba(13, 110, 253, 0.09);
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+
+    .salary-employee-name {
+        color: #263244;
+        font-size: 0.84rem;
+        font-weight: 700;
+    }
+
+    .salary-employee-meta {
+        color: #8b94a2;
+        font-size: 0.7rem;
+        margin-top: 0.1rem;
+    }
+
+    .salary-amount-strong {
+        color: #263244;
+        font-weight: 750;
+    }
+
+    .salary-amount-primary {
+        color: #0d6efd;
+        font-weight: 700;
+    }
+
+    .salary-amount-success {
+        color: #198754;
+        font-weight: 750;
+    }
+
+    /* -------------------- Action Buttons -------------------- */
+
+    .salary-row-action {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        transition: all 0.2s ease;
+    }
+
+        .salary-row-action:hover {
+            transform: translateY(-2px);
+        }
+
+        .salary-row-action.duplicate:hover {
+            color: #ffffff;
+            background: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .salary-row-action.status:hover {
+            color: #ffffff;
+            background: #f59f00;
+            border-color: #f59f00;
+        }
+
+        .salary-row-action.delete:hover {
+            color: #ffffff;
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+
+    /* -------------------- Empty States -------------------- */
+
+    .salary-empty-state {
+        padding: 3.2rem 1rem !important;
+    }
+
+    .salary-empty-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ba3af;
+        background: #f5f7fa;
+        border-radius: 18px;
+    }
+
+    .salary-empty-title {
+        color: #586273;
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .salary-empty-text {
+        color: #9aa1ad;
+        font-size: 0.76rem;
+    }
+
+    /* -------------------- Modal -------------------- */
+
+    .salary-modal .modal-content {
+        overflow: hidden;
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+    }
+
+    .salary-modal .modal-header {
+        padding: 1.1rem 1.4rem;
+        color: #ffffff;
+        border-bottom: none;
+        background: linear-gradient(135deg, #0d6efd, #3e82ff);
+    }
+
+    .salary-modal .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .salary-modal .modal-title-icon {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.14);
+    }
+
+    .salary-modal .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.85;
+    }
+
+    .salary-modal .modal-body {
+        padding: 1.4rem;
+        background: #ffffff;
+    }
+
+    .salary-modal .modal-footer {
+        padding: 0.9rem 1.4rem;
+        border-top: 1px solid #edf0f4;
+        background: #fbfcfd;
+    }
+
+    .salary-modal .form-label {
+        color: #4b5563;
+        font-size: 0.74rem;
+        font-weight: 700;
+        margin-bottom: 0.38rem;
+    }
+
+    .salary-modal .form-control,
+    .salary-modal .form-select {
+        min-height: 39px;
+        color: #374151;
+        border-color: #e3e7ed;
+        border-radius: 9px;
+        box-shadow: none;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+
+    .salary-modal textarea.form-control {
+        min-height: auto;
+    }
+
+    .salary-modal .form-control:focus,
+    .salary-modal .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.08);
+    }
+
+    .salary-modal-section {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin: 0.35rem 0 0.25rem;
+        padding-top: 1rem;
+        color: #273244;
+        font-size: 0.78rem;
+        font-weight: 750;
+    }
+
+        .salary-modal-section i {
+            color: #0d6efd;
+        }
+
+        .salary-modal-section::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #edf0f4;
+        }
+
+    .salary-switch-card {
+        height: 100%;
+        padding: 0.65rem 0.7rem;
+        border: 1px solid #edf0f4;
+        border-radius: 10px;
+        background: #fbfcfd;
+        transition: all 0.2s ease;
+    }
+
+        .salary-switch-card:hover {
+            border-color: #cdddfc;
+            background: #f7faff;
+        }
+
+        .salary-switch-card .form-check {
+            margin: 0;
+            padding-left: 2.6em;
+        }
+
+        .salary-switch-card .form-check-input {
+            width: 2em;
+            height: 1em;
+            margin-top: 0.16em;
+            margin-left: -2.6em;
+        }
+
+        .salary-switch-card .form-check-label {
+            color: #4d5969;
+            font-size: 0.72rem;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+    .salary-modal-cancel {
+        border-radius: 9px;
+        font-size: 0.78rem;
+        font-weight: 650;
+        padding: 0.5rem 1rem;
+    }
+
+    .salary-modal-submit {
+        border: none;
+        border-radius: 9px;
+        font-size: 0.78rem;
+        font-weight: 650;
+        padding: 0.5rem 1rem;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0d6efd, #367eff);
+        box-shadow: 0 6px 15px rgba(13, 110, 253, 0.18);
+    }
+
+        .salary-modal-submit:hover {
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+    /* -------------------- Responsive -------------------- */
+
+    @@media (max-width: 767.98px) {
+        .salary-page-header {
+            padding: 1.1rem;
+            border-radius: 18px;
+        }
+
+            .salary-page-header .d-flex.align-items-center {
+                align-items: flex-start !important;
+            }
+
+        .salary-header-icon {
+            width: 45px;
+            height: 45px;
+            min-width: 45px;
+        }
+
+        .salary-page-title {
+            font-size: 1.05rem;
+        }
+
+        .salary-page-header .d-flex.justify-content-end {
+            width: 100%;
+            justify-content: stretch !important;
+        }
+
+        .salary-action-btn {
+            flex: 1;
+            padding-left: 0.7rem;
+            padding-right: 0.7rem;
+        }
+
+        .salary-tabs-wrapper {
+            overflow-x: auto;
+        }
+
+        .salary-tabs {
+            flex-wrap: nowrap;
+            min-width: max-content;
+        }
+
+            .salary-tabs .nav-link {
+                white-space: nowrap;
+            }
+
+        .salary-card-top {
+            padding: 0.9rem 1rem;
+        }
+
+        .salary-search-group {
+            max-width: 100%;
+        }
+
+        .salary-modal .modal-body {
+            padding: 1rem;
+        }
+
+        .salary-modal .modal-header,
+        .salary-modal .modal-footer {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .salary-page {
+            padding-left: 0.15rem;
+            padding-right: 0.15rem;
+        }
+
+        .salary-page-header .gap-3 {
+            gap: 0.8rem !important;
+        }
+
+        .salary-action-btn {
+            font-size: 0.74rem;
+        }
+
+        .salary-stat-card {
+            padding: 1rem;
+        }
+
+        .salary-stat-value {
+            font-size: 1.35rem;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4 text-start salary-page">
+
     <!-- Success & Error Toast Alerts -->
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+        <div class="alert alert-success alert-dismissible fade show salary-alert mb-4" role="alert">
             <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
+
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show salary-alert mb-4" role="alert">
             <i class="fa-solid fa-circle-exclamation me-2"></i>@TempData["ErrorMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-    <!-- Header Section -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-wallet text-primary me-2"></i>Salary Structures & CTC</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Salary Structures</li>
-                </ol>
-            </nav>
-        </div>
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#assignCtcModal">
-                <i class="fa-solid fa-user-plus me-1.5"></i>Assign Employee CTC
-            </button>
-            <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#createStructureModal">
-                <i class="fa-solid fa-plus me-1.5"></i>Create Structure Template
-            </button>
+    <!-- Premium Header Section -->
+    <div class="salary-page-header mb-4">
+        <div class="salary-page-header-content d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="salary-header-icon">
+                    <i class="fa-solid fa-wallet fa-lg"></i>
+                </div>
+
+                <div>
+                    <h4 class="salary-page-title fw-bold mb-1">
+                        Salary Structures & Employee CTC
+                    </h4>
+
+                    <div class="salary-page-subtitle">
+                        Manage salary templates, statutory rules and employee compensation.
+                    </div>
+
+                    <nav class="salary-breadcrumb" aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="/HR" class="text-decoration-none">HR Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">
+                                Salary Structures
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-end gap-2">
+                <button class="btn salary-action-btn salary-action-btn-outline"
+                        data-bs-toggle="modal"
+                        data-bs-target="#assignCtcModal">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span>Assign Employee CTC</span>
+                </button>
+
+                <button class="btn salary-action-btn salary-action-btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#createStructureModal">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Create Structure Template</span>
+                </button>
+            </div>
+
         </div>
     </div>
 
     <!-- Quick Stats Summary Cards -->
     <div class="row g-3 mb-4">
+
         <div class="col-md-4">
-            <div class="bg-white border rounded-3 p-3 shadow-sm d-flex align-items-center justify-content-between">
+            <div class="salary-stat-card d-flex align-items-center justify-content-between">
                 <div>
-                    <div class="text-muted small fw-semibold">Total Structure Templates</div>
-                    <h3 class="fw-bold mb-0 text-dark">@ViewBag.TotalStructures</h3>
+                    <div class="salary-stat-label">Total Structure Templates</div>
+                    <h3 class="salary-stat-value">@ViewBag.TotalStructures</h3>
                 </div>
-                <div class="bg-primary-subtle text-primary p-3 rounded-circle">
+
+                <div class="salary-stat-icon primary">
                     <i class="fa-solid fa-sitemap fa-lg"></i>
                 </div>
             </div>
         </div>
+
         <div class="col-md-4">
-            <div class="bg-white border rounded-3 p-3 shadow-sm d-flex align-items-center justify-content-between">
+            <div class="salary-stat-card d-flex align-items-center justify-content-between">
                 <div>
-                    <div class="text-muted small fw-semibold">Configured Active Structures</div>
-                    <h3 class="fw-bold mb-0 text-success">@structures.Count(s => s.IsActive)</h3>
+                    <div class="salary-stat-label">Configured Active Structures</div>
+                    <h3 class="salary-stat-value text-success">@structures.Count(s => s.IsActive)</h3>
                 </div>
-                <div class="bg-success-subtle text-success p-3 rounded-circle">
+
+                <div class="salary-stat-icon success">
                     <i class="fa-solid fa-circle-check fa-lg"></i>
                 </div>
             </div>
         </div>
+
         <div class="col-md-4">
-            <div class="bg-white border rounded-3 p-3 shadow-sm d-flex align-items-center justify-content-between">
+            <div class="salary-stat-card d-flex align-items-center justify-content-between">
                 <div>
-                    <div class="text-muted small fw-semibold">Assigned Employees</div>
-                    <h3 class="fw-bold mb-0 text-info">@ViewBag.TotalAssigned</h3>
+                    <div class="salary-stat-label">Assigned Employees</div>
+                    <h3 class="salary-stat-value text-info">@ViewBag.TotalAssigned</h3>
                 </div>
-                <div class="bg-info-subtle text-info p-3 rounded-circle">
+
+                <div class="salary-stat-icon info">
                     <i class="fa-solid fa-users fa-lg"></i>
                 </div>
             </div>
         </div>
+
     </div>
 
     <!-- Navigation Tabs -->
-    <ul class="nav nav-tabs nav-tabs-bordered mb-4" id="salaryTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-bold text-dark" id="templates-tab" data-bs-toggle="tab" data-bs-target="#templates-pane" type="button" role="tab">
-                <i class="fa-solid fa-layer-group me-1.5"></i>Salary Structure Templates (@structures.Count)
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold text-dark" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments-pane" type="button" role="tab">
-                <i class="fa-solid fa-user-gear me-1.5"></i>Employee Salary Assignments (@assignments.Count)
-            </button>
-        </li>
-    </ul>
+    <div class="salary-tabs-wrapper mb-4">
+        <ul class="nav salary-tabs" id="salaryTabs" role="tablist">
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold"
+                        id="templates-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#templates-pane"
+                        type="button"
+                        role="tab">
+
+                    <i class="fa-solid fa-layer-group me-2"></i>
+                    Salary Structure Templates
+                    <span class="badge rounded-pill bg-primary-subtle text-primary ms-1">
+                        @structures.Count
+                    </span>
+                </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold"
+                        id="assignments-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#assignments-pane"
+                        type="button"
+                        role="tab">
+
+                    <i class="fa-solid fa-user-gear me-2"></i>
+                    Employee Salary Assignments
+                    <span class="badge rounded-pill bg-primary-subtle text-primary ms-1">
+                        @assignments.Count
+                    </span>
+                </button>
+            </li>
+
+        </ul>
+    </div>
 
     <div class="tab-content" id="salaryTabsContent">
-        <!-- TAB 1: STRUCTURE TEMPLATES -->
+
+        <!-- =========================================================
+             TAB 1: STRUCTURE TEMPLATES
+             ========================================================= -->
         <div class="tab-pane fade show active" id="templates-pane" role="tabpanel">
-            <div class="bg-white border rounded-3 p-4 shadow-sm">
-                <!-- Search & Filters -->
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
-                            <input type="text" id="searchStructureInput" class="form-control border-start-0" placeholder="Search structure by name or department...">
+
+            <div class="salary-content-card">
+
+                <!-- Card Header / Search -->
+                <div class="salary-card-top">
+
+                    <div class="row align-items-center g-3">
+
+                        <div class="col-md-5">
+                            <h6 class="salary-card-title">
+                                Salary Structure Templates
+                            </h6>
+
+                            <div class="salary-card-description">
+                                Configure compensation components and statutory deduction rules.
+                            </div>
                         </div>
+
+                        <div class="col-md-7">
+                            <div class="input-group salary-search-group ms-md-auto">
+                                <span class="input-group-text">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </span>
+
+                                <input type="text"
+                                       id="searchStructureInput"
+                                       class="form-control"
+                                       placeholder="Search by structure, department or designation...">
+                            </div>
+                        </div>
+
                     </div>
+
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="structuresTable" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Structure Name</th>
-                                <th>Department / Designation</th>
-                                <th>Basic (%)</th>
-                                <th>HRA (%)</th>
-                                <th>LTA (%)</th>
-                                <th>Special Allowance</th>
-                                <th>Statutory Rules</th>
-                                <th>Status</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!structures.Any())
-                            {
+                <!-- Structures Table -->
+                <div class="salary-table-area">
+                    <div class="table-responsive">
+
+                        <table class="table salary-table table-hover align-middle" id="structuresTable">
+
+                            <thead>
                                 <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
-                                        <i class="fa-solid fa-folder-open fa-2x mb-2 d-block text-secondary"></i>
-                                        No salary structures found. Click <strong>+ Create Structure Template</strong> above to add one.
-                                    </td>
+                                    <th>Structure Details</th>
+                                    <th>Department / Designation</th>
+                                    <th>Basic</th>
+                                    <th>HRA</th>
+                                    <th>LTA</th>
+                                    <th>Special Allowance</th>
+                                    <th>Statutory Rules</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
                                 </tr>
-                            }
-                            else
-                            {
-                                @foreach (var item in structures)
+                            </thead>
+
+                            <tbody>
+
+                                @if (!structures.Any())
                                 {
                                     <tr>
-                                        <td>
-                                            <div class="fw-bold text-dark">@item.StructureName</div>
-                                            <div class="text-muted small">@item.Description</div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-light text-dark border">@item.Department</span>
-                                            <span class="badge bg-light text-dark border">@item.Designation</span>
-                                        </td>
-                                        <td class="fw-semibold">@item.BasicPercent%</td>
-                                        <td class="fw-semibold">@item.HRAPercent%</td>
-                                        <td class="fw-semibold">@item.LTAPercent%</td>
-                                        <td><span class="badge bg-info-subtle text-info">@(item.AutoCalculateSpecialAllowance ? "Auto-Calculated Balance" : "Fixed Amount")</span></td>
-                                        <td>
-                                            @if (item.IsPFEnabled) { <span class="badge bg-secondary me-0.5">PF</span> }
-                                            @if (item.IsESIEnabled) { <span class="badge bg-secondary me-0.5">ESI</span> }
-                                            @if (item.IsPTEnabled) { <span class="badge bg-secondary me-0.5">PT</span> }
-                                            @if (item.IsTDSEnabled) { <span class="badge bg-secondary">TDS</span> }
-                                        </td>
-                                        <td>
-                                            @if (item.IsActive)
-                                            {
-                                                <span class="badge bg-success-subtle text-success">Active</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-danger-subtle text-danger">Inactive</span>
-                                            }
-                                        </td>
-                                        <td class="text-end">
-                                            <div class="btn-group btn-group-sm">
-                                                <form asp-action="DuplicateSalaryStructure" method="post" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="id" value="@item.StructureId" />
-                                                    <button type="submit" class="btn btn-outline-secondary btn-xs rounded-circle me-1" title="Duplicate"><i class="fa-solid fa-copy"></i></button>
-                                                </form>
+                                        <td colspan="9" class="text-center salary-empty-state">
 
-                                                <form asp-action="ToggleSalaryStructureStatus" method="post" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="id" value="@item.StructureId" />
-                                                    <button type="submit" class="btn btn-outline-warning btn-xs rounded-circle me-1" title="Toggle Active/Inactive">
-                                                        <i class="fa-solid fa-power-off"></i>
-                                                    </button>
-                                                </form>
-
-                                                <form asp-action="DeleteSalaryStructure" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this salary structure?');">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="id" value="@item.StructureId" />
-                                                    <button type="submit" class="btn btn-outline-danger btn-xs rounded-circle" title="Delete"><i class="fa-solid fa-trash"></i></button>
-                                                </form>
+                                            <div class="salary-empty-icon">
+                                                <i class="fa-solid fa-folder-open fa-xl"></i>
                                             </div>
+
+                                            <div class="salary-empty-title">
+                                                No salary structures found
+                                            </div>
+
+                                            <div class="salary-empty-text">
+                                                Click <strong>Create Structure Template</strong> to configure your first salary structure.
+                                            </div>
+
                                         </td>
                                     </tr>
                                 }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 2: EMPLOYEE ASSIGNMENTS -->
-        <div class="tab-pane fade" id="assignments-pane" role="tabpanel">
-            <div class="bg-white border rounded-3 p-4 shadow-sm">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Employee</th>
-                                <th>Structure Template</th>
-                                <th>Annual CTC</th>
-                                <th>Monthly Basic</th>
-                                <th>Monthly Gross</th>
-                                <th>Monthly Net</th>
-                                <th>Effective From</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (!assignments.Any())
-                            {
-                                <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">No employee CTC assignments configured yet.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var assign in assignments)
+                                else
                                 {
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold text-dark">@(assign.User?.FullName ?? "N/A")</div>
-                                            <div class="text-muted small">Code: @(assign.User?.UserCode) | @(assign.User?.Role?.RoleName)</div>
-                                        </td>
-                                        <td><span class="badge bg-primary-subtle text-primary">@(assign.Structure?.StructureName ?? "Standard CTC")</span></td>
-                                        <td class="fw-bold text-dark">₹@assign.AnnualCTC.ToString("N0")</td>
-                                        <td>₹@assign.MonthlyBasic.ToString("N0")</td>
-                                        <td class="fw-semibold text-primary">₹@assign.MonthlyGrossSalary.ToString("N0")</td>
-                                        <td class="fw-bold text-success">₹@assign.MonthlyNetSalary.ToString("N0")</td>
-                                        <td>@assign.EffectiveFrom.ToString("dd MMM yyyy")</td>
-                                        <td><span class="badge bg-success-subtle text-success">Current</span></td>
-                                    </tr>
+                                    @foreach (var item in structures)
+                                    {
+                                        <tr>
+
+                                            <!-- Structure Name -->
+                                            <td>
+                                                <div class="salary-structure-name">
+                                                    @item.StructureName
+                                                </div>
+
+                                                <div class="salary-structure-description">
+                                                    @item.Description
+                                                </div>
+                                            </td>
+
+                                            <!-- Department / Designation -->
+                                            <td>
+                                                <span class="salary-department-badge">
+                                                    <i class="fa-solid fa-building me-1"></i>
+                                                    @item.Department
+                                                </span>
+
+                                                <span class="salary-department-badge">
+                                                    <i class="fa-solid fa-user-tie me-1"></i>
+                                                    @item.Designation
+                                                </span>
+                                            </td>
+
+                                            <!-- Basic -->
+                                            <td>
+                                                <span class="salary-component-value">
+                                                    @item.BasicPercent%
+                                                </span>
+                                            </td>
+
+                                            <!-- HRA -->
+                                            <td>
+                                                <span class="salary-component-value">
+                                                    @item.HRAPercent%
+                                                </span>
+                                            </td>
+
+                                            <!-- LTA -->
+                                            <td>
+                                                <span class="salary-component-value">
+                                                    @item.LTAPercent%
+                                                </span>
+                                            </td>
+
+                                            <!-- Special Allowance -->
+                                            <td>
+                                                <span class="salary-special-badge">
+                                                    <i class="fa-solid fa-calculator"></i>
+                                                    @(item.AutoCalculateSpecialAllowance ? "Auto-Calculated Balance" : "Fixed Amount")
+                                                </span>
+                                            </td>
+
+                                            <!-- Statutory Rules -->
+                                            <td>
+                                                @if (item.IsPFEnabled)
+                                                {
+                                                    <span class="salary-rule-badge">PF</span>
+                                                }
+
+                                                @if (item.IsESIEnabled)
+                                                {
+                                                    <span class="salary-rule-badge">ESI</span>
+                                                }
+
+                                                @if (item.IsPTEnabled)
+                                                {
+                                                    <span class="salary-rule-badge">PT</span>
+                                                }
+
+                                                @if (item.IsTDSEnabled)
+                                                {
+                                                    <span class="salary-rule-badge">TDS</span>
+                                                }
+                                            </td>
+
+                                            <!-- Status -->
+                                            <td>
+                                                @if (item.IsActive)
+                                                {
+                                                    <span class="salary-status-badge active">
+                                                        <i class="fa-solid fa-circle-check"></i>
+                                                        Active
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="salary-status-badge inactive">
+                                                        <i class="fa-solid fa-circle-xmark"></i>
+                                                        Inactive
+                                                    </span>
+                                                }
+                                            </td>
+
+                                            <!-- Actions -->
+                                            <td class="text-end">
+
+                                                <div class="d-inline-flex align-items-center gap-1">
+
+                                                    <form asp-action="DuplicateSalaryStructure"
+                                                          method="post"
+                                                          class="d-inline">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <input type="hidden"
+                                                               name="id"
+                                                               value="@item.StructureId" />
+
+                                                        <button type="submit"
+                                                                class="btn btn-outline-secondary salary-row-action duplicate"
+                                                                title="Duplicate">
+                                                            <i class="fa-solid fa-copy"></i>
+                                                        </button>
+
+                                                    </form>
+
+                                                    <form asp-action="ToggleSalaryStructureStatus"
+                                                          method="post"
+                                                          class="d-inline">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <input type="hidden"
+                                                               name="id"
+                                                               value="@item.StructureId" />
+
+                                                        <button type="submit"
+                                                                class="btn btn-outline-warning salary-row-action status"
+                                                                title="Toggle Active/Inactive">
+                                                            <i class="fa-solid fa-power-off"></i>
+                                                        </button>
+
+                                                    </form>
+
+                                                    <form asp-action="DeleteSalaryStructure"
+                                                          method="post"
+                                                          class="d-inline"
+                                                          onsubmit="return confirm('Are you sure you want to delete this salary structure?');">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <input type="hidden"
+                                                               name="id"
+                                                               value="@item.StructureId" />
+
+                                                        <button type="submit"
+                                                                class="btn btn-outline-danger salary-row-action delete"
+                                                                title="Delete">
+                                                            <i class="fa-solid fa-trash"></i>
+                                                        </button>
+
+                                                    </form>
+
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+                                    }
                                 }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- MODAL 1: CREATE SALARY STRUCTURE TEMPLATE -->
-<div class="modal fade" id="createStructureModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus-circle text-primary me-2"></i>Create Salary Structure</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form asp-action="CreateSalaryStructure" method="post">
-                @Html.AntiForgeryToken()
-                <div class="modal-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Structure Name <span class="text-danger">*</span></label>
-                            <input type="text" name="StructureName" class="form-control form-control-sm" required placeholder="e.g. Standard Executive CTC">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Department</label>
-                            <input type="text" name="Department" class="form-control form-control-sm" value="All Departments">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">Description</label>
-                            <textarea name="Description" class="form-control form-control-sm" rows="2" placeholder="Brief description of this salary component rules..."></textarea>
-                        </div>
+                            </tbody>
 
-                        <div class="col-12"><hr class="my-2"><h6 class="fw-bold text-primary small">Salary Component % Breakdown</h6></div>
+                        </table>
 
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Basic Salary (%)</label>
-                            <input type="number" step="0.01" name="BasicPercent" id="structBasic" class="form-control form-control-sm" value="50.00" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">HRA (% of Basic)</label>
-                            <input type="number" step="0.01" name="HRAPercent" id="structHRA" class="form-control form-control-sm" value="20.00" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">LTA (% of Basic)</label>
-                            <input type="number" step="0.01" name="LTAPercent" id="structLTA" class="form-control form-control-sm" value="5.00" required>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Conveyance (Fixed ₹/mo)</label>
-                            <input type="number" step="0.01" name="ConveyanceAllowance" class="form-control form-control-sm" value="1600.00">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Medical (Fixed ₹/mo)</label>
-                            <input type="number" step="0.01" name="MedicalAllowance" class="form-control form-control-sm" value="1250.00">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Other Allowances (Fixed ₹/mo)</label>
-                            <input type="number" step="0.01" name="OtherAllowance" class="form-control form-control-sm" value="0.00">
-                        </div>
-
-                        <div class="col-12"><hr class="my-2"><h6 class="fw-bold text-primary small">Statutory Rules & Deductions</h6></div>
-
-                        <div class="col-md-3">
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" name="IsPFEnabled" value="true" checked id="pfSwitch">
-                                <label class="form-check-label small fw-bold" for="pfSwitch">Enable PF (12%)</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" name="IsESIEnabled" value="true" checked id="esiSwitch">
-                                <label class="form-check-label small fw-bold" for="esiSwitch">Enable ESI (0.75%)</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" name="IsPTEnabled" value="true" checked id="ptSwitch">
-                                <label class="form-check-label small fw-bold" for="ptSwitch">Enable Prof Tax</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" name="IsTDSEnabled" value="true" checked id="tdsSwitch">
-                                <label class="form-check-label small fw-bold" for="tdsSwitch">Enable TDS</label>
-                            </div>
-                        </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fa-solid fa-save me-1"></i>Save Structure</button>
-                </div>
-            </form>
+
+            </div>
+
         </div>
+
+        <!-- =========================================================
+             TAB 2: EMPLOYEE ASSIGNMENTS
+             ========================================================= -->
+        <div class="tab-pane fade" id="assignments-pane" role="tabpanel">
+
+            <div class="salary-content-card">
+
+                <div class="salary-card-top">
+
+                    <h6 class="salary-card-title">
+                        Employee Salary Assignments
+                    </h6>
+
+                    <div class="salary-card-description">
+                        Review employee CTC assignments, salary structure and monthly compensation.
+                    </div>
+
+                </div>
+
+                <div class="salary-table-area">
+
+                    <div class="table-responsive">
+
+                        <table class="table salary-table table-hover align-middle">
+
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Structure Template</th>
+                                    <th>Annual CTC</th>
+                                    <th>Monthly Basic</th>
+                                    <th>Monthly Gross</th>
+                                    <th>Monthly Net</th>
+                                    <th>Effective From</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @if (!assignments.Any())
+                                {
+                                    <tr>
+                                        <td colspan="8" class="text-center salary-empty-state">
+
+                                            <div class="salary-empty-icon">
+                                                <i class="fa-solid fa-user-gear fa-xl"></i>
+                                            </div>
+
+                                            <div class="salary-empty-title">
+                                                No employee CTC assignments configured
+                                            </div>
+
+                                            <div class="salary-empty-text">
+                                                Assign a salary structure and CTC to an employee to get started.
+                                            </div>
+
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var assign in assignments)
+                                    {
+                                        <tr>
+
+                                            <!-- Employee -->
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+
+                                                    <div class="salary-employee-avatar">
+                                                        <i class="fa-solid fa-user"></i>
+                                                    </div>
+
+                                                    <div>
+                                                        <div class="salary-employee-name">
+                                                            @(assign.User?.FullName ?? "N/A")
+                                                        </div>
+
+                                                        <div class="salary-employee-meta">
+                                                            Code: @(assign.User?.UserCode) |
+                                                            @(assign.User?.Role?.RoleName)
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </td>
+
+                                            <!-- Structure -->
+                                            <td>
+                                                <span class="salary-special-badge">
+                                                    <i class="fa-solid fa-layer-group"></i>
+                                                    @(assign.Structure?.StructureName ?? "Standard CTC")
+                                                </span>
+                                            </td>
+
+                                            <!-- Annual CTC -->
+                                            <td>
+                                                <span class="salary-amount-strong">
+                                                    ₹@assign.AnnualCTC.ToString("N0")
+                                                </span>
+                                            </td>
+
+                                            <!-- Monthly Basic -->
+                                            <td>
+                                                ₹@assign.MonthlyBasic.ToString("N0")
+                                            </td>
+
+                                            <!-- Monthly Gross -->
+                                            <td>
+                                                <span class="salary-amount-primary">
+                                                    ₹@assign.MonthlyGrossSalary.ToString("N0")
+                                                </span>
+                                            </td>
+
+                                            <!-- Monthly Net -->
+                                            <td>
+                                                <span class="salary-amount-success">
+                                                    ₹@assign.MonthlyNetSalary.ToString("N0")
+                                                </span>
+                                            </td>
+
+                                            <!-- Effective From -->
+                                            <td>
+                                                @assign.EffectiveFrom.ToString("dd MMM yyyy")
+                                            </td>
+
+                                            <!-- Status -->
+                                            <td>
+                                                <span class="salary-status-badge active">
+                                                    <i class="fa-solid fa-circle-check"></i>
+                                                    Current
+                                                </span>
+                                            </td>
+
+                                        </tr>
+                                    }
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
+
 </div>
 
-<!-- MODAL 2: ASSIGN CTC TO EMPLOYEE -->
-<div class="modal fade" id="assignCtcModal" tabindex="-1" aria-hidden="true">
+<!-- =========================================================
+     MODAL 1: CREATE SALARY STRUCTURE TEMPLATE
+     ========================================================= -->
+
+<div class="modal fade salary-modal"
+     id="createStructureModal"
+     tabindex="-1"
+     aria-hidden="true">
+
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-check text-primary me-2"></i>Assign Employee CTC</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">
+                    <span class="modal-title-icon">
+                        <i class="fa-solid fa-plus"></i>
+                    </span>
+                    Create Salary Structure
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
             </div>
-            <form asp-action="AssignSalaryToEmployee" method="post">
+
+            <form asp-action="CreateSalaryStructure" method="post">
+
                 @Html.AntiForgeryToken()
-                <div class="modal-body p-4">
+
+                <div class="modal-body">
+
                     <div class="row g-3">
+
+                        <!-- Structure Name -->
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Select Employee <span class="text-danger">*</span></label>
-                            <select name="userId" class="form-select form-select-sm" required>
+                            <label class="form-label">
+                                Structure Name
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="text"
+                                   name="StructureName"
+                                   class="form-control"
+                                   required
+                                   placeholder="e.g. Standard Executive CTC">
+                        </div>
+
+                        <!-- Department -->
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Department
+                            </label>
+
+                            <input type="text"
+                                   name="Department"
+                                   class="form-control"
+                                   value="All Departments">
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-12">
+                            <label class="form-label">
+                                Description
+                            </label>
+
+                            <textarea name="Description"
+                                      class="form-control"
+                                      rows="2"
+                                      placeholder="Brief description of this salary component rules..."></textarea>
+                        </div>
+
+                        <!-- Salary Components Section -->
+                        <div class="col-12">
+                            <div class="salary-modal-section">
+                                <i class="fa-solid fa-chart-pie"></i>
+                                Salary Component % Breakdown
+                            </div>
+                        </div>
+
+                        <!-- Basic -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Basic Salary (%)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="BasicPercent"
+                                   id="structBasic"
+                                   class="form-control"
+                                   value="50.00"
+                                   required>
+                        </div>
+
+                        <!-- HRA -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                HRA (% of Basic)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="HRAPercent"
+                                   id="structHRA"
+                                   class="form-control"
+                                   value="20.00"
+                                   required>
+                        </div>
+
+                        <!-- LTA -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                LTA (% of Basic)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="LTAPercent"
+                                   id="structLTA"
+                                   class="form-control"
+                                   value="5.00"
+                                   required>
+                        </div>
+
+                        <!-- Conveyance -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Conveyance (Fixed ₹/mo)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="ConveyanceAllowance"
+                                   class="form-control"
+                                   value="1600.00">
+                        </div>
+
+                        <!-- Medical -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Medical (Fixed ₹/mo)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="MedicalAllowance"
+                                   class="form-control"
+                                   value="1250.00">
+                        </div>
+
+                        <!-- Other Allowances -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Other Allowances (Fixed ₹/mo)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="OtherAllowance"
+                                   class="form-control"
+                                   value="0.00">
+                        </div>
+
+                        <!-- Statutory Rules Section -->
+                        <div class="col-12">
+                            <div class="salary-modal-section">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                Statutory Rules & Deductions
+                            </div>
+                        </div>
+
+                        <!-- PF -->
+                        <div class="col-md-3">
+                            <div class="salary-switch-card">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsPFEnabled"
+                                           value="true"
+                                           checked
+                                           id="pfSwitch">
+
+                                    <label class="form-check-label"
+                                           for="pfSwitch">
+                                        Enable PF (12%)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ESI -->
+                        <div class="col-md-3">
+                            <div class="salary-switch-card">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsESIEnabled"
+                                           value="true"
+                                           checked
+                                           id="esiSwitch">
+
+                                    <label class="form-check-label"
+                                           for="esiSwitch">
+                                        Enable ESI (0.75%)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PT -->
+                        <div class="col-md-3">
+                            <div class="salary-switch-card">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsPTEnabled"
+                                           value="true"
+                                           checked
+                                           id="ptSwitch">
+
+                                    <label class="form-check-label"
+                                           for="ptSwitch">
+                                        Enable Prof Tax
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TDS -->
+                        <div class="col-md-3">
+                            <div class="salary-switch-card">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsTDSEnabled"
+                                           value="true"
+                                           checked
+                                           id="tdsSwitch">
+
+                                    <label class="form-check-label"
+                                           for="tdsSwitch">
+                                        Enable TDS
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light border salary-modal-cancel"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn salary-modal-submit">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>
+                        Save Structure
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL 2: ASSIGN CTC TO EMPLOYEE
+     ========================================================= -->
+
+<div class="modal fade salary-modal"
+     id="assignCtcModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">
+                    <span class="modal-title-icon">
+                        <i class="fa-solid fa-user-check"></i>
+                    </span>
+                    Assign Employee CTC
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
+            </div>
+
+            <form asp-action="AssignSalaryToEmployee" method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body">
+
+                    <div class="row g-3">
+
+                        <!-- Employee -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Select Employee
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <select name="userId"
+                                    class="form-select"
+                                    required>
+
                                 <option value="">-- Choose Employee --</option>
+
                                 @foreach (var emp in employees)
                                 {
-                                    <option value="@emp.UserId">@emp.FullName (@emp.UserCode - @emp.Role?.RoleName)</option>
+                                    <option value="@emp.UserId">
+                                        @emp.FullName (@emp.UserCode - @emp.Role?.RoleName)
+                                    </option>
                                 }
+
                             </select>
+
                         </div>
+
+                        <!-- Structure -->
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Select Structure Template</label>
-                            <select name="structureId" class="form-select form-select-sm">
-                                <option value="">-- Standard CTC Structure --</option>
+
+                            <label class="form-label">
+                                Select Structure Template
+                            </label>
+
+                            <select name="structureId"
+                                    class="form-select">
+
+                                <option value="">
+                                    -- Standard CTC Structure --
+                                </option>
+
                                 @foreach (var str in structures)
                                 {
-                                    <option value="@str.StructureId">@str.StructureName</option>
+                                    <option value="@str.StructureId">
+                                        @str.StructureName
+                                    </option>
                                 }
+
                             </select>
+
                         </div>
+
+                        <!-- Annual CTC -->
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Annual CTC (₹) <span class="text-danger">*</span></label>
-                            <input type="number" step="1000" name="annualCtc" id="inputAnnualCtc" class="form-control form-control-sm" required placeholder="e.g. 600000">
+
+                            <label class="form-label">
+                                Annual CTC (₹)
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="number"
+                                   step="1000"
+                                   name="annualCtc"
+                                   id="inputAnnualCtc"
+                                   class="form-control"
+                                   required
+                                   placeholder="e.g. 600000">
+
                         </div>
+
+                        <!-- Remarks -->
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Remarks / Effective Note</label>
-                            <input type="text" name="remarks" class="form-control form-control-sm" placeholder="e.g. Initial Offer or Annual Increment">
+
+                            <label class="form-label">
+                                Remarks / Effective Note
+                            </label>
+
+                            <input type="text"
+                                   name="remarks"
+                                   class="form-control"
+                                   placeholder="e.g. Initial Offer or Annual Increment">
+
                         </div>
+
                     </div>
+
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fa-solid fa-check-circle me-1"></i>Assign CTC</button>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light border salary-modal-cancel"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn salary-modal-submit">
+                        <i class="fa-solid fa-circle-check me-1"></i>
+                        Assign CTC
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
 
 <script>
-    document.getElementById('searchStructureInput')?.addEventListener('keyup', function() {
+    document.getElementById('searchStructureInput')?.addEventListener('keyup', function () {
         let val = this.value.toLowerCase();
         let rows = document.querySelectorAll('#structuresTable tbody tr');
+
         rows.forEach(r => {
             let text = r.innerText.toLowerCase();
             r.style.display = text.includes(val) ? '' : 'none';
