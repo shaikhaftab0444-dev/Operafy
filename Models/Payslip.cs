@@ -15,91 +15,101 @@ namespace ERP_System.Models
         [ForeignKey("PayrollRunId")]
         public PayrollRun? PayrollRun { get; set; }
 
-        [Required]
-        public int UserId { get; set; }
+        public int? UserId { get; set; }
 
         [ForeignKey("UserId")]
         public User? User { get; set; }
 
-        [Required]
         [StringLength(50)]
-        public string PayPeriod { get; set; } = string.Empty;
+        public string? PayPeriod { get; set; } = string.Empty;
 
         [StringLength(50)]
-        public string PayslipNumber { get; set; } = string.Empty;
+        public string? PayslipNumber { get; set; } = string.Empty;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal BasicSalary { get; set; }
+        public decimal? BasicSalary { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal HRA { get; set; }
+        public decimal? HRA { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal TransportAllowance { get; set; }
+        public decimal? TransportAllowance { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal MedicalAllowance { get; set; }
+        public decimal? MedicalAllowance { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal LTA { get; set; } = 0.00m;
+        public decimal? LTA { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal SpecialAllowance { get; set; } = 0.00m;
+        public decimal? SpecialAllowance { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal OtherAllowance { get; set; } = 0.00m;
+        public decimal? OtherAllowance { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal BonusIncentives { get; set; } = 0.00m;
+        public decimal? BonusIncentives { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal OvertimePay { get; set; } = 0.00m;
+        public decimal? OvertimePay { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal GrossSalary { get; set; }
+        public decimal? GrossSalary { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal ProvidentFund { get; set; }
+        public decimal? ProvidentFund { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal ESI { get; set; } = 0.00m;
+        public decimal? ESI { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal ProfessionalTax { get; set; }
+        public decimal? ProfessionalTax { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal TDS { get; set; } = 0.00m;
+        public decimal? TDS { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal LOPDeduction { get; set; } = 0.00m;
+        public decimal? LOPDeduction { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal TotalDeductions { get; set; }
+        public decimal? TotalDeductions { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal NetSalary { get; set; }
+        public decimal? NetSalary { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal EmployerPF { get; set; } = 0.00m;
+        public decimal? EmployerPF { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal EmployerESI { get; set; } = 0.00m;
+        public decimal? EmployerESI { get; set; } = 0.00m;
 
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal TotalCTC { get; set; } = 0.00m;
+        public decimal? TotalCTC { get; set; } = 0.00m;
 
-        public int TotalWorkingDays { get; set; } = 30;
-        public int PresentDays { get; set; } = 30;
-        public int AbsentDays { get; set; } = 0;
-        public int PaidLeaveDays { get; set; } = 0;
-        public int UnpaidLeaveDays { get; set; } = 0;
-        public int PaidDays { get; set; } = 30;
-        public int OvertimeHours { get; set; } = 0;
+        public int? TotalWorkingDays { get; set; } = 30;
+        public int? PresentDays { get; set; } = 30;
+        public int? AbsentDays { get; set; } = 0;
+        public int? PaidLeaveDays { get; set; } = 0;
+        public int? UnpaidLeaveDays { get; set; } = 0;
+        public int? PaidDays { get; set; } = 30;
+        public int? OvertimeHours { get; set; } = 0;
 
-        public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
+        public DateTime? PaymentDate { get; set; } = DateTime.UtcNow;
 
-        [Required]
         [StringLength(30)]
-        public string Status { get; set; } = "Paid"; // "Draft", "Approved", "Paid"
+        public string? Status { get; set; } = "Paid"; // "Draft", "Approved", "Paid"
+    }
+
+    public static class NullableDecimalExtensions
+    {
+        public static string ToString(this decimal? value, string format)
+        {
+            return value.HasValue ? value.Value.ToString(format) : string.Empty;
+        }
+
+        public static string ToString(this decimal? value, string format, IFormatProvider provider)
+        {
+            return value.HasValue ? value.Value.ToString(format, provider) : string.Empty;
+        }
     }
 }

@@ -20,10 +20,62 @@ namespace ERP_System.Controllers
 
         // GET: /Manager/Approvals
         [HttpGet]
-        public IActionResult Approvals()
+        public IActionResult Approvals(string category = "All")
         {
-            var vm = GetPopulatedManagerVM();
-            return View(vm);
+            var model = GetPendingApprovalsList();
+            if (!string.IsNullOrEmpty(category) && category != "All")
+            {
+                model = model.Where(x => x.CategoryKey == category).ToList();
+            }
+            ViewBag.ActiveCategory = category;
+            return View(model);
+        }
+
+        // POST: /Manager/ProcessApproval
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public IActionResult ProcessApproval(int id, string actionType, string remarks = "")
+        {
+            return Json(new { 
+                success = true, 
+                id = id, 
+                action = actionType, 
+                message = $"Request #{id} successfully {actionType.ToLower()}ed!" 
+            });
+        }
+
+        // POST: /Manager/BulkApprove
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public IActionResult BulkApprove([FromBody] List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+            {
+                return Json(new { success = false, message = "No requests selected." });
+            }
+            return Json(new { success = true, count = ids.Count, message = $"{ids.Count} requests approved successfully!" });
+        }
+
+        // GET: /Manager/DownloadReceipt
+        [HttpGet]
+        public IActionResult DownloadReceipt(string filename)
+        {
+            if (string.IsNullOrEmpty(filename))
+            {
+                filename = "Receipt.pdf";
+            }
+
+            // Simple valid PDF stream format
+            string pdfContent = "%PDF-1.4\n" +
+                               "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+                               "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n" +
+                               "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n" +
+                               "4 0 obj\n<< /Length 120 >>\nstream\nBT\n/F1 20 Tf\n70 700 Td\n(OPERAFY ERP SYSTEM) Tj\n/F1 12 Tf\n0 -30 Td\n(Receipt Attachment: " + filename + ") Tj\n0 -20 Td\n(Status: Verified & Audited) Tj\nET\nendstream\nendobj\n" +
+                               "xref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\n0000000253 00000 n\n" +
+                               "trailer\n<< /Size 5 >>\nstartxref\n424\n%%EOF";
+
+            byte[] pdfBytes = System.Text.Encoding.ASCII.GetBytes(pdfContent);
+            return File(pdfBytes, "application/pdf", filename);
         }
 
         // GET: /Manager/Tasks
@@ -105,6 +157,54 @@ namespace ERP_System.Controllers
                     new ManagerTaskItem { Id = 2, Title = "Resolve Payment Gateway Timeout Exception", AssignedTo = "Aftab Shaik", Priority = "High", DueDate = "27 Aug 2026", Progress = 90, Status = "Review" },
                     new ManagerTaskItem { Id = 3, Title = "Branch Inventory Stock Audit Reconciliation", AssignedTo = "Sneha Patil", Priority = "Medium", DueDate = "30 Aug 2026", Progress = 30, Status = "Delayed" },
                     new ManagerTaskItem { Id = 4, Title = "Prepare New Hire Onboarding Documentation", AssignedTo = "Rohan Sharma", Priority = "Low", DueDate = "31 Aug 2026", Progress = 50, Status = "In Progress" }
+                }
+            };
+        }
+
+        private List<ApprovalItemViewModel> GetPendingApprovalsList()
+        {
+            return new List<ApprovalItemViewModel>
+            {
+                new ApprovalItemViewModel {
+                    Id = 101,
+                    EmployeeName = "Sneha Patil",
+                    Role = "Operations Associate",
+                    Avatar = "SP",
+                    ClaimCategory = "Casual Leave",
+                    CategoryKey = "Leave",
+                    Duration = "26 Aug – 27 Aug 2026 (2 Days)",
+                    Reason = "Family Medical Emergency",
+                    SubmittedDate = "25 Aug 2026, 04:30 PM",
+                    HasAttachment = true,
+                    AttachmentName = "Medical_Prescription.pdf",
+                    Status = "Pending"
+                },
+                new ApprovalItemViewModel {
+                    Id = 102,
+                    EmployeeName = "Zoya Malik",
+                    Role = "Backend Engineer",
+                    Avatar = "ZM",
+                    ClaimCategory = "Attendance Regularization",
+                    CategoryKey = "Regularization",
+                    Duration = "25 Aug 2026 (Morning Shift)",
+                    Reason = "Biometric network sync timeout at entrance",
+                    SubmittedDate = "26 Aug 2026, 09:30 AM",
+                    HasAttachment = false,
+                    Status = "Pending"
+                },
+                new ApprovalItemViewModel {
+                    Id = 103,
+                    EmployeeName = "Numan Khan",
+                    Role = "Sales Executive",
+                    Avatar = "NK",
+                    ClaimCategory = "Travel Reimbursement",
+                    CategoryKey = "Expense",
+                    Duration = "Client Visit Pune",
+                    Reason = "Fuel & Toll Claim - INR 2,450",
+                    SubmittedDate = "26 Aug 2026, 11:15 AM",
+                    HasAttachment = true,
+                    AttachmentName = "Fuel_Toll_Receipts.pdf",
+                    Status = "Pending"
                 }
             };
         }
