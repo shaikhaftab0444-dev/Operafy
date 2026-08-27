@@ -1,54 +1,1069 @@
+@model IEnumerable<ERP_System.Models.EmployeeAppraisal>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Employee Rating Cards";
+    var cycles = ViewBag.Cycles as List<ERP_System.Models.AppraisalCycle> ?? new List<ERP_System.Models.AppraisalCycle>();
+    var departments = ViewBag.Departments as List<ERP_System.Models.Department> ?? new List<ERP_System.Models.Department>();
+    string userRole = ViewBag.UserRole as string ?? "Admin";
+
+    var appraisalList = Model?.ToList() ?? new List<ERP_System.Models.EmployeeAppraisal>();
+    var totalCards = appraisalList.Count;
+    var pendingManagerReviews = appraisalList.Count(x => !x.ManagerReviewSubmitted);
+    var completedReviews = appraisalList.Count(x => x.ManagerReviewSubmitted);
+    var averageScore = appraisalList.Where(x => x.FinalScore.HasValue).Select(x => x.FinalScore!.Value).DefaultIfEmpty(0).Average();
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-id-card-clip text-primary me-2"></i>Employee Rating Cards</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Rating Cards</li>
-                </ol>
-            </nav>
+<style>
+    .rating-page {
+        --rating-primary: #2563eb;
+        --rating-primary-dark: #1d4ed8;
+        --rating-success: #16a34a;
+        --rating-warning: #f59e0b;
+        --rating-danger: #dc2626;
+        --rating-dark: #172033;
+        --rating-muted: #6b7280;
+        --rating-border: #e7ebf2;
+        --rating-bg: #f5f7fb;
+        color: var(--rating-dark);
+    }
+
+        .rating-page .page-header-card {
+            position: relative;
+            overflow: hidden;
+            padding: 1.5rem 1.75rem;
+            border-radius: 22px;
+            background: linear-gradient(135deg, #ffffff 0%, #f7faff 55%, #eef5ff 100%);
+            border: 1px solid rgba(37, 99, 235, .10);
+            box-shadow: 0 14px 40px rgba(15, 23, 42, .06);
+        }
+
+            .rating-page .page-header-card::before,
+            .rating-page .page-header-card::after {
+                content: "";
+                position: absolute;
+                border-radius: 50%;
+                pointer-events: none;
+            }
+
+            .rating-page .page-header-card::before {
+                width: 220px;
+                height: 220px;
+                right: -80px;
+                top: -120px;
+                background: rgba(37, 99, 235, .06);
+            }
+
+            .rating-page .page-header-card::after {
+                width: 120px;
+                height: 120px;
+                right: 80px;
+                bottom: -80px;
+                background: rgba(59, 130, 246, .05);
+            }
+
+        .rating-page .page-header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .rating-page .header-icon {
+            width: 54px;
+            height: 54px;
+            min-width: 54px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.25rem;
+            background: linear-gradient(135deg, var(--rating-primary), #60a5fa);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, .22);
+        }
+
+        .rating-page .page-title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            margin: 0;
+            color: var(--rating-dark);
+        }
+
+        .rating-page .page-subtitle {
+            color: var(--rating-muted);
+            font-size: .84rem;
+            margin-top: .25rem;
+        }
+
+        .rating-page .breadcrumb {
+            margin-bottom: 0;
+        }
+
+        .rating-page .breadcrumb-item,
+        .rating-page .breadcrumb-item a {
+            font-size: .78rem;
+        }
+
+            .rating-page .breadcrumb-item a {
+                color: var(--rating-primary);
+                font-weight: 600;
+            }
+
+        .rating-page .stats-card {
+            height: 100%;
+            border: 1px solid var(--rating-border);
+            border-radius: 18px;
+            background: #fff;
+            padding: 1rem;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .035);
+            transition: transform .22s ease, box-shadow .22s ease;
+        }
+
+            .rating-page .stats-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 14px 30px rgba(15, 23, 42, .08);
+            }
+
+        .rating-page .stats-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+            .rating-page .stats-icon.primary {
+                color: var(--rating-primary);
+                background: rgba(37, 99, 235, .10);
+            }
+
+            .rating-page .stats-icon.warning {
+                color: #d97706;
+                background: rgba(245, 158, 11, .12);
+            }
+
+            .rating-page .stats-icon.success {
+                color: var(--rating-success);
+                background: rgba(22, 163, 74, .10);
+            }
+
+            .rating-page .stats-icon.info {
+                color: #0891b2;
+                background: rgba(6, 182, 212, .10);
+            }
+
+        .rating-page .stats-label {
+            color: var(--rating-muted);
+            font-size: .72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .rating-page .stats-value {
+            font-size: 1.35rem;
+            line-height: 1.2;
+            font-weight: 800;
+            color: var(--rating-dark);
+            margin-top: .2rem;
+        }
+
+        .rating-page .filter-card {
+            border: 1px solid var(--rating-border);
+            border-radius: 20px;
+            background: #fff;
+            padding: 1.15rem;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, .04);
+        }
+
+        .rating-page .filter-heading {
+            font-size: .82rem;
+            font-weight: 800;
+            color: var(--rating-dark);
+            margin-bottom: .8rem;
+        }
+
+            .rating-page .filter-heading i {
+                color: var(--rating-primary);
+            }
+
+        .rating-page .input-group-text,
+        .rating-page .form-control,
+        .rating-page .form-select {
+            border-color: #e1e7f0;
+        }
+
+        .rating-page .input-group-text {
+            background: #f8fafc;
+            color: #94a3b8;
+        }
+
+        .rating-page .form-control,
+        .rating-page .form-select {
+            min-height: 38px;
+            font-size: .82rem;
+            box-shadow: none;
+        }
+
+            .rating-page .form-control:focus,
+            .rating-page .form-select:focus {
+                border-color: rgba(37, 99, 235, .55);
+                box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .08);
+            }
+
+        .rating-page .filter-label {
+            display: block;
+            margin-bottom: .38rem;
+            font-size: .7rem;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+
+        .rating-page .btn-filter {
+            min-height: 38px;
+            font-size: .78rem;
+            font-weight: 700;
+            border-radius: 10px;
+        }
+
+        .rating-page .content-card {
+            border: 1px solid var(--rating-border);
+            border-radius: 22px;
+            background: #fff;
+            overflow: hidden;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, .045);
+        }
+
+        .rating-page .content-card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--rating-border);
+            background: linear-gradient(180deg, #ffffff, #fbfcff);
+        }
+
+        .rating-page .content-card-title {
+            margin: 0;
+            font-size: .95rem;
+            font-weight: 800;
+            color: var(--rating-dark);
+        }
+
+        .rating-page .content-card-subtitle {
+            margin-top: .2rem;
+            color: var(--rating-muted);
+            font-size: .76rem;
+        }
+
+        .rating-page .record-count {
+            padding: .38rem .7rem;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: var(--rating-primary);
+            font-size: .73rem;
+            font-weight: 700;
+            border: 1px solid #dbeafe;
+            white-space: nowrap;
+        }
+
+        .rating-page .table-responsive {
+            min-height: 280px;
+        }
+
+        .rating-page .rating-table {
+            margin-bottom: 0;
+            font-size: .82rem;
+            min-width: 1050px;
+        }
+
+            .rating-page .rating-table thead th {
+                background: #f8fafc;
+                color: #64748b;
+                border-bottom: 1px solid #e8edf4;
+                border-top: 0;
+                padding: .85rem .85rem;
+                font-size: .68rem;
+                text-transform: uppercase;
+                letter-spacing: .045em;
+                font-weight: 800;
+                white-space: nowrap;
+            }
+
+            .rating-page .rating-table tbody td {
+                padding: 1rem .85rem;
+                vertical-align: middle;
+                border-color: #eef1f5;
+            }
+
+            .rating-page .rating-table tbody tr {
+                transition: background .18s ease, transform .18s ease;
+            }
+
+                .rating-page .rating-table tbody tr:hover {
+                    background: #fbfdff;
+                }
+
+        .rating-page .employee-cell {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            min-width: 190px;
+        }
+
+        .rating-page .employee-avatar {
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            border-radius: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--rating-primary);
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            font-weight: 800;
+            font-size: .85rem;
+            border: 1px solid #dbeafe;
+        }
+
+        .rating-page .employee-name {
+            color: var(--rating-dark);
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .rating-page .employee-meta {
+            margin-top: .22rem;
+            color: var(--rating-muted);
+            font-size: .72rem;
+        }
+
+        .rating-page .cycle-name {
+            font-weight: 700;
+            color: var(--rating-dark);
+            line-height: 1.3;
+        }
+
+        .rating-page .cycle-meta {
+            font-size: .72rem;
+            color: var(--rating-muted);
+            margin-top: .2rem;
+        }
+
+        .rating-page .score-box {
+            min-width: 75px;
+        }
+
+        .rating-page .score-value {
+            font-size: .92rem;
+            font-weight: 800;
+            color: var(--rating-dark);
+        }
+
+        .rating-page .score-label {
+            font-size: .67rem;
+            color: var(--rating-muted);
+            margin-top: .12rem;
+        }
+
+        .rating-page .final-score {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .42rem .65rem;
+            border-radius: 10px;
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #dcfce7;
+            font-weight: 800;
+        }
+
+        .rating-page .rating-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .42rem .7rem;
+            border-radius: 999px;
+            font-size: .7rem;
+            font-weight: 800;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .rating-page .feedback-preview {
+            max-width: 240px;
+            color: #475569;
+            line-height: 1.45;
+            font-size: .76rem;
+        }
+
+            .rating-page .feedback-preview .feedback-icon {
+                color: #94a3b8;
+                margin-right: .3rem;
+            }
+
+        .rating-page .action-btn {
+            min-height: 32px;
+            border-radius: 9px;
+            font-size: .73rem;
+            font-weight: 700;
+            transition: all .18s ease;
+            white-space: nowrap;
+        }
+
+            .rating-page .action-btn:hover {
+                transform: translateY(-1px);
+            }
+
+        .rating-page .empty-state {
+            padding: 3.5rem 1rem;
+        }
+
+        .rating-page .empty-icon {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 1rem;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            background: #f8fafc;
+            font-size: 1.7rem;
+        }
+
+        .rating-page .empty-title {
+            font-weight: 800;
+            color: var(--rating-dark);
+            margin-bottom: .35rem;
+        }
+
+        .rating-page .empty-text {
+            font-size: .8rem;
+            color: var(--rating-muted);
+            margin-bottom: 0;
+        }
+
+        .rating-page .modal-content {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, .18) !important;
+        }
+
+        .rating-page .modal-header {
+            border-bottom: 1px solid #e9edf3;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+        }
+
+        .rating-page .modal-title {
+            font-weight: 800;
+            color: var(--rating-dark);
+        }
+
+        .rating-page .modal-footer {
+            border-top: 1px solid #e9edf3;
+            background: #f8fafc;
+            padding: .85rem 1.25rem;
+        }
+
+        .rating-page .review-summary {
+            border: 1px solid #e3eaf5;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #f8fbff, #ffffff);
+            padding: 1rem;
+        }
+
+        .rating-page .review-summary-item {
+            padding: .55rem 0;
+            border-bottom: 1px dashed #dfe7f0;
+            font-size: .78rem;
+        }
+
+            .rating-page .review-summary-item:last-child {
+                border-bottom: 0;
+            }
+
+        .rating-page .review-summary-label {
+            color: #64748b;
+            font-weight: 700;
+            display: inline-block;
+            min-width: 110px;
+        }
+
+        .rating-page .modal .form-label {
+            color: #475569;
+            margin-bottom: .4rem;
+        }
+
+        .rating-page .modal .form-control,
+        .rating-page .modal .form-select {
+            min-height: 40px;
+        }
+
+        .rating-page .modal textarea.form-control {
+            min-height: auto;
+        }
+
+    @@media (max-width: 991.98px) {
+        .rating-page .page-header-card
+
+    {
+        padding: 1.25rem;
+    }
+
+    .rating-page .stats-card {
+        padding: .9rem;
+    }
+
+    .rating-page .filter-card {
+        padding: 1rem;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .rating-page
+
+    {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .rating-page .page-header-card {
+        border-radius: 18px;
+        padding: 1rem;
+    }
+
+    .rating-page .header-icon {
+        width: 46px;
+        height: 46px;
+        min-width: 46px;
+        border-radius: 14px;
+    }
+
+    .rating-page .page-title {
+        font-size: 1.15rem;
+    }
+
+    .rating-page .page-subtitle {
+        font-size: .75rem;
+    }
+
+    .rating-page .stats-value {
+        font-size: 1.15rem;
+    }
+
+    .rating-page .filter-card,
+    .rating-page .content-card {
+        border-radius: 16px;
+    }
+
+    .rating-page .content-card-header {
+        padding: .9rem 1rem;
+    }
+
+    .rating-page .modal-dialog {
+        margin: .75rem;
+    }
+
+    .rating-page .modal-body {
+        padding: 1rem !important;
+    }
+
+    .rating-page .modal-footer {
+        flex-wrap: wrap;
+    }
+
+        .rating-page .modal-footer .btn {
+            flex: 1 1 auto;
+        }
+
+    }</style>
+
+<div class="container-fluid py-4 text-start rating-page">
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Premium Header -->
+    <div class="page-header-card mb-4">
+        <div class="page-header-content">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="header-icon">
+                        <i class="fa-solid fa-id-card-clip"></i>
+                    </div>
+                    <div>
+                        <h4 class="page-title">Employee Rating Cards</h4>
+                        <div class="page-subtitle">
+                            Review employee performance, ratings, feedback, and appraisal outcomes from one place.
+                        </div>
+                        <nav aria-label="breadcrumb" class="mt-2">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a href="/HR" class="text-decoration-none">HR Dashboard</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">Rating Cards</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <div class="record-count">
+                    <i class="fa-solid fa-users me-1"></i>
+                    @totalCards Rating Cards
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Rating Cards Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
+    <!-- Performance Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stats-icon primary">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                    <div>
+                        <div class="stats-label">Total Cards</div>
+                        <div class="stats-value">@totalCards</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stats-icon warning">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </div>
+                    <div>
+                        <div class="stats-label">Pending Reviews</div>
+                        <div class="stats-value">@pendingManagerReviews</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stats-icon success">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <div class="stats-label">Completed Reviews</div>
+                        <div class="stats-value">@completedReviews</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stats-icon info">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <div class="stats-label">Average Final Score</div>
+                        <div class="stats-value">@averageScore.ToString("N2") <span class="fs-6 fw-semibold text-muted">/ 5</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-card mb-4">
+        <div class="filter-heading">
+            <i class="fa-solid fa-sliders me-2"></i>Search & Filter Rating Cards
+        </div>
+
+        <form method="get" action="/HRPerformance/RatingCards" class="row g-3 align-items-end">
+
+            <div class="col-xl-4 col-md-6">
+                <label class="filter-label">Search Employee</label>
+                <div class="input-group">
+                    <span class="input-group-text border-end-0">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text"
+                           name="search"
+                           class="form-control border-start-0"
+                           placeholder="Search employee name or code..."
+                           value="@ViewBag.Search" />
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <label class="filter-label">Appraisal Cycle</label>
+                <select name="cycleId" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Appraisal Cycles</option>
+                    @foreach (var c in cycles)
+                    {
+                        <option value="@c.CycleId" selected="@(ViewBag.SelectedCycleId == c.CycleId ? "selected" : null)">
+                            @c.CycleName
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <label class="filter-label">Rating Band</label>
+                <select name="ratingBand" class="form-select" onchange="this.form.submit()">
+                    <option value="All">All Rating Bands</option>
+                    <option value="Outstanding" selected="@(ViewBag.SelectedRatingBand == "Outstanding" ? "selected" : null)">Outstanding (A+)</option>
+                    <option value="Exceeds Expectations" selected="@(ViewBag.SelectedRatingBand == "Exceeds Expectations" ? "selected" : null)">Exceeds Expectations (A)</option>
+                    <option value="Meets Expectations" selected="@(ViewBag.SelectedRatingBand == "Meets Expectations" ? "selected" : null)">Meets Expectations (B)</option>
+                    <option value="Needs Improvement" selected="@(ViewBag.SelectedRatingBand == "Needs Improvement" ? "selected" : null)">Needs Improvement (C)</option>
+                </select>
+            </div>
+
+            <div class="col-xl-2 col-md-6">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-filter flex-grow-1">
+                        <i class="fa-solid fa-filter me-1"></i>Filter
+                    </button>
+                    <a href="/HRPerformance/RatingCards" class="btn btn-outline-secondary btn-filter px-3" title="Reset Filters">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Rating Cards Table -->
+    <div class="content-card">
+        <div class="content-card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <h5 class="content-card-title">
+                    <i class="fa-solid fa-table-list text-primary me-2"></i>
+                    Employee Performance Ratings
+                </h5>
+                <div class="content-card-subtitle">
+                    Review appraisal scores, final ratings, manager feedback, and performance summaries.
+                </div>
+            </div>
+
+            <span class="record-count">
+                <i class="fa-solid fa-list-check me-1"></i>
+                @totalCards Records
+            </span>
+        </div>
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+            <table class="table rating-table table-hover align-middle">
+                <thead>
                     <tr>
                         <th>Employee</th>
-                        <th>Department</th>
-                        <th>Designation</th>
-                        <th>Rating (Last Cycle)</th>
+                        <th>Appraisal Cycle</th>
+                        <th>Self Score</th>
+                        <th>Manager Rating</th>
+                        <th>Final Score</th>
                         <th>Rating Band</th>
-                        <th>Review Summary Feedback</th>
+                        <th>Review Feedback</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Numan Sales Man</td>
-                        <td>Sales & Marketing</td>
-                        <td>Sales Manager</td>
-                        <td>4.5 / 5.0</td>
-                        <td><span class="badge bg-success text-white">Exceeds Expectations (A)</span></td>
-                        <td>Consistently achieves targets and leads the sales pipeline expansion successfully.</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Aftab Shaik</td>
-                        <td>Human Resources</td>
-                        <td>HR Executive</td>
-                        <td>4.0 / 5.0</td>
-                        <td><span class="badge bg-primary text-white">Meets Expectations (B)</span></td>
-                        <td>Successfully handles recruitment pipelines and onboarding checklists.</td>
-                    </tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var card in Model)
+                        {
+                            var emp = card.Employee;
+                            var cycle = card.AppraisalCycle;
+
+                            var employeeName = emp?.FullName ?? "N/A";
+                            var initials = "NA";
+
+                            if (!string.IsNullOrWhiteSpace(employeeName))
+                            {
+                                var nameParts = employeeName
+                                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                                initials = string.Concat(nameParts.Take(2).Select(x => x[0])).ToUpper();
+                            }
+
+                            var ratingBand = card.FinalRatingBand ?? "Not Rated";
+
+                            string bandBadge = ratingBand switch
+                            {
+                                string b when b.Contains("Outstanding", StringComparison.OrdinalIgnoreCase) => "bg-success text-white",
+                                string b when b.Contains("Exceeds", StringComparison.OrdinalIgnoreCase) => "bg-primary text-white",
+                                string b when b.Contains("Meets", StringComparison.OrdinalIgnoreCase) => "bg-info text-white",
+                                string b when b.Contains("Needs", StringComparison.OrdinalIgnoreCase) => "bg-warning text-dark",
+                                _ => "bg-secondary text-white"
+                            };
+
+                            var feedback = string.IsNullOrEmpty(card.ManagerComments)
+                            ? (card.SelfComments ?? "No comments recorded")
+                            : card.ManagerComments;
+
+                            <tr>
+                                <td>
+                                    <div class="employee-cell">
+                                        <div class="employee-avatar">
+                                            @initials
+                                        </div>
+                                        <div>
+                                            <div class="employee-name">@employeeName</div>
+                                            <div class="employee-meta">
+                                                <i class="fa-solid fa-id-badge me-1"></i>
+                                                @(emp?.UserCode ?? "N/A")
+                                                <span class="mx-1">•</span>
+                                                @(emp?.Role?.RoleName ?? "Employee")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="cycle-name">
+                                        @(cycle?.CycleName ?? "Mid-Year Review 2026")
+                                    </div>
+                                    <div class="cycle-meta">
+                                        <i class="fa-solid fa-calendar-days me-1"></i>
+                                        @(cycle?.ReviewType ?? "Appraisal Review")
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="score-box">
+                                        <div class="score-value">
+                                            @(card.SelfRating.HasValue ? $"{card.SelfRating.Value:N1} / 5.0" : "Pending")
+                                        </div>
+                                        <div class="score-label">Employee Assessment</div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="score-box">
+                                        <div class="score-value text-primary">
+                                            @(card.ManagerRating.HasValue ? $"{card.ManagerRating.Value:N1} / 5.0" : "Pending")
+                                        </div>
+                                        <div class="score-label">Manager Assessment</div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    @if (card.FinalScore.HasValue)
+                                    {
+                                        <div class="final-score">
+                                            <i class="fa-solid fa-star"></i>
+                                            @card.FinalScore.Value.ToString("N2") / 5.0
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fw-semibold">Not Finalized</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    <span class="rating-badge @bandBadge">
+                                        <i class="fa-solid fa-award"></i>
+                                        @ratingBand
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <div class="feedback-preview text-truncate"
+                                         title="@feedback">
+                                        <i class="fa-solid fa-comment-dots feedback-icon"></i>
+                                        @feedback
+                                    </div>
+                                </td>
+
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end align-items-center gap-2">
+                                        <a href="/HRPerformance/PrintRatingCard?appraisalId=@card.AppraisalId"
+                                           target="_blank"
+                                           class="btn btn-outline-secondary action-btn px-3">
+                                            <i class="fa-solid fa-print me-1"></i>
+                                            Card
+                                        </a>
+
+                                        @if ((userRole == "Admin" || userRole == "Super Admin" || userRole == "HR" || userRole == "Manager") && !card.ManagerReviewSubmitted)
+                                        {
+                                            <button class="btn btn-primary action-btn px-3"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#managerReviewModal_@card.AppraisalId">
+                                                <i class="fa-solid fa-star me-1"></i>
+                                                Review
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Modal: Manager Review & Rating Submission -->
+                            <div class="modal fade"
+                                 id="managerReviewModal_@card.AppraisalId"
+                                 tabindex="-1"
+                                 aria-hidden="true">
+
+                                <div class="modal-dialog modal-lg modal-dialog-centered">
+                                    <div class="modal-content border-0">
+
+                                        <div class="modal-header">
+                                            <div>
+                                                <h6 class="modal-title mb-1">
+                                                    <i class="fa-solid fa-star text-warning me-2"></i>
+                                                    Manager Review & Performance Scoring
+                                                </h6>
+                                                <div class="small text-muted">
+                                                    Evaluate employee performance and submit the final manager review.
+                                                </div>
+                                            </div>
+
+                                            <button type="button"
+                                                    class="btn-close"
+                                                    data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                        </div>
+
+                                        <form method="post" action="/HRPerformance/SubmitManagerReview">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="appraisalId"
+                                                   value="@card.AppraisalId" />
+
+                                            <div class="modal-body p-4 text-start">
+
+                                                <div class="review-summary mb-4">
+                                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                                        <div class="employee-avatar">
+                                                            @initials
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold text-dark">@employeeName</div>
+                                                            <div class="small text-muted">
+                                                                @(emp?.UserCode ?? "N/A")
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="review-summary-item">
+                                                        <span class="review-summary-label">
+                                                            <i class="fa-solid fa-arrows-spin me-1"></i>Cycle:
+                                                        </span>
+                                                        @cycle?.CycleName
+                                                    </div>
+
+                                                    <div class="review-summary-item">
+                                                        <span class="review-summary-label">
+                                                            <i class="fa-solid fa-user-check me-1"></i>Self Rating:
+                                                        </span>
+                                                        @(card.SelfRating.HasValue ? $"{card.SelfRating.Value:N1} / 5.0" : "Not submitted")
+                                                    </div>
+
+                                                    <div class="review-summary-item">
+                                                        <span class="review-summary-label">
+                                                            <i class="fa-solid fa-comment me-1"></i>Self Remarks:
+                                                        </span>
+                                                        @(card.SelfComments ?? "N/A")
+                                                    </div>
+                                                </div>
+
+                                                <div class="row g-3">
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold small">
+                                                            Manager Performance Rating
+                                                            <span class="text-danger">*</span>
+                                                        </label>
+
+                                                        <select name="managerRating"
+                                                                class="form-select form-select-sm"
+                                                                required>
+                                                            <option value="5.0">5.0 - Outstanding (A+)</option>
+                                                            <option value="4.5">4.5 - Exceeds Expectations (High)</option>
+                                                            <option value="4.0" selected>4.0 - Exceeds Expectations (A)</option>
+                                                            <option value="3.5">3.5 - Meets Expectations (High)</option>
+                                                            <option value="3.0">3.0 - Meets Expectations (B)</option>
+                                                            <option value="2.0">2.0 - Needs Improvement (C)</option>
+                                                            <option value="1.0">1.0 - Poor (D)</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-md-12">
+                                                        <label class="form-label fw-semibold small">
+                                                            Manager Evaluation Feedback
+                                                            <span class="text-danger">*</span>
+                                                        </label>
+
+                                                        <textarea name="managerComments"
+                                                          class="form-control form-control-sm"
+                                                          rows="4"
+                                                          required
+                                                          placeholder="Provide detailed manager feedback on employee accomplishments, key strengths, leadership skills, improvement areas, and overall contribution..."></textarea>
+                                                    </div>
+
+                                                    <div class="col-md-12">
+                                                        <label class="form-label fw-semibold small">
+                                                            HR Review Remarks / Bonus Recommendations
+                                                        </label>
+
+                                                        <textarea name="hrComments"
+                                                          class="form-control form-control-sm"
+                                                          rows="3"
+                                                          placeholder="Optional HR comments, recommendations, recognition notes, or bonus recommendations..."></textarea>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="modal-footer">
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary btn-sm rounded-pill px-4"
+                                                        data-bs-dismiss="modal">
+                                                    Cancel
+                                                </button>
+
+                                                <button type="submit"
+                                                        class="btn btn-primary btn-sm rounded-pill px-4">
+                                                    <i class="fa-solid fa-paper-plane me-1"></i>
+                                                    Submit Manager Review
+                                                </button>
+                                            </div>
+                                        </form>
+
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="p-0">
+                                <div class="empty-state text-center">
+                                    <div class="empty-icon">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </div>
+                                    <div class="empty-title">No Employee Rating Cards Found</div>
+                                    <p class="empty-text">
+                                        No employee appraisal records match the selected search or filter criteria.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>

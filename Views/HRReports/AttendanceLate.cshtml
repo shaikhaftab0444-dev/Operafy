@@ -1,10 +1,12 @@
+@model ERP_System.Models.AttendanceLateReportViewModel
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Attendance & Late-Coming Report";
 }
 
 <div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-line text-primary me-2"></i>Attendance & Late-Coming Report</h4>
             <nav aria-label="breadcrumb">
@@ -14,29 +16,79 @@
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-outline-secondary w-auto btn-sm rounded-pill"><i class="fa-solid fa-file-excel me-1.5 text-success"></i>Export Excel</button>
+        <div class="d-flex gap-2">
+            <a href="/HRReports/ExportAttendanceLate?format=csv&search=@ViewBag.Search&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus" class="btn btn-outline-secondary btn-sm rounded-pill">
+                <i class="fa-solid fa-file-csv me-1.5 text-primary"></i>Export CSV
+            </a>
+            <a href="/HRReports/ExportAttendanceLate?format=excel&search=@ViewBag.Search&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus" class="btn btn-outline-secondary btn-sm rounded-pill">
+                <i class="fa-solid fa-file-excel me-1.5 text-success"></i>Export Excel
+            </a>
+            <button onclick="window.print()" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="fa-solid fa-print me-1.5"></i>Print Report
+            </button>
+        </div>
     </div>
 
     <!-- Stats summary cards -->
     <div class="row g-4 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Average Office Check-in Time</div>
-                <h4 class="fw-bold text-dark mt-2 mb-0">09:14 AM</h4>
+                <div class="text-muted fw-semibold small">Total Present Days</div>
+                <h4 class="fw-bold text-success mt-2 mb-0">@Model.TotalPresent Days</h4>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Total Late Punch-ins (Current Month)</div>
-                <h4 class="fw-bold text-warning mt-2 mb-0">14 Instances</h4>
+                <div class="text-muted fw-semibold small">Average Check-in Time</div>
+                <h4 class="fw-bold text-dark mt-2 mb-0">@Model.AvgCheckInTime</h4>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Avg Monthly Working Hours</div>
-                <h4 class="fw-bold text-success mt-2 mb-0">172.5 hrs</h4>
+                <div class="text-muted fw-semibold small">Late Punch-ins & Minutes</div>
+                <h4 class="fw-bold text-warning mt-2 mb-0">@Model.TotalLateInstances Instances (@Model.TotalLateMinutes mins)</h4>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="bg-white border rounded-3 p-3 shadow-sm">
+                <div class="text-muted fw-semibold small">Avg Daily Working Hours</div>
+                <h4 class="fw-bold text-primary mt-2 mb-0">@Model.AvgDailyWorkHours hrs/day</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <form method="get" action="/HRReports/AttendanceLate" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search Employee Code, Name..." value="@Model.SearchTerm" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="departmentId" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Departments</option>
+                    @foreach (var d in Model.Departments)
+                    {
+                        <option value="@d.DepartmentId" selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">@d.DepartmentName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="All">All Attendance Statuses</option>
+                    <option value="Present" selected="@(Model.SelectedStatus == "Present" ? "selected" : null)">Present (On Time)</option>
+                    <option value="Late" selected="@(Model.SelectedStatus == "Late" ? "selected" : null)">Late Check-in</option>
+                    <option value="Absent" selected="@(Model.SelectedStatus == "Absent" ? "selected" : null)">Absent</option>
+                    <option value="Leave" selected="@(Model.SelectedStatus == "Leave" ? "selected" : null)">On Leave</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">Filter</button>
+                <a href="/HRReports/AttendanceLate" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+            </div>
+        </form>
     </div>
 
     <!-- Report Table -->
@@ -46,30 +98,51 @@
                 <thead class="table-light">
                     <tr>
                         <th>Employee</th>
-                        <th>Present Days</th>
-                        <th>Late Days</th>
-                        <th>Absences</th>
-                        <th>Avg Daily Work Hours</th>
-                        <th>Regularization Requests</th>
+                        <th>Date</th>
+                        <th>Check-In</th>
+                        <th>Check-Out</th>
+                        <th>Work Hours</th>
+                        <th>Punch Source</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Numan Sales Man</td>
-                        <td>20 Days</td>
-                        <td>1 Day</td>
-                        <td>0 Days</td>
-                        <td>8h 50m</td>
-                        <td>0 Requests</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Aftab Shaik</td>
-                        <td>19 Days</td>
-                        <td>0 Days</td>
-                        <td>1 Day</td>
-                        <td>8h 52m</td>
-                        <td>1 Request</td>
-                    </tr>
+                    @if (Model.Logs != null && Model.Logs.Any())
+                    {
+                        foreach (var log in Model.Logs)
+                        {
+                            string badgeClass = log.Status switch
+                            {
+                                string s when s.Contains("On Time") => "bg-success-subtle text-success",
+                                string s when s.Contains("Late") => "bg-warning-subtle text-warning",
+                                string s when s.Contains("Absent") => "bg-danger-subtle text-danger",
+                                string s when s.Contains("Leave") => "bg-info-subtle text-info",
+                                _ => "bg-light text-dark"
+                            };
+
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">@log.EmployeeName</div>
+                                    <div class="text-muted small">@log.EmployeeCode</div>
+                                </td>
+                                <td><i class="fa-solid fa-calendar-day me-1 text-muted"></i>@log.Date.ToString("dd MMM yyyy")</td>
+                                <td class="fw-semibold">@(log.CheckInTime.HasValue ? log.CheckInTime.Value.ToString("hh:mm tt") : "N/A")</td>
+                                <td class="fw-semibold">@(log.CheckOutTime.HasValue ? log.CheckOutTime.Value.ToString("hh:mm tt") : "N/A")</td>
+                                <td><span class="badge bg-light text-dark border">@log.WorkHours</span></td>
+                                <td><span class="small text-muted"><i class="fa-solid fa-desktop me-1"></i>@log.PunchSource</span></td>
+                                <td><span class="badge @badgeClass fw-semibold">@log.Status</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="fa-solid fa-calendar-xmark fa-2x mb-2 d-block text-secondary"></i>
+                                No Attendance records found matching the selected filters.
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>

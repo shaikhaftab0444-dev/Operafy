@@ -1592,6 +1592,1090 @@ namespace ERP_System.Data
             }
         }
 
+        public static async Task InitializeRecruitmentTablesAsync(ApplicationDbContext context)
+        {
+            string sqlScript = @"
+                IF OBJECT_ID('AITStudent.erp_JobOpenings', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_JobOpenings (
+                        JobId INT IDENTITY(1,1) PRIMARY KEY,
+                        JobCode NVARCHAR(50) NOT NULL,
+                        JobTitle NVARCHAR(150) NOT NULL,
+                        DepartmentId INT NOT NULL,
+                        DesignationId INT NULL,
+                        HiringManagerId INT NULL,
+                        RecruiterId INT NULL,
+                        EmploymentType NVARCHAR(50) NOT NULL DEFAULT 'Full-Time',
+                        Vacancies INT NOT NULL DEFAULT 1,
+                        JobLocation NVARCHAR(100) NOT NULL DEFAULT 'Headquarters',
+                        WorkMode NVARCHAR(50) NOT NULL DEFAULT 'On-site',
+                        ExperienceRequired NVARCHAR(50) NULL,
+                        MinimumEducation NVARCHAR(100) NULL,
+                        RequiredSkills NVARCHAR(500) NULL,
+                        JobDescription NVARCHAR(2000) NULL,
+                        Responsibilities NVARCHAR(2000) NULL,
+                        Requirements NVARCHAR(2000) NULL,
+                        MinimumSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        MaximumSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Currency NVARCHAR(10) NOT NULL DEFAULT 'INR',
+                        PostingDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        ClosingDate DATETIME NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Open',
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME NULL,
+                        CreatedBy INT NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_Candidates', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_Candidates (
+                        CandidateId INT IDENTITY(1,1) PRIMARY KEY,
+                        FullName NVARCHAR(150) NOT NULL,
+                        Email NVARCHAR(150) NOT NULL,
+                        Phone NVARCHAR(30) NOT NULL,
+                        Address NVARCHAR(250) NULL,
+                        Education NVARCHAR(150) NULL,
+                        Experience NVARCHAR(50) NULL,
+                        Skills NVARCHAR(500) NULL,
+                        CurrentCompany NVARCHAR(150) NULL,
+                        CurrentSalary DECIMAL(18,2) NULL,
+                        ExpectedSalary DECIMAL(18,2) NULL,
+                        NoticePeriod NVARCHAR(50) NULL,
+                        ResumePath NVARCHAR(300) NULL,
+                        LinkedIn NVARCHAR(250) NULL,
+                        Portfolio NVARCHAR(250) NULL,
+                        ApplicationSource NVARCHAR(100) NOT NULL DEFAULT 'Portal',
+                        ReferredBy NVARCHAR(150) NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_CandidateApplications', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_CandidateApplications (
+                        ApplicationId INT IDENTITY(1,1) PRIMARY KEY,
+                        CandidateId INT NOT NULL,
+                        JobId INT NOT NULL,
+                        ApplicationDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        Stage NVARCHAR(50) NOT NULL DEFAULT 'Applied',
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Active',
+                        MatchScore INT NOT NULL DEFAULT 80,
+                        Notes NVARCHAR(1000) NULL,
+                        Tags NVARCHAR(200) NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_CandidateStageHistories', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_CandidateStageHistories (
+                        HistoryId INT IDENTITY(1,1) PRIMARY KEY,
+                        ApplicationId INT NOT NULL,
+                        PreviousStage NVARCHAR(50) NOT NULL,
+                        NewStage NVARCHAR(50) NOT NULL,
+                        ChangedByUserId INT NULL,
+                        ChangeDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        ReasonNotes NVARCHAR(500) NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_InterviewSchedules', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_InterviewSchedules (
+                        InterviewId INT IDENTITY(1,1) PRIMARY KEY,
+                        ApplicationId INT NOT NULL,
+                        CandidateId INT NOT NULL,
+                        JobId INT NOT NULL,
+                        InterviewRound NVARCHAR(100) NOT NULL DEFAULT 'HR Interview',
+                        InterviewType NVARCHAR(50) NOT NULL DEFAULT 'HR Interview',
+                        InterviewMode NVARCHAR(50) NOT NULL DEFAULT 'Online',
+                        ScheduledDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        StartTime NVARCHAR(20) NOT NULL DEFAULT '10:00 AM',
+                        EndTime NVARCHAR(20) NOT NULL DEFAULT '11:00 AM',
+                        Location NVARCHAR(250) NULL,
+                        MeetingLink NVARCHAR(500) NULL,
+                        InterviewerId INT NULL,
+                        InterviewerNames NVARCHAR(250) NULL,
+                        Notes NVARCHAR(1000) NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Scheduled',
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_InterviewFeedbacks', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_InterviewFeedbacks (
+                        FeedbackId INT IDENTITY(1,1) PRIMARY KEY,
+                        InterviewId INT NOT NULL,
+                        CandidateId INT NOT NULL,
+                        JobId INT NOT NULL,
+                        InterviewerId INT NULL,
+                        TechnicalRating INT NOT NULL DEFAULT 3,
+                        CommunicationRating INT NOT NULL DEFAULT 3,
+                        ExperienceRating INT NOT NULL DEFAULT 3,
+                        ProblemSolvingRating INT NOT NULL DEFAULT 3,
+                        CulturalFitRating INT NOT NULL DEFAULT 3,
+                        OverallRating DECIMAL(3,2) NOT NULL DEFAULT 3.0,
+                        Strengths NVARCHAR(1000) NULL,
+                        Weaknesses NVARCHAR(1000) NULL,
+                        Comments NVARCHAR(1500) NULL,
+                        Recommendation NVARCHAR(100) NOT NULL DEFAULT 'Recommend',
+                        IsFinalized BIT NOT NULL DEFAULT 1,
+                        SubmittedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_OfferLetters', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_OfferLetters (
+                        OfferId INT IDENTITY(1,1) PRIMARY KEY,
+                        OfferCode NVARCHAR(50) NOT NULL,
+                        ApplicationId INT NOT NULL,
+                        CandidateId INT NOT NULL,
+                        JobId INT NOT NULL,
+                        DesignationId INT NULL,
+                        DepartmentId INT NULL,
+                        EmploymentType NVARCHAR(50) NOT NULL DEFAULT 'Full-Time',
+                        ProposedJoiningDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        ReportingManagerId INT NULL,
+                        OfferedCTC DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        SalaryStructure NVARCHAR(1500) NULL,
+                        OfferExpiryDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        TermsAndConditions NVARCHAR(2000) NULL,
+                        AdditionalNotes NVARCHAR(1000) NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Draft',
+                        SentAt DATETIME NULL,
+                        RespondedAt DATETIME NULL,
+                        ConvertedToEmployeeId INT NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        CreatedBy INT NULL
+                    );
+                END";
+
+            await context.Database.ExecuteSqlRawAsync(sqlScript);
+
+            // Seed initial Job Openings if empty
+            if (!await context.JobOpenings.AnyAsync())
+            {
+                var salesDept = await context.Departments.FirstOrDefaultAsync(d => d.DepartmentName.Contains("Sales")) ?? await context.Departments.FirstOrDefaultAsync();
+                var engDept = await context.Departments.FirstOrDefaultAsync(d => d.DepartmentName.Contains("Software") || d.DepartmentName.Contains("IT") || d.DepartmentName.Contains("Engine")) ?? await context.Departments.FirstOrDefaultAsync();
+
+                int salesDeptId = salesDept?.DepartmentId ?? 1;
+                int engDeptId = engDept?.DepartmentId ?? 1;
+
+                var job1 = new JobOpening
+                {
+                    JobCode = "JOB-1021",
+                    JobTitle = "Junior Sales Representative",
+                    DepartmentId = salesDeptId,
+                    EmploymentType = "Full-Time",
+                    Vacancies = 3,
+                    JobLocation = "Headquarters",
+                    WorkMode = "On-site",
+                    ExperienceRequired = "1-2 Years",
+                    MinimumEducation = "Bachelor's Degree",
+                    RequiredSkills = "Communication, Negotiation, CRM Tools",
+                    JobDescription = "We are seeking an energetic Sales Representative to expand customer pipeline.",
+                    MinimumSalary = 350000,
+                    MaximumSalary = 500000,
+                    Currency = "INR",
+                    PostingDate = DateTime.Now.AddDays(-20),
+                    Status = "Open"
+                };
+
+                var job2 = new JobOpening
+                {
+                    JobCode = "JOB-1022",
+                    JobTitle = "Lead Full-stack Developer",
+                    DepartmentId = engDeptId,
+                    EmploymentType = "Full-Time",
+                    Vacancies = 2,
+                    JobLocation = "Bangalore Office",
+                    WorkMode = "Hybrid",
+                    ExperienceRequired = "5+ Years",
+                    MinimumEducation = "B.Tech / B.E. / M.C.A.",
+                    RequiredSkills = ".NET Core, C#, React, SQL Server, Microservices",
+                    JobDescription = "Lead technical development of enterprise ERP modules.",
+                    MinimumSalary = 1200000,
+                    MaximumSalary = 1800000,
+                    Currency = "INR",
+                    PostingDate = DateTime.Now.AddDays(-15),
+                    Status = "Open"
+                };
+
+                await context.JobOpenings.AddRangeAsync(job1, job2);
+                await context.SaveChangesAsync();
+
+                // Seed Candidates
+                var candidate1 = new Candidate
+                {
+                    FullName = "Arun Kumar",
+                    Email = "arun.kumar@example.com",
+                    Phone = "+91 9876543210",
+                    Address = "Hyderabad, Telangana",
+                    Education = "B.Com Sales & Marketing",
+                    Experience = "2 Years",
+                    Skills = "Salesforce, Cold Calling, Client Presentations",
+                    CurrentCompany = "TechRetail India",
+                    CurrentSalary = 300000,
+                    ExpectedSalary = 420000,
+                    NoticePeriod = "15 Days",
+                    ApplicationSource = "Portal",
+                    ResumePath = "/uploads/resumes/resume_arun.pdf"
+                };
+
+                var candidate2 = new Candidate
+                {
+                    FullName = "Pooja Patel",
+                    Email = "pooja.patel@example.com",
+                    Phone = "+91 9812345678",
+                    Address = "Bangalore, Karnataka",
+                    Education = "B.Tech Computer Science",
+                    Experience = "6 Years",
+                    Skills = "C#, .NET Core, SQL Server, ReactJS, Web API",
+                    CurrentCompany = "InfoSys Ltd",
+                    CurrentSalary = 1200000,
+                    ExpectedSalary = 1600000,
+                    NoticePeriod = "30 Days",
+                    ApplicationSource = "LinkedIn",
+                    ResumePath = "/uploads/resumes/pooja_cv.pdf"
+                };
+
+                var candidate3 = new Candidate
+                {
+                    FullName = "Ravi Teja",
+                    Email = "ravi.teja@example.com",
+                    Phone = "+91 9700112233",
+                    Address = "Hyderabad, Telangana",
+                    Education = "M.C.A Computer Applications",
+                    Experience = "4 Years",
+                    Skills = "C#, ASP.NET MVC, EF Core",
+                    CurrentCompany = "Wipro Solutions",
+                    CurrentSalary = 650000,
+                    ExpectedSalary = 850000,
+                    NoticePeriod = "Immediate",
+                    ApplicationSource = "Referral",
+                    ResumePath = "/uploads/resumes/ravi_teja_cv.pdf"
+                };
+
+                await context.Candidates.AddRangeAsync(candidate1, candidate2, candidate3);
+                await context.SaveChangesAsync();
+
+                // Seed Candidate Applications
+                var app1 = new CandidateApplication
+                {
+                    CandidateId = candidate1.CandidateId,
+                    JobId = job1.JobId,
+                    Stage = "HR Interview",
+                    Status = "Active",
+                    MatchScore = 85,
+                    Notes = "Good communication skills, relevant sales background.",
+                    Tags = "High Potential, Immediate Joiner"
+                };
+
+                var app2 = new CandidateApplication
+                {
+                    CandidateId = candidate2.CandidateId,
+                    JobId = job2.JobId,
+                    Stage = "Technical Interview",
+                    Status = "Active",
+                    MatchScore = 92,
+                    Notes = "Strong technical architecture knowledge.",
+                    Tags = "Lead Potential"
+                };
+
+                var app3 = new CandidateApplication
+                {
+                    CandidateId = candidate3.CandidateId,
+                    JobId = job2.JobId,
+                    Stage = "Selected",
+                    Status = "Active",
+                    MatchScore = 88,
+                    Notes = "Passed all rounds successfully. Ready for offer generation.",
+                    Tags = "Selected Candidate"
+                };
+
+                await context.CandidateApplications.AddRangeAsync(app1, app2, app3);
+                await context.SaveChangesAsync();
+
+                // Seed Stage Histories
+                await context.CandidateStageHistories.AddRangeAsync(
+                    new CandidateStageHistory { ApplicationId = app1.ApplicationId, PreviousStage = "Applied", NewStage = "Screening", ChangeDate = DateTime.Now.AddDays(-10), ReasonNotes = "Screened profile" },
+                    new CandidateStageHistory { ApplicationId = app1.ApplicationId, PreviousStage = "Screening", NewStage = "HR Interview", ChangeDate = DateTime.Now.AddDays(-5), ReasonNotes = "Shortlisted for HR round" },
+                    new CandidateStageHistory { ApplicationId = app2.ApplicationId, PreviousStage = "Applied", NewStage = "Technical Interview", ChangeDate = DateTime.Now.AddDays(-3), ReasonNotes = "Directly scheduled for technical round" }
+                );
+
+                // Seed Interview Schedules
+                var interview1 = new InterviewSchedule
+                {
+                    ApplicationId = app1.ApplicationId,
+                    CandidateId = candidate1.CandidateId,
+                    JobId = job1.JobId,
+                    InterviewRound = "HR Interview",
+                    InterviewType = "HR Interview",
+                    InterviewMode = "Online",
+                    ScheduledDate = DateTime.Now.AddDays(1),
+                    StartTime = "03:00 PM",
+                    EndTime = "03:45 PM",
+                    MeetingLink = "https://meet.google.com/abc-defg-hij",
+                    InterviewerNames = "Aftab Shaik (HR)",
+                    Notes = "Assess culture fit and salary expectations.",
+                    Status = "Scheduled"
+                };
+
+                var interview2 = new InterviewSchedule
+                {
+                    ApplicationId = app2.ApplicationId,
+                    CandidateId = candidate2.CandidateId,
+                    JobId = job2.JobId,
+                    InterviewRound = "Technical Round 1",
+                    InterviewType = "Technical Interview",
+                    InterviewMode = "Online",
+                    ScheduledDate = DateTime.Now.AddDays(2),
+                    StartTime = "11:30 AM",
+                    EndTime = "12:30 PM",
+                    MeetingLink = "https://meet.google.com/xyz-uvwx-rst",
+                    InterviewerNames = "Rajesh Kumar (Tech Lead)",
+                    Notes = "Evaluate system design and C# coding capabilities.",
+                    Status = "Scheduled"
+                };
+
+                await context.InterviewSchedules.AddRangeAsync(interview1, interview2);
+                await context.SaveChangesAsync();
+
+                // Seed Offer Letter
+                var offer1 = new OfferLetter
+                {
+                    OfferCode = "OFF-2026-001",
+                    ApplicationId = app3.ApplicationId,
+                    CandidateId = candidate3.CandidateId,
+                    JobId = job2.JobId,
+                    EmploymentType = "Full-Time",
+                    ProposedJoiningDate = DateTime.Now.AddDays(14),
+                    OfferedCTC = 850000,
+                    SalaryStructure = "Basic: ₹4,25,000, HRA: ₹2,12,500, Special Allowance: ₹2,12,500",
+                    OfferExpiryDate = DateTime.Now.AddDays(7),
+                    TermsAndConditions = "Standard employment contract with 90 days probation period.",
+                    Status = "Accepted",
+                    SentAt = DateTime.Now.AddDays(-5),
+                    RespondedAt = DateTime.Now.AddDays(-1)
+                };
+
+                await context.OfferLetters.AddAsync(offer1);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public static async Task InitializePerformanceTablesAsync(ApplicationDbContext context)
+        {
+            string sqlScript = @"
+                IF OBJECT_ID('AITStudent.erp_Okrs', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_Okrs (
+                        OkrId INT IDENTITY(1,1) PRIMARY KEY,
+                        ObjectiveTitle NVARCHAR(200) NOT NULL,
+                        Description NVARCHAR(1000) NULL,
+                        DepartmentId INT NULL,
+                        DesignationId INT NULL,
+                        EmployeeId INT NULL,
+                        StartDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        EndDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        Priority NVARCHAR(50) NOT NULL DEFAULT 'Medium',
+                        Weightage DECIMAL(5,2) NOT NULL DEFAULT 100.0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'In Progress',
+                        OverallProgressPercentage DECIMAL(5,2) NOT NULL DEFAULT 0.0,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_KeyResults', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_KeyResults (
+                        KeyResultId INT IDENTITY(1,1) PRIMARY KEY,
+                        OkrId INT NOT NULL,
+                        KeyResultName NVARCHAR(200) NOT NULL,
+                        Description NVARCHAR(500) NULL,
+                        TargetValue DECIMAL(18,2) NOT NULL DEFAULT 100.0,
+                        CurrentValue DECIMAL(18,2) NOT NULL DEFAULT 0.0,
+                        MeasurementUnit NVARCHAR(50) NOT NULL DEFAULT 'Percentage',
+                        Weightage DECIMAL(5,2) NOT NULL DEFAULT 100.0,
+                        ProgressPercentage DECIMAL(5,2) NOT NULL DEFAULT 0.0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'In Progress'
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_Kpis', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_Kpis (
+                        KpiId INT IDENTITY(1,1) PRIMARY KEY,
+                        KpiName NVARCHAR(150) NOT NULL,
+                        Description NVARCHAR(500) NULL,
+                        DepartmentId INT NULL,
+                        DesignationId INT NULL,
+                        EmployeeId INT NULL,
+                        TargetValue DECIMAL(18,2) NOT NULL DEFAULT 100.0,
+                        ActualAchievement DECIMAL(18,2) NOT NULL DEFAULT 0.0,
+                        Weightage DECIMAL(5,2) NOT NULL DEFAULT 100.0,
+                        MeasurementType NVARCHAR(50) NOT NULL DEFAULT 'Percentage',
+                        ReviewPeriod NVARCHAR(50) NOT NULL DEFAULT 'Quarterly',
+                        StartDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        EndDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        AchievementPercentage DECIMAL(5,2) NOT NULL DEFAULT 0.0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Active',
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_AppraisalCycles', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_AppraisalCycles (
+                        CycleId INT IDENTITY(1,1) PRIMARY KEY,
+                        CycleName NVARCHAR(150) NOT NULL,
+                        Description NVARCHAR(500) NULL,
+                        ReviewType NVARCHAR(50) NOT NULL DEFAULT 'Annual',
+                        StartDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        EndDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        SelfReviewDeadline DATETIME NOT NULL DEFAULT GETDATE(),
+                        ManagerReviewDeadline DATETIME NOT NULL DEFAULT GETDATE(),
+                        ApplicableDepartmentIds NVARCHAR(250) NOT NULL DEFAULT 'All',
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Active',
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_EmployeeAppraisals', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_EmployeeAppraisals (
+                        AppraisalId INT IDENTITY(1,1) PRIMARY KEY,
+                        CycleId INT NOT NULL,
+                        EmployeeId INT NOT NULL,
+                        ManagerId INT NULL,
+                        SelfReviewSubmitted BIT NOT NULL DEFAULT 0,
+                        SelfRating DECIMAL(3,2) NULL,
+                        SelfComments NVARCHAR(1500) NULL,
+                        SelfSubmittedAt DATETIME NULL,
+                        ManagerReviewSubmitted BIT NOT NULL DEFAULT 0,
+                        ManagerRating DECIMAL(3,2) NULL,
+                        ManagerComments NVARCHAR(1500) NULL,
+                        ManagerSubmittedAt DATETIME NULL,
+                        HRComments NVARCHAR(1500) NULL,
+                        GoalScore DECIMAL(3,2) NULL,
+                        KpiScore DECIMAL(3,2) NULL,
+                        FinalScore DECIMAL(3,2) NULL,
+                        FinalRatingBand NVARCHAR(100) NOT NULL DEFAULT 'Pending Evaluation',
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Self Review Pending',
+                        EmployeeAcknowledged BIT NOT NULL DEFAULT 0,
+                        AcknowledgedAt DATETIME NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME NULL
+                    );
+                END";
+
+            await context.Database.ExecuteSqlRawAsync(sqlScript);
+
+            // Seed initial OKRs and KPIs if empty
+            if (!await context.OkrObjectives.AnyAsync())
+            {
+                var salesDept = await context.Departments.FirstOrDefaultAsync(d => d.DepartmentName.Contains("Sales")) ?? await context.Departments.FirstOrDefaultAsync();
+                var engDept = await context.Departments.FirstOrDefaultAsync(d => d.DepartmentName.Contains("Software") || d.DepartmentName.Contains("IT") || d.DepartmentName.Contains("Engine")) ?? await context.Departments.FirstOrDefaultAsync();
+
+                int salesDeptId = salesDept?.DepartmentId ?? 1;
+                int engDeptId = engDept?.DepartmentId ?? 1;
+
+                var okr1 = new OkrObjective
+                {
+                    ObjectiveTitle = "Boost Q3 sales pipeline expansion",
+                    Description = "Expand customer reach across enterprise accounts",
+                    DepartmentId = salesDeptId,
+                    Priority = "High",
+                    StartDate = new DateTime(2026, 7, 1),
+                    EndDate = new DateTime(2026, 9, 30),
+                    Status = "In Progress",
+                    OverallProgressPercentage = 75.0m
+                };
+
+                var okr2 = new OkrObjective
+                {
+                    ObjectiveTitle = "Improve core ERP module performance",
+                    Description = "Optimize database queries and API response times across modules",
+                    DepartmentId = engDeptId,
+                    Priority = "Critical",
+                    StartDate = new DateTime(2026, 7, 1),
+                    EndDate = new DateTime(2026, 9, 15),
+                    Status = "In Progress",
+                    OverallProgressPercentage = 40.0m
+                };
+
+                await context.OkrObjectives.AddRangeAsync(okr1, okr2);
+                await context.SaveChangesAsync();
+
+                // Key Results
+                var kr1 = new KeyResult
+                {
+                    OkrId = okr1.OkrId,
+                    KeyResultName = "Achieve total sales of ₹15,00,000 in Q3",
+                    TargetValue = 1500000,
+                    CurrentValue = 1125000,
+                    MeasurementUnit = "Amount",
+                    ProgressPercentage = 75.0m,
+                    Status = "In Progress"
+                };
+
+                var kr2 = new KeyResult
+                {
+                    OkrId = okr2.OkrId,
+                    KeyResultName = "Reduce response times to < 200ms",
+                    TargetValue = 200,
+                    CurrentValue = 350,
+                    MeasurementUnit = "Number",
+                    ProgressPercentage = 40.0m,
+                    Status = "In Progress"
+                };
+
+                await context.KeyResults.AddRangeAsync(kr1, kr2);
+
+                // KPIs
+                var kpi1 = new KpiItem
+                {
+                    KpiName = "Quarterly Sales Target Realization",
+                    Description = "Percentage of quarterly sales quota achieved",
+                    DepartmentId = salesDeptId,
+                    TargetValue = 100,
+                    ActualAchievement = 88,
+                    MeasurementType = "Percentage",
+                    ReviewPeriod = "Quarterly",
+                    AchievementPercentage = 88.0m,
+                    Status = "Active"
+                };
+
+                var kpi2 = new KpiItem
+                {
+                    KpiName = "Code Quality & Bug Resolution Rate",
+                    Description = "Resolution rate of reported P1/P2 issues within SLA",
+                    DepartmentId = engDeptId,
+                    TargetValue = 95,
+                    ActualAchievement = 92,
+                    MeasurementType = "Percentage",
+                    ReviewPeriod = "Quarterly",
+                    AchievementPercentage = 96.84m,
+                    Status = "Active"
+                };
+
+                await context.Kpis.AddRangeAsync(kpi1, kpi2);
+                await context.SaveChangesAsync();
+            }
+
+            // Seed Appraisal Cycles & Employee Appraisals if empty
+            if (!await context.AppraisalCycles.AnyAsync())
+            {
+                var cycle1 = new AppraisalCycle
+                {
+                    CycleName = "Mid-Year Review 2026",
+                    Description = "Performance evaluation for H1 2026",
+                    ReviewType = "Half-Yearly",
+                    StartDate = new DateTime(2026, 6, 1),
+                    EndDate = new DateTime(2026, 6, 30),
+                    SelfReviewDeadline = new DateTime(2026, 6, 15),
+                    ManagerReviewDeadline = new DateTime(2026, 6, 25),
+                    ApplicableDepartmentIds = "All",
+                    Status = "Completed"
+                };
+
+                var cycle2 = new AppraisalCycle
+                {
+                    CycleName = "Annual Appraisal Cycle 2026",
+                    Description = "Annual comprehensive appraisal for all company staff",
+                    ReviewType = "Annual",
+                    StartDate = new DateTime(2026, 12, 1),
+                    EndDate = new DateTime(2026, 12, 31),
+                    SelfReviewDeadline = new DateTime(2026, 12, 15),
+                    ManagerReviewDeadline = new DateTime(2026, 12, 25),
+                    ApplicableDepartmentIds = "All",
+                    Status = "Active"
+                };
+
+                await context.AppraisalCycles.AddRangeAsync(cycle1, cycle2);
+                await context.SaveChangesAsync();
+
+                // Find existing users to attach appraisals
+                var numanUser = await context.Users.FirstOrDefaultAsync(u => u.FullName.Contains("Numan")) ?? await context.Users.FirstOrDefaultAsync(u => u.UserId > 1);
+                var aftabUser = await context.Users.FirstOrDefaultAsync(u => u.FullName.Contains("Aftab") || u.UserName.Contains("admin")) ?? await context.Users.FirstOrDefaultAsync();
+
+                if (numanUser != null)
+                {
+                    await context.EmployeeAppraisals.AddAsync(new EmployeeAppraisal
+                    {
+                        CycleId = cycle1.CycleId,
+                        EmployeeId = numanUser.UserId,
+                        SelfReviewSubmitted = true,
+                        SelfRating = 4.5m,
+                        SelfComments = "Successfully expanded client base by 25% and hit quarterly targets.",
+                        SelfSubmittedAt = new DateTime(2026, 6, 14),
+                        ManagerReviewSubmitted = true,
+                        ManagerRating = 4.5m,
+                        ManagerComments = "Consistently achieves targets and leads the sales pipeline expansion successfully.",
+                        ManagerSubmittedAt = new DateTime(2026, 6, 23),
+                        HRComments = "Approved for merit bonus recommendation.",
+                        GoalScore = 4.5m,
+                        KpiScore = 4.5m,
+                        FinalScore = 4.5m,
+                        FinalRatingBand = "Exceeds Expectations (A)",
+                        Status = "Completed"
+                    });
+                }
+
+                if (aftabUser != null)
+                {
+                    await context.EmployeeAppraisals.AddAsync(new EmployeeAppraisal
+                    {
+                        CycleId = cycle1.CycleId,
+                        EmployeeId = aftabUser.UserId,
+                        SelfReviewSubmitted = true,
+                        SelfRating = 4.0m,
+                        SelfComments = "Managed recruitment pipelines efficiently and maintained 100% SLA compliance.",
+                        SelfSubmittedAt = new DateTime(2026, 6, 15),
+                        ManagerReviewSubmitted = true,
+                        ManagerRating = 4.0m,
+                        ManagerComments = "Successfully handles recruitment pipelines and onboarding checklists.",
+                        ManagerSubmittedAt = new DateTime(2026, 6, 24),
+                        HRComments = "Great progress overall.",
+                        GoalScore = 4.0m,
+                        KpiScore = 4.0m,
+                        FinalScore = 4.0m,
+                        FinalRatingBand = "Meets Expectations (B)",
+                        Status = "Completed"
+                    });
+                }
+
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public static async Task InitializeHRAttendanceTablesAsync(ApplicationDbContext context)
+        {
+            string sqlScript = @"
+                IF OBJECT_ID('AITStudent.erp_HRAttendanceLogs', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_HRAttendanceLogs (
+                        LogId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        EmployeeCode NVARCHAR(50) NOT NULL,
+                        EmployeeName NVARCHAR(150) NOT NULL,
+                        Date DATETIME NOT NULL,
+                        CheckInTime DATETIME NULL,
+                        CheckOutTime DATETIME NULL,
+                        WorkHours NVARCHAR(50) NOT NULL DEFAULT '0h 0m',
+                        PunchSource NVARCHAR(100) NOT NULL DEFAULT 'Web Clock',
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Present (On Time)',
+                        Remarks NVARCHAR(255) NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_HRBiometricDevices', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_HRBiometricDevices (
+                        DeviceId INT IDENTITY(1,1) PRIMARY KEY,
+                        DeviceName NVARCHAR(150) NOT NULL,
+                        IpOrLocation NVARCHAR(150) NOT NULL,
+                        ConnectionStatus NVARCHAR(50) NOT NULL DEFAULT 'Connected',
+                        LastSyncTime DATETIME NOT NULL DEFAULT GETDATE(),
+                        TodaySyncCount INT NOT NULL DEFAULT 0,
+                        IsActive BIT NOT NULL DEFAULT 1
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_HRShiftRosters', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_HRShiftRosters (
+                        RosterId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        EmployeeName NVARCHAR(150) NOT NULL,
+                        ShiftName NVARCHAR(100) NOT NULL DEFAULT 'General Shift (Day)',
+                        Timings NVARCHAR(100) NOT NULL DEFAULT '09:00 AM - 06:00 PM',
+                        WeeklyOffs NVARCHAR(100) NOT NULL DEFAULT 'Sunday',
+                        EffectiveDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        Notes NVARCHAR(255) NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_HROvertimeRecords', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_HROvertimeRecords (
+                        OvertimeId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        EmployeeName NVARCHAR(150) NOT NULL,
+                        MonthYear NVARCHAR(50) NOT NULL,
+                        StandardHours INT NOT NULL DEFAULT 160,
+                        HoursLogged INT NOT NULL DEFAULT 160,
+                        OvertimeHours INT NOT NULL DEFAULT 0,
+                        Multiplier NVARCHAR(20) NOT NULL DEFAULT '1.5x',
+                        HourlyRate DECIMAL(18,2) NOT NULL DEFAULT 250.00,
+                        TotalOvertimePay DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                        PayoutStatus NVARCHAR(50) NOT NULL DEFAULT 'Pending Monthly Cycle'
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_HRAttendanceRegularizations', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_HRAttendanceRegularizations (
+                        RequestId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        EmployeeName NVARCHAR(150) NOT NULL,
+                        CorrectionDate DATETIME NOT NULL,
+                        IncorrectPunch NVARCHAR(100) NOT NULL DEFAULT 'Missing Check-out',
+                        RequestedCorrectTime NVARCHAR(100) NOT NULL DEFAULT '06:00 PM Check-out',
+                        Reason NVARCHAR(500) NOT NULL,
+                        RequestDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending Review',
+                        AdminRemarks NVARCHAR(255) NULL
+                    );
+                END";
+
+            await context.Database.ExecuteSqlRawAsync(sqlScript);
+
+            // Seed initial attendance logs for users if empty
+            if (!await context.HRAttendanceLogs.AnyAsync())
+            {
+                var users = await context.Users.Where(u => u.IsActive).ToListAsync();
+                var logsList = new List<HRAttendanceLog>();
+
+                var today = DateTime.Today;
+                for (int day = 1; day <= 25; day++)
+                {
+                    var logDate = new DateTime(today.Year, today.Month, Math.Min(day, DateTime.DaysInMonth(today.Year, today.Month)));
+                    if (logDate.DayOfWeek == DayOfWeek.Sunday) continue;
+
+                    foreach (var user in users)
+                    {
+                        string status = "Present (On Time)";
+                        DateTime checkIn = logDate.AddHours(9).AddMinutes(new Random(user.UserId + day).Next(0, 10));
+                        DateTime checkOut = logDate.AddHours(18).AddMinutes(new Random(user.UserId + day).Next(0, 30));
+                        string workHours = "9h 0m";
+
+                        // Introduce realistic late check-ins and absences for test coverage
+                        if (day % 7 == 0 && user.UserId % 2 == 0)
+                        {
+                            status = "Late Check-in";
+                            checkIn = logDate.AddHours(9).AddMinutes(45); // 45 mins late
+                            workHours = "8h 15m";
+                        }
+                        else if (day % 11 == 0 && user.UserId % 3 == 0)
+                        {
+                            status = "Absent";
+                            checkIn = default;
+                            checkOut = default;
+                            workHours = "0h 0m";
+                        }
+
+                        logsList.Add(new HRAttendanceLog
+                        {
+                            UserId = user.UserId,
+                            EmployeeCode = user.UserCode,
+                            EmployeeName = user.FullName,
+                            Date = logDate,
+                            CheckInTime = status == "Absent" ? null : checkIn,
+                            CheckOutTime = status == "Absent" ? null : checkOut,
+                            WorkHours = workHours,
+                            PunchSource = "Web Clock",
+                            Status = status,
+                            Remarks = status == "Late Check-in" ? "Traffic delay" : null
+                        });
+                    }
+                }
+
+                await context.HRAttendanceLogs.AddRangeAsync(logsList);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public static async Task InitializeLeaveApplicationsAsync(ApplicationDbContext context)
+        {
+            string sqlScript = @"
+                IF OBJECT_ID('AITStudent.erp_ESSLeaveApplications', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_ESSLeaveApplications (
+                        LeaveApplicationId INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        LeaveType NVARCHAR(50) NOT NULL DEFAULT 'Casual Leave',
+                        StartDate DATETIME NOT NULL,
+                        EndDate DATETIME NOT NULL,
+                        TotalDays INT NOT NULL DEFAULT 1,
+                        Reason NVARCHAR(255) NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending'
+                    );
+                END";
+
+            await context.Database.ExecuteSqlRawAsync(sqlScript);
+
+            if (!await context.ESSLeaveApplications.AnyAsync())
+            {
+                var users = await context.Users.Where(u => u.IsActive).ToListAsync();
+                var leaves = new List<ESSLeaveApplication>();
+
+                foreach (var user in users)
+                {
+                    leaves.Add(new ESSLeaveApplication
+                    {
+                        UserId = user.UserId,
+                        LeaveType = "Casual Leave",
+                        StartDate = DateTime.Today.AddDays(-20),
+                        EndDate = DateTime.Today.AddDays(-19),
+                        TotalDays = 2,
+                        Reason = "Personal family event",
+                        Status = "Approved"
+                    });
+
+                    leaves.Add(new ESSLeaveApplication
+                    {
+                        UserId = user.UserId,
+                        LeaveType = "Sick Leave",
+                        StartDate = DateTime.Today.AddDays(-10),
+                        EndDate = DateTime.Today.AddDays(-10),
+                        TotalDays = 1,
+                        Reason = "Fever and doctor visit",
+                        Status = "Approved"
+                    });
+
+                    leaves.Add(new ESSLeaveApplication
+                    {
+                        UserId = user.UserId,
+                        LeaveType = "Earned Leave",
+                        StartDate = DateTime.Today.AddDays(5),
+                        EndDate = DateTime.Today.AddDays(7),
+                        TotalDays = 3,
+                        Reason = "Annual vacation",
+                        Status = "Pending"
+                    });
+                }
+
+                await context.ESSLeaveApplications.AddRangeAsync(leaves);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public static async Task InitializePayrollRunsAndPayslipsAsync(ApplicationDbContext context)
+        {
+            string sqlScript = @"
+                IF OBJECT_ID('AITStudent.erp_PayrollRuns', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_PayrollRuns (
+                        PayrollRunId INT IDENTITY(1,1) PRIMARY KEY,
+                        PayPeriod NVARCHAR(50) NOT NULL,
+                        Month INT NOT NULL,
+                        Year INT NOT NULL,
+                        Department NVARCHAR(100) NOT NULL DEFAULT 'All Departments',
+                        TotalEmployees INT NOT NULL DEFAULT 0,
+                        TotalGrossSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalDeductions DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalNetSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalEmployerPF DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalEmployerESI DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalCTC DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Draft',
+                        ProcessedByUserId INT NULL,
+                        ProcessedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        ApprovedByUserId INT NULL,
+                        ApprovedAt DATETIME NULL,
+                        PaidByUserId INT NULL,
+                        PaidAt DATETIME NULL,
+                        Remarks NVARCHAR(500) NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_Payslips', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_Payslips (
+                        PayslipId INT IDENTITY(1,1) PRIMARY KEY,
+                        PayrollRunId INT NULL,
+                        UserId INT NOT NULL,
+                        PayPeriod NVARCHAR(50) NOT NULL,
+                        PayslipNumber NVARCHAR(50) NOT NULL,
+                        BasicSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        HRA DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TransportAllowance DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        MedicalAllowance DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        LTA DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        SpecialAllowance DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        OtherAllowance DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        BonusIncentives DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        OvertimePay DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        GrossSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        ProvidentFund DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        ESI DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        ProfessionalTax DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TDS DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        LOPDeduction DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalDeductions DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        NetSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        EmployerPF DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        EmployerESI DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalCTC DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalWorkingDays INT NOT NULL DEFAULT 30,
+                        PresentDays INT NOT NULL DEFAULT 30,
+                        AbsentDays INT NOT NULL DEFAULT 0,
+                        PaidLeaveDays INT NOT NULL DEFAULT 0,
+                        UnpaidLeaveDays INT NOT NULL DEFAULT 0,
+                        PaidDays INT NOT NULL DEFAULT 30,
+                        OvertimeHours INT NOT NULL DEFAULT 0,
+                        PaymentDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        Status NVARCHAR(30) NOT NULL DEFAULT 'Paid'
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_StatutoryConfigurations', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_StatutoryConfigurations (
+                        StatutoryId INT IDENTITY(1,1) PRIMARY KEY,
+                        RuleType NVARCHAR(50) NOT NULL,
+                        EmployeeRate DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        EmployerRate DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        WageCeilingLimit DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        StandardDeductionAnnual DECIMAL(18,2) NOT NULL DEFAULT 75000.00,
+                        DefaultTaxRegime NVARCHAR(50) NOT NULL DEFAULT 'New Tax Regime',
+                        ConfigurationDetailsJson NVARCHAR(2000) NULL,
+                        IsActive BIT NOT NULL DEFAULT 1,
+                        EffectiveDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME NULL
+                    );
+                END";
+
+            await context.Database.ExecuteSqlRawAsync(sqlScript);
+
+            // Seed initial statutory configs if empty
+            if (!await context.StatutoryConfigurations.AnyAsync())
+            {
+                await context.StatutoryConfigurations.AddRangeAsync(new List<StatutoryConfiguration>
+                {
+                    new StatutoryConfiguration { RuleType = "PF", EmployeeRate = 12.0m, EmployerRate = 12.0m, WageCeilingLimit = 15000.0m, DefaultTaxRegime = "New Tax Regime" },
+                    new StatutoryConfiguration { RuleType = "ESI", EmployeeRate = 0.75m, EmployerRate = 3.25m, WageCeilingLimit = 21000.0m, DefaultTaxRegime = "New Tax Regime" },
+                    new StatutoryConfiguration { RuleType = "PT", EmployeeRate = 200.0m, EmployerRate = 0.0m, WageCeilingLimit = 0.0m, DefaultTaxRegime = "New Tax Regime" },
+                    new StatutoryConfiguration { RuleType = "TDS", EmployeeRate = 10.0m, EmployerRate = 0.0m, WageCeilingLimit = 500000.0m, DefaultTaxRegime = "New Tax Regime" }
+                });
+                await context.SaveChangesAsync();
+            }
+
+            // Seed initial Payroll Runs & Payslips if empty
+            if (!await context.PayrollRuns.AnyAsync())
+            {
+                var users = await context.Users.Where(u => u.IsActive).ToListAsync();
+
+                var runAug = new PayrollRun
+                {
+                    PayPeriod = "August 2026",
+                    Month = 8,
+                    Year = 2026,
+                    Department = "All Departments",
+                    TotalEmployees = users.Count,
+                    TotalGrossSalary = users.Count * 65000,
+                    TotalDeductions = users.Count * 8500,
+                    TotalNetSalary = users.Count * 56500,
+                    TotalEmployerPF = users.Count * 1800,
+                    TotalEmployerESI = users.Count * 500,
+                    TotalCTC = users.Count * 67300,
+                    Status = "Paid",
+                    ProcessedAt = DateTime.Now.AddDays(-2),
+                    PaidAt = DateTime.Now.AddDays(-1)
+                };
+
+                var runJuly = new PayrollRun
+                {
+                    PayPeriod = "July 2026",
+                    Month = 7,
+                    Year = 2026,
+                    Department = "All Departments",
+                    TotalEmployees = users.Count,
+                    TotalGrossSalary = users.Count * 64000,
+                    TotalDeductions = users.Count * 8300,
+                    TotalNetSalary = users.Count * 55700,
+                    TotalEmployerPF = users.Count * 1800,
+                    TotalEmployerESI = users.Count * 500,
+                    TotalCTC = users.Count * 66300,
+                    Status = "Paid",
+                    ProcessedAt = DateTime.Now.AddDays(-32),
+                    PaidAt = DateTime.Now.AddDays(-31)
+                };
+
+                await context.PayrollRuns.AddRangeAsync(runAug, runJuly);
+                await context.SaveChangesAsync();
+
+                var payslipsList = new List<Payslip>();
+                int slipCount = 1000;
+
+                foreach (var user in users)
+                {
+                    decimal basic = 35000m;
+                    decimal hra = 17500m;
+                    decimal special = 12500m;
+                    decimal gross = basic + hra + special;
+
+                    decimal pf = 1800m;
+                    decimal esi = gross <= 21000 ? gross * 0.0075m : 0m;
+                    decimal pt = 200m;
+                    decimal tds = gross > 50000 ? 4500m : 1200m;
+                    decimal totDeductions = pf + esi + pt + tds;
+                    decimal net = gross - totDeductions;
+
+                    payslipsList.Add(new Payslip
+                    {
+                        PayrollRunId = runAug.PayrollRunId,
+                        UserId = user.UserId,
+                        PayPeriod = "August 2026",
+                        PayslipNumber = $"PAY-202608-{(++slipCount)}",
+                        BasicSalary = basic,
+                        HRA = hra,
+                        SpecialAllowance = special,
+                        GrossSalary = gross,
+                        ProvidentFund = pf,
+                        ESI = esi,
+                        ProfessionalTax = pt,
+                        TDS = tds,
+                        TotalDeductions = totDeductions,
+                        NetSalary = net,
+                        EmployerPF = pf,
+                        EmployerESI = gross <= 21000 ? gross * 0.0325m : 0m,
+                        TotalCTC = gross + pf,
+                        Status = "Paid",
+                        PaymentDate = DateTime.Now.AddDays(-1)
+                    });
+
+                    payslipsList.Add(new Payslip
+                    {
+                        PayrollRunId = runJuly.PayrollRunId,
+                        UserId = user.UserId,
+                        PayPeriod = "July 2026",
+                        PayslipNumber = $"PAY-202607-{(++slipCount)}",
+                        BasicSalary = basic,
+                        HRA = hra,
+                        SpecialAllowance = special,
+                        GrossSalary = gross,
+                        ProvidentFund = pf,
+                        ESI = esi,
+                        ProfessionalTax = pt,
+                        TDS = tds,
+                        TotalDeductions = totDeductions,
+                        NetSalary = net,
+                        EmployerPF = pf,
+                        EmployerESI = gross <= 21000 ? gross * 0.0325m : 0m,
+                        TotalCTC = gross + pf,
+                        Status = "Paid",
+                        PaymentDate = DateTime.Now.AddDays(-31)
+                    });
+                }
+
+                await context.Payslips.AddRangeAsync(payslipsList);
+                await context.SaveChangesAsync();
+            }
+        }
+
+
         
     }
 }

@@ -1,10 +1,12 @@
+@model ERP_System.Models.AttritionHeadcountReportViewModel
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Attrition & Headcount Report";
 }
 
 <div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h4 class="fw-bold mb-1"><i class="fa-solid fa-users-slash text-primary me-2"></i>Attrition & Headcount</h4>
             <nav aria-label="breadcrumb">
@@ -14,67 +16,148 @@
                 </ol>
             </nav>
         </div>
+        <div class="d-flex gap-2">
+            <a href="/HRReports/ExportAttritionHeadcount?format=csv&year=@Model.SelectedYear&departmentId=@Model.SelectedDepartmentId" class="btn btn-outline-secondary btn-sm rounded-pill">
+                <i class="fa-solid fa-file-csv me-1.5 text-primary"></i>Export CSV
+            </a>
+            <button onclick="window.print()" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="fa-solid fa-print me-1.5"></i>Print Report
+            </button>
+        </div>
     </div>
 
     <!-- Stats grid -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Current Headcount</div>
-                <h4 class="fw-bold text-dark mt-2 mb-0">45 Employees</h4>
+                <div class="text-muted fw-semibold small">Current Active Headcount</div>
+                <h4 class="fw-bold text-dark mt-2 mb-0">@Model.CurrentHeadcount Employees</h4>
             </div>
         </div>
         <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">New Hires (YTD)</div>
-                <h4 class="fw-bold text-success mt-2 mb-0">12 Joined</h4>
+                <div class="text-muted fw-semibold small">New Hires (YTD @Model.SelectedYear)</div>
+                <h4 class="fw-bold text-success mt-2 mb-0">+@Model.NewHiresYTD Joined</h4>
             </div>
         </div>
         <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Exits (YTD)</div>
-                <h4 class="fw-bold text-danger mt-2 mb-0">2 Separated</h4>
+                <div class="text-muted fw-semibold small">Employee Exits (YTD)</div>
+                <h4 class="fw-bold text-danger mt-2 mb-0">-@Model.ExitsYTD Separated</h4>
             </div>
         </div>
         <div class="col-md-3">
             <div class="bg-white border rounded-3 p-3 shadow-sm">
                 <div class="text-muted fw-semibold small">Annual Attrition Rate</div>
-                <h4 class="fw-bold text-primary mt-2 mb-0">4.2%</h4>
+                <h4 class="fw-bold text-primary mt-2 mb-0">@Model.AnnualAttritionRatePct%</h4>
             </div>
         </div>
     </div>
 
-    <!-- Details Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
+    <!-- Filters Bar -->
+    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <form method="get" action="/HRReports/AttritionHeadcount" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <select name="departmentId" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Departments</option>
+                    @foreach (var d in Model.Departments)
+                    {
+                        <option value="@d.DepartmentId" selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">@d.DepartmentName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="2026" selected="@(Model.SelectedYear == 2026 ? "selected" : null)">Reporting Year 2026</option>
+                    <option value="2025" selected="@(Model.SelectedYear == 2025 ? "selected" : null)">Reporting Year 2025</option>
+                </select>
+            </div>
+            <div class="col-md-3 text-end">
+                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">Filter</button>
+                <a href="/HRReports/AttritionHeadcount" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Department Headcount Table -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm mb-4">
+        <h6 class="fw-bold mb-3"><i class="fa-solid fa-sitemap me-2 text-primary"></i>Department-wise Headcount & Net Growth</h6>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="table-light">
                     <tr>
                         <th>Department</th>
                         <th>Opening Headcount</th>
-                        <th>Hired This Period</th>
-                        <th>Exited This Period</th>
+                        <th>Hired (YTD)</th>
+                        <th>Exited (YTD)</th>
                         <th>Ending Headcount</th>
                         <th>Net Growth</th>
+                        <th>Dept Attrition Rate</th>
                     </tr>
                 </thead>
                 <tbody>
+                    @if (Model.DepartmentSummaries != null && Model.DepartmentSummaries.Any())
+                    {
+                        foreach (var dept in Model.DepartmentSummaries)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@dept.DepartmentName</td>
+                                <td>@dept.OpeningHeadcount</td>
+                                <td class="text-success fw-semibold">+@dept.NewHiresCount</td>
+                                <td class="text-danger fw-semibold">-@dept.ExitsCount</td>
+                                <td class="fw-bold">@dept.EndingHeadcount</td>
+                                <td>
+                                    <span class="badge @(dept.NetGrowth >= 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger")">
+                                        @(dept.NetGrowth >= 0 ? "+" : "")@dept.NetGrowth
+                                    </span>
+                                </td>
+                                <td><span class="fw-bold text-primary">@dept.AttritionRatePct%</span></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Exit Audit Records Table -->
+    <div class="bg-white border rounded-3 p-4 shadow-sm">
+        <h6 class="fw-bold mb-3"><i class="fa-solid fa-user-minus me-2 text-danger"></i>Employee Exit & Separation Log</h6>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
                     <tr>
-                        <td class="fw-bold text-dark">Sales & Marketing</td>
-                        <td>10</td>
-                        <td>3</td>
-                        <td>1</td>
-                        <td>12</td>
-                        <td><span class="text-success fw-bold">+2</span></td>
+                        <th>Employee Name</th>
+                        <th>Resignation Date</th>
+                        <th>Last Working Day</th>
+                        <th>Asset Clearance</th>
+                        <th>IT Clearance</th>
+                        <th>Exit Interview</th>
+                        <th>F&F Settlement Status</th>
                     </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Human Resources</td>
-                        <td>3</td>
-                        <td>0</td>
-                        <td>0</td>
-                        <td>3</td>
-                        <td><span>0</span></td>
-                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ExitRecords != null && Model.ExitRecords.Any())
+                    {
+                        foreach (var exit in Model.ExitRecords)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@exit.EmployeeName</td>
+                                <td>@exit.ResignationDate.ToString("dd MMM yyyy")</td>
+                                <td>@exit.LastWorkingDay.ToString("dd MMM yyyy")</td>
+                                <td><span class="badge bg-success-subtle text-success">@exit.AssetReturn</span></td>
+                                <td><span class="badge bg-success-subtle text-success">@exit.ITClearance</span></td>
+                                <td><span class="badge bg-primary-subtle text-primary">@exit.ExitInterview</span></td>
+                                <td><span class="badge bg-warning-subtle text-warning">@exit.FfStatus</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-3 text-muted">No Exit / Separation records found.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>

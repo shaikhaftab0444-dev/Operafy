@@ -1,69 +1,1830 @@
+@model IEnumerable<ERP_System.Models.OkrObjective>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "OKR & KPI Setup";
+    var departments = ViewBag.Departments as List<ERP_System.Models.Department> ?? new List<ERP_System.Models.Department>();
+    var designations = ViewBag.Designations as List<ERP_System.Models.Designation> ?? new List<ERP_System.Models.Designation>();
+    var employees = ViewBag.Employees as List<ERP_System.Models.User> ?? new List<ERP_System.Models.User>();
+    var kpis = ViewBag.Kpis as List<ERP_System.Models.KpiItem> ?? new List<ERP_System.Models.KpiItem>();
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-bullseye text-primary me-2"></i>OKR & KPI Setup</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">OKR & KPI</li>
-                </ol>
-            </nav>
+<style>
+    .okr-kpi-page {
+        --okr-primary: #2563eb;
+        --okr-primary-dark: #1d4ed8;
+        --okr-indigo: #4f46e5;
+        --okr-success: #16a34a;
+        --okr-warning: #d97706;
+        --okr-danger: #dc2626;
+        --okr-dark: #172033;
+        --okr-muted: #64748b;
+        --okr-border: #e5e7eb;
+        --okr-bg: #f6f8fc;
+        --okr-card: #ffffff;
+        background: var(--okr-bg);
+        min-height: 100%;
+        padding-bottom: 20px;
+    }
+
+        .okr-kpi-page *,
+        .okr-kpi-page *::before,
+        .okr-kpi-page *::after {
+            box-sizing: border-box;
+        }
+
+    /* =========================
+           PAGE HEADER
+        ========================== */
+
+    .okr-page-header {
+        position: relative;
+        overflow: hidden;
+        padding: 26px 28px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #172554 0%, #1e3a8a 48%, #2563eb 100%);
+        color: #fff;
+        box-shadow: 0 18px 45px rgba(30, 64, 175, 0.18);
+        margin-bottom: 24px;
+    }
+
+        .okr-page-header::before {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            right: -90px;
+            top: -120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .okr-page-header::after {
+            content: "";
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            right: 130px;
+            bottom: -125px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+    .okr-header-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .okr-header-icon {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.35rem;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(10px);
+    }
+
+    .okr-page-title {
+        font-size: 1.45rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin: 0 0 4px;
+        color: #fff;
+    }
+
+    .okr-page-subtitle {
+        margin: 0;
+        font-size: 0.84rem;
+        color: rgba(255, 255, 255, 0.75);
+    }
+
+    .okr-breadcrumb {
+        margin-top: 14px;
+        margin-bottom: 0;
+    }
+
+        .okr-breadcrumb .breadcrumb-item,
+        .okr-breadcrumb .breadcrumb-item.active {
+            color: rgba(255, 255, 255, 0.72);
+        }
+
+            .okr-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+                color: rgba(255, 255, 255, 0.45);
+            }
+
+        .okr-breadcrumb a {
+            color: rgba(255, 255, 255, 0.88);
+            text-decoration: none;
+        }
+
+            .okr-breadcrumb a:hover {
+                color: #fff;
+            }
+
+    .okr-header-actions {
+        position: relative;
+        z-index: 2;
+    }
+
+        .okr-header-actions .btn {
+            min-height: 40px;
+            border-radius: 11px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 0 17px;
+            transition: all 0.2s ease;
+        }
+
+    .okr-btn-light {
+        background: #fff;
+        border-color: #fff;
+        color: #1e40af;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    }
+
+        .okr-btn-light:hover {
+            background: #f8fafc;
+            border-color: #f8fafc;
+            color: #1e3a8a;
+            transform: translateY(-1px);
+        }
+
+    .okr-btn-outline-light {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(8px);
+    }
+
+        .okr-btn-outline-light:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+    /* =========================
+           ALERTS
+        ========================== */
+
+    .okr-kpi-page .alert {
+        border: 0;
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+        font-size: 0.86rem;
+        font-weight: 500;
+    }
+
+    /* =========================
+           FILTER PANEL
+        ========================== */
+
+    .okr-filter-card {
+        background: var(--okr-card);
+        border: 1px solid var(--okr-border);
+        border-radius: 18px;
+        padding: 18px;
+        margin-bottom: 22px;
+        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.045);
+    }
+
+    .okr-filter-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        margin-bottom: 7px;
+    }
+
+        .okr-filter-label i {
+            color: var(--okr-primary);
+            font-size: 0.75rem;
+        }
+
+    .okr-filter-card .input-group-text,
+    .okr-filter-card .form-control,
+    .okr-filter-card .form-select {
+        min-height: 40px;
+        font-size: 0.82rem;
+        border-color: #dbe2ea;
+    }
+
+    .okr-filter-card .input-group-text {
+        background: #f8fafc;
+        border-right: 0;
+        border-radius: 10px 0 0 10px;
+    }
+
+    .okr-filter-card .input-group .form-control {
+        border-left: 0;
+        border-radius: 0 10px 10px 0;
+    }
+
+    .okr-filter-card .form-control,
+    .okr-filter-card .form-select {
+        border-radius: 10px;
+        box-shadow: none;
+    }
+
+        .okr-filter-card .form-control:focus,
+        .okr-filter-card .form-select:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.1);
+        }
+
+    .okr-filter-actions {
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        gap: 8px;
+        height: 100%;
+    }
+
+        .okr-filter-actions .btn {
+            min-height: 40px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0 15px;
+        }
+
+    /* =========================
+           TABS
+        ========================== */
+
+    .okr-tabs-wrapper {
+        display: inline-flex;
+        gap: 6px;
+        padding: 5px;
+        background: #eaf0f8;
+        border-radius: 14px;
+        margin-bottom: 18px;
+    }
+
+        .okr-tabs-wrapper .nav-link {
+            border: 0;
+            color: #64748b;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 10px 18px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            background: transparent;
+            white-space: nowrap;
+        }
+
+            .okr-tabs-wrapper .nav-link:hover {
+                color: var(--okr-primary);
+            }
+
+            .okr-tabs-wrapper .nav-link.active {
+                color: var(--okr-primary);
+                background: #fff;
+                box-shadow: 0 4px 14px rgba(15, 23, 42, 0.09);
+            }
+
+    /* =========================
+           DATA CARD
+        ========================== */
+
+    .okr-data-card {
+        background: var(--okr-card);
+        border: 1px solid var(--okr-border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.045);
+    }
+
+    .okr-data-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf1f5;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    }
+
+    .okr-data-card-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--okr-dark);
+    }
+
+    .okr-data-card-subtitle {
+        margin-top: 3px;
+        color: var(--okr-muted);
+        font-size: 0.76rem;
+    }
+
+    .okr-table-wrap {
+        padding: 0;
+    }
+
+    .okr-kpi-page .table {
+        margin: 0;
+        font-size: 0.82rem;
+    }
+
+        .okr-kpi-page .table thead th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 0.69rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.045em;
+            white-space: nowrap;
+            border-bottom: 1px solid #e8edf3;
+            padding: 15px 16px;
+        }
+
+        .okr-kpi-page .table tbody td {
+            padding: 17px 16px;
+            border-color: #edf1f5;
+            vertical-align: middle;
+        }
+
+        .okr-kpi-page .table tbody tr {
+            transition: all 0.18s ease;
+        }
+
+    .okr-kpi-page .table-hover > tbody > tr:hover > * {
+        background-color: #f8fbff;
+    }
+
+    .okr-kpi-page .table tbody tr:hover {
+        transform: scale(1.001);
+    }
+
+    /* =========================
+           TABLE CONTENT
+        ========================== */
+
+    .okr-owner-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 180px;
+    }
+
+    .okr-owner-avatar {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #dbeafe, #eff6ff);
+        color: #2563eb;
+        font-size: 0.9rem;
+    }
+
+    .okr-main-text {
+        font-weight: 750;
+        color: #1e293b;
+        line-height: 1.35;
+    }
+
+    .okr-secondary-text {
+        color: #64748b;
+        font-size: 0.73rem;
+        margin-top: 3px;
+        line-height: 1.35;
+    }
+
+    .okr-objective-title {
+        font-weight: 800;
+        color: #172033;
+        line-height: 1.4;
+        max-width: 300px;
+    }
+
+    .okr-description {
+        color: #64748b;
+        font-size: 0.74rem;
+        margin-top: 5px;
+        line-height: 1.45;
+        max-width: 330px;
+    }
+
+    .okr-key-result-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        min-width: 260px;
+    }
+
+    .okr-key-result-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 7px 0;
+        border-bottom: 1px dashed #e5eaf0;
+    }
+
+        .okr-key-result-item:last-child {
+            border-bottom: 0;
+        }
+
+    .okr-key-result-icon {
+        width: 21px;
+        height: 21px;
+        min-width: 21px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 0.6rem;
+        margin-top: 1px;
+    }
+
+    .okr-key-result-name {
+        flex: 1;
+        color: #475569;
+        font-size: 0.76rem;
+        line-height: 1.4;
+    }
+
+    .okr-key-result-update {
+        border: 0;
+        background: #f0f7ff;
+        color: #2563eb;
+        padding: 4px 7px;
+        border-radius: 7px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: all 0.18s ease;
+    }
+
+        .okr-key-result-update:hover {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+    .okr-timeline {
+        min-width: 140px;
+    }
+
+    .okr-timeline-main {
+        font-size: 0.76rem;
+        font-weight: 750;
+        color: #334155;
+    }
+
+    .okr-timeline-icon {
+        color: #94a3b8;
+        margin-right: 5px;
+    }
+
+    .okr-progress-cell {
+        min-width: 150px;
+    }
+
+    .okr-progress-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 7px;
+    }
+
+    .okr-progress-value {
+        font-size: 0.74rem;
+        font-weight: 800;
+        color: #334155;
+    }
+
+    .okr-progress {
+        height: 8px;
+        background: #e9eef5;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+        .okr-progress .progress-bar {
+            border-radius: 999px;
+        }
+
+    .okr-status-badge,
+    .okr-period-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 0.69rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .okr-period-badge {
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    .okr-action-btn {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        font-size: 0.78rem;
+        transition: all 0.18s ease;
+    }
+
+    .okr-update-btn {
+        border-radius: 9px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 7px 12px;
+    }
+
+    .okr-empty-state {
+        padding: 55px 20px !important;
+    }
+
+    .okr-empty-icon {
+        width: 62px;
+        height: 62px;
+        margin: 0 auto 14px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 1.4rem;
+    }
+
+    /* =========================
+           MODALS
+        ========================== */
+
+    .okr-kpi-page .modal-content,
+    .modal .modal-content {
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .okr-kpi-page .modal-header,
+    .modal .modal-header {
+        border-bottom: 1px solid #e9eef4;
+        padding: 18px 22px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
+
+    .okr-kpi-page .modal-footer,
+    .modal .modal-footer {
+        border-top: 1px solid #e9eef4;
+        padding: 14px 22px;
+        background: #fafcff;
+    }
+
+    .okr-kpi-page .modal-title,
+    .modal .modal-title {
+        color: #172033;
+        font-weight: 800;
+    }
+
+    .okr-modal-icon {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #eaf2ff;
+        color: #2563eb;
+        margin-right: 9px;
+    }
+
+    .modal .form-label {
+        font-size: 0.74rem;
+        font-weight: 750;
+        color: #475569;
+        margin-bottom: 6px;
+    }
+
+    .modal .form-control,
+    .modal .form-select {
+        min-height: 40px;
+        font-size: 0.82rem;
+        border-radius: 10px;
+        border-color: #dbe2ea;
+        box-shadow: none;
+    }
+
+    .modal textarea.form-control {
+        min-height: auto;
+    }
+
+    .modal .form-control:focus,
+    .modal .form-select:focus {
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.1);
+    }
+
+    .modal .btn {
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        min-height: 38px;
+    }
+
+    /* =========================
+           RESPONSIVE
+        ========================== */
+
+    @@media (max-width: 991.98px) {
+        .okr-page-header {
+            padding: 22px;
+        }
+
+        .okr-header-actions {
+            width: 100%;
+            margin-top: 6px;
+        }
+
+            .okr-header-actions .btn {
+                flex: 1;
+            }
+
+        .okr-filter-actions {
+            justify-content: flex-start;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .okr-kpi-page {
+            padding-top: 2px !important;
+        }
+
+        .okr-page-header {
+            padding: 20px 16px;
+            border-radius: 16px;
+        }
+
+        .okr-page-title {
+            font-size: 1.2rem;
+        }
+
+        .okr-header-icon {
+            width: 46px;
+            height: 46px;
+            min-width: 46px;
+            border-radius: 13px;
+        }
+
+        .okr-header-actions {
+            flex-direction: column;
+            gap: 8px !important;
+        }
+
+            .okr-header-actions .btn {
+                width: 100%;
+                flex: initial;
+            }
+
+        .okr-filter-card {
+            padding: 14px;
+            border-radius: 14px;
+        }
+
+        .okr-filter-actions {
+            justify-content: stretch;
+        }
+
+            .okr-filter-actions .btn {
+                flex: 1;
+            }
+
+        .okr-tabs-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            display: flex;
+            border-radius: 12px;
+        }
+
+            .okr-tabs-wrapper .nav-link {
+                padding: 9px 14px;
+                font-size: 0.76rem;
+            }
+
+        .okr-data-card {
+            border-radius: 14px;
+        }
+
+        .okr-data-card-header {
+            padding: 15px;
+        }
+
+        .okr-kpi-page .table {
+            font-size: 0.78rem;
+        }
+
+            .okr-kpi-page .table thead th,
+            .okr-kpi-page .table tbody td {
+                padding: 13px 12px;
+            }
+
+        .okr-objective-title {
+            min-width: 220px;
+        }
+
+        .okr-description {
+            min-width: 220px;
+        }
+
+        .modal .modal-body {
+            padding: 18px !important;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .okr-page-header .d-flex.align-items-center {
+            align-items: flex-start !important;
+        }
+
+        .okr-page-subtitle {
+            font-size: 0.76rem;
+        }
+
+        .okr-breadcrumb {
+            font-size: 0.7rem;
+        }
+
+        .okr-tabs-wrapper .nav-link {
+            padding: 9px 12px;
+        }
+
+            .okr-tabs-wrapper .nav-link i {
+                margin-right: 4px !important;
+            }
+
+        .okr-data-card-title {
+            font-size: 0.88rem;
+        }
+
+        .okr-data-card-subtitle {
+            font-size: 0.7rem;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4 text-start okr-kpi-page">
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm"><i class="fa-solid fa-plus me-1.5"></i>Create OKR Goal</button>
+    }
+
+    <!-- Premium Header -->
+    <div class="okr-page-header">
+        <div class="okr-header-content d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="okr-header-icon">
+                        <i class="fa-solid fa-bullseye"></i>
+                    </div>
+                    <div>
+                        <h4 class="okr-page-title">OKR & KPI Setup</h4>
+                        <p class="okr-page-subtitle">Define objectives, track measurable outcomes and monitor organizational performance.</p>
+                    </div>
+                </div>
+
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb okr-breadcrumb small">
+                        <li class="breadcrumb-item">
+                            <a href="/HR">
+                                <i class="fa-solid fa-house me-1"></i>HR Dashboard
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">OKR & KPI</li>
+                    </ol>
+                </nav>
+            </div>
+
+            <div class="okr-header-actions d-flex gap-2 flex-wrap">
+                <button class="btn okr-btn-outline-light" data-bs-toggle="modal" data-bs-target="#createKpiModal">
+                    <i class="fa-solid fa-chart-line me-2"></i>Create KPI
+                </button>
+
+                <button class="btn okr-btn-light" data-bs-toggle="modal" data-bs-target="#createOkrModal">
+                    <i class="fa-solid fa-plus me-2"></i>Create OKR Goal
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Goals Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Department</th>
-                        <th>Objective</th>
-                        <th>Key Result (KPI Target)</th>
-                        <th>Target Completion Date</th>
-                        <th>Progress</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Sales & Marketing</td>
-                        <td>Boost Q3 sales pipeline expansion</td>
-                        <td>Achieve total sales of ₹15,00,000 in Q3</td>
-                        <td>30 Sep 2026</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="progress flex-grow-1 me-2" style="height: 6px; width: 100px;">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
-                                <span class="small fw-semibold">75%</span>
-                            </div>
-                        </td>
-                        <td><span class="badge bg-success-subtle text-success">On Track</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Software Engineering</td>
-                        <td>Improve core ERP module loading performance</td>
-                        <td>Reduce sidebar load response times to < 200ms</td>
-                        <td>15 Sep 2026</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="progress flex-grow-1 me-2" style="height: 6px; width: 100px;">
-                                    <div class="progress-bar bg-warning" role="progressbar" style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
-                                <span class="small fw-semibold">40%</span>
-                            </div>
-                        </td>
-                        <td><span class="badge bg-warning-subtle text-warning">Behind Schedule</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <!-- Filters -->
+    <div class="okr-filter-card">
+        <form method="get" action="/HRPerformance/OkrKpi" class="row g-3 align-items-end">
+
+            <div class="col-lg-4 col-md-6">
+                <label class="okr-filter-label">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    Search Performance Data
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fa-solid fa-search text-muted"></i>
+                    </span>
+                    <input type="text"
+                           name="search"
+                           class="form-control"
+                           placeholder="Search Objective, KPI Name..."
+                           value="@ViewBag.Search" />
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <label class="okr-filter-label">
+                    <i class="fa-solid fa-building"></i>
+                    Department
+                </label>
+                <select name="departmentId" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Departments</option>
+                    @foreach (var d in departments)
+                    {
+                        <option value="@d.DepartmentId" selected="@(ViewBag.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">
+                            @d.DepartmentName
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <label class="okr-filter-label">
+                    <i class="fa-solid fa-signal"></i>
+                    Performance Status
+                </label>
+                <select name="status" class="form-select" onchange="this.form.submit()">
+                    <option value="All">All Statuses</option>
+                    <option value="In Progress" selected="@(ViewBag.SelectedStatus == "In Progress" ? "selected" : null)">In Progress</option>
+                    <option value="Completed" selected="@(ViewBag.SelectedStatus == "Completed" ? "selected" : null)">Completed</option>
+                    <option value="At Risk" selected="@(ViewBag.SelectedStatus == "At Risk" ? "selected" : null)">At Risk</option>
+                </select>
+            </div>
+
+            <div class="col-lg-2 col-md-6">
+                <div class="okr-filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-filter me-1"></i>Filter
+                    </button>
+
+                    <a href="/HRPerformance/OkrKpi" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                </div>
+            </div>
+
+        </form>
     </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-pills okr-tabs-wrapper" id="performanceTab" role="tablist">
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active"
+                    id="okr-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#okrTabPane"
+                    type="button"
+                    role="tab">
+                <i class="fa-solid fa-bullseye me-2"></i>
+                Objectives & Key Results
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link"
+                    id="kpi-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#kpiTabPane"
+                    type="button"
+                    role="tab">
+                <i class="fa-solid fa-chart-line me-2"></i>
+                Key Performance Indicators
+            </button>
+        </li>
+
+    </ul>
+
+    <div class="tab-content" id="performanceTabContent">
+
+        <!-- =========================
+             OKR TAB
+        ========================== -->
+        <div class="tab-pane fade show active" id="okrTabPane" role="tabpanel">
+
+            <div class="okr-data-card">
+
+                <div class="okr-data-card-header">
+                    <div>
+                        <h6 class="okr-data-card-title">
+                            <i class="fa-solid fa-bullseye text-primary me-2"></i>
+                            Objectives & Key Results
+                        </h6>
+                        <div class="okr-data-card-subtitle">
+                            Monitor organizational goals and key result progress in one place.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="okr-table-wrap">
+                    <div class="table-responsive">
+
+                        <table class="table table-hover align-middle mb-0">
+
+                            <thead>
+                                <tr>
+                                    <th>Department / Assignee</th>
+                                    <th>Objective</th>
+                                    <th>Key Results</th>
+                                    <th>Timeline</th>
+                                    <th>Progress</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @if (Model != null && Model.Any())
+                                {
+                                    foreach (var okr in Model)
+                                    {
+                                        string badgeClass = okr.OverallProgressPercentage >= 100
+                                        ? "bg-success-subtle text-success"
+                                        : (okr.OverallProgressPercentage >= 50
+                                        ? "bg-primary-subtle text-primary"
+                                        : "bg-warning-subtle text-warning");
+
+                                        <tr>
+
+                                            <!-- Department / Employee -->
+                                            <td>
+                                                <div class="okr-owner-cell">
+                                                    <div class="okr-owner-avatar">
+                                                        <i class="fa-solid @(okr.Employee != null ? "fa-user" : "fa-building")"></i>
+                                                    </div>
+
+                                                    <div>
+                                                        <div class="okr-main-text">
+                                                            @(okr.Department?.DepartmentName ?? "Company Wide")
+                                                        </div>
+
+                                                        <div class="okr-secondary-text">
+                                                            <i class="fa-solid fa-user-group me-1"></i>
+                                                            @(okr.Employee != null ? okr.Employee.FullName : "All Dept Staff")
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Objective -->
+                                            <td>
+                                                <div class="okr-objective-title">
+                                                    @okr.ObjectiveTitle
+                                                </div>
+
+                                                @if (!string.IsNullOrEmpty(okr.Description))
+                                                {
+                                                    <div class="okr-description">
+                                                        @okr.Description
+                                                    </div>
+                                                }
+                                            </td>
+
+                                            <!-- Key Results -->
+                                            <td>
+
+                                                @if (okr.KeyResults != null && okr.KeyResults.Any())
+                                                {
+                                                    <ul class="okr-key-result-list">
+
+                                                        @foreach (var kr in okr.KeyResults)
+                                                        {
+                                                            <li class="okr-key-result-item">
+
+                                                                <span class="okr-key-result-icon">
+                                                                    <i class="fa-solid fa-check"></i>
+                                                                </span>
+
+                                                                <span class="okr-key-result-name">
+                                                                    @kr.KeyResultName
+                                                                </span>
+
+                                                                <button class="okr-key-result-update"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#updateKrModal_@kr.KeyResultId">
+                                                                    @kr.CurrentValue / @kr.TargetValue @kr.MeasurementUnit
+                                                                    <strong>@kr.ProgressPercentage%</strong>
+                                                                </button>
+
+                                                            </li>
+
+                                                            <!-- Modal to Update Key Result -->
+                                                            <div class="modal fade" id="updateKrModal_@kr.KeyResultId" tabindex="-1" aria-hidden="true">
+                                                                <div class="modal-dialog modal-dialog-centered modal-sm">
+                                                                    <div class="modal-content border-0 shadow">
+
+                                                                        <div class="modal-header">
+                                                                            <h6 class="modal-title small">
+                                                                                <span class="okr-modal-icon">
+                                                                                    <i class="fa-solid fa-chart-line"></i>
+                                                                                </span>
+                                                                                Update Key Result
+                                                                            </h6>
+
+                                                                            <button type="button"
+                                                                                    class="btn-close"
+                                                                                    data-bs-dismiss="modal"
+                                                                                    aria-label="Close"></button>
+                                                                        </div>
+
+                                                                        <form method="post" action="/HRPerformance/UpdateKeyResultProgress">
+
+                                                                            @Html.AntiForgeryToken()
+
+                                                                            <input type="hidden"
+                                                                                   name="keyResultId"
+                                                                                   value="@kr.KeyResultId" />
+
+                                                                            <div class="modal-body text-start">
+
+                                                                                <p class="small mb-3">
+                                                                                    <strong>@kr.KeyResultName</strong>
+                                                                                </p>
+
+                                                                                <div class="p-3 rounded-3 bg-light border mb-3">
+                                                                                    <div class="small text-muted mb-1">Target</div>
+                                                                                    <div class="fw-bold">@kr.TargetValue @kr.MeasurementUnit</div>
+                                                                                </div>
+
+                                                                                <div>
+                                                                                    <label class="form-label">
+                                                                                        Current Value
+                                                                                    </label>
+
+                                                                                    <input type="number"
+                                                                                           step="0.01"
+                                                                                           name="currentValue"
+                                                                                           class="form-control"
+                                                                                           value="@kr.CurrentValue"
+                                                                                           required />
+                                                                                </div>
+
+                                                                            </div>
+
+                                                                            <div class="modal-footer">
+                                                                                <button type="button"
+                                                                                        class="btn btn-light border"
+                                                                                        data-bs-dismiss="modal">
+                                                                                    Cancel
+                                                                                </button>
+
+                                                                                <button type="submit"
+                                                                                        class="btn btn-primary px-3">
+                                                                                    <i class="fa-solid fa-floppy-disk me-1"></i>
+                                                                                    Save Progress
+                                                                                </button>
+                                                                            </div>
+
+                                                                        </form>
+
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                    </ul>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">
+                                                        <i class="fa-solid fa-circle-info me-1"></i>
+                                                        No Key Results defined
+                                                    </span>
+                                                }
+
+                                            </td>
+
+                                            <!-- Timeline -->
+                                            <td>
+                                                <div class="okr-timeline">
+                                                    <div class="okr-timeline-main">
+                                                        <i class="fa-regular fa-calendar okr-timeline-icon"></i>
+                                                        @okr.StartDate.ToString("dd MMM")
+                                                    </div>
+
+                                                    <div class="okr-secondary-text">
+                                                        to @okr.EndDate.ToString("dd MMM yyyy")
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Progress -->
+                                            <td>
+                                                <div class="okr-progress-cell">
+
+                                                    <div class="okr-progress-top">
+                                                        <span class="small text-muted">Completion</span>
+                                                        <span class="okr-progress-value">
+                                                            @okr.OverallProgressPercentage%
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="progress okr-progress">
+                                                        <div class="progress-bar @(okr.OverallProgressPercentage >= 75 ? "bg-success" : (okr.OverallProgressPercentage >= 50 ? "bg-primary" : "bg-warning"))"
+                                                             role="progressbar"
+                                                             style="width: @Math.Min(okr.OverallProgressPercentage, 100)%;"
+                                                             aria-valuenow="@okr.OverallProgressPercentage"
+                                                             aria-valuemin="0"
+                                                             aria-valuemax="100">
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </td>
+
+                                            <!-- Status -->
+                                            <td>
+                                                <span class="okr-status-badge @badgeClass">
+                                                    <i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i>
+                                                    @okr.Status
+                                                </span>
+                                            </td>
+
+                                            <!-- Actions -->
+                                            <td class="text-end">
+                                                <form method="post"
+                                                      action="/HRPerformance/DeleteOkr"
+                                                      class="d-inline"
+                                                      onsubmit="return confirm('Delete this OKR Goal?');">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="okrId"
+                                                           value="@okr.OkrId" />
+
+                                                    <button type="submit"
+                                                            class="btn btn-outline-danger okr-action-btn"
+                                                            title="Delete OKR">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+
+                                                </form>
+                                            </td>
+
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center okr-empty-state">
+
+                                            <div class="okr-empty-icon">
+                                                <i class="fa-solid fa-bullseye"></i>
+                                            </div>
+
+                                            <div class="fw-bold text-dark mb-1">
+                                                No OKR Goals Found
+                                            </div>
+
+                                            <div class="small text-muted">
+                                                No OKR goals match the selected filters.
+                                            </div>
+
+                                        </td>
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- =========================
+             KPI TAB
+        ========================== -->
+        <div class="tab-pane fade" id="kpiTabPane" role="tabpanel">
+
+            <div class="okr-data-card">
+
+                <div class="okr-data-card-header">
+                    <div>
+                        <h6 class="okr-data-card-title">
+                            <i class="fa-solid fa-chart-line text-primary me-2"></i>
+                            Key Performance Indicators
+                        </h6>
+
+                        <div class="okr-data-card-subtitle">
+                            Track measurable performance targets across departments and employees.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="okr-table-wrap">
+                    <div class="table-responsive">
+
+                        <table class="table table-hover align-middle mb-0">
+
+                            <thead>
+                                <tr>
+                                    <th>KPI Metric</th>
+                                    <th>Department / Employee</th>
+                                    <th>Target</th>
+                                    <th>Actual Achievement</th>
+                                    <th>Achievement</th>
+                                    <th>Review Period</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @if (kpis != null && kpis.Any())
+                                {
+                                    foreach (var kpi in kpis)
+                                    {
+                                        <tr>
+
+                                            <!-- KPI Name -->
+                                            <td>
+                                                <div class="okr-main-text">
+                                                    @kpi.KpiName
+                                                </div>
+
+                                                @if (!string.IsNullOrEmpty(kpi.Description))
+                                                {
+                                                    <div class="okr-secondary-text">
+                                                        @kpi.Description
+                                                    </div>
+                                                }
+                                            </td>
+
+                                            <!-- Department / Employee -->
+                                            <td>
+                                                <div class="okr-owner-cell">
+
+                                                    <div class="okr-owner-avatar">
+                                                        <i class="fa-solid fa-building"></i>
+                                                    </div>
+
+                                                    <div>
+                                                        <div class="okr-main-text">
+                                                            @(kpi.Department?.DepartmentName ?? "All Departments")
+                                                        </div>
+
+                                                        <div class="okr-secondary-text">
+                                                            <i class="fa-solid fa-user me-1"></i>
+                                                            @(kpi.Employee?.FullName ?? "All Staff")
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </td>
+
+                                            <!-- Target -->
+                                            <td>
+                                                <div class="fw-bold text-dark">
+                                                    @kpi.TargetValue
+                                                </div>
+
+                                                <div class="okr-secondary-text">
+                                                    @kpi.MeasurementType
+                                                </div>
+                                            </td>
+
+                                            <!-- Actual -->
+                                            <td>
+                                                <div class="fw-bold text-primary">
+                                                    @kpi.ActualAchievement
+                                                </div>
+
+                                                <div class="okr-secondary-text">
+                                                    @kpi.MeasurementType
+                                                </div>
+                                            </td>
+
+                                            <!-- Achievement -->
+                                            <td>
+
+                                                <div class="okr-progress-cell">
+
+                                                    <div class="okr-progress-top">
+                                                        <span class="small text-muted">Result</span>
+                                                        <span class="okr-progress-value">
+                                                            @kpi.AchievementPercentage%
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="progress okr-progress">
+                                                        <div class="progress-bar @(kpi.AchievementPercentage >= 100 ? "bg-success" : "bg-info")"
+                                                             role="progressbar"
+                                                             style="width: @Math.Min(kpi.AchievementPercentage, 100)%;"
+                                                             aria-valuenow="@kpi.AchievementPercentage"
+                                                             aria-valuemin="0"
+                                                             aria-valuemax="100">
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                            </td>
+
+                                            <!-- Review Period -->
+                                            <td>
+                                                <span class="okr-period-badge">
+                                                    <i class="fa-regular fa-calendar"></i>
+                                                    @kpi.ReviewPeriod
+                                                </span>
+                                            </td>
+
+                                            <!-- Status -->
+                                            <td>
+                                                <span class="okr-status-badge @(kpi.Status == "Met" || kpi.Status == "Exceeded" ? "bg-success-subtle text-success" : "bg-primary-subtle text-primary")">
+                                                    <i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i>
+                                                    @kpi.Status
+                                                </span>
+                                            </td>
+
+                                            <!-- Action -->
+                                            <td class="text-end">
+
+                                                <button class="btn btn-outline-primary okr-update-btn"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#updateKpiModal_@kpi.KpiId">
+                                                    <i class="fa-solid fa-pen me-1"></i>
+                                                    Update
+                                                </button>
+
+                                                <!-- Modal: Update KPI -->
+                                                <div class="modal fade"
+                                                     id="updateKpiModal_@kpi.KpiId"
+                                                     tabindex="-1"
+                                                     aria-hidden="true">
+
+                                                    <div class="modal-dialog modal-dialog-centered modal-sm">
+
+                                                        <div class="modal-content border-0 shadow">
+
+                                                            <div class="modal-header">
+
+                                                                <h6 class="modal-title small">
+                                                                    <span class="okr-modal-icon">
+                                                                        <i class="fa-solid fa-chart-line"></i>
+                                                                    </span>
+                                                                    Update KPI Progress
+                                                                </h6>
+
+                                                                <button type="button"
+                                                                        class="btn-close"
+                                                                        data-bs-dismiss="modal"
+                                                                        aria-label="Close"></button>
+
+                                                            </div>
+
+                                                            <form method="post"
+                                                                  action="/HRPerformance/UpdateKpiProgress">
+
+                                                                @Html.AntiForgeryToken()
+
+                                                                <input type="hidden"
+                                                                       name="kpiId"
+                                                                       value="@kpi.KpiId" />
+
+                                                                <div class="modal-body text-start">
+
+                                                                    <p class="small mb-3">
+                                                                        <strong>@kpi.KpiName</strong>
+                                                                    </p>
+
+                                                                    <div class="p-3 rounded-3 bg-light border mb-3">
+                                                                        <div class="small text-muted mb-1">
+                                                                            Target Value
+                                                                        </div>
+
+                                                                        <div class="fw-bold">
+                                                                            @kpi.TargetValue @kpi.MeasurementType
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div>
+                                                                        <label class="form-label">
+                                                                            Actual Achievement
+                                                                        </label>
+
+                                                                        <input type="number"
+                                                                               step="0.01"
+                                                                               name="actualAchievement"
+                                                                               class="form-control"
+                                                                               value="@kpi.ActualAchievement"
+                                                                               required />
+                                                                    </div>
+
+                                                                </div>
+
+                                                                <div class="modal-footer">
+
+                                                                    <button type="button"
+                                                                            class="btn btn-light border"
+                                                                            data-bs-dismiss="modal">
+                                                                        Cancel
+                                                                    </button>
+
+                                                                    <button type="submit"
+                                                                            class="btn btn-primary px-3">
+                                                                        <i class="fa-solid fa-floppy-disk me-1"></i>
+                                                                        Save
+                                                                    </button>
+
+                                                                </div>
+
+                                                            </form>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8" class="text-center okr-empty-state">
+
+                                            <div class="okr-empty-icon">
+                                                <i class="fa-solid fa-chart-line"></i>
+                                            </div>
+
+                                            <div class="fw-bold text-dark mb-1">
+                                                No KPIs Configured
+                                            </div>
+
+                                            <div class="small text-muted">
+                                                Create a KPI metric to begin monitoring measurable performance.
+                                            </div>
+
+                                        </td>
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================
+     MODAL: CREATE OKR
+========================= -->
+<div class="modal fade" id="createOkrModal" tabindex="-1" aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title d-flex align-items-center">
+                    <span class="okr-modal-icon">
+                        <i class="fa-solid fa-bullseye"></i>
+                    </span>
+                    Create OKR Objective
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
+            </div>
+
+            <form method="post" action="/HRPerformance/CreateOkrGoal">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body p-4 text-start">
+
+                    <div class="row g-3">
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Objective Title <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="text"
+                                   name="ObjectiveTitle"
+                                   class="form-control"
+                                   required
+                                   placeholder="e.g. Boost Q3 sales pipeline expansion" />
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Department
+                            </label>
+
+                            <select name="DepartmentId" class="form-select">
+
+                                <option value="">-- Company Wide / All --</option>
+
+                                @foreach (var d in departments)
+                                {
+                                    <option value="@d.DepartmentId">
+                                        @d.DepartmentName
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Individual Employee (Optional)
+                            </label>
+
+                            <select name="EmployeeId" class="form-select">
+
+                                <option value="">-- Department / Team Goal --</option>
+
+                                @foreach (var emp in employees)
+                                {
+                                    <option value="@emp.UserId">
+                                        @emp.FullName (@emp.UserName)
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-4">
+
+                            <label class="form-label">
+                                Priority
+                            </label>
+
+                            <select name="Priority" class="form-select">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-4">
+
+                            <label class="form-label">
+                                Start Date
+                            </label>
+
+                            <input type="date"
+                                   name="StartDate"
+                                   class="form-control"
+                                   value="@DateTime.Now.ToString("yyyy-MM-dd")"
+                                   required />
+
+                        </div>
+
+                        <div class="col-md-4">
+
+                            <label class="form-label">
+                                Target Completion Date
+                            </label>
+
+                            <input type="date"
+                                   name="EndDate"
+                                   class="form-control"
+                                   value="@DateTime.Now.AddMonths(3).ToString("yyyy-MM-dd")"
+                                   required />
+
+                        </div>
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Key Results (One per line)
+                            </label>
+
+                            <textarea name="keyResultNames"
+                                      class="form-control"
+                                      rows="4"
+                                      placeholder="Achieve total sales of ₹15,00,000 in Q3&#10;Acquire 20 new enterprise leads"></textarea>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light border px-3"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary px-4">
+                        <i class="fa-solid fa-plus me-1"></i>
+                        Create OKR
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================
+     MODAL: CREATE KPI
+========================= -->
+<div class="modal fade" id="createKpiModal" tabindex="-1" aria-hidden="true">
+
+    <div class="modal-dialog modal-md modal-dialog-centered">
+
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title d-flex align-items-center">
+                    <span class="okr-modal-icon">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </span>
+                    Create KPI Metric
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
+            </div>
+
+            <form method="post" action="/HRPerformance/CreateKpi">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body p-4 text-start">
+
+                    <div class="row g-3">
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                KPI Name <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="text"
+                                   name="KpiName"
+                                   class="form-control"
+                                   required
+                                   placeholder="e.g. Quarterly Sales Target Realization" />
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Target Value <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="TargetValue"
+                                   class="form-control"
+                                   value="100"
+                                   required />
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Measurement Type
+                            </label>
+
+                            <select name="MeasurementType" class="form-select">
+                                <option value="Percentage">Percentage (%)</option>
+                                <option value="Amount">Amount (INR)</option>
+                                <option value="Number">Number Count</option>
+                                <option value="Rating">Rating Scale</option>
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Review Period
+                            </label>
+
+                            <select name="ReviewPeriod" class="form-select">
+                                <option value="Monthly">Monthly</option>
+                                <option value="Quarterly" selected>Quarterly</option>
+                                <option value="Half-Yearly">Half-Yearly</option>
+                                <option value="Annual">Annual</option>
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Department
+                            </label>
+
+                            <select name="DepartmentId" class="form-select">
+
+                                <option value="">-- All --</option>
+
+                                @foreach (var d in departments)
+                                {
+                                    <option value="@d.DepartmentId">
+                                        @d.DepartmentName
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light border px-3"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary px-4">
+                        <i class="fa-solid fa-plus me-1"></i>
+                        Create KPI
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
 </div>

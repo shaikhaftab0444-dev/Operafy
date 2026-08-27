@@ -1,10 +1,12 @@
+@model ERP_System.Models.TaxDeductionReportViewModel
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Statutory Tax Deduction Report";
 }
 
 <div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h4 class="fw-bold mb-1"><i class="fa-solid fa-building-columns text-primary me-2"></i>Statutory Tax Deduction Report</h4>
             <nav aria-label="breadcrumb">
@@ -14,6 +16,77 @@
                 </ol>
             </nav>
         </div>
+        <div class="d-flex gap-2">
+            <a href="/HRReports/ExportTaxDeduction?format=csv&payPeriod=@Model.SelectedPayPeriod&departmentId=@Model.SelectedDepartmentId" class="btn btn-outline-secondary btn-sm rounded-pill">
+                <i class="fa-solid fa-file-csv me-1.5 text-primary"></i>Export CSV
+            </a>
+            <a href="/HRReports/ExportTaxDeduction?format=excel&payPeriod=@Model.SelectedPayPeriod&departmentId=@Model.SelectedDepartmentId" class="btn btn-outline-secondary btn-sm rounded-pill">
+                <i class="fa-solid fa-file-excel me-1.5 text-success"></i>Export Excel
+            </a>
+            <button onclick="window.print()" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="fa-solid fa-print me-1.5"></i>Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="bg-white border rounded-3 p-3 shadow-sm">
+                <div class="text-muted fw-semibold small">Total Employees Taxed</div>
+                <h4 class="fw-bold text-dark mt-2 mb-0">@Model.TotalEmployeesTaxed Staff</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="bg-white border rounded-3 p-3 shadow-sm">
+                <div class="text-muted fw-semibold small">Total Monthly TDS</div>
+                <h4 class="fw-bold text-primary mt-2 mb-0">₹@Model.TotalTDS.ToString("N0")</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="bg-white border rounded-3 p-3 shadow-sm">
+                <div class="text-muted fw-semibold small">Total Provident Fund (PF)</div>
+                <h4 class="fw-bold text-success mt-2 mb-0">₹@Model.TotalEmployeePF.ToString("N0")</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="bg-white border rounded-3 p-3 shadow-sm">
+                <div class="text-muted fw-semibold small">Total Statutory Deductions</div>
+                <h4 class="fw-bold text-danger mt-2 mb-0">₹@Model.TotalDeductions.ToString("N0")</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <form method="get" action="/HRReports/TaxDeduction" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search Employee Name, Code, PAN..." value="@Model.SearchTerm" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="payPeriod" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="August 2026" selected="@(Model.SelectedPayPeriod == "August 2026" ? "selected" : null)">August 2026</option>
+                    <option value="July 2026" selected="@(Model.SelectedPayPeriod == "July 2026" ? "selected" : null)">July 2026</option>
+                    <option value="June 2026" selected="@(Model.SelectedPayPeriod == "June 2026" ? "selected" : null)">June 2026</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="departmentId" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Departments</option>
+                    @foreach (var d in Model.Departments)
+                    {
+                        <option value="@d.DepartmentId" selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">@d.DepartmentName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">Filter</button>
+                <a href="/HRReports/TaxDeduction" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+            </div>
+        </form>
     </div>
 
     <!-- Tax Report Table -->
@@ -25,28 +98,44 @@
                         <th>Employee</th>
                         <th>PAN Number</th>
                         <th>Tax Regime</th>
-                        <th>TDS Deducted (Monthly)</th>
+                        <th>Gross Taxable Salary</th>
+                        <th>TDS Deducted</th>
                         <th>Professional Tax (PT)</th>
-                        <th>Employer PF Deducted</th>
+                        <th>Employee PF (12%)</th>
+                        <th>Employer PF (12%)</th>
+                        <th>Total Deducted</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Numan Sales Man</td>
-                        <td>AAAAA1234A</td>
-                        <td>New Regime</td>
-                        <td>₹12,500</td>
-                        <td>₹200</td>
-                        <td>₹1,800</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Aftab Shaik</td>
-                        <td>BBBBB5678B</td>
-                        <td>New Regime</td>
-                        <td>₹4,500</td>
-                        <td>₹200</td>
-                        <td>₹1,800</td>
-                    </tr>
+                    @if (Model.TaxItems != null && Model.TaxItems.Any())
+                    {
+                        foreach (var item in Model.TaxItems)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">@item.EmployeeName</div>
+                                    <div class="text-muted small">@item.EmployeeCode</div>
+                                </td>
+                                <td class="fw-semibold text-dark">@item.PanNumber</td>
+                                <td><span class="badge bg-light text-dark border">@item.TaxRegime</span></td>
+                                <td class="fw-bold text-dark">₹@item.GrossSalary.ToString("N0")</td>
+                                <td class="fw-bold text-primary">₹@item.MonthlyTDS.ToString("N0")</td>
+                                <td>₹@item.ProfessionalTax.ToString("N0")</td>
+                                <td>₹@item.EmployeePF.ToString("N0")</td>
+                                <td>₹@item.EmployerPF.ToString("N0")</td>
+                                <td class="fw-bold text-danger fs-6">₹@item.TotalStatutoryDeduction.ToString("N0")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-muted">
+                                <i class="fa-solid fa-building-columns fa-2x mb-2 d-block text-secondary"></i>
+                                No Tax Deduction records found for the selected filters.
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>

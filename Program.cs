@@ -45,8 +45,11 @@ using (var scope = app.Services.CreateScope())
         await SeedData.InitializeRegionalSettingsAsync(context);
         await SeedData.InitializeImportLogsAsync(context);
         await SeedData.InitializeExportLogsAsync(context);
-        //await SeedData.InitializeAuditLogsAsync(context);
-        //await SeedData.InitializeHRAttendanceTablesAsync(context);
+        await SeedData.InitializeRecruitmentTablesAsync(context);
+        await SeedData.InitializePerformanceTablesAsync(context);
+        await SeedData.InitializeHRAttendanceTablesAsync(context);
+        await SeedData.InitializeLeaveApplicationsAsync(context);
+        await SeedData.InitializePayrollRunsAndPayslipsAsync(context);
     }
     catch (Exception ex)
     {
