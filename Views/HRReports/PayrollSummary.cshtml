@@ -1,148 +1,1469 @@
 @model ERP_System.Models.PayrollSummaryReportViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Monthly Payroll Summary Report";
+
+
+var totalRecords = Model.Payslips?.Count() ?? 0;
+
+
 }
 
-<div class="container-fluid py-4 text-start">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-column text-primary me-2"></i>Monthly Payroll Summary</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Payroll Summary</li>
+<style>
+    /* =========================================================
+           MONTHLY PAYROLL SUMMARY REPORT
+           PREMIUM RESPONSIVE ERP UI
+           ========================================================= */
+
+    .payroll-summary-page {
+        --ps-primary: #4f46e5;
+        --ps-primary-dark: #3730a3;
+        --ps-success: #10b981;
+        --ps-success-dark: #047857;
+        --ps-danger: #ef4444;
+        --ps-danger-dark: #dc2626;
+        --ps-warning: #f59e0b;
+        --ps-dark: #111827;
+        --ps-text: #374151;
+        --ps-muted: #6b7280;
+        --ps-border: #e5e7eb;
+        --ps-bg: #f7f8fc;
+        background: var(--ps-bg);
+        min-height: 100%;
+    }
+
+        .payroll-summary-page .payroll-summary-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+    /* ============================
+           HERO HEADER
+           ============================ */
+
+    .payroll-summary-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 1.65rem 1.75rem;
+        margin-bottom: 1.5rem;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #172554 0%, #3730a3 50%, #4f46e5 100%);
+        color: #fff;
+        box-shadow: 0 18px 42px rgba(55, 48, 163, .20);
+        animation: payrollHeroReveal .7s ease both;
+    }
+
+        .payroll-summary-hero::before {
+            content: "";
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            top: -170px;
+            right: -75px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.08);
+        }
+
+        .payroll-summary-hero::after {
+            content: "";
+            position: absolute;
+            width: 190px;
+            height: 190px;
+            left: 38%;
+            bottom: -130px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.06);
+        }
+
+    .payroll-hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .payroll-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .payroll-title-icon {
+        width: 58px;
+        height: 58px;
+        min-width: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 17px;
+        background: rgba(255,255,255,.14);
+        font-size: 1.45rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .payroll-title-wrap h2 {
+        margin: 0;
+        font-size: 1.45rem;
+        font-weight: 800;
+        letter-spacing: -.3px;
+    }
+
+    .payroll-title-wrap p {
+        margin: .28rem 0 0;
+        color: rgba(255,255,255,.72);
+        font-size: .85rem;
+    }
+
+    .payroll-breadcrumb {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .55rem;
+        margin: 1.1rem 0 0;
+        padding: 0;
+        list-style: none;
+        color: rgba(255,255,255,.68);
+        font-size: .77rem;
+    }
+
+        .payroll-breadcrumb a {
+            color: rgba(255,255,255,.88);
+            text-decoration: none;
+            transition: .2s ease;
+        }
+
+            .payroll-breadcrumb a:hover {
+                color: #fff;
+            }
+
+        .payroll-breadcrumb .separator {
+            opacity: .55;
+            font-size: .65rem;
+        }
+
+    .payroll-hero-actions {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .65rem;
+        margin-top: 1.2rem;
+    }
+
+    .payroll-action-btn {
+        min-height: 41px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        padding: .55rem 1rem;
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: 11px;
+        background: rgba(255,255,255,.10);
+        color: #fff;
+        text-decoration: none;
+        font-size: .78rem;
+        font-weight: 650;
+        backdrop-filter: blur(8px);
+        transition: all .22s ease;
+    }
+
+        .payroll-action-btn:hover {
+            color: #fff;
+            background: rgba(255,255,255,.18);
+            transform: translateY(-2px);
+        }
+
+        .payroll-action-btn.print-action {
+            border-color: #fff;
+            background: #fff;
+            color: #4338ca;
+            box-shadow: 0 8px 18px rgba(0,0,0,.12);
+        }
+
+            .payroll-action-btn.print-action:hover {
+                background: #f8fafc;
+                color: #312e81;
+            }
+
+    /* ============================
+           SUMMARY METRIC CARDS
+           ============================ */
+
+    .payroll-metric-card {
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        padding: 1.25rem;
+        border: 1px solid var(--ps-border);
+        border-radius: 19px;
+        background: #fff;
+        box-shadow: 0 8px 24px rgba(15,23,42,.045);
+        transition: transform .25s ease, box-shadow .25s ease;
+        animation: payrollCardReveal .65s ease both;
+    }
+
+        .payroll-metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 18px 35px rgba(15,23,42,.10);
+        }
+
+        .payroll-metric-card::after {
+            content: "";
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            right: -42px;
+            bottom: -48px;
+            border-radius: 50%;
+            opacity: .08;
+        }
+
+    .metric-employees::after {
+        background: #64748b;
+    }
+
+    .metric-gross::after {
+        background: var(--ps-primary);
+    }
+
+    .metric-deductions::after {
+        background: var(--ps-danger);
+    }
+
+    .metric-net::after {
+        background: var(--ps-success);
+    }
+
+    .payroll-metric-card:nth-child(1) {
+        animation-delay: .05s;
+    }
+
+    .payroll-metric-card:nth-child(2) {
+        animation-delay: .12s;
+    }
+
+    .payroll-metric-card:nth-child(3) {
+        animation-delay: .19s;
+    }
+
+    .payroll-metric-card:nth-child(4) {
+        animation-delay: .26s;
+    }
+
+    .metric-icon {
+        width: 46px;
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: .9rem;
+        border-radius: 14px;
+        font-size: 1rem;
+    }
+
+    .metric-employees .metric-icon {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .metric-gross .metric-icon {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+
+    .metric-deductions .metric-icon {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .metric-net .metric-icon {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .metric-label {
+        display: block;
+        margin-bottom: .38rem;
+        color: var(--ps-muted);
+        font-size: .70rem;
+        font-weight: 750;
+        letter-spacing: .045em;
+        text-transform: uppercase;
+    }
+
+    .metric-value {
+        color: var(--ps-dark);
+        font-size: 1.25rem;
+        font-weight: 800;
+        line-height: 1.35;
+        letter-spacing: -.35px;
+    }
+
+    .metric-subtext {
+        margin-top: .45rem;
+        color: #94a3b8;
+        font-size: .72rem;
+    }
+
+    /* ============================
+           FILTER SECTION
+           ============================ */
+
+    .payroll-filter-card {
+        margin-bottom: 1.5rem;
+        padding: 1.3rem;
+        border: 1px solid var(--ps-border);
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 8px 25px rgba(15,23,42,.045);
+        animation: payrollFadeUp .65s ease .1s both;
+    }
+
+    .payroll-filter-heading {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        margin-bottom: 1.1rem;
+    }
+
+    .filter-heading-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+
+    .payroll-filter-heading h5 {
+        margin: 0;
+        color: var(--ps-dark);
+        font-size: .94rem;
+        font-weight: 750;
+    }
+
+    .payroll-filter-heading p {
+        margin: .1rem 0 0;
+        color: var(--ps-muted);
+        font-size: .73rem;
+    }
+
+    .payroll-filter-label {
+        margin-bottom: .4rem;
+        color: #64748b;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+    .payroll-filter-card .form-control,
+    .payroll-filter-card .form-select {
+        min-height: 43px;
+        border-color: #e2e8f0;
+        border-radius: 11px;
+        font-size: .82rem;
+        box-shadow: none;
+        transition: all .2s ease;
+    }
+
+        .payroll-filter-card .form-control:focus,
+        .payroll-filter-card .form-select:focus {
+            border-color: var(--ps-primary);
+            box-shadow: 0 0 0 4px rgba(79,70,229,.09);
+        }
+
+    .payroll-filter-btn {
+        min-height: 43px;
+        border-radius: 11px;
+        font-size: .8rem;
+        font-weight: 650;
+        transition: all .2s ease;
+    }
+
+        .payroll-filter-btn:hover {
+            transform: translateY(-1px);
+        }
+
+    /* ============================
+           TABLE CARD
+           ============================ */
+
+    .payroll-table-card {
+        overflow: hidden;
+        border: 1px solid var(--ps-border);
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 8px 25px rgba(15,23,42,.05);
+        animation: payrollFadeUp .65s ease .18s both;
+    }
+
+    .payroll-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.2rem 1.35rem;
+        border-bottom: 1px solid var(--ps-border);
+    }
+
+    .payroll-table-title {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .payroll-table-title-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+
+    .payroll-table-title h5 {
+        margin: 0;
+        color: var(--ps-dark);
+        font-size: .96rem;
+        font-weight: 750;
+    }
+
+    .payroll-table-title span {
+        display: block;
+        margin-top: .15rem;
+        color: var(--ps-muted);
+        font-size: .73rem;
+    }
+
+    .payroll-record-pill {
+        padding: .43rem .78rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #4338ca;
+        font-size: .73rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .payroll-report-table {
+        margin: 0;
+        font-size: .82rem;
+    }
+
+        .payroll-report-table thead th {
+            padding: .95rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: .67rem;
+            font-weight: 750;
+            letter-spacing: .045em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .payroll-report-table tbody td {
+            padding: 1rem;
+            border-color: #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .payroll-report-table tbody tr {
+            transition: background .2s ease;
+        }
+
+            .payroll-report-table tbody tr:hover {
+                background: #fafbff;
+            }
+
+    .payroll-employee {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        min-width: 190px;
+    }
+
+    .payroll-avatar {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+        color: #4f46e5;
+        font-size: .75rem;
+        font-weight: 800;
+    }
+
+    .payroll-employee-name {
+        margin-bottom: .15rem;
+        color: var(--ps-dark);
+        font-size: .83rem;
+        font-weight: 750;
+    }
+
+    .payroll-employee-info {
+        color: var(--ps-muted);
+        font-size: .69rem;
+    }
+
+    .payroll-period-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .43rem .68rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 9px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: .72rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .salary-amount {
+        color: #334155;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+
+    .gross-amount {
+        color: #111827;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .deduction-amount {
+        color: #dc2626;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .net-salary-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: .48rem .72rem;
+        border-radius: 9px;
+        background: #ecfdf5;
+        color: #047857;
+        font-size: .78rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .payroll-status {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .45rem .72rem;
+        border-radius: 999px;
+        font-size: .71rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .status-paid {
+        color: #047857;
+        background: #ecfdf5;
+    }
+
+    .status-approved {
+        color: #0369a1;
+        background: #f0f9ff;
+    }
+
+    .status-draft {
+        color: #b45309;
+        background: #fffbeb;
+    }
+
+    .status-default {
+        color: #475569;
+        background: #f1f5f9;
+    }
+
+    /* ============================
+           EMPTY STATE
+           ============================ */
+
+    .payroll-empty-state {
+        padding: 4rem 1.5rem !important;
+        text-align: center;
+    }
+
+    .payroll-empty-icon {
+        width: 78px;
+        height: 78px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        border-radius: 22px;
+        background: #f8fafc;
+        color: #94a3b8;
+        font-size: 1.8rem;
+    }
+
+    .payroll-empty-state h6 {
+        margin-bottom: .4rem;
+        color: #334155;
+        font-weight: 750;
+    }
+
+    .payroll-empty-state p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: .8rem;
+    }
+
+    /* ============================
+           ANIMATIONS
+           ============================ */
+
+    @@keyframes payrollHeroReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes payrollCardReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes payrollFadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* ============================
+           RESPONSIVE DESIGN
+           ============================ */
+
+    @@media (max-width: 991.98px) {
+
+        .payroll-summary-hero {
+            padding: 1.4rem;
+        }
+
+        .payroll-hero-actions {
+            justify-content: flex-start;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+
+        .payroll-summary-page {
+            padding: .5rem !important;
+        }
+
+        .payroll-summary-hero {
+            padding: 1.2rem;
+            border-radius: 18px;
+        }
+
+        .payroll-title-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 14px;
+        }
+
+        .payroll-title-wrap h2 {
+            font-size: 1.12rem;
+        }
+
+        .payroll-title-wrap p {
+            font-size: .77rem;
+        }
+
+        .payroll-hero-actions {
+            gap: .5rem;
+        }
+
+        .payroll-action-btn {
+            flex: 1 1 auto;
+        }
+
+        .payroll-filter-card {
+            padding: 1.05rem;
+        }
+
+        .payroll-table-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .payroll-record-pill {
+            align-self: flex-start;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+
+        .payroll-summary-hero {
+            margin-bottom: 1rem;
+        }
+
+        .payroll-title-wrap {
+            align-items: flex-start;
+        }
+
+        .payroll-hero-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .payroll-action-btn {
+            width: 100%;
+        }
+
+        .payroll-metric-card {
+            padding: 1rem;
+            border-radius: 16px;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: .7rem;
+        }
+
+        .metric-value {
+            font-size: 1.08rem;
+        }
+
+        .payroll-filter-card,
+        .payroll-table-card {
+            border-radius: 16px;
+        }
+
+        .payroll-table-header {
+            padding: 1rem;
+        }
+
+        .payroll-table-title span {
+            display: none;
+        }
+    }
+
+    /* ============================
+           PRINT DESIGN
+           ============================ */
+
+    @@media print {
+
+        .payroll-summary-page {
+            background: #fff !important;
+        }
+
+        .payroll-hero-actions,
+        .payroll-filter-card,
+        .payroll-breadcrumb {
+            display: none !important;
+        }
+
+        .payroll-summary-hero {
+            color: #000 !important;
+            background: #fff !important;
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+        }
+
+            .payroll-summary-hero * {
+                color: #000 !important;
+            }
+
+        .payroll-metric-card,
+        .payroll-table-card {
+            box-shadow: none !important;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4 text-start payroll-summary-page">
+
+    <div class="payroll-summary-inner">
+
+        <!-- =====================================================
+             HERO HEADER
+             ===================================================== -->
+
+        <div class="payroll-summary-hero">
+
+            <div class="payroll-hero-content">
+
+                <div class="payroll-title-wrap">
+
+                    <div class="payroll-title-icon">
+                        <i class="fa-solid fa-chart-column"></i>
+                    </div>
+
+                    <div>
+                        <h2>Monthly Payroll Summary</h2>
+
+                        <p>
+                            Review employee salaries, deductions,
+                            payroll disbursement and monthly payout records.
+                        </p>
+                    </div>
+
+                </div>
+
+                <ol class="payroll-breadcrumb">
+
+                    <li>
+                        <a href="/HR">
+                            <i class="fa-solid fa-house me-1"></i>
+                            HR Dashboard
+                        </a>
+                    </li>
+
+                    <li class="separator">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </li>
+
+                    <li>Reports</li>
+
+                    <li class="separator">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </li>
+
+                    <li class="text-white">
+                        Payroll Summary
+                    </li>
+
                 </ol>
-            </nav>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="/HRReports/ExportPayrollSummary?format=csv&payPeriod=@Model.SelectedPayPeriod&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus" class="btn btn-outline-secondary btn-sm rounded-pill">
-                <i class="fa-solid fa-file-csv me-1.5 text-primary"></i>Export CSV
-            </a>
-            <a href="/HRReports/ExportPayrollSummary?format=excel&payPeriod=@Model.SelectedPayPeriod&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus" class="btn btn-outline-secondary btn-sm rounded-pill">
-                <i class="fa-solid fa-file-excel me-1.5 text-success"></i>Export Excel
-            </a>
-            <button onclick="window.print()" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
-                <i class="fa-solid fa-print me-1.5"></i>Print Report
-            </button>
-        </div>
-    </div>
 
-    <!-- Summary Metrics Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Total Employees Paid</div>
-                <h4 class="fw-bold text-dark mt-2 mb-0">@Model.TotalEmployeesPaid Employees</h4>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Total Gross Payout</div>
-                <h4 class="fw-bold text-dark mt-2 mb-0">₹@Model.TotalGrossSalary.ToString("N0")</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Total Deductions (PF/ESI/TDS)</div>
-                <h4 class="fw-bold text-danger mt-2 mb-0">₹@Model.TotalDeductions.ToString("N0")</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Net Salary Disbursed</div>
-                <h4 class="fw-bold text-success mt-2 mb-0">₹@Model.TotalNetSalary.ToString("N0")</h4>
-            </div>
-        </div>
-    </div>
 
-    <!-- Filters Bar -->
-    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
-        <form method="get" action="/HRReports/PayrollSummary" class="row g-2 align-items-center">
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Pay Period</label>
-                <select name="payPeriod" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="August 2026" selected="@(Model.SelectedPayPeriod == "August 2026" ? "selected" : null)">August 2026</option>
-                    <option value="July 2026" selected="@(Model.SelectedPayPeriod == "July 2026" ? "selected" : null)">July 2026</option>
-                    <option value="June 2026" selected="@(Model.SelectedPayPeriod == "June 2026" ? "selected" : null)">June 2026</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Department</label>
-                <select name="departmentId" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Departments</option>
-                    @foreach (var d in Model.Departments)
-                    {
-                        <option value="@d.DepartmentId" selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">@d.DepartmentName</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Payment Status</label>
-                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="All">All Statuses</option>
-                    <option value="Paid" selected="@(Model.SelectedStatus == "Paid" ? "selected" : null)">Paid</option>
-                    <option value="Approved" selected="@(Model.SelectedStatus == "Approved" ? "selected" : null)">Approved</option>
-                    <option value="Draft" selected="@(Model.SelectedStatus == "Draft" ? "selected" : null)">Draft</option>
-                </select>
-            </div>
-            <div class="col-md-3 text-end pt-3">
-                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">Filter</button>
-                <a href="/HRReports/PayrollSummary" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
-            </div>
-        </form>
-    </div>
+            <div class="payroll-hero-actions">
 
-    <!-- Payroll summary table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Employee</th>
-                        <th>Pay Period</th>
-                        <th>Basic Salary</th>
-                        <th>HRA & Allowances</th>
-                        <th>Gross Salary</th>
-                        <th>Total Deductions</th>
-                        <th>Net Salary</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.Payslips != null && Model.Payslips.Any())
-                    {
-                        foreach (var slip in Model.Payslips)
+                <a href="/HRReports/ExportPayrollSummary?format=csv&payPeriod=@Model.SelectedPayPeriod&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus"
+                   class="payroll-action-btn" download>
+
+                    <i class="fa-solid fa-file-csv"></i>
+                    Export CSV
+
+                </a>
+
+                <a href="/HRReports/ExportPayrollSummary?format=excel&payPeriod=@Model.SelectedPayPeriod&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus"
+                   class="payroll-action-btn" download>
+
+                    <i class="fa-solid fa-file-excel"></i>
+                    Export Excel
+
+                </a>
+
+                <button type="button"
+                        onclick="window.print()"
+                        class="payroll-action-btn print-action">
+
+                    <i class="fa-solid fa-print"></i>
+                    Print Report
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SUMMARY CARDS
+             ===================================================== -->
+
+        <div class="row g-3 mb-4">
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="payroll-metric-card metric-employees">
+
+                    <div class="metric-icon">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+
+                    <span class="metric-label">
+                        Total Employees Paid
+                    </span>
+
+                    <div class="metric-value">
+                        @Model.TotalEmployeesPaid
+                    </div>
+
+                    <div class="metric-subtext">
+                        Employees included in payroll
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="payroll-metric-card metric-gross">
+
+                    <div class="metric-icon">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+
+                    <span class="metric-label">
+                        Total Gross Payout
+                    </span>
+
+                    <div class="metric-value">
+                        ₹@Model.TotalGrossSalary.ToString("N0")
+                    </div>
+
+                    <div class="metric-subtext">
+                        Before statutory deductions
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="payroll-metric-card metric-deductions">
+
+                    <div class="metric-icon">
+                        <i class="fa-solid fa-file-circle-minus"></i>
+                    </div>
+
+                    <span class="metric-label">
+                        Total Deductions
+                    </span>
+
+                    <div class="metric-value">
+                        ₹@Model.TotalDeductions.ToString("N0")
+                    </div>
+
+                    <div class="metric-subtext">
+                        PF, ESI, TDS and other deductions
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="payroll-metric-card metric-net">
+
+                    <div class="metric-icon">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                    <span class="metric-label">
+                        Net Salary Disbursed
+                    </span>
+
+                    <div class="metric-value">
+                        ₹@Model.TotalNetSalary.ToString("N0")
+                    </div>
+
+                    <div class="metric-subtext">
+                        Final employee payout amount
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             FILTER SECTION
+             ===================================================== -->
+
+        <div class="payroll-filter-card">
+
+            <div class="payroll-filter-heading">
+
+                <div class="filter-heading-icon">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+
+                <div>
+                    <h5>Filter Payroll Report</h5>
+
+                    <p>
+                        Select the pay period, department and payment status
+                        to view payroll information.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <form method="get"
+                  action="/HRReports/PayrollSummary"
+                  class="row g-3 align-items-end">
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <label class="payroll-filter-label">
+                        Pay Period
+                    </label>
+
+                    <select name="payPeriod"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        <option value="August 2026"
+                                selected="@(Model.SelectedPayPeriod == "August 2026" ? "selected" : null)">
+                            August 2026
+                        </option>
+
+                        <option value="July 2026"
+                                selected="@(Model.SelectedPayPeriod == "July 2026" ? "selected" : null)">
+                            July 2026
+                        </option>
+
+                        <option value="June 2026"
+                                selected="@(Model.SelectedPayPeriod == "June 2026" ? "selected" : null)">
+                            June 2026
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <label class="payroll-filter-label">
+                        Department
+                    </label>
+
+                    <select name="departmentId"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        <option value="">
+                            All Departments
+                        </option>
+
+                        @foreach (var d in Model.Departments)
                         {
-                            decimal totalAllowances = slip.HRA.GetValueOrDefault() + slip.SpecialAllowance.GetValueOrDefault() + slip.TransportAllowance.GetValueOrDefault() + slip.OtherAllowance.GetValueOrDefault();
+                            <option value="@d.DepartmentId"
+                                    selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">
 
+                                @d.DepartmentName
+
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <label class="payroll-filter-label">
+                        Payment Status
+                    </label>
+
+                    <select name="status"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        <option value="All">
+                            All Statuses
+                        </option>
+
+                        <option value="Paid"
+                                selected="@(Model.SelectedStatus == "Paid" ? "selected" : null)">
+                            Paid
+                        </option>
+
+                        <option value="Approved"
+                                selected="@(Model.SelectedStatus == "Approved" ? "selected" : null)">
+                            Approved
+                        </option>
+
+                        <option value="Draft"
+                                selected="@(Model.SelectedStatus == "Draft" ? "selected" : null)">
+                            Draft
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <label class="payroll-filter-label d-block">
+                        Report Actions
+                    </label>
+
+                    <div class="d-flex gap-2">
+
+                        <button type="submit"
+                                class="btn btn-primary payroll-filter-btn flex-grow-1">
+
+                            <i class="fa-solid fa-filter me-1"></i>
+                            Apply Filter
+
+                        </button>
+
+                        <a href="/HRReports/PayrollSummary"
+                           class="btn btn-outline-secondary payroll-filter-btn">
+
+                            <i class="fa-solid fa-rotate-left"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+        <!-- =====================================================
+             PAYROLL TABLE
+             ===================================================== -->
+
+        <div class="payroll-table-card">
+
+            <div class="payroll-table-header">
+
+                <div class="payroll-table-title">
+
+                    <div class="payroll-table-title-icon">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+
+                    <div>
+
+                        <h5>Payroll Salary Records</h5>
+
+                        <span>
+                            Employee salary, allowances, deductions
+                            and final net payment details.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <span class="payroll-record-pill">
+
+                    <i class="fa-solid fa-list me-1"></i>
+
+                    @totalRecords Record@(totalRecords == 1 ? "" : "s")
+
+                </span>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table payroll-report-table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Employee</th>
+                            <th>Pay Period</th>
+                            <th>Basic Salary</th>
+                            <th>HRA & Allowances</th>
+                            <th>Gross Salary</th>
+                            <th>Total Deductions</th>
+                            <th>Net Salary</th>
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model.Payslips != null && Model.Payslips.Any())
+                        {
+                            foreach (var slip in Model.Payslips)
+                            {
+                                decimal totalAllowances =
+                                slip.HRA.GetValueOrDefault()
+                                + slip.SpecialAllowance.GetValueOrDefault()
+                                + slip.TransportAllowance.GetValueOrDefault()
+                                + slip.OtherAllowance.GetValueOrDefault();
+
+
+                                var employeeName =
+                                slip.User?.FullName ?? "Staff Member";
+
+                                var initials = "SM";
+
+                                if (!string.IsNullOrWhiteSpace(employeeName)
+                                && employeeName != "Staff Member")
+                                {
+                                    var nameParts =
+                                    employeeName.Split(
+                                    ' ',
+                                    StringSplitOptions.RemoveEmptyEntries
+                                    );
+
+                                    initials = string.Join(
+                                    "",
+                                    nameParts.Take(2).Select(x => x[0])
+                                    ).ToUpper();
+                                }
+
+
+                                var statusClass = "status-default";
+                                var statusIcon = "fa-circle-info";
+
+                                if (!string.IsNullOrWhiteSpace(slip.Status))
+                                {
+                                    if (slip.Status.Equals(
+                                    "Paid",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        statusClass = "status-paid";
+                                        statusIcon = "fa-circle-check";
+                                    }
+                                    else if (slip.Status.Equals(
+                                    "Approved",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        statusClass = "status-approved";
+                                        statusIcon = "fa-circle-check";
+                                    }
+                                    else if (slip.Status.Equals(
+                                    "Draft",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        statusClass = "status-draft";
+                                        statusIcon = "fa-pen";
+                                    }
+                                }
+
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="payroll-employee">
+
+                                            <div class="payroll-avatar">
+                                                @initials
+                                            </div>
+
+                                            <div>
+
+                                                <div class="payroll-employee-name">
+                                                    @employeeName
+                                                </div>
+
+                                                <div class="payroll-employee-info">
+
+                                                    @(slip.User?.UserCode)
+                                                    •
+                                                    @(slip.PayslipNumber)
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="payroll-period-pill">
+
+                                            <i class="fa-regular fa-calendar me-1"></i>
+
+                                            @slip.PayPeriod
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="salary-amount">
+                                            ₹@slip.BasicSalary.ToString("N0")
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="salary-amount">
+                                            ₹@totalAllowances.ToString("N0")
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="gross-amount">
+                                            ₹@slip.GrossSalary.ToString("N0")
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="deduction-amount">
+                                            ₹@slip.TotalDeductions.ToString("N0")
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="net-salary-pill">
+
+                                            <i class="fa-solid fa-indian-rupee-sign me-1"></i>
+
+                                            @slip.NetSalary.ToString("N0")
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="payroll-status @statusClass">
+
+                                            <i class="fa-solid @statusIcon"></i>
+
+                                            @slip.Status
+
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
                             <tr>
-                                <td>
-                                    <div class="fw-bold text-dark">@(slip.User?.FullName ?? "Staff Member")</div>
-                                    <div class="text-muted small">@(slip.User?.UserCode) • @(slip.PayslipNumber)</div>
+
+                                <td colspan="8"
+                                    class="payroll-empty-state">
+
+                                    <div class="payroll-empty-icon">
+
+                                        <i class="fa-solid fa-file-invoice-dollar"></i>
+
+                                    </div>
+
+                                    <h6>No Payroll Records Found</h6>
+
+                                    <p>
+                                        No payroll records were found
+                                        for the selected pay period and filters.
+                                    </p>
+
                                 </td>
-                                <td><span class="badge bg-light text-dark border">@slip.PayPeriod</span></td>
-                                <td>₹@slip.BasicSalary.ToString("N0")</td>
-                                <td>₹@totalAllowances.ToString("N0")</td>
-                                <td class="fw-bold text-dark">₹@slip.GrossSalary.ToString("N0")</td>
-                                <td class="text-danger">₹@slip.TotalDeductions.ToString("N0")</td>
-                                <td class="fw-bold text-success fs-6">₹@slip.NetSalary.ToString("N0")</td>
-                                <td><span class="badge bg-success-subtle text-success fw-semibold">@slip.Status</span></td>
+
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">
-                                <i class="fa-solid fa-file-invoice-dollar fa-2x mb-2 d-block text-secondary"></i>
-                                No Payroll records found for the selected period.
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
         </div>
+
     </div>
+
 </div>
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const rows = document.querySelectorAll(
+            '.payroll-report-table tbody tr'
+        );
+
+        rows.forEach(function (row, index) {
+
+            if (!row.querySelector('.payroll-empty-state')) {
+
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(10px)';
+                row.style.transition =
+                    'opacity .35s ease, transform .35s ease, background .2s ease';
+
+                setTimeout(function () {
+
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+
+                }, Math.min(index * 35, 550));
+
+            }
+
+        });
+
+    });
+
+</script>

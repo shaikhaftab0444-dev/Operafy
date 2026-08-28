@@ -1,144 +1,1491 @@
 @model ERP_System.Models.LeaveBalanceReportViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Leave Balance Report";
+
+
+var totalRecords = Model.EmployeeBalances?.Count() ?? 0;
+
+
 }
 
-<div class="container-fluid py-4 text-start">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Leave Balance Report</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Leave Balance Report</li>
-                </ol>
-            </nav>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="/HRReports/ExportLeaveBalance?format=csv&year=@Model.Year&departmentId=@Model.SelectedDepartmentId" class="btn btn-outline-secondary btn-sm rounded-pill">
-                <i class="fa-solid fa-file-csv me-1.5 text-primary"></i>Export CSV
-            </a>
-            <button onclick="window.print()" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
-                <i class="fa-solid fa-print me-1.5"></i>Print Report
-            </button>
-        </div>
-    </div>
+<style>
+    /* =========================================================
+           LEAVE BALANCE REPORT
+           PREMIUM RESPONSIVE ERP UI
+           ========================================================= */
 
-    <!-- Summary Metrics Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Total Staff Covered</div>
-                <h4 class="fw-bold text-dark mt-2 mb-0">@Model.TotalEmployeesCount Employees</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Org Total Leave Quota</div>
-                <h4 class="fw-bold text-dark mt-2 mb-0">@Model.TotalLeavesAllocated Days</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Approved Leaves Consumed</div>
-                <h4 class="fw-bold text-warning mt-2 mb-0">@Model.TotalLeavesTaken Days</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Total Remaining Balance</div>
-                <h4 class="fw-bold text-success mt-2 mb-0">@Model.TotalRemainingBalance Days</h4>
-            </div>
-        </div>
-    </div>
+    .leave-balance-page {
+        --lb-primary: #4f46e5;
+        --lb-primary-dark: #3730a3;
+        --lb-success: #10b981;
+        --lb-warning: #f59e0b;
+        --lb-danger: #ef4444;
+        --lb-dark: #111827;
+        --lb-text: #374151;
+        --lb-muted: #6b7280;
+        --lb-border: #e5e7eb;
+        --lb-bg: #f7f8fc;
+        background: var(--lb-bg);
+        min-height: 100%;
+    }
 
-    <!-- Filters Bar -->
-    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
-        <form method="get" action="/HRReports/LeaveBalance" class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search Employee Code, Name..." value="@Model.SearchTerm" />
+        .leave-balance-page .leave-balance-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+    /* =========================
+           HERO HEADER
+           ========================= */
+
+    .leave-balance-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 1.7rem;
+        margin-bottom: 1.5rem;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #064e3b 0%, #047857 48%, #10b981 100%);
+        color: #fff;
+        box-shadow: 0 18px 42px rgba(4, 120, 87, .18);
+        animation: leaveHeroReveal .7s ease both;
+    }
+
+        .leave-balance-hero::before {
+            content: "";
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            top: -155px;
+            right: -55px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .08);
+        }
+
+        .leave-balance-hero::after {
+            content: "";
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            bottom: -125px;
+            left: 42%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .06);
+        }
+
+    .leave-hero-content,
+    .leave-hero-actions {
+        position: relative;
+        z-index: 2;
+    }
+
+    .leave-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .leave-title-icon {
+        width: 58px;
+        height: 58px;
+        min-width: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 17px;
+        background: rgba(255, 255, 255, .14);
+        font-size: 1.45rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .leave-title-wrap h2 {
+        margin: 0;
+        font-size: 1.45rem;
+        font-weight: 800;
+        letter-spacing: -.3px;
+    }
+
+    .leave-title-wrap p {
+        margin: .28rem 0 0;
+        color: rgba(255, 255, 255, .75);
+        font-size: .84rem;
+    }
+
+    .leave-breadcrumb {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .55rem;
+        margin: 1.1rem 0 0;
+        padding: 0;
+        list-style: none;
+        color: rgba(255, 255, 255, .70);
+        font-size: .76rem;
+    }
+
+        .leave-breadcrumb a {
+            color: rgba(255, 255, 255, .9);
+            text-decoration: none;
+            transition: .2s ease;
+        }
+
+            .leave-breadcrumb a:hover {
+                color: #fff;
+            }
+
+        .leave-breadcrumb .separator {
+            opacity: .55;
+            font-size: .65rem;
+        }
+
+    .leave-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .65rem;
+        margin-top: 1.2rem;
+    }
+
+    .leave-action-btn {
+        min-height: 41px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        padding: .55rem 1rem;
+        border: 1px solid rgba(255, 255, 255, .22);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, .10);
+        color: #fff;
+        text-decoration: none;
+        font-size: .78rem;
+        font-weight: 650;
+        backdrop-filter: blur(8px);
+        transition: all .22s ease;
+    }
+
+        .leave-action-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, .18);
+            transform: translateY(-2px);
+        }
+
+        .leave-action-btn.print-action {
+            border-color: #fff;
+            background: #fff;
+            color: #047857;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, .12);
+        }
+
+            .leave-action-btn.print-action:hover {
+                background: #f8fafc;
+                color: #065f46;
+            }
+
+    /* =========================
+           SUMMARY CARDS
+           ========================= */
+
+    .leave-metric-card {
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        padding: 1.25rem;
+        border: 1px solid var(--lb-border);
+        border-radius: 19px;
+        background: #fff;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .045);
+        transition: transform .25s ease, box-shadow .25s ease;
+        animation: leaveCardReveal .65s ease both;
+    }
+
+        .leave-metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 18px 35px rgba(15, 23, 42, .10);
+        }
+
+        .leave-metric-card::after {
+            content: "";
+            position: absolute;
+            width: 105px;
+            height: 105px;
+            right: -42px;
+            bottom: -48px;
+            border-radius: 50%;
+            opacity: .08;
+        }
+
+    .metric-staff::after {
+        background: #4f46e5;
+    }
+
+    .metric-quota::after {
+        background: #0ea5e9;
+    }
+
+    .metric-consumed::after {
+        background: #f59e0b;
+    }
+
+    .metric-remaining::after {
+        background: #10b981;
+    }
+
+    .leave-metric-card:nth-child(1) {
+        animation-delay: .05s;
+    }
+
+    .leave-metric-card:nth-child(2) {
+        animation-delay: .12s;
+    }
+
+    .leave-metric-card:nth-child(3) {
+        animation-delay: .19s;
+    }
+
+    .leave-metric-card:nth-child(4) {
+        animation-delay: .26s;
+    }
+
+    .metric-icon {
+        width: 46px;
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: .9rem;
+        border-radius: 14px;
+        font-size: 1rem;
+    }
+
+    .metric-staff .metric-icon {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+
+    .metric-quota .metric-icon {
+        background: #f0f9ff;
+        color: #0284c7;
+    }
+
+    .metric-consumed .metric-icon {
+        background: #fffbeb;
+        color: #d97706;
+    }
+
+    .metric-remaining .metric-icon {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .metric-label {
+        display: block;
+        margin-bottom: .38rem;
+        color: var(--lb-muted);
+        font-size: .70rem;
+        font-weight: 750;
+        letter-spacing: .045em;
+        text-transform: uppercase;
+    }
+
+    .metric-value {
+        color: var(--lb-dark);
+        font-size: 1.25rem;
+        font-weight: 800;
+        line-height: 1.35;
+        letter-spacing: -.35px;
+    }
+
+    .metric-subtext {
+        margin-top: .45rem;
+        color: #94a3b8;
+        font-size: .72rem;
+    }
+
+    /* =========================
+           FILTER SECTION
+           ========================= */
+
+    .leave-filter-card {
+        margin-bottom: 1.5rem;
+        padding: 1.3rem;
+        border: 1px solid var(--lb-border);
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .045);
+        animation: leaveFadeUp .65s ease .12s both;
+    }
+
+    .leave-filter-heading {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        margin-bottom: 1.1rem;
+    }
+
+    .filter-heading-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .leave-filter-heading h5 {
+        margin: 0;
+        color: var(--lb-dark);
+        font-size: .94rem;
+        font-weight: 750;
+    }
+
+    .leave-filter-heading p {
+        margin: .1rem 0 0;
+        color: var(--lb-muted);
+        font-size: .73rem;
+    }
+
+    .leave-filter-card .form-control,
+    .leave-filter-card .form-select,
+    .leave-filter-card .input-group-text {
+        min-height: 43px;
+        border-color: #e2e8f0;
+        font-size: .82rem;
+        box-shadow: none;
+    }
+
+    .leave-filter-card .form-control,
+    .leave-filter-card .form-select {
+        border-radius: 11px;
+    }
+
+    .leave-filter-card .input-group-text {
+        display: flex;
+        align-items: center;
+        border-radius: 11px 0 0 11px;
+        background: #f8fafc;
+    }
+
+    .leave-filter-card .input-group .form-control {
+        border-left: 0;
+        border-radius: 0 11px 11px 0;
+    }
+
+    .leave-filter-card .form-control:focus,
+    .leave-filter-card .form-select:focus {
+        border-color: var(--lb-success);
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, .09);
+    }
+
+    .leave-filter-btn {
+        min-height: 43px;
+        border-radius: 11px;
+        font-size: .8rem;
+        font-weight: 650;
+        transition: all .2s ease;
+    }
+
+        .leave-filter-btn:hover {
+            transform: translateY(-1px);
+        }
+
+    /* =========================
+           TABLE SECTION
+           ========================= */
+
+    .leave-table-card {
+        overflow: hidden;
+        border: 1px solid var(--lb-border);
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .05);
+        animation: leaveFadeUp .65s ease .18s both;
+    }
+
+    .leave-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.2rem 1.35rem;
+        border-bottom: 1px solid var(--lb-border);
+    }
+
+    .leave-table-title {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .leave-table-title-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .leave-table-title h5 {
+        margin: 0;
+        color: var(--lb-dark);
+        font-size: .96rem;
+        font-weight: 750;
+    }
+
+    .leave-table-title span {
+        display: block;
+        margin-top: .15rem;
+        color: var(--lb-muted);
+        font-size: .73rem;
+    }
+
+    .leave-record-pill {
+        padding: .43rem .78rem;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: #047857;
+        font-size: .73rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .leave-report-table {
+        margin: 0;
+        font-size: .82rem;
+    }
+
+        .leave-report-table thead th {
+            padding: .95rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: .67rem;
+            font-weight: 750;
+            letter-spacing: .045em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .leave-report-table tbody td {
+            padding: 1rem;
+            border-color: #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .leave-report-table tbody tr {
+            transition: background .2s ease;
+        }
+
+            .leave-report-table tbody tr:hover {
+                background: #fafdfb;
+            }
+
+    /* =========================
+           EMPLOYEE
+           ========================= */
+
+    .leave-employee {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        min-width: 210px;
+    }
+
+    .leave-avatar {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        color: #047857;
+        font-size: .76rem;
+        font-weight: 800;
+    }
+
+    .leave-employee-name {
+        margin-bottom: .15rem;
+        color: var(--lb-dark);
+        font-size: .83rem;
+        font-weight: 750;
+    }
+
+    .leave-employee-info {
+        color: var(--lb-muted);
+        font-size: .69rem;
+    }
+
+    /* =========================
+           LEAVE TYPE CARDS
+           ========================= */
+
+    .leave-type-cell {
+        min-width: 150px;
+    }
+
+    .leave-type-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+        margin-bottom: .5rem;
+    }
+
+    .leave-type-value {
+        color: #334155;
+        font-size: .77rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .leave-used-text {
+        color: #94a3b8;
+        font-size: .68rem;
+        white-space: nowrap;
+    }
+
+    .leave-progress {
+        width: 100%;
+        height: 6px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e5e7eb;
+    }
+
+    .leave-progress-bar {
+        height: 100%;
+        border-radius: 999px;
+        transition: width .8s ease;
+    }
+
+    .progress-cl {
+        background: #4f46e5;
+    }
+
+    .progress-sl {
+        background: #0284c7;
+    }
+
+    .progress-el {
+        background: #d97706;
+    }
+
+    /* =========================
+           TOTALS
+           ========================= */
+
+    .leave-total-quota {
+        color: #334155;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .leave-used-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .43rem .68rem;
+        border-radius: 9px;
+        background: #fffbeb;
+        color: #b45309;
+        font-size: .75rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .leave-balance-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .48rem .72rem;
+        border-radius: 9px;
+        background: #ecfdf5;
+        color: #047857;
+        font-size: .78rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    /* =========================
+           EMPTY STATE
+           ========================= */
+
+    .leave-empty-state {
+        padding: 4rem 1.5rem !important;
+        text-align: center;
+    }
+
+    .leave-empty-icon {
+        width: 78px;
+        height: 78px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        border-radius: 22px;
+        background: #f8fafc;
+        color: #94a3b8;
+        font-size: 1.8rem;
+    }
+
+    .leave-empty-state h6 {
+        margin-bottom: .4rem;
+        color: #334155;
+        font-weight: 750;
+    }
+
+    .leave-empty-state p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: .8rem;
+    }
+
+    /* =========================
+           ANIMATIONS
+           ========================= */
+
+    @@keyframes leaveHeroReveal {
+        from {
+            opacity: 0;
+            transform: translateY(-18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes leaveCardReveal {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes leaveFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 991.98px) {
+
+        .leave-balance-hero {
+            padding: 1.4rem;
+        }
+
+        .leave-hero-actions {
+            justify-content: flex-start;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+
+        .leave-balance-page {
+            padding: .5rem !important;
+        }
+
+        .leave-balance-hero {
+            padding: 1.2rem;
+            border-radius: 18px;
+        }
+
+        .leave-title-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 14px;
+        }
+
+        .leave-title-wrap h2 {
+            font-size: 1.12rem;
+        }
+
+        .leave-title-wrap p {
+            font-size: .77rem;
+        }
+
+        .leave-hero-actions {
+            justify-content: flex-start;
+        }
+
+        .leave-filter-card {
+            padding: 1rem;
+        }
+
+        .leave-table-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .leave-record-pill {
+            align-self: flex-start;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+
+        .leave-hero-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .leave-action-btn {
+            width: 100%;
+        }
+
+        .leave-metric-card {
+            padding: 1rem;
+            border-radius: 16px;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: .7rem;
+        }
+
+        .metric-value {
+            font-size: 1.08rem;
+        }
+
+        .leave-filter-card,
+        .leave-table-card {
+            border-radius: 16px;
+        }
+
+        .leave-table-header {
+            padding: 1rem;
+        }
+
+        .leave-table-title span {
+            display: none;
+        }
+    }
+
+    /* =========================
+           PRINT
+           ========================= */
+
+    @@media print {
+
+        .leave-balance-page {
+            background: #fff !important;
+        }
+
+        .leave-hero-actions,
+        .leave-filter-card,
+        .leave-breadcrumb {
+            display: none !important;
+        }
+
+        .leave-balance-hero {
+            color: #000 !important;
+            background: #fff !important;
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+        }
+
+            .leave-balance-hero * {
+                color: #000 !important;
+            }
+
+        .leave-metric-card,
+        .leave-table-card {
+            box-shadow: none !important;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4 text-start leave-balance-page">
+
+    ```
+    <div class="leave-balance-inner">
+
+        <!-- =====================================================
+             HERO HEADER
+             ===================================================== -->
+
+        <div class="leave-balance-hero">
+
+            <div class="leave-hero-content">
+
+                <div class="leave-title-wrap">
+
+                    <div class="leave-title-icon">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+
+                    <div>
+
+                        <h2>Leave Balance Report</h2>
+
+                        <p>
+                            Track employee leave allocations, leave consumption
+                            and remaining leave balances across the organization.
+                        </p>
+
+                    </div>
+
                 </div>
-            </div>
-            <div class="col-md-3">
-                <select name="departmentId" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Departments</option>
-                    @foreach (var d in Model.Departments)
-                    {
-                        <option value="@d.DepartmentId" selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">@d.DepartmentName</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="2026" selected="@(Model.Year == 2026 ? "selected" : null)">Year 2026</option>
-                    <option value="2025" selected="@(Model.Year == 2025 ? "selected" : null)">Year 2025</option>
-                </select>
-            </div>
-            <div class="col-md-2 text-end">
-                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">Filter</button>
-                <a href="/HRReports/LeaveBalance" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
-            </div>
-        </form>
-    </div>
 
-    <!-- Report Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Employee</th>
-                        <th>Casual Leave (CL)</th>
-                        <th>Sick Leave (SL)</th>
-                        <th>Earned Leave (EL)</th>
-                        <th>Total Quota</th>
-                        <th>Total Used</th>
-                        <th>Remaining Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.EmployeeBalances != null && Model.EmployeeBalances.Any())
-                    {
-                        foreach (var item in Model.EmployeeBalances)
+                <ol class="leave-breadcrumb">
+
+                    <li>
+                        <a href="/HR">
+                            <i class="fa-solid fa-house me-1"></i>
+                            HR Dashboard
+                        </a>
+                    </li>
+
+                    <li class="separator">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </li>
+
+                    <li>Reports</li>
+
+                    <li class="separator">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </li>
+
+                    <li class="text-white">
+                        Leave Balance
+                    </li>
+
+                </ol>
+
+            </div>
+
+
+            <div class="leave-hero-actions">
+
+                <a href="/HRReports/ExportLeaveBalance?format=csv&year=@Model.Year&departmentId=@Model.SelectedDepartmentId"
+                   class="leave-action-btn" download>
+
+                    <i class="fa-solid fa-file-csv"></i>
+                    Export CSV
+
+                </a>
+
+                <a href="/HRReports/ExportLeaveBalance?format=excel&year=@Model.Year&departmentId=@Model.SelectedDepartmentId"
+                   class="leave-action-btn" download>
+
+                    <i class="fa-solid fa-file-excel"></i>
+                    Export Excel
+
+                </a>
+
+
+                <button type="button"
+                        onclick="window.print()"
+                        class="leave-action-btn print-action">
+
+                    <i class="fa-solid fa-print"></i>
+                    Print Report
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SUMMARY METRICS
+             ===================================================== -->
+
+        <div class="row g-3 mb-4">
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="leave-metric-card metric-staff">
+
+                    <div class="metric-icon">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+
+                    <span class="metric-label">
+                        Total Staff Covered
+                    </span>
+
+                    <div class="metric-value">
+                        @Model.TotalEmployeesCount
+                    </div>
+
+                    <div class="metric-subtext">
+                        Employees included in this report
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="leave-metric-card metric-quota">
+
+                    <div class="metric-icon">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                    </div>
+
+                    <span class="metric-label">
+                        Organization Leave Quota
+                    </span>
+
+                    <div class="metric-value">
+                        @Model.TotalLeavesAllocated Days
+                    </div>
+
+                    <div class="metric-subtext">
+                        Total leave allocation for selected year
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="leave-metric-card metric-consumed">
+
+                    <div class="metric-icon">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+
+                    <span class="metric-label">
+                        Approved Leaves Used
+                    </span>
+
+                    <div class="metric-value">
+                        @Model.TotalLeavesTaken Days
+                    </div>
+
+                    <div class="metric-subtext">
+                        Total approved leave days consumed
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-xl-3 col-md-6">
+
+                <div class="leave-metric-card metric-remaining">
+
+                    <div class="metric-icon">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+
+                    <span class="metric-label">
+                        Remaining Leave Balance
+                    </span>
+
+                    <div class="metric-value">
+                        @Model.TotalRemainingBalance Days
+                    </div>
+
+                    <div class="metric-subtext">
+                        Available leave balance across staff
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             FILTER SECTION
+             ===================================================== -->
+
+        <div class="leave-filter-card">
+
+            <div class="leave-filter-heading">
+
+                <div class="filter-heading-icon">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+
+                <div>
+
+                    <h5>Filter Leave Report</h5>
+
+                    <p>
+                        Search employees and filter the report
+                        by department or year.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form method="get"
+                  action="/HRReports/LeaveBalance"
+                  class="row g-3 align-items-end">
+
+
+                <div class="col-xl-4 col-md-6">
+
+                    <div class="input-group">
+
+                        <span class="input-group-text">
+                            <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                        </span>
+
+                        <input type="text"
+                               name="search"
+                               class="form-control"
+                               placeholder="Search employee code or name..."
+                               value="@Model.SearchTerm" />
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <select name="departmentId"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        <option value="">
+                            All Departments
+                        </option>
+
+                        @foreach (var d in Model.Departments)
+                        {
+                            <option value="@d.DepartmentId"
+                                    selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">
+
+                                @d.DepartmentName
+
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-xl-2 col-md-6">
+
+                    <select name="year"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        <option value="2026"
+                                selected="@(Model.Year == 2026 ? "selected" : null)">
+                            Year 2026
+                        </option>
+
+                        <option value="2025"
+                                selected="@(Model.Year == 2025 ? "selected" : null)">
+                            Year 2025
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div class="d-flex gap-2">
+
+                        <button type="submit"
+                                class="btn btn-success leave-filter-btn flex-grow-1">
+
+                            <i class="fa-solid fa-filter me-1"></i>
+                            Apply Filter
+
+                        </button>
+
+                        <a href="/HRReports/LeaveBalance"
+                           class="btn btn-outline-secondary leave-filter-btn">
+
+                            <i class="fa-solid fa-rotate-left"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+        <!-- =====================================================
+             LEAVE BALANCE TABLE
+             ===================================================== -->
+
+        <div class="leave-table-card">
+
+            <div class="leave-table-header">
+
+                <div class="leave-table-title">
+
+                    <div class="leave-table-title-icon">
+                        <i class="fa-solid fa-table-list"></i>
+                    </div>
+
+                    <div>
+
+                        <h5>Employee Leave Balances</h5>
+
+                        <span>
+                            Detailed breakdown of Casual, Sick and Earned Leave.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <span class="leave-record-pill">
+
+                    <i class="fa-solid fa-users me-1"></i>
+
+                    @totalRecords Employee@(totalRecords == 1 ? "" : "s")
+
+                </span>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table leave-report-table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Employee</th>
+                            <th>Casual Leave (CL)</th>
+                            <th>Sick Leave (SL)</th>
+                            <th>Earned Leave (EL)</th>
+                            <th>Total Quota</th>
+                            <th>Total Used</th>
+                            <th>Remaining Balance</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model.EmployeeBalances != null && Model.EmployeeBalances.Any())
+                        {
+                            foreach (var item in Model.EmployeeBalances)
+                            {
+                                var employeeName = item.EmployeeName ?? "Staff Member";
+                                var initials = "SM";
+
+                                if (!string.IsNullOrWhiteSpace(employeeName)
+                                && employeeName != "Staff Member")
+                                {
+                                    var nameParts = employeeName.Split(
+                                    ' ',
+                                    StringSplitOptions.RemoveEmptyEntries
+                                    );
+
+                                    initials = string.Join(
+                                    "",
+                                    nameParts.Take(2).Select(x => x[0])
+                                    ).ToUpper();
+                                }
+
+
+                                var clPercent = item.CasualLeaveAllocated > 0
+                                ? Math.Min(100, Math.Round(
+                                (double)item.CasualLeaveUsed
+                                / item.CasualLeaveAllocated * 100))
+                                : 0;
+
+                                var slPercent = item.SickLeaveAllocated > 0
+                                ? Math.Min(100, Math.Round(
+                                (double)item.SickLeaveUsed
+                                / item.SickLeaveAllocated * 100))
+                                : 0;
+
+                                var elPercent = item.EarnedLeaveAllocated > 0
+                                ? Math.Min(100, Math.Round(
+                                (double)item.EarnedLeaveUsed
+                                / item.EarnedLeaveAllocated * 100))
+                                : 0;
+
+
+                                <tr>
+
+                                    <!-- Employee -->
+
+                                    <td>
+
+                                        <div class="leave-employee">
+
+                                            <div class="leave-avatar">
+                                                @initials
+                                            </div>
+
+                                            <div>
+
+                                                <div class="leave-employee-name">
+                                                    @employeeName
+                                                </div>
+
+                                                <div class="leave-employee-info">
+
+                                                    @item.EmployeeCode
+                                                    •
+                                                    @item.DesignationTitle
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Casual Leave -->
+
+                                    <td class="leave-type-cell">
+
+                                        <div class="leave-type-header">
+
+                                            <span class="leave-type-value">
+
+                                                @item.CasualLeaveBalance
+                                                /
+                                                @item.CasualLeaveAllocated Days
+
+                                            </span>
+
+                                            <span class="leave-used-text">
+                                                Used: @item.CasualLeaveUsed
+                                            </span>
+
+                                        </div>
+
+                                        <div class="leave-progress">
+
+                                            <div class="leave-progress-bar progress-cl"
+                                                 style="width: @($"{clPercent}%")">
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Sick Leave -->
+
+                                    <td class="leave-type-cell">
+
+                                        <div class="leave-type-header">
+
+                                            <span class="leave-type-value">
+
+                                                @item.SickLeaveBalance
+                                                /
+                                                @item.SickLeaveAllocated Days
+
+                                            </span>
+
+                                            <span class="leave-used-text">
+                                                Used: @item.SickLeaveUsed
+                                            </span>
+
+                                        </div>
+
+                                        <div class="leave-progress">
+
+                                            <div class="leave-progress-bar progress-sl"
+                                                 style="width: @($"{slPercent}%")">
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Earned Leave -->
+
+                                    <td class="leave-type-cell">
+
+                                        <div class="leave-type-header">
+
+                                            <span class="leave-type-value">
+
+                                                @item.EarnedLeaveBalance
+                                                /
+                                                @item.EarnedLeaveAllocated Days
+
+                                            </span>
+
+                                            <span class="leave-used-text">
+                                                Used: @item.EarnedLeaveUsed
+                                            </span>
+
+                                        </div>
+
+                                        <div class="leave-progress">
+
+                                            <div class="leave-progress-bar progress-el"
+                                                 style="width: @($"{elPercent}%")">
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Total Quota -->
+
+                                    <td>
+
+                                        <span class="leave-total-quota">
+
+                                            @item.TotalAllocated Days
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Total Used -->
+
+                                    <td>
+
+                                        <span class="leave-used-pill">
+
+                                            <i class="fa-solid fa-calendar-minus"></i>
+
+                                            @item.TotalUsed Days
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Remaining -->
+
+                                    <td>
+
+                                        <span class="leave-balance-pill">
+
+                                            <i class="fa-solid fa-calendar-check"></i>
+
+                                            @item.TotalRemainingBalance Days
+
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td>
-                                    <div class="fw-bold text-dark">@item.EmployeeName</div>
-                                    <div class="text-muted small">@item.EmployeeCode • @item.DesignationTitle</div>
+
+                                <td colspan="7"
+                                    class="leave-empty-state">
+
+                                    <div class="leave-empty-icon">
+
+                                        <i class="fa-solid fa-plane-slash"></i>
+
+                                    </div>
+
+                                    <h6>No Leave Records Found</h6>
+
+                                    <p>
+                                        No leave records were found
+                                        matching the selected filters.
+                                    </p>
+
                                 </td>
-                                <td>
-                                    <div class="small fw-semibold">@item.CasualLeaveBalance / @item.CasualLeaveAllocated Days</div>
-                                    <div class="text-muted small">Used: @item.CasualLeaveUsed</div>
-                                </td>
-                                <td>
-                                    <div class="small fw-semibold">@item.SickLeaveBalance / @item.SickLeaveAllocated Days</div>
-                                    <div class="text-muted small">Used: @item.SickLeaveUsed</div>
-                                </td>
-                                <td>
-                                    <div class="small fw-semibold">@item.EarnedLeaveBalance / @item.EarnedLeaveAllocated Days</div>
-                                    <div class="text-muted small">Used: @item.EarnedLeaveUsed</div>
-                                </td>
-                                <td class="fw-semibold">@item.TotalAllocated Days</td>
-                                <td class="text-warning fw-bold">@item.TotalUsed Days</td>
-                                <td class="text-success fw-bold fs-6">@item.TotalRemainingBalance Days</td>
+
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">
-                                <i class="fa-solid fa-plane-slash fa-2x mb-2 d-block text-secondary"></i>
-                                No Leave records found matching the selected filters.
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
         </div>
+
     </div>
+    ```
+
 </div>
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const rows = document.querySelectorAll(
+            '.leave-report-table tbody tr'
+        );
+
+        rows.forEach(function (row, index) {
+
+            if (!row.querySelector('.leave-empty-state')) {
+
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(10px)';
+                row.style.transition =
+                    'opacity .35s ease, transform .35s ease, background .2s ease';
+
+                setTimeout(function () {
+
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+
+                }, Math.min(index * 35, 550));
+
+            }
+
+        });
+
+    });
+
+</script>

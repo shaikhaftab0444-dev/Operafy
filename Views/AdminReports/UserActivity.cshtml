@@ -186,12 +186,12 @@
                     </button>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-success fw-bold text-nowrap" onclick="exportLogs('xlsx')">
+                    <a id="btnExportExcel" href="/AdminReports/ExportUserActivityData?format=xlsx" class="btn btn-outline-success fw-bold text-nowrap" download>
                         <i class="fa-solid fa-file-excel me-1.5"></i>Export Excel
-                    </button>
-                    <button type="button" class="btn btn-outline-danger fw-bold text-nowrap" onclick="exportLogs('csv')">
-                        Export CSV
-                    </button>
+                    </a>
+                    <a id="btnExportCsv" href="/AdminReports/ExportUserActivityData?format=csv" class="btn btn-outline-danger fw-bold text-nowrap" download>
+                        <i class="fa-solid fa-file-csv me-1.5"></i>Export CSV
+                    </a>
                 </div>
             </div>
         </form>
@@ -350,48 +350,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 <script>
+    function updateExportLinks() {
+        const formData = $('#filterForm').serialize();
+        $('#btnExportExcel').attr('href', '/AdminReports/ExportUserActivityData?format=xlsx&' + formData);
+        $('#btnExportCsv').attr('href', '/AdminReports/ExportUserActivityData?format=csv&' + formData);
+    }
+    $(document).ready(function() {
+        updateExportLinks();
+        $('#filterForm input, #filterForm select').on('change keyup', updateExportLinks);
+    });
+
     // Trigger logs exporter client-side with server fallback
     function exportLogs(format) {
-        toastr.info(`Preparing user activity report in ${format.toUpperCase()} format...`);
-        
-        try {
-            if (typeof XLSX !== "undefined" && (format.toLowerCase() === "xlsx" || format.toLowerCase() === "csv")) {
-                const table = document.getElementById("userActivityTable");
-                if (!table) throw new Error("Table not found");
-                const wb = XLSX.utils.table_to_book(table, { sheet: "User Activity" });
-                if (format.toLowerCase() === "csv") {
-                    XLSX.writeFile(wb, `User_Activity_Logs_${new Date().toISOString().slice(0,10)}.csv`, { bookType: 'csv' });
-                } else {
-                    XLSX.writeFile(wb, `User_Activity_Logs_${new Date().toISOString().slice(0,10)}.xlsx`);
-                }
-                toastr.success("Report file download completed via Client-Side Engine.");
-                return;
-            }
-            if (typeof window.jspdf !== "undefined" && format.toLowerCase() === "pdf") {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('l', 'pt', 'a4');
-                doc.setFontSize(14);
-                doc.text("User Activity Logs", 40, 30);
-                doc.autoTable({
-                    html: '#userActivityTable',
-                    startY: 50,
-                    theme: 'grid',
-                    styles: { fontSize: 8, cellPadding: 4 },
-                    headStyles: { fillColor: [37, 99, 235] }
-                });
-                doc.save(`User_Activity_Logs_${new Date().toISOString().slice(0,10)}.pdf`);
-                toastr.success("Report file download completed via Client-Side Engine.");
-                return;
-            }
-            throw new Error("Client-side export libraries not loaded.");
-        }
-        catch (err) {
-            console.warn(err.message + " Falling back to Server-side Exporter...");
-            const serverFormat = format.toLowerCase() === "xlsx" ? "excel" : format.toLowerCase();
-            window.location.href = `/AdminReports/ExportUserActivityData?format=${serverFormat}&` + $('#filterForm').serialize();
-            setTimeout(() => {
-                toastr.success("Report file download triggered via Server-side fallback.");
-            }, 1200);
-        }
+        window.location.href = `/AdminReports/ExportUserActivityData?format=${format}&` + $('#filterForm').serialize();
     }
 </script>

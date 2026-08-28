@@ -1,150 +1,1418 @@
 @model ERP_System.Models.AttendanceLateReportViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Attendance & Late-Coming Report";
+
+    var totalRecords = Model.Logs?.Count() ?? 0;
+    var onTimeCount = Model.Logs?.Count(x => x.Status != null && x.Status.Contains("On Time")) ?? 0;
+    var lateCount = Model.Logs?.Count(x => x.Status != null && x.Status.Contains("Late")) ?? 0;
 }
 
-<div class="container-fluid py-4 text-start">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-line text-primary me-2"></i>Attendance & Late-Coming Report</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Attendance Report</li>
+<style>
+    /* =========================================================
+           ATTENDANCE & LATE REPORT - PREMIUM ERP UI
+           ========================================================= */
+
+    .attendance-report-page {
+        --ar-primary: #4f46e5;
+        --ar-primary-dark: #3730a3;
+        --ar-success: #10b981;
+        --ar-warning: #f59e0b;
+        --ar-danger: #ef4444;
+        --ar-info: #0ea5e9;
+        --ar-dark: #111827;
+        --ar-text: #374151;
+        --ar-muted: #6b7280;
+        --ar-border: #e5e7eb;
+        --ar-bg: #f7f8fc;
+        background: var(--ar-bg);
+        min-height: 100%;
+    }
+
+        .attendance-report-page .report-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+    /* ================= HEADER ================= */
+
+    .attendance-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 1.65rem 1.75rem;
+        margin-bottom: 1.5rem;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #172554 0%, #3730a3 52%, #4f46e5 100%);
+        color: #fff;
+        box-shadow: 0 18px 40px rgba(55, 48, 163, .18);
+        animation: reportHeroReveal .65s ease both;
+    }
+
+        .attendance-hero::before {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            top: -145px;
+            right: -55px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.08);
+        }
+
+        .attendance-hero::after {
+            content: "";
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            bottom: -125px;
+            left: 42%;
+            border-radius: 50%;
+            background: rgba(255,255,255,.06);
+        }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .report-title {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .report-title-icon {
+        width: 58px;
+        height: 58px;
+        min-width: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 17px;
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.18);
+        font-size: 1.4rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .report-title h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: -.3px;
+    }
+
+    .report-title p {
+        margin: .25rem 0 0;
+        color: rgba(255,255,255,.72);
+        font-size: .86rem;
+    }
+
+    .report-breadcrumb {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .55rem;
+        margin: 1.15rem 0 0;
+        padding: 0;
+        list-style: none;
+        color: rgba(255,255,255,.68);
+        font-size: .77rem;
+    }
+
+        .report-breadcrumb a {
+            color: rgba(255,255,255,.86);
+            text-decoration: none;
+            transition: .2s ease;
+        }
+
+            .report-breadcrumb a:hover {
+                color: #fff;
+            }
+
+        .report-breadcrumb .separator {
+            opacity: .55;
+            font-size: .65rem;
+        }
+
+    .report-actions {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .65rem;
+        margin-top: 1.25rem;
+    }
+
+    .report-action-btn {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        padding: .55rem .95rem;
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: 11px;
+        background: rgba(255,255,255,.10);
+        color: #fff;
+        text-decoration: none;
+        font-size: .78rem;
+        font-weight: 650;
+        backdrop-filter: blur(8px);
+        transition: all .22s ease;
+    }
+
+        .report-action-btn:hover {
+            color: #fff;
+            background: rgba(255,255,255,.18);
+            transform: translateY(-2px);
+        }
+
+        .report-action-btn.primary-action {
+            background: #fff;
+            color: #4338ca;
+            border-color: #fff;
+            box-shadow: 0 8px 18px rgba(0,0,0,.12);
+        }
+
+            .report-action-btn.primary-action:hover {
+                color: #312e81;
+                background: #f8fafc;
+            }
+
+    /* ================= STAT CARDS ================= */
+
+    .attendance-stat-card {
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        padding: 1.2rem;
+        border: 1px solid var(--ar-border);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 8px 24px rgba(15,23,42,.045);
+        transition: transform .25s ease, box-shadow .25s ease;
+        animation: reportCardReveal .6s ease both;
+    }
+
+        .attendance-stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 18px 35px rgba(15,23,42,.10);
+        }
+
+        .attendance-stat-card::after {
+            content: "";
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            right: -35px;
+            bottom: -42px;
+            border-radius: 50%;
+            opacity: .08;
+        }
+
+    .stat-success::after {
+        background: var(--ar-success);
+    }
+
+    .stat-dark::after {
+        background: #475569;
+    }
+
+    .stat-warning::after {
+        background: var(--ar-warning);
+    }
+
+    .stat-primary::after {
+        background: var(--ar-primary);
+    }
+
+    .attendance-stat-card:nth-child(1) {
+        animation-delay: .05s;
+    }
+
+    .attendance-stat-card:nth-child(2) {
+        animation-delay: .12s;
+    }
+
+    .attendance-stat-card:nth-child(3) {
+        animation-delay: .19s;
+    }
+
+    .attendance-stat-card:nth-child(4) {
+        animation-delay: .26s;
+    }
+
+    .stat-icon-box {
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: .9rem;
+        border-radius: 14px;
+        font-size: 1rem;
+    }
+
+    .stat-success .stat-icon-box {
+        color: #059669;
+        background: #ecfdf5;
+    }
+
+    .stat-dark .stat-icon-box {
+        color: #475569;
+        background: #f1f5f9;
+    }
+
+    .stat-warning .stat-icon-box {
+        color: #d97706;
+        background: #fffbeb;
+    }
+
+    .stat-primary .stat-icon-box {
+        color: #4f46e5;
+        background: #eef2ff;
+    }
+
+    .stat-label {
+        display: block;
+        margin-bottom: .35rem;
+        color: var(--ar-muted);
+        font-size: .71rem;
+        font-weight: 750;
+        letter-spacing: .045em;
+        text-transform: uppercase;
+    }
+
+    .stat-value {
+        color: var(--ar-dark);
+        font-size: 1.2rem;
+        font-weight: 800;
+        line-height: 1.35;
+        letter-spacing: -.3px;
+    }
+
+        .stat-value .small-value {
+            font-size: .85rem;
+            font-weight: 700;
+        }
+
+    /* ================= FILTER CARD ================= */
+
+    .attendance-filter-card {
+        margin-bottom: 1.5rem;
+        padding: 1.3rem;
+        border: 1px solid var(--ar-border);
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 8px 25px rgba(15,23,42,.045);
+        animation: reportFadeUp .6s ease .1s both;
+    }
+
+    .filter-heading {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        margin-bottom: 1.1rem;
+    }
+
+    .filter-heading-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        color: var(--ar-primary);
+        background: #eef2ff;
+    }
+
+    .filter-heading h5 {
+        margin: 0;
+        color: var(--ar-dark);
+        font-size: .92rem;
+        font-weight: 750;
+    }
+
+    .filter-heading p {
+        margin: .1rem 0 0;
+        color: var(--ar-muted);
+        font-size: .73rem;
+    }
+
+    .filter-label {
+        margin-bottom: .4rem;
+        color: #64748b;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+    .attendance-filter-card .form-control,
+    .attendance-filter-card .form-select {
+        min-height: 43px;
+        border-color: #e2e8f0;
+        border-radius: 11px;
+        font-size: .82rem;
+        box-shadow: none;
+        transition: all .2s ease;
+    }
+
+        .attendance-filter-card .form-control:focus,
+        .attendance-filter-card .form-select:focus {
+            border-color: var(--ar-primary);
+            box-shadow: 0 0 0 4px rgba(79,70,229,.09);
+        }
+
+    .search-input-wrap {
+        position: relative;
+    }
+
+        .search-input-wrap i {
+            position: absolute;
+            left: .95rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: .8rem;
+            pointer-events: none;
+        }
+
+        .search-input-wrap input {
+            padding-left: 2.5rem;
+        }
+
+    .filter-btn {
+        min-height: 43px;
+        border-radius: 11px;
+        font-size: .8rem;
+        font-weight: 650;
+        transition: all .2s ease;
+    }
+
+        .filter-btn:hover {
+            transform: translateY(-1px);
+        }
+
+    /* ================= REPORT TABLE ================= */
+
+    .attendance-table-card {
+        overflow: hidden;
+        border: 1px solid var(--ar-border);
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 8px 25px rgba(15,23,42,.05);
+        animation: reportFadeUp .65s ease .18s both;
+    }
+
+    .attendance-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.2rem 1.35rem;
+        border-bottom: 1px solid var(--ar-border);
+    }
+
+    .attendance-table-title {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .attendance-table-icon {
+        width: 41px;
+        height: 41px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        color: #4f46e5;
+        background: #eef2ff;
+    }
+
+    .attendance-table-title h5 {
+        margin: 0;
+        color: var(--ar-dark);
+        font-size: .95rem;
+        font-weight: 750;
+    }
+
+    .attendance-table-title span {
+        display: block;
+        margin-top: .15rem;
+        color: var(--ar-muted);
+        font-size: .73rem;
+    }
+
+    .record-pill {
+        padding: .43rem .75rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #4338ca;
+        font-size: .73rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .attendance-report-table {
+        margin: 0;
+        font-size: .82rem;
+    }
+
+        .attendance-report-table thead th {
+            padding: .95rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: .67rem;
+            font-weight: 750;
+            letter-spacing: .045em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .attendance-report-table tbody td {
+            padding: 1rem;
+            border-color: #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .attendance-report-table tbody tr {
+            transition: background .2s ease;
+        }
+
+            .attendance-report-table tbody tr:hover {
+                background: #fafbff;
+            }
+
+    .employee-report-cell {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        min-width: 180px;
+    }
+
+    .employee-report-avatar {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+        color: #4f46e5;
+        font-size: .75rem;
+        font-weight: 800;
+    }
+
+    .employee-report-name {
+        margin-bottom: .15rem;
+        color: var(--ar-dark);
+        font-size: .83rem;
+        font-weight: 750;
+    }
+
+    .employee-report-code {
+        color: var(--ar-muted);
+        font-size: .69rem;
+    }
+
+    .date-display {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        color: var(--ar-text);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .date-display i {
+            color: #94a3b8;
+        }
+
+    .time-display {
+        color: var(--ar-dark);
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+        .time-display i {
+            margin-right: .35rem;
+            color: #94a3b8;
+            font-size: .72rem;
+        }
+
+    .work-hours-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: .42rem .68rem;
+        border-radius: 9px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+        font-size: .73rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .punch-source {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        color: #64748b;
+        font-size: .75rem;
+        white-space: nowrap;
+    }
+
+        .punch-source i {
+            color: #94a3b8;
+        }
+
+    .status-report-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .45rem .72rem;
+        border-radius: 999px;
+        font-size: .71rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .status-on-time {
+        color: #047857;
+        background: #ecfdf5;
+    }
+
+    .status-late {
+        color: #b45309;
+        background: #fffbeb;
+    }
+
+    .status-absent {
+        color: #b91c1c;
+        background: #fef2f2;
+    }
+
+    .status-leave {
+        color: #0369a1;
+        background: #f0f9ff;
+    }
+
+    .status-default {
+        color: #475569;
+        background: #f1f5f9;
+    }
+
+    /* ================= EMPTY STATE ================= */
+
+    .empty-report-state {
+        padding: 4rem 1.5rem !important;
+        text-align: center;
+    }
+
+    .empty-report-icon {
+        width: 76px;
+        height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        border-radius: 22px;
+        background: #f8fafc;
+        color: #94a3b8;
+        font-size: 1.8rem;
+    }
+
+    .empty-report-state h6 {
+        margin-bottom: .4rem;
+        color: #334155;
+        font-weight: 750;
+    }
+
+    .empty-report-state p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: .8rem;
+    }
+
+    /* ================= ANIMATIONS ================= */
+
+    @@keyframes reportHeroReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes reportCardReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes reportFadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* ================= RESPONSIVE ================= */
+
+    @@media (max-width: 991.98px) {
+
+        .attendance-hero {
+            padding: 1.4rem;
+        }
+
+        .report-actions {
+            justify-content: flex-start;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+
+        .attendance-report-page {
+            padding: .5rem !important;
+        }
+
+        .attendance-hero {
+            border-radius: 18px;
+            padding: 1.2rem;
+        }
+
+        .report-title-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 14px;
+        }
+
+        .report-title h2 {
+            font-size: 1.12rem;
+        }
+
+        .report-title p {
+            font-size: .77rem;
+        }
+
+        .report-actions {
+            gap: .5rem;
+        }
+
+        .report-action-btn {
+            flex: 1 1 auto;
+        }
+
+        .attendance-filter-card {
+            padding: 1.05rem;
+        }
+
+        .attendance-table-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .record-pill {
+            align-self: flex-start;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+
+        .attendance-hero {
+            margin-bottom: 1rem;
+        }
+
+        .report-title {
+            align-items: flex-start;
+        }
+
+        .report-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .report-action-btn {
+            width: 100%;
+        }
+
+        .attendance-stat-card {
+            padding: 1rem;
+            border-radius: 16px;
+        }
+
+        .stat-icon-box {
+            width: 40px;
+            height: 40px;
+            margin-bottom: .7rem;
+        }
+
+        .stat-value {
+            font-size: 1.05rem;
+        }
+
+        .attendance-filter-card,
+        .attendance-table-card {
+            border-radius: 16px;
+        }
+
+        .attendance-table-title span {
+            display: none;
+        }
+
+        .attendance-table-header {
+            padding: 1rem;
+        }
+    }
+
+    /* ================= PRINT ================= */
+
+    @@media print {
+
+        .attendance-report-page {
+            background: #fff !important;
+        }
+
+        .report-actions,
+        .attendance-filter-card,
+        .report-breadcrumb {
+            display: none !important;
+        }
+
+        .attendance-hero {
+            color: #000 !important;
+            background: #fff !important;
+            box-shadow: none !important;
+            border: 1px solid #ddd;
+        }
+
+            .attendance-hero * {
+                color: #000 !important;
+            }
+
+        .attendance-stat-card,
+        .attendance-table-card {
+            box-shadow: none !important;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4 text-start attendance-report-page">
+    <div class="report-inner">
+
+        <!-- =====================================================
+             HEADER
+             ===================================================== -->
+
+        <div class="attendance-hero">
+
+            <div class="hero-content">
+
+                <div class="report-title">
+
+                    <div class="report-title-icon">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+
+                    <div>
+                        <h2>Attendance & Late-Coming Report</h2>
+                        <p>
+                            Analyze employee attendance, working hours,
+                            check-in activity and late arrivals.
+                        </p>
+                    </div>
+
+                </div>
+
+                <ol class="report-breadcrumb">
+
+                    <li>
+                        <a href="/HR">
+                            <i class="fa-solid fa-house me-1"></i>
+                            HR Dashboard
+                        </a>
+                    </li>
+
+                    <li class="separator">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </li>
+
+                    <li>Reports</li>
+
+                    <li class="separator">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </li>
+
+                    <li class="text-white">Attendance Report</li>
+
                 </ol>
-            </nav>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="/HRReports/ExportAttendanceLate?format=csv&search=@ViewBag.Search&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus" class="btn btn-outline-secondary btn-sm rounded-pill">
-                <i class="fa-solid fa-file-csv me-1.5 text-primary"></i>Export CSV
-            </a>
-            <a href="/HRReports/ExportAttendanceLate?format=excel&search=@ViewBag.Search&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus" class="btn btn-outline-secondary btn-sm rounded-pill">
-                <i class="fa-solid fa-file-excel me-1.5 text-success"></i>Export Excel
-            </a>
-            <button onclick="window.print()" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
-                <i class="fa-solid fa-print me-1.5"></i>Print Report
-            </button>
-        </div>
-    </div>
 
-    <!-- Stats summary cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Total Present Days</div>
-                <h4 class="fw-bold text-success mt-2 mb-0">@Model.TotalPresent Days</h4>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Average Check-in Time</div>
-                <h4 class="fw-bold text-dark mt-2 mb-0">@Model.AvgCheckInTime</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Late Punch-ins & Minutes</div>
-                <h4 class="fw-bold text-warning mt-2 mb-0">@Model.TotalLateInstances Instances (@Model.TotalLateMinutes mins)</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Avg Daily Working Hours</div>
-                <h4 class="fw-bold text-primary mt-2 mb-0">@Model.AvgDailyWorkHours hrs/day</h4>
-            </div>
-        </div>
-    </div>
 
-    <!-- Filters Bar -->
-    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
-        <form method="get" action="/HRReports/AttendanceLate" class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search Employee Code, Name..." value="@Model.SearchTerm" />
+            <div class="report-actions">
+
+                <a href="/HRReports/ExportAttendanceLate?format=csv&search=@ViewBag.Search&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus"
+                   class="report-action-btn" download>
+
+                    <i class="fa-solid fa-file-csv"></i>
+                    Export CSV
+
+                </a>
+
+                <a href="/HRReports/ExportAttendanceLate?format=excel&search=@ViewBag.Search&departmentId=@Model.SelectedDepartmentId&status=@Model.SelectedStatus"
+                   class="report-action-btn" download>
+
+                    <i class="fa-solid fa-file-excel"></i>
+                    Export Excel
+
+                </a>
+
+                <button type="button"
+                        onclick="window.print()"
+                        class="report-action-btn primary-action">
+
+                    <i class="fa-solid fa-print"></i>
+                    Print Report
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SUMMARY CARDS
+             ===================================================== -->
+
+        <div class="row g-3 mb-4">
+
+            <div class="col-xl-3 col-md-6">
+                <div class="attendance-stat-card stat-success">
+
+                    <div class="stat-icon-box">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+
+                    <span class="stat-label">
+                        Total Present Days
+                    </span>
+
+                    <div class="stat-value">
+                        @Model.TotalPresent
+                        <span class="small-value">Days</span>
+                    </div>
+
                 </div>
             </div>
-            <div class="col-md-3">
-                <select name="departmentId" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Departments</option>
-                    @foreach (var d in Model.Departments)
-                    {
-                        <option value="@d.DepartmentId" selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">@d.DepartmentName</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="All">All Attendance Statuses</option>
-                    <option value="Present" selected="@(Model.SelectedStatus == "Present" ? "selected" : null)">Present (On Time)</option>
-                    <option value="Late" selected="@(Model.SelectedStatus == "Late" ? "selected" : null)">Late Check-in</option>
-                    <option value="Absent" selected="@(Model.SelectedStatus == "Absent" ? "selected" : null)">Absent</option>
-                    <option value="Leave" selected="@(Model.SelectedStatus == "Leave" ? "selected" : null)">On Leave</option>
-                </select>
-            </div>
-            <div class="col-md-2 text-end">
-                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">Filter</button>
-                <a href="/HRReports/AttendanceLate" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
-            </div>
-        </form>
-    </div>
 
-    <!-- Report Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Employee</th>
-                        <th>Date</th>
-                        <th>Check-In</th>
-                        <th>Check-Out</th>
-                        <th>Work Hours</th>
-                        <th>Punch Source</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.Logs != null && Model.Logs.Any())
-                    {
-                        foreach (var log in Model.Logs)
+            <div class="col-xl-3 col-md-6">
+                <div class="attendance-stat-card stat-dark">
+
+                    <div class="stat-icon-box">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+
+                    <span class="stat-label">
+                        Average Check-In Time
+                    </span>
+
+                    <div class="stat-value">
+                        @Model.AvgCheckInTime
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="attendance-stat-card stat-warning">
+
+                    <div class="stat-icon-box">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+
+                    <span class="stat-label">
+                        Late Punch-Ins
+                    </span>
+
+                    <div class="stat-value">
+                        @Model.TotalLateInstances
+                        <span class="small-value">Instances</span>
+                    </div>
+
+                    <div class="small text-muted mt-1">
+                        @Model.TotalLateMinutes total late minutes
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="attendance-stat-card stat-primary">
+
+                    <div class="stat-icon-box">
+                        <i class="fa-solid fa-business-time"></i>
+                    </div>
+
+                    <span class="stat-label">
+                        Avg Daily Working Hours
+                    </span>
+
+                    <div class="stat-value">
+                        @Model.AvgDailyWorkHours
+                        <span class="small-value">hrs/day</span>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             FILTERS
+             ===================================================== -->
+
+        <div class="attendance-filter-card">
+
+            <div class="filter-heading">
+
+                <div class="filter-heading-icon">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+
+                <div>
+                    <h5>Search & Filter Report</h5>
+                    <p>Filter attendance data by employee, department or status.</p>
+                </div>
+
+            </div>
+
+            <form method="get"
+                  action="/HRReports/AttendanceLate"
+                  class="row g-3 align-items-end">
+
+                <div class="col-xl-4 col-md-6">
+
+                    <label class="filter-label">
+                        Search Employee
+                    </label>
+
+                    <div class="search-input-wrap">
+
+                        <i class="fa-solid fa-magnifying-glass"></i>
+
+                        <input type="text"
+                               name="search"
+                               class="form-control"
+                               placeholder="Employee code or name..."
+                               value="@Model.SearchTerm" />
+
+                    </div>
+
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+
+                    <label class="filter-label">
+                        Department
+                    </label>
+
+                    <select name="departmentId"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        <option value="">
+                            All Departments
+                        </option>
+
+                        @foreach (var d in Model.Departments)
                         {
-                            string badgeClass = log.Status switch
-                            {
-                                string s when s.Contains("On Time") => "bg-success-subtle text-success",
-                                string s when s.Contains("Late") => "bg-warning-subtle text-warning",
-                                string s when s.Contains("Absent") => "bg-danger-subtle text-danger",
-                                string s when s.Contains("Leave") => "bg-info-subtle text-info",
-                                _ => "bg-light text-dark"
-                            };
+                            <option value="@d.DepartmentId"
+                                    selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">
+                                @d.DepartmentName
+                            </option>
+                        }
 
+                    </select>
+
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+
+                    <label class="filter-label">
+                        Attendance Status
+                    </label>
+
+                    <select name="status"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        <option value="All">
+                            All Attendance Statuses
+                        </option>
+
+                        <option value="Present"
+                                selected="@(Model.SelectedStatus == "Present" ? "selected" : null)">
+                            Present (On Time)
+                        </option>
+
+                        <option value="Late"
+                                selected="@(Model.SelectedStatus == "Late" ? "selected" : null)">
+                            Late Check-in
+                        </option>
+
+                        <option value="Absent"
+                                selected="@(Model.SelectedStatus == "Absent" ? "selected" : null)">
+                            Absent
+                        </option>
+
+                        <option value="Leave"
+                                selected="@(Model.SelectedStatus == "Leave" ? "selected" : null)">
+                            On Leave
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-xl-2 col-md-6">
+
+                    <label class="filter-label d-block">
+                        Actions
+                    </label>
+
+                    <div class="d-flex gap-2">
+
+                        <button type="submit"
+                                class="btn btn-primary filter-btn flex-grow-1">
+
+                            <i class="fa-solid fa-filter me-1"></i>
+                            Filter
+
+                        </button>
+
+                        <a href="/HRReports/AttendanceLate"
+                           class="btn btn-outline-secondary filter-btn">
+
+                            <i class="fa-solid fa-rotate-left"></i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+        <!-- =====================================================
+             REPORT TABLE
+             ===================================================== -->
+
+        <div class="attendance-table-card">
+
+            <div class="attendance-table-header">
+
+                <div class="attendance-table-title">
+
+                    <div class="attendance-table-icon">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+
+                    <div>
+
+                        <h5>Attendance Activity Records</h5>
+
+                        <span>
+                            Employee check-in, check-out,
+                            working hours and attendance status.
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <span class="record-pill">
+
+                    <i class="fa-solid fa-list me-1"></i>
+
+                    @totalRecords Record@(totalRecords == 1 ? "" : "s")
+
+                </span>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table attendance-report-table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Employee</th>
+                            <th>Date</th>
+                            <th>Check-In</th>
+                            <th>Check-Out</th>
+                            <th>Work Hours</th>
+                            <th>Punch Source</th>
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Logs != null && Model.Logs.Any())
+                        {
+                            foreach (var log in Model.Logs)
+                            {
+                                var employeeName = log.EmployeeName ?? "N/A";
+
+                                var initials = "NA";
+
+                                if (employeeName != "N/A" &&
+                                !string.IsNullOrWhiteSpace(employeeName))
+                                {
+                                    var nameParts =
+                                    employeeName.Split(
+                                    ' ',
+                                    StringSplitOptions.RemoveEmptyEntries
+                                    );
+
+                                    initials = string.Join(
+                                    "",
+                                    nameParts.Take(2).Select(x => x[0])
+                                    ).ToUpper();
+                                }
+
+                                var statusClass = "status-default";
+                                var statusIcon = "fa-circle-info";
+
+                                if (log.Status != null)
+                                {
+                                    if (log.Status.Contains("On Time"))
+                                    {
+                                        statusClass = "status-on-time";
+                                        statusIcon = "fa-circle-check";
+                                    }
+                                    else if (log.Status.Contains("Late"))
+                                    {
+                                        statusClass = "status-late";
+                                        statusIcon = "fa-clock";
+                                    }
+                                    else if (log.Status.Contains("Absent"))
+                                    {
+                                        statusClass = "status-absent";
+                                        statusIcon = "fa-circle-xmark";
+                                    }
+                                    else if (log.Status.Contains("Leave"))
+                                    {
+                                        statusClass = "status-leave";
+                                        statusIcon = "fa-calendar-minus";
+                                    }
+                                }
+
+                        <tr>
+
+                            <td>
+
+                                <div class="employee-report-cell">
+
+                                    <div class="employee-report-avatar">
+                                        @initials
+                                    </div>
+
+                                    <div>
+
+                                        <div class="employee-report-name">
+                                            @employeeName
+                                        </div>
+
+                                        <div class="employee-report-code">
+                                            @log.EmployeeCode
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                <span class="date-display">
+
+                                    <i class="fa-solid fa-calendar-day"></i>
+
+                                    @log.Date.ToString("dd MMM yyyy")
+
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <div class="time-display">
+
+                                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
+
+                                    @(log.CheckInTime.HasValue
+                                                                        ? log.CheckInTime.Value.ToString("hh:mm tt")
+                                                                        : "N/A")
+
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                <div class="time-display">
+
+                                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+
+                                    @(log.CheckOutTime.HasValue
+                                                                        ? log.CheckOutTime.Value.ToString("hh:mm tt")
+                                                                        : "N/A")
+
+                                </div>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="work-hours-pill">
+
+                                            <i class="fa-regular fa-clock me-1"></i>
+
+                                            @log.WorkHours
+
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="punch-source">
+
+                                            <i class="fa-solid fa-desktop"></i>
+
+                                            @log.PunchSource
+
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="status-report-pill @statusClass">
+
+                                            <i class="fa-solid @statusIcon"></i>
+
+                                            @log.Status
+
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+                                                }
+                        }
+                        else
+                        {
                             <tr>
-                                <td>
-                                    <div class="fw-bold text-dark">@log.EmployeeName</div>
-                                    <div class="text-muted small">@log.EmployeeCode</div>
+
+                                <td colspan="7"
+                                    class="empty-report-state">
+
+                                    <div class="empty-report-icon">
+
+                                        <i class="fa-solid fa-calendar-xmark"></i>
+
+                                    </div>
+
+                                    <h6>No Attendance Records Found</h6>
+
+                                    <p>
+                                        No attendance records match
+                                        your current search and filters.
+                                    </p>
+
                                 </td>
-                                <td><i class="fa-solid fa-calendar-day me-1 text-muted"></i>@log.Date.ToString("dd MMM yyyy")</td>
-                                <td class="fw-semibold">@(log.CheckInTime.HasValue ? log.CheckInTime.Value.ToString("hh:mm tt") : "N/A")</td>
-                                <td class="fw-semibold">@(log.CheckOutTime.HasValue ? log.CheckOutTime.Value.ToString("hh:mm tt") : "N/A")</td>
-                                <td><span class="badge bg-light text-dark border">@log.WorkHours</span></td>
-                                <td><span class="small text-muted"><i class="fa-solid fa-desktop me-1"></i>@log.PunchSource</span></td>
-                                <td><span class="badge @badgeClass fw-semibold">@log.Status</span></td>
+
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">
-                                <i class="fa-solid fa-calendar-xmark fa-2x mb-2 d-block text-secondary"></i>
-                                No Attendance records found matching the selected filters.
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
         </div>
+
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Add a subtle stagger animation to table rows
+        const tableRows = document.querySelectorAll(
+            '.attendance-report-table tbody tr'
+        );
+
+        tableRows.forEach(function (row, index) {
+
+            if (!row.querySelector('.empty-report-state')) {
+
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(8px)';
+                row.style.transition =
+                    'opacity .35s ease, transform .35s ease, background .2s ease';
+
+                setTimeout(function () {
+
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+
+                }, Math.min(index * 35, 500));
+            }
+        });
+    });
+</script>
