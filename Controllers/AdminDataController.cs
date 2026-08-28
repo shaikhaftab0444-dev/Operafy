@@ -211,14 +211,21 @@ namespace ERP_System.Controllers
         {
             if (string.IsNullOrEmpty(moduleType) || string.IsNullOrEmpty(format))
             {
-                return BadRequest();
+                return BadRequest(new { success = false, message = "Module type and export format are required." });
             }
 
             int? branchId = null;
-            if (branch != "All Branches")
+            if (!string.IsNullOrEmpty(branch) && branch != "All Branches" && branch != "0")
             {
-                var br = await _context.Branches.FirstOrDefaultAsync(b => b.BranchName == branch);
-                if (br != null) branchId = br.BranchId;
+                if (int.TryParse(branch, out int bId) && bId > 0)
+                {
+                    branchId = bId;
+                }
+                else
+                {
+                    var br = await _context.Branches.FirstOrDefaultAsync(b => b.BranchName == branch);
+                    if (br != null) branchId = br.BranchId;
+                }
             }
 
             DateTime? from = fromDate;
@@ -227,71 +234,18 @@ namespace ERP_System.Controllers
             if (dateRange == "Current FY 2026-27")
             {
                 from = new DateTime(2026, 4, 1);
-                to = new DateTime(2027, 3, 31);
+                to = new DateTime(2027, 3, 31, 23, 59, 59);
             }
             else if (dateRange == "This Month")
             {
                 var today = DateTime.Today;
                 from = new DateTime(today.Year, today.Month, 1);
-                to = from.Value.AddMonths(1).AddDays(-1);
+                to = from.Value.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
             }
 
             var data = await GetDatasetData(moduleType, from, to, branchId);
-            if (format.ToLower() == "json")
-            {
-                return Json(new { headers = data.Headers, rows = data.Rows });
-            }
 
-            byte[] fileBytes;
-            string contentType;
-            string fileExtension = format.ToLower() == "csv" ? "csv" : (format.ToLower() == "pdf" ? "pdf" : "xlsx");
-            string filename = $"{moduleType.Replace(" ", "_").ToLower()}_export_{DateTime.Now:yyyyMMdd_HHmmss}.{fileExtension}";
-
-            if (format.ToLower() == "csv")
-            {
-                contentType = "text/csv";
-                var csv = new System.Text.StringBuilder();
-                csv.AppendLine(string.Join(",", data.Headers.Select(h => $"\"{h}\"")));
-                foreach (var r in data.Rows)
-                {
-                    csv.AppendLine(string.Join(",", r.Select(val => $"\"{val.Replace("\"", "\"\"")}\"")));
-                }
-                fileBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
-            }
-            else if (format.ToLower() == "pdf")
-            {
-                contentType = "application/pdf";
-                fileBytes = GenerateSimplePdf(moduleType, data.Headers, data.Rows);
-            }
-            else
-            {
-                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                var html = new System.Text.StringBuilder();
-                html.Append("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
-                html.Append("<head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Export</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>");
-                html.Append("<body><table border=\"1\">");
-                
-                html.Append("<tr>");
-                foreach (var h in data.Headers)
-                {
-                    html.Append($"<th style=\"background-color:#2563eb; color:#ffffff; font-weight:bold;\">{h}</th>");
-                }
-                html.Append("</tr>");
-
-                foreach (var r in data.Rows)
-                {
-                    html.Append("<tr>");
-                    foreach (var val in r)
-                    {
-                        html.Append($"<td>{val}</td>");
-                    }
-                    html.Append("</tr>");
-                }
-
-                html.Append("</table></body></html>");
-                fileBytes = System.Text.Encoding.UTF8.GetBytes(html.ToString());
-            }
-
+            // Log export audit entry in database for every request
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
             var log = new ExportAuditLog
             {
@@ -307,6 +261,53 @@ namespace ERP_System.Controllers
             _context.ExportAuditLogs.Add(log);
             await _context.SaveChangesAsync();
 
+            if (format.ToLower() == "json")
+            {
+                return Json(new
+                {
+                    headers = data.Headers,
+                    rows = data.Rows,
+                    auditLog = new
+                    {
+                        datasetName = log.DatasetName,
+                        fileFormat = log.FileFormat,
+                        recordsCount = log.RecordsCount,
+                        exportedBy = log.ExportedBy,
+                        exportedAt = log.ExportedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt"),
+                        ipAddress = log.IpAddress,
+                        status = log.Status
+                    }
+                });
+            }
+
+            byte[] fileBytes;
+            string contentType;
+            string fileExtension = format.ToLower() == "csv" ? "csv" : (format.ToLower() == "pdf" ? "pdf" : "xls");
+            string filename = $"{moduleType.Replace(" ", "_").Replace("&", "and").ToLower()}_export_{DateTime.Now:yyyyMMdd_HHmmss}.{fileExtension}";
+
+            if (format.ToLower() == "csv")
+            {
+                contentType = "text/csv; charset=utf-8";
+                var csv = new System.Text.StringBuilder();
+                csv.Append("\uFEFF"); // UTF-8 BOM
+                csv.AppendLine(string.Join(",", data.Headers.Select(h => $"\"{h.Replace("\"", "\"\"")}\"")));
+                foreach (var r in data.Rows)
+                {
+                    csv.AppendLine(string.Join(",", r.Select(val => $"\"{val.Replace("\"", "\"\"")}\"")));
+                }
+                fileBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+            }
+            else if (format.ToLower() == "pdf")
+            {
+                contentType = "application/pdf";
+                fileBytes = GeneratePdfDocument(moduleType, data.Headers, data.Rows);
+            }
+            else
+            {
+                contentType = "application/vnd.ms-excel";
+                fileBytes = GenerateExcelSpreadsheet(data.Headers, data.Rows);
+            }
+
             return File(fileBytes, contentType, filename);
         }
 
@@ -315,21 +316,23 @@ namespace ERP_System.Controllers
             var headers = new List<string>();
             var rows = new List<List<string>>();
 
-            switch (moduleType.ToLower())
+            switch (moduleType.Trim().ToLower())
             {
                 case "employee directory master":
-                    headers = new List<string> { "EmployeeCode", "FullName", "Email", "Phone", "Status" };
+                    headers = new List<string> { "Employee Code", "Full Name", "Email Address", "Mobile Number", "Status" };
                     var usersQuery = _context.Users.AsQueryable();
                     if (branchId.HasValue) usersQuery = usersQuery.Where(u => u.BranchId == branchId.Value);
+                    if (fromDate.HasValue) usersQuery = usersQuery.Where(u => u.CreatedAt >= fromDate.Value);
+                    if (toDate.HasValue) usersQuery = usersQuery.Where(u => u.CreatedAt <= toDate.Value);
                     var users = await usersQuery.ToListAsync();
                     foreach (var u in users)
                     {
-                        rows.Add(new List<string> { u.UserCode, u.FullName, u.Email, u.MobileNumber ?? "", u.IsActive ? "Active" : "Locked" });
+                        rows.Add(new List<string> { u.UserCode, u.FullName, u.Email, u.MobileNumber ?? "N/A", u.IsActive ? "Active" : "Locked" });
                     }
                     break;
 
                 case "items & skus catalog":
-                    headers = new List<string> { "ItemCode", "ItemName", "Category", "StockQty", "Price", "Status" };
+                    headers = new List<string> { "Item Code", "Item Name", "Category", "Stock Qty", "Selling Price", "Status" };
                     var productsQuery = _context.Products.AsQueryable();
                     if (branchId.HasValue) productsQuery = productsQuery.Where(p => p.BranchId == branchId.Value);
                     var products = await productsQuery.ToListAsync();
@@ -340,25 +343,32 @@ namespace ERP_System.Controllers
                     break;
 
                 case "customers & clients directory":
-                    headers = new List<string> { "CustomerCode", "CompanyName", "Email", "Phone" };
-                    var customers = await _context.Customers.ToListAsync();
+                    headers = new List<string> { "Customer Code", "Customer Name", "Email Address", "Phone Number", "Joined Date", "Status" };
+                    var customersQuery = _context.Customers.AsQueryable();
+                    if (fromDate.HasValue) customersQuery = customersQuery.Where(c => c.JoinedDate >= fromDate.Value);
+                    if (toDate.HasValue) customersQuery = customersQuery.Where(c => c.JoinedDate <= toDate.Value);
+                    var customers = await customersQuery.ToListAsync();
                     foreach (var c in customers)
                     {
-                        rows.Add(new List<string> { $"CUST{c.Id}", c.CustomerName, c.Email, c.PhoneNumber });
+                        rows.Add(new List<string> { $"CUST{c.Id:D3}", c.CustomerName, c.Email, c.PhoneNumber, c.JoinedDate?.ToString("yyyy-MM-dd") ?? "N/A", c.IsActive ? "Active" : "Inactive" });
                     }
                     break;
 
                 case "vendors & suppliers list":
-                    headers = new List<string> { "VendorCode", "VendorName", "ContactPerson", "Email", "Phone" };
-                    var suppliers = await _context.Suppliers.ToListAsync();
+                    headers = new List<string> { "Vendor Code", "Vendor Name", "Contact Person", "Email Address", "Phone", "City", "Status" };
+                    var suppliersQuery = _context.Suppliers.AsQueryable();
+                    if (branchId.HasValue) suppliersQuery = suppliersQuery.Where(s => s.BranchId == branchId.Value);
+                    if (fromDate.HasValue) suppliersQuery = suppliersQuery.Where(s => s.CreatedAt >= fromDate.Value);
+                    if (toDate.HasValue) suppliersQuery = suppliersQuery.Where(s => s.CreatedAt <= toDate.Value);
+                    var suppliers = await suppliersQuery.ToListAsync();
                     foreach (var s in suppliers)
                     {
-                        rows.Add(new List<string> { s.SupplierCode ?? "", s.SupplierName, s.ContactPerson, s.Email, s.Phone });
+                        rows.Add(new List<string> { s.SupplierCode ?? $"VND{s.SupplierId:D3}", s.SupplierName, s.ContactPerson ?? "N/A", s.Email ?? "N/A", string.IsNullOrEmpty(s.Phone) ? s.Mobile : s.Phone, s.City ?? "N/A", s.IsActive ? "Active" : "Inactive" });
                     }
                     break;
 
                 case "chart of accounts & daybook":
-                    headers = new List<string> { "TransactionId", "Type", "Amount", "Date", "Status", "PartyName" };
+                    headers = new List<string> { "Transaction ID", "Type", "Amount", "Date", "Status", "Party Name" };
                     var txQuery = _context.Transactions.AsQueryable();
                     if (fromDate.HasValue) txQuery = txQuery.Where(t => t.Date >= fromDate.Value);
                     if (toDate.HasValue) txQuery = txQuery.Where(t => t.Date <= toDate.Value);
@@ -370,7 +380,7 @@ namespace ERP_System.Controllers
                     break;
 
                 case "tax & gst hsn master":
-                    headers = new List<string> { "TaxCode", "Description", "CombinedRate", "CGST", "SGST", "IGST", "Status" };
+                    headers = new List<string> { "Tax Code", "Description", "Combined Rate (%)", "CGST (%)", "SGST (%)", "IGST (%)", "Status" };
                     var taxSlabs = await _context.TaxSlabs.ToListAsync();
                     foreach (var t in taxSlabs)
                     {
@@ -382,48 +392,133 @@ namespace ERP_System.Controllers
             return (headers, rows);
         }
 
-        private byte[] GenerateSimplePdf(string title, List<string> headers, List<List<string>> rows)
+        private byte[] GenerateExcelSpreadsheet(List<string> headers, List<List<string>> rows)
         {
-            using (var ms = new MemoryStream())
+            var xml = new System.Text.StringBuilder();
+            xml.AppendLine("<?xml version=\"1.0\"?>");
+            xml.AppendLine("<?mso-application progid=\"Excel.Sheet\"?>");
+            xml.AppendLine("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"");
+            xml.AppendLine(" xmlns:o=\"urn:schemas-microsoft-com:office:office\"");
+            xml.AppendLine(" xmlns:x=\"urn:schemas-microsoft-com:office:excel\"");
+            xml.AppendLine(" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">");
+            xml.AppendLine(" <Styles>");
+            xml.AppendLine("  <Style ss:ID=\"HeaderStyle\">");
+            xml.AppendLine("   <Font ss:Bold=\"1\" ss:Color=\"#FFFFFF\"/>");
+            xml.AppendLine("   <Interior ss:Color=\"#2563EB\" ss:Pattern=\"Solid\"/>");
+            xml.AppendLine("   <Alignment ss:Horizontal=\"Center\" ss:Vertical=\"Center\"/>");
+            xml.AppendLine("  </Style>");
+            xml.AppendLine(" </Styles>");
+            xml.AppendLine(" <Worksheet ss:Name=\"Master Export\">");
+            xml.AppendLine("  <Table>");
+
+            xml.AppendLine("   <Row>");
+            foreach (var h in headers)
             {
-                using (var writer = new StreamWriter(ms, System.Text.Encoding.ASCII))
-                {
-                    writer.Write("%PDF-1.4\n");
-                    writer.Write("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-                    writer.Write("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-                    
-                    var contentBuilder = new System.Text.StringBuilder();
-                    contentBuilder.Append("BT\n/F1 10 Tf\n40 750 Td\n14 TL\n");
-                    contentBuilder.Append($"({title}) Tj T*\n\n");
-                    
-                    string headerLine = string.Join("  |  ", headers);
-                    contentBuilder.Append($"({headerLine}) Tj T*\n");
-                    contentBuilder.Append("(----------------------------------------------------------------------------------------------------------------------) Tj T*\n");
-                    
-                    foreach (var row in rows)
-                    {
-                        string rowLine = string.Join("  |  ", row.Select(r => r.Replace("(", "\\(").Replace(")", "\\)")));
-                        if (rowLine.Length > 100) rowLine = rowLine.Substring(0, 97) + "...";
-                        contentBuilder.Append($"({rowLine}) Tj T*\n");
-                    }
-                    contentBuilder.Append("ET\n");
-                    
-                    string streamContent = contentBuilder.ToString();
-                    byte[] streamBytes = System.Text.Encoding.ASCII.GetBytes(streamContent);
-                    
-                    writer.Write("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Courier >> >> >> >>\nendobj\n");
-                    writer.Write($"4 0 obj\n<< /Length {streamBytes.Length} >>\nstream\n");
-                    writer.Flush();
-                    
-                    ms.Write(streamBytes, 0, streamBytes.Length);
-                    
-                    writer.Write("\nendstream\nendobj\n");
-                    writer.Write("xref\n0 5\n0000000000 65535 f\n");
-                    writer.Write("trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n0\n%%EOF\n");
-                    writer.Flush();
-                }
-                return ms.ToArray();
+                xml.AppendLine($"    <Cell ss:StyleID=\"HeaderStyle\"><Data ss:Type=\"String\">{System.Security.SecurityElement.Escape(h)}</Data></Cell>");
             }
+            xml.AppendLine("   </Row>");
+
+            foreach (var r in rows)
+            {
+                xml.AppendLine("   <Row>");
+                foreach (var val in r)
+                {
+                    xml.AppendLine($"    <Cell><Data ss:Type=\"String\">{System.Security.SecurityElement.Escape(val ?? "")}</Data></Cell>");
+                }
+                xml.AppendLine("   </Row>");
+            }
+
+            xml.AppendLine("  </Table>");
+            xml.AppendLine(" </Worksheet>");
+            xml.AppendLine("</Workbook>");
+
+            return System.Text.Encoding.UTF8.GetBytes(xml.ToString());
+        }
+
+        private byte[] GeneratePdfDocument(string title, List<string> headers, List<List<string>> rows)
+        {
+            using var ms = new MemoryStream();
+            using var writer = new StreamWriter(ms, System.Text.Encoding.Latin1);
+            
+            writer.Write("%PDF-1.4\n");
+            
+            var objects = new List<long>();
+            
+            void WriteObject(int id, string content)
+            {
+                writer.Flush();
+                objects.Add(ms.Position);
+                writer.Write($"{id} 0 obj\n{content}\nendobj\n");
+            }
+            
+            WriteObject(1, "<< /Type /Catalog /Pages 2 0 R >>");
+            WriteObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+            
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("BT");
+            sb.AppendLine("/F1 16 Tf");
+            sb.AppendLine("40 800 Td");
+            sb.AppendLine("0.14 0.38 0.92 rg");
+            sb.AppendLine($"({EscapePdf(title)}) Tj");
+            sb.AppendLine("ET");
+            
+            sb.AppendLine("BT");
+            sb.AppendLine("/F1 9 Tf");
+            sb.AppendLine("0.4 0.4 0.4 rg");
+            sb.AppendLine("40 782 Td");
+            sb.AppendLine($"({EscapePdf($"Exported on: {DateTime.Now:yyyy-MM-dd HH:mm:ss} | Total Records: {rows.Count}")}) Tj");
+            sb.AppendLine("ET");
+
+            sb.AppendLine("BT");
+            sb.AppendLine("/F1 10 Tf");
+            sb.AppendLine("0 0 0 rg");
+            sb.AppendLine("40 750 Td");
+            sb.AppendLine("14 TL");
+            
+            string headerStr = string.Join("  |  ", headers);
+            sb.AppendLine($"({EscapePdf(headerStr)}) Tj T*");
+            sb.AppendLine($"({new string('-', Math.Min(110, headerStr.Length + 20))}) Tj T*");
+
+            foreach (var row in rows)
+            {
+                string rowStr = string.Join("  |  ", row);
+                if (rowStr.Length > 110) rowStr = rowStr.Substring(0, 107) + "...";
+                sb.AppendLine($"({EscapePdf(rowStr)}) Tj T*");
+            }
+            
+            sb.AppendLine("ET");
+
+            string streamText = sb.ToString();
+            byte[] streamBytes = System.Text.Encoding.Latin1.GetBytes(streamText);
+            
+            WriteObject(4, $"<< /Length {streamBytes.Length} >>\nstream\n{streamText}\nendstream");
+            WriteObject(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>");
+
+            writer.Flush();
+            long startxref = ms.Position;
+            
+            writer.Write("xref\n");
+            writer.Write($"0 {objects.Count + 1}\n");
+            writer.Write("0000000000 65535 f \n");
+            foreach (var offset in objects)
+            {
+                writer.Write($"{offset:D10} 0000 n \n");
+            }
+            
+            writer.Write("trailer\n");
+            writer.Write($"<< /Size {objects.Count + 1} /Root 1 0 R >>\n");
+            writer.Write("startxref\n");
+            writer.Write($"{startxref}\n");
+            writer.Write("%%EOF\n");
+            writer.Flush();
+            
+            return ms.ToArray();
+        }
+
+        private string EscapePdf(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            return text.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
         }
 
         // GET: /AdminData/BackupHistory
