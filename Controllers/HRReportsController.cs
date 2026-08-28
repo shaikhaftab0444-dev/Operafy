@@ -152,13 +152,13 @@ namespace ERP_System.Controllers
             var runs = await _context.PayrollRuns.ToListAsync();
             var departments = await _context.Departments.Where(d => d.IsActive).ToListAsync();
 
-            decimal totGross = payslips.Sum(p => p.GrossSalary);
-            decimal totAllowances = payslips.Sum(p => p.HRA + p.SpecialAllowance + p.TransportAllowance + p.OtherAllowance);
-            decimal totDeductions = payslips.Sum(p => p.TotalDeductions);
-            decimal totNet = payslips.Sum(p => p.NetSalary);
-            decimal totPF = payslips.Sum(p => p.ProvidentFund);
-            decimal totESI = payslips.Sum(p => p.ESI);
-            decimal totTDS = payslips.Sum(p => p.TDS);
+            decimal totGross = payslips.Sum(p => p.GrossSalary ?? 0.00m);
+            decimal totAllowances = payslips.Sum(p => (p.HRA ?? 0.00m) + (p.SpecialAllowance ?? 0.00m) + (p.TransportAllowance ?? 0.00m) + (p.OtherAllowance ?? 0.00m));
+            decimal totDeductions = payslips.Sum(p => p.TotalDeductions ?? 0.00m);
+            decimal totNet = payslips.Sum(p => p.NetSalary ?? 0.00m);
+            decimal totPF = payslips.Sum(p => p.ProvidentFund ?? 0.00m);
+            decimal totESI = payslips.Sum(p => p.ESI ?? 0.00m);
+            decimal totTDS = payslips.Sum(p => p.TDS ?? 0.00m);
 
             var vm = new PayrollSummaryReportViewModel
             {
@@ -414,19 +414,19 @@ namespace ERP_System.Controllers
             {
                 taxItems.Add(new EmployeeTaxDeductionItem
                 {
-                    UserId = p.UserId,
+                    UserId = p.UserId.GetValueOrDefault(),
                     EmployeeCode = p.User?.UserCode ?? "EMP-001",
                     EmployeeName = p.User?.FullName ?? "Staff Member",
                     DepartmentName = "Human Resources",
                     PanNumber = "AAAAA1234A",
                     TaxRegime = "New Tax Regime",
-                    GrossSalary = p.GrossSalary,
-                    MonthlyTDS = p.TDS,
-                    ProfessionalTax = p.ProfessionalTax,
-                    EmployeePF = p.ProvidentFund,
-                    EmployerPF = p.EmployerPF,
-                    EmployeeESI = p.ESI,
-                    EmployerESI = p.EmployerESI
+                    GrossSalary = p.GrossSalary.GetValueOrDefault(),
+                    MonthlyTDS = p.TDS.GetValueOrDefault(),
+                    ProfessionalTax = p.ProfessionalTax.GetValueOrDefault(),
+                    EmployeePF = p.ProvidentFund.GetValueOrDefault(),
+                    EmployerPF = p.EmployerPF.GetValueOrDefault(),
+                    EmployeeESI = p.ESI.GetValueOrDefault(),
+                    EmployerESI = p.EmployerESI.GetValueOrDefault()
                 });
             }
 
@@ -460,7 +460,7 @@ namespace ERP_System.Controllers
 
             foreach (var p in payslips)
             {
-                decimal tot = p.TDS + p.ProfessionalTax + p.ProvidentFund + p.ESI;
+                decimal tot = p.TDS.GetValueOrDefault() + p.ProfessionalTax.GetValueOrDefault() + p.ProvidentFund.GetValueOrDefault() + p.ESI.GetValueOrDefault();
                 csv.AppendLine($"\"{p.User?.UserCode}\",\"{p.User?.FullName}\",\"{p.PayPeriod}\",\"{p.GrossSalary}\",\"{p.TDS}\",\"{p.ProfessionalTax}\",\"{p.ProvidentFund}\",\"{p.EmployerPF}\",\"{p.ESI}\",\"{tot}\"");
             }
 
