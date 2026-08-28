@@ -168,6 +168,19 @@ namespace ERP_System.Models
 
         [StringLength(255)]
         public string? AdminRemarks { get; set; }
+
+        [StringLength(50)]
+        public string? ManagerStatus { get; set; } = "Pending";
+
+        public DateTime? CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [StringLength(255)]
+        public string? ManagerRemarks { get; set; }
+
+        [StringLength(150)]
+        public string? ReviewedBy { get; set; }
+
+        public DateTime? ReviewedAt { get; set; }
     }
 
     // View Models for Pages

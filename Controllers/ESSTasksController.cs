@@ -89,6 +89,18 @@ namespace ERP_System.Controllers
             {
                 task.Status = Status;
                 _context.ESSTasks.Update(task);
+
+                if (task.DepartmentTaskId.HasValue)
+                {
+                    var depTask = await _context.DepartmentTasks.FindAsync(task.DepartmentTaskId.Value);
+                    if (depTask != null)
+                    {
+                        depTask.Status = Status == "Pending" ? "In Progress" : Status;
+                        depTask.ProgressPercentage = Status == "Completed" ? 100 : (Status == "In Progress" ? 50 : 0);
+                        _context.DepartmentTasks.Update(depTask);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(StatusUpdate));

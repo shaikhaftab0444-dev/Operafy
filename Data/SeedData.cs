@@ -449,6 +449,99 @@ namespace ERP_System.Data
             await context.Database.ExecuteSqlRawAsync(createESSExpenseClaimsSql);
             await context.Database.ExecuteSqlRawAsync(createESSSupportTicketsSql);
 
+            // Dynamically alter erp_ESSLeaveApplications to add columns if they don't exist
+            string alterESSLeaveApplicationsSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSLeaveApplications', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSLeaveApplications') AND name = 'EmployeeName')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSLeaveApplications ADD EmployeeName NVARCHAR(150) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSLeaveApplications') AND name = 'ManagerStatus')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSLeaveApplications ADD ManagerStatus NVARCHAR(50) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSLeaveApplications') AND name = 'CreatedAt')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSLeaveApplications ADD CreatedAt DATETIME NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSLeaveApplications') AND name = 'ManagerRemarks')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSLeaveApplications ADD ManagerRemarks NVARCHAR(255) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSLeaveApplications') AND name = 'ReviewedBy')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSLeaveApplications ADD ReviewedBy NVARCHAR(150) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSLeaveApplications') AND name = 'ReviewedAt')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSLeaveApplications ADD ReviewedAt DATETIME NULL;
+                    END
+                END";
+            await context.Database.ExecuteSqlRawAsync(alterESSLeaveApplicationsSql);
+
+            // Dynamically alter erp_ESSExpenseClaims to add columns if they don't exist
+            string alterESSExpenseClaimsSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSExpenseClaims', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSExpenseClaims') AND name = 'EmployeeName')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSExpenseClaims ADD EmployeeName NVARCHAR(150) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSExpenseClaims') AND name = 'ManagerStatus')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSExpenseClaims ADD ManagerStatus NVARCHAR(50) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSExpenseClaims') AND name = 'CreatedAt')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSExpenseClaims ADD CreatedAt DATETIME NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSExpenseClaims') AND name = 'ManagerRemarks')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSExpenseClaims ADD ManagerRemarks NVARCHAR(255) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSExpenseClaims') AND name = 'ReviewedBy')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSExpenseClaims ADD ReviewedBy NVARCHAR(150) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSExpenseClaims') AND name = 'ReviewedAt')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSExpenseClaims ADD ReviewedAt DATETIME NULL;
+                    END
+                END";
+            await context.Database.ExecuteSqlRawAsync(alterESSExpenseClaimsSql);
+
+            // Ensure erp_DepartmentTasks table exists
+            string createDepartmentTasksSql = @"
+                IF OBJECT_ID('AITStudent.erp_DepartmentTasks', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_DepartmentTasks (
+                        TaskId INT IDENTITY(1,1) PRIMARY KEY,
+                        Title NVARCHAR(150) NOT NULL,
+                        Description NVARCHAR(1000) NOT NULL,
+                        AssignedToName NVARCHAR(150) NOT NULL,
+                        AssignedToEmail NVARCHAR(150) NOT NULL,
+                        Priority NVARCHAR(50) NOT NULL DEFAULT 'Medium',
+                        DueDate DATETIME NOT NULL,
+                        ProgressPercentage INT NOT NULL DEFAULT 0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'In Progress',
+                        AssignedBy NVARCHAR(150) NOT NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END";
+            await context.Database.ExecuteSqlRawAsync(createDepartmentTasksSql);
+
+            // Ensure DepartmentTaskId column exists in erp_ESSTasks
+            string alterESSTasksSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSTasks', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSTasks') AND name = 'DepartmentTaskId')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSTasks ADD DepartmentTaskId INT NULL;
+                    END
+                END";
+            await context.Database.ExecuteSqlRawAsync(alterESSTasksSql);
+
             // Seed initial records if empty
             if (!await context.ESSPunches.AnyAsync())
             {
@@ -2337,6 +2430,33 @@ namespace ERP_System.Data
                 END";
 
             await context.Database.ExecuteSqlRawAsync(sqlScript);
+
+            // Dynamically alter erp_HRAttendanceRegularizations to add columns if they don't exist
+            string alterHRAttendanceRegularizationsSql = @"
+                IF OBJECT_ID('AITStudent.erp_HRAttendanceRegularizations', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HRAttendanceRegularizations') AND name = 'ManagerStatus')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_HRAttendanceRegularizations ADD ManagerStatus NVARCHAR(50) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HRAttendanceRegularizations') AND name = 'CreatedAt')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_HRAttendanceRegularizations ADD CreatedAt DATETIME NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HRAttendanceRegularizations') AND name = 'ManagerRemarks')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_HRAttendanceRegularizations ADD ManagerRemarks NVARCHAR(255) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HRAttendanceRegularizations') AND name = 'ReviewedBy')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_HRAttendanceRegularizations ADD ReviewedBy NVARCHAR(150) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HRAttendanceRegularizations') AND name = 'ReviewedAt')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_HRAttendanceRegularizations ADD ReviewedAt DATETIME NULL;
+                    END
+                END";
+            await context.Database.ExecuteSqlRawAsync(alterHRAttendanceRegularizationsSql);
 
             // Seed initial attendance logs for users if empty
             if (!await context.HRAttendanceLogs.AnyAsync())
