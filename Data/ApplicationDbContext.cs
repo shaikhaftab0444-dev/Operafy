@@ -73,6 +73,11 @@ namespace ERP_System.Data
         public DbSet<HROvertimeRecord> HROvertimeRecords { get; set; }
         public DbSet<HRAttendanceRegularization> HRAttendanceRegularizations { get; set; }
 
+        public DbSet<ESSLeaveApplication> LeaveRequests { get { return ESSLeaveApplications; } set { ESSLeaveApplications = value; } }
+        public DbSet<HRAttendanceRegularization> AttendanceRegularizations { get { return HRAttendanceRegularizations; } set { HRAttendanceRegularizations = value; } }
+        public DbSet<ESSExpenseClaim> ExpenseClaims { get { return ESSExpenseClaims; } set { ESSExpenseClaims = value; } }
+        public DbSet<DepartmentTask> DepartmentTasks { get; set; }
+
         public DbSet<SalaryStructureMaster> SalaryStructureMasters { get; set; }
         public DbSet<EmployeeSalaryAssignment> EmployeeSalaryAssignments { get; set; }
         public DbSet<AllowanceDeductionMaster> AllowanceDeductionMasters { get; set; }

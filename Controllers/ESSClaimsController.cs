@@ -46,8 +46,11 @@ namespace ERP_System.Controllers
             if (ModelState.IsValid || claim.Amount > 0)
             {
                 claim.UserId = GetCurrentUserId();
+                claim.EmployeeName = User.Identity?.Name ?? "Employee";
                 claim.ClaimDate = DateTime.Now;
                 claim.Status = "Pending";
+                claim.ManagerStatus = "Pending";
+                claim.CreatedAt = DateTime.UtcNow;
 
                 // Handle file upload
                 if (ReceiptFile != null && ReceiptFile.Length > 0)

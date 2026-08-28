@@ -41,7 +41,10 @@ namespace ERP_System.Controllers
             if (ModelState.IsValid || (leave.LeaveType != null && leave.Reason != null))
             {
                 leave.UserId = GetCurrentUserId();
+                leave.EmployeeName = User.Identity?.Name ?? "Employee";
                 leave.Status = "Pending";
+                leave.ManagerStatus = "Pending";
+                leave.CreatedAt = DateTime.UtcNow;
                 
                 // Calculate Total Days
                 leave.TotalDays = (leave.EndDate - leave.StartDate).Days + 1;

@@ -132,13 +132,15 @@ namespace ERP_System.Controllers
             var regularizationReq = new HRAttendanceRegularization
             {
                 UserId = userId,
-                EmployeeName = user?.FullName ?? User.Identity?.Name ?? "Employee",
+                EmployeeName = User.Identity?.Name ?? user?.FullName ?? "Employee",
                 CorrectionDate = Date.Date,
                 IncorrectPunch = "Missing Check-out / Punch Error",
                 RequestedCorrectTime = requestedTime,
                 Reason = Reason,
                 RequestDate = DateTime.Today,
-                Status = "Pending Review",
+                Status = "Pending",
+                ManagerStatus = "Pending",
+                CreatedAt = DateTime.UtcNow,
                 AdminRemarks = null
             };
 

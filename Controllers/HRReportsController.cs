@@ -153,6 +153,7 @@ namespace ERP_System.Controllers
             var departments = await _context.Departments.Where(d => d.IsActive).ToListAsync();
 
             decimal totGross = payslips.Sum(p => p.GrossSalary ?? 0.00m);
+            decimal totAllowances = payslips.Sum(p => (p.HRA ?? 0) + (p.SpecialAllowance ?? 0) + (p.TransportAllowance ?? 0) + (p.OtherAllowance ?? 0));
             decimal totAllowances = payslips.Sum(p => (p.HRA ?? 0.00m) + (p.SpecialAllowance ?? 0.00m) + (p.TransportAllowance ?? 0.00m) + (p.OtherAllowance ?? 0.00m));
             decimal totDeductions = payslips.Sum(p => p.TotalDeductions ?? 0.00m);
             decimal totNet = payslips.Sum(p => p.NetSalary ?? 0.00m);
@@ -456,12 +457,20 @@ namespace ERP_System.Controllers
             {
                 taxItems.Add(new EmployeeTaxDeductionItem
                 {
+                    UserId = p.UserId ?? 0,
                     UserId = p.UserId.GetValueOrDefault(),
                     EmployeeCode = p.User?.UserCode ?? "EMP-001",
                     EmployeeName = p.User?.FullName ?? "Staff Member",
                     DepartmentName = "Human Resources",
                     PanNumber = "AAAAA1234A",
                     TaxRegime = "New Tax Regime",
+                    GrossSalary = p.GrossSalary ?? 0.00m,
+                    MonthlyTDS = p.TDS ?? 0.00m,
+                    ProfessionalTax = p.ProfessionalTax ?? 0.00m,
+                    EmployeePF = p.ProvidentFund ?? 0.00m,
+                    EmployerPF = p.EmployerPF ?? 0.00m,
+                    EmployeeESI = p.ESI ?? 0.00m,
+                    EmployerESI = p.EmployerESI ?? 0.00m
                     GrossSalary = p.GrossSalary.GetValueOrDefault(),
                     MonthlyTDS = p.TDS.GetValueOrDefault(),
                     ProfessionalTax = p.ProfessionalTax.GetValueOrDefault(),
@@ -502,6 +511,8 @@ namespace ERP_System.Controllers
 
             foreach (var p in payslips)
             {
+                decimal tot = (p.TDS ?? 0) + (p.ProfessionalTax ?? 0) + (p.ProvidentFund ?? 0) + (p.ESI ?? 0);
+                csv.AppendLine($"\"{p.User?.UserCode}\",\"{p.User?.FullName}\",\"{p.PayPeriod}\",\"{p.GrossSalary}\",\"{p.TDS}\",\"{p.ProfessionalTax}\",\"{p.ProvidentFund}\",\"{p.EmployerPF}\",\"{p.ESI}\",\"{tot}\"");
                 decimal tot = p.TDS.GetValueOrDefault() + p.ProfessionalTax.GetValueOrDefault() + p.ProvidentFund.GetValueOrDefault() + p.ESI.GetValueOrDefault();
                 rows.Add(new List<string> { p.User?.UserCode ?? "EMP", p.User?.FullName ?? "Staff", p.PayPeriod, p.GrossSalary.GetValueOrDefault().ToString("N2"), p.TDS.GetValueOrDefault().ToString("N2"), p.ProfessionalTax.GetValueOrDefault().ToString("N2"), p.ProvidentFund.GetValueOrDefault().ToString("N2"), p.EmployerPF.GetValueOrDefault().ToString("N2"), p.ESI.GetValueOrDefault().ToString("N2"), tot.ToString("N2") });
             }
