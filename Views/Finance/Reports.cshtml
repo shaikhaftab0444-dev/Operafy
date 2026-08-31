@@ -1,0 +1,277 @@
+@{
+    ViewData["Title"] = "Financial Statements & Statutory Reports";
+    var pl = ViewBag.PL as ERP_System.Models.FinancialStatementViewModel;
+    var bs = ViewBag.BS as ERP_System.Models.FinancialStatementViewModel;
+    var tb = ViewBag.TB as ERP_System.Models.FinancialStatementViewModel;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+    .reports-wrapper {
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 1.5rem 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    .finance-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+
+    .report-tab-btn {
+        font-weight: 600;
+        border-radius: 8px;
+    }
+
+    .report-table th {
+        background-color: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+    }
+
+    .section-total-row {
+        background-color: #f1f5f9;
+        font-weight: 700;
+    }
+
+    .grand-total-row {
+        background-color: #e2e8f0;
+        font-weight: 800;
+        font-size: 1.1rem;
+        border-top: 2px solid #94a3b8;
+        border-bottom: 2px double #94a3b8;
+    }
+
+    @@media print {
+        body * {
+            visibility: hidden;
+        }
+        .printable-report-area, .printable-report-area * {
+            visibility: visible;
+        }
+        .printable-report-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="reports-wrapper">
+    <div class="container-fluid px-4">
+        
+        <!-- Module Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">Accounting Statements</span>
+                <h1 class="h3 mb-0 fw-bold text-slate-800">Financial Reports Viewer</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-success" onclick="exportToExcel()"><i class="fa-solid fa-file-excel me-2"></i>Export Excel</button>
+                <button type="button" class="btn btn-outline-primary" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>Print PDF</button>
+                <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Report Tabs Navigation -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <div class="nav nav-pills gap-2" id="reportTabs" role="tablist">
+                <button class="nav-link report-tab-btn active" id="tab-pl" data-bs-toggle="tab" data-bs-target="#panel-pl" type="button" role="tab">Income Statement (P&L)</button>
+                <button class="nav-link report-tab-btn" id="tab-bs" data-bs-toggle="tab" data-bs-target="#panel-bs" type="button" role="tab">Balance Sheet</button>
+                <button class="nav-link report-tab-btn" id="tab-tb" data-bs-toggle="tab" data-bs-target="#panel-tb" type="button" role="tab">Trial Balance</button>
+            </div>
+
+            <!-- Report Period Selector -->
+            <form method="get" asp-action="Reports" class="d-flex align-items-center gap-2">
+                <label class="form-label mb-0 fw-semibold text-secondary small">Period:</label>
+                <select name="period" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="August 2026" selected>August 2026</option>
+                    <option value="July 2026">July 2026</option>
+                    <option value="Q1 FY26">Q1 FY26</option>
+                </select>
+            </form>
+        </div>
+
+        <!-- Reports Panels Area -->
+        <div class="tab-content" id="reportPanels">
+            
+            <!-- INCOME STATEMENT PANEL -->
+            <div class="tab-pane fade show active" id="panel-pl" role="tabpanel" aria-labelledby="tab-pl">
+                <div class="finance-card p-5 printable-report-area" id="plReportContainer">
+                    <div class="text-center mb-5">
+                        <h3 class="fw-bold text-dark mb-1">AIT Technologies Pvt Ltd</h3>
+                        <h4 class="text-secondary fw-semibold mb-1">Income Statement (Profit & Loss)</h4>
+                        <span class="text-muted small">For the period ended @ViewBag.Period</span>
+                    </div>
+
+                    <table class="table report-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Account Classification & Line Items</th>
+                                <th width="150">Account Code</th>
+                                <th width="200" class="text-end">Balance Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (pl != null)
+                            {
+                                @foreach (var sec in pl.Sections)
+                                {
+                                    <tr class="table-light"><td colspan="3" class="fw-bold">@sec.SectionName</td></tr>
+                                    @foreach (var item in sec.Items)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">@item.AccountName</td>
+                                            <td><code>@item.AccountCode</code></td>
+                                            <td class="text-end">₹ @item.Amount.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                    <tr class="section-total-row">
+                                        <td class="ps-4">Total @sec.SectionName</td>
+                                        <td></td>
+                                        <td class="text-end">₹ @sec.SectionTotal.ToString("N2")</td>
+                                    </tr>
+                                }
+                                <tr class="grand-total-row">
+                                    <td>Net Operating Income / Margin Surplus</td>
+                                    <td></td>
+                                    <td class="text-end text-success">₹ @pl.NetIncomeOrEquityTotal.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BALANCE SHEET PANEL -->
+            <div class="tab-pane fade" id="panel-bs" role="tabpanel" aria-labelledby="tab-bs">
+                <div class="finance-card p-5 printable-report-area" id="bsReportContainer">
+                    <div class="text-center mb-5">
+                        <h3 class="fw-bold text-dark mb-1">AIT Technologies Pvt Ltd</h3>
+                        <h4 class="text-secondary fw-semibold mb-1">Balance Sheet Statement</h4>
+                        <span class="text-muted small">As of @ViewBag.Period</span>
+                    </div>
+
+                    <table class="table report-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Capital, Liability & Assets Structure</th>
+                                <th width="150">Account Code</th>
+                                <th width="200" class="text-end">Closing Balance (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (bs != null)
+                            {
+                                @foreach (var sec in bs.Sections)
+                                {
+                                    <tr class="table-light"><td colspan="3" class="fw-bold">@sec.SectionName</td></tr>
+                                    @foreach (var item in sec.Items)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">@item.AccountName</td>
+                                            <td><code>@item.AccountCode</code></td>
+                                            <td class="text-end">₹ @item.Amount.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                    <tr class="section-total-row">
+                                        <td class="ps-4">Total @sec.SectionName</td>
+                                        <td></td>
+                                        <td class="text-end">₹ @sec.SectionTotal.ToString("N2")</td>
+                                    </tr>
+                                }
+                                <tr class="grand-total-row">
+                                    <td>Total Liabilities & Shareholder Equity</td>
+                                    <td></td>
+                                    <td class="text-end text-primary">₹ @bs.NetIncomeOrEquityTotal.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TRIAL BALANCE PANEL -->
+            <div class="tab-pane fade" id="panel-tb" role="tabpanel" aria-labelledby="tab-tb">
+                <div class="finance-card p-5 printable-report-area" id="tbReportContainer">
+                    <div class="text-center mb-5">
+                        <h3 class="fw-bold text-dark mb-1">AIT Technologies Pvt Ltd</h3>
+                        <h4 class="text-secondary fw-semibold mb-1">Trial Balance Ledger Verification</h4>
+                        <span class="text-muted small">For the period ended @ViewBag.Period</span>
+                    </div>
+
+                    <table class="table report-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Account Title</th>
+                                <th width="120">Account Code</th>
+                                <th width="180" class="text-end">Debit Balance (₹)</th>
+                                <th width="180" class="text-end">Credit Balance (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (tb != null)
+                            {
+                                @foreach (var sec in tb.Sections)
+                                {
+                                    @foreach (var item in sec.Items)
+                                    {
+                                        <tr>
+                                            <td>@item.AccountName</td>
+                                            <td><code>@item.AccountCode</code></td>
+                                            <td class="text-end">@(item.Debit > 0 ? "₹ " + item.Debit.ToString("N2") : "-")</td>
+                                            <td class="text-end">@(item.Credit > 0 ? "₹ " + item.Credit.ToString("N2") : "-")</td>
+                                        </tr>
+                                    }
+                                }
+                                <tr class="grand-total-row">
+                                    <td>Sum Total Ledger Balance</td>
+                                    <td></td>
+                                    <td class="text-end">₹ @tb.NetIncomeOrEquityTotal.ToString("N2")</td>
+                                    <td class="text-end">₹ @tb.NetIncomeOrEquityTotal.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <!-- SheetJS Excel Library -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        function exportToExcel() {
+            // Locate the active tab report container and export
+            const activeTabId = $('.tab-pane.active').attr('id');
+            let tableElement = null;
+            let filename = "Report.xlsx";
+
+            if (activeTabId === 'panel-pl') {
+                tableElement = document.querySelector('#plReportContainer table');
+                filename = "Profit_Loss_Statement.xlsx";
+            } else if (activeTabId === 'panel-bs') {
+                tableElement = document.querySelector('#bsReportContainer table');
+                filename = "Balance_Sheet.xlsx";
+            } else if (activeTabId === 'panel-tb') {
+                tableElement = document.querySelector('#tbReportContainer table');
+                filename = "Trial_Balance.xlsx";
+            }
+
+            if (tableElement) {
+                const wb = XLSX.utils.table_to_book(tableElement, { raw: true });
+                XLSX.writeFile(wb, filename);
+            } else {
+                alert("Failed to find report table for export.");
+            }
+        }
+    </script>
+}

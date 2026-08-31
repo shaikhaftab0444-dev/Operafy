@@ -1,0 +1,332 @@
+@model List<ERP_System.Models.JournalEntryViewModel>
+@{
+    ViewData["Title"] = "General Ledger & Journal Vouchers";
+    var accounts = ViewBag.AccountHeads as List<ERP_System.Models.AccountHead> ?? new List<ERP_System.Models.AccountHead>();
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+    .ledger-wrapper {
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 1.5rem 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    .finance-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+    
+    .account-group-header {
+        background-color: #f1f5f9;
+        font-weight: 700;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+        color: #334155;
+    }
+    
+    .account-item {
+        font-size: 0.9rem;
+        padding: 0.35rem 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+</style>
+
+<div class="ledger-wrapper">
+    <div class="container-fluid px-4">
+        
+        <!-- Module Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">General Ledger</span>
+                <h1 class="h3 mb-0 fw-bold text-slate-800">Double-Entry Journal studio</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newJvModal"><i class="fa-solid fa-plus me-2"></i>New Journal Voucher</button>
+                <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- Left Side: Chart of Accounts Grouped Tree -->
+            <div class="col-lg-4">
+                <div class="finance-card p-4">
+                    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-folder-tree text-primary me-2"></i>Chart of Accounts</h5>
+                    
+                    @foreach (var type in new[] { "Asset", "Liability", "Equity", "Revenue", "Expense" })
+                    {
+                        var groupAccounts = accounts.Where(a => a.AccountType == type).ToList();
+                        <div>
+                            <div class="account-group-header d-flex justify-content-between">
+                                <span>@typesPlural(type)</span>
+                                <span class="badge bg-secondary">@groupAccounts.Count</span>
+                            </div>
+                            <div class="mt-2 ps-2">
+                                @foreach (var acc in groupAccounts)
+                                {
+                                    <div class="account-item">
+                                        <span><code class="text-secondary fw-semibold me-2">@acc.HeadCode</code>@acc.HeadName</span>
+                                        <i class="fa-solid fa-circle-check text-success small"></i>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Right Side: Journal entries table -->
+            <div class="col-lg-8">
+                <div class="finance-card p-4">
+                    <h5 class="fw-bold text-dark mb-4"><i class="fa-solid fa-history text-secondary me-2"></i>Audit Trail & Journal Ledger Records</h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Posting Date</th>
+                                    <th>Journal No</th>
+                                    <th>Reference</th>
+                                    <th>Account Name</th>
+                                    <th>Debit</th>
+                                    <th>Credit</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var jv in Model)
+                                {
+                                    <tr>
+                                        <td>@jv.PostingDate.ToString("dd-MMM-yyyy")</td>
+                                        <td><span class="fw-bold text-primary">@jv.JournalNo</span></td>
+                                        <td>@jv.Reference</td>
+                                        <td>
+                                            <div>@jv.AccountName</div>
+                                            <small class="text-secondary">@jv.AccountCode</small>
+                                        </td>
+                                        <td>@(jv.Debit > 0 ? "₹ " + jv.Debit.ToString("N2") : "-")</td>
+                                        <td>@(jv.Credit > 0 ? "₹ " + jv.Credit.ToString("N2") : "-")</td>
+                                        <td><span class="badge bg-success-subtle text-success">@jv.Status</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Dual-Entry Post JV Modal -->
+<div class="modal fade" id="newJvModal" tabindex="-1" aria-labelledby="newJvModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="newJvModalLabel"><i class="fa-solid fa-pen-nib text-primary me-2"></i>Record Double-Entry Journal Voucher</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="jvForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Posting Date</label>
+                            <input type="date" id="jvDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Reference Document ID</label>
+                            <input type="text" id="jvRef" class="form-control" placeholder="e.g. INVRef-12001" required />
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Journal Description</label>
+                        <textarea id="jvDesc" class="form-control" rows="2" placeholder="Describe the purpose of this adjustment entry..." required></textarea>
+                    </div>
+
+                    <!-- Dual Entry Lines Table -->
+                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-list text-secondary me-2"></i>Debit & Credit Ledger Lines</h6>
+                    <table class="table align-middle" id="jvLinesTable">
+                        <thead>
+                            <tr>
+                                <th>Ledger Account Head</th>
+                                <th width="180">Debit Amount (₹)</th>
+                                <th width="180">Credit Amount (₹)</th>
+                                <th width="50"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- First line -->
+                            <tr class="jv-line-row">
+                                <td>
+                                    <select class="form-select account-select">
+                                        @foreach (var acc in accounts)
+                                        {
+                                            <option value="@acc.AccountHeadId">@acc.HeadCode • @acc.HeadName</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td><input type="number" class="form-control debit-input" value="0.00" step="0.01" oninput="calculateBalance()" /></td>
+                                <td><input type="number" class="form-control credit-input" value="0.00" step="0.01" oninput="calculateBalance()" /></td>
+                                <td></td>
+                            </tr>
+                            <!-- Second line -->
+                            <tr class="jv-line-row">
+                                <td>
+                                    <select class="form-select account-select">
+                                        @foreach (var acc in accounts)
+                                        {
+                                            <option value="@acc.AccountHeadId">@acc.HeadCode • @acc.HeadName</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td><input type="number" class="form-control debit-input" value="0.00" step="0.01" oninput="calculateBalance()" /></td>
+                                <td><input type="number" class="form-control credit-input" value="0.00" step="0.01" oninput="calculateBalance()" /></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addJvRow()"><i class="fa-solid fa-plus me-1"></i> Add Entry Row</button>
+                    
+                    <!-- Balancing status indicators -->
+                    <div class="alert alert-secondary d-flex justify-content-between align-items-center mb-0 py-2">
+                        <div>
+                            <span class="small text-secondary me-3">Total Debits: <strong id="lblTotalDebit">₹ 0.00</strong></span>
+                            <span class="small text-secondary">Total Credits: <strong id="lblTotalCredit">₹ 0.00</strong></span>
+                        </div>
+                        <span class="badge bg-danger" id="lblBalanceStatus">Unbalanced</span>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="postJournalVoucher()">Post Journal Entry</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string typesPlural(string type)
+    {
+        switch (type)
+        {
+            case "Asset": return "Assets";
+            case "Liability": return "Liabilities";
+            case "Equity": return "Equity";
+            case "Revenue": return "Revenue Accounts";
+            case "Expense": return "Expenses";
+            default: return type;
+        }
+    }
+}
+
+@section Scripts {
+    <script>
+        function addJvRow() {
+            const firstRowSelect = $('.account-select').first().html();
+            const newRow = `
+                <tr class="jv-line-row">
+                    <td>
+                        <select class="form-select account-select">
+                            ${firstRowSelect}
+                        </select>
+                    </td>
+                    <td><input type="number" class="form-control debit-input" value="0.00" step="0.01" oninput="calculateBalance()" /></td>
+                    <td><input type="number" class="form-control credit-input" value="0.00" step="0.01" oninput="calculateBalance()" /></td>
+                    <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="$(this).closest('tr').remove(); calculateBalance();"><i class="fa-solid fa-trash"></i></button></td>
+                </tr>`;
+            $('#jvLinesTable tbody').append(newRow);
+            calculateBalance();
+        }
+
+        function calculateBalance() {
+            let totalDebit = 0;
+            let totalCredit = 0;
+
+            $('.debit-input').each(function() {
+                totalDebit += parseFloat($(this).val()) || 0;
+            });
+            $('.credit-input').each(function() {
+                totalCredit += parseFloat($(this).val()) || 0;
+            });
+
+            $('#lblTotalDebit').text('₹ ' + totalDebit.toFixed(2));
+            $('#lblTotalCredit').text('₹ ' + totalCredit.toFixed(2));
+
+            const balanceIndicator = $('#lblBalanceStatus');
+            if (totalDebit === totalCredit && totalDebit > 0) {
+                balanceIndicator.text("Balanced").removeClass("bg-danger").addClass("bg-success");
+            } else {
+                balanceIndicator.text("Unbalanced").removeClass("bg-success").addClass("bg-danger");
+            }
+        }
+
+        function postJournalVoucher() {
+            let totalDebit = 0;
+            let totalCredit = 0;
+            const lines = [];
+
+            $('.jv-line-row').each(function() {
+                const accId = parseInt($(this).find('.account-select').val());
+                const debVal = parseFloat($(this).find('.debit-input').val()) || 0;
+                const credVal = parseFloat($(this).find('.credit-input').val()) || 0;
+                
+                totalDebit += debVal;
+                totalCredit += credVal;
+
+                if (debVal > 0 || credVal > 0) {
+                    lines.push({
+                        accountHeadId: accId,
+                        debit: debVal,
+                        credit: credVal
+                    });
+                }
+            });
+
+            if (lines.length < 2) {
+                alert("A journal entry requires at least two account lines.");
+                return;
+            }
+
+            if (totalDebit !== totalCredit || totalDebit === 0) {
+                alert("Debits and credits must balance and be greater than 0 before posting.");
+                return;
+            }
+
+            const data = {
+                postingDate: $('#jvDate').val(),
+                reference: $('#jvRef').val(),
+                description: $('#jvDesc').val(),
+                lines: lines
+            };
+
+            $.ajax({
+                url: '@Url.Action("PostJournalEntry", "Finance")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(res) {
+                    if (res.success) {
+                        alert(res.message);
+                        $('#newJvModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert("Error: " + res.message);
+                    }
+                }
+            });
+        }
+    </script>
+}

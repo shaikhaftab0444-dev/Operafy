@@ -1,0 +1,191 @@
+@model List<ERP_System.Models.PayableBillViewModel>
+@{
+    ViewData["Title"] = "Accounts Payable";
+    string currentFilter = ViewBag.StatusFilter ?? "All";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+    .payables-wrapper {
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 1.5rem 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    .finance-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+    
+    .match-pill {
+        border-radius: 6px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .match-ok { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .match-fail { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+    .badge-approved { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .badge-pending { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+</style>
+
+<div class="payables-wrapper">
+    <div class="container-fluid px-4">
+        
+        <!-- Module Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">Accounts Payable (AP)</span>
+                <h1 class="h3 mb-0 fw-bold text-slate-800">Vendor Bills & Disbursements</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-warning" onclick="batchApprove()"><i class="fa-solid fa-list-check me-2"></i>Batch Payment Sign-off</button>
+                <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Filters Grid -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div class="d-flex gap-2">
+                <a asp-action="Payables" asp-route-statusFilter="All" asp-route-search="@ViewBag.SearchTerm" class="btn btn-sm btn-outline-secondary @(currentFilter == "All" ? "active" : "")">All Bills</a>
+                <a asp-action="Payables" asp-route-statusFilter="Pending Approval" asp-route-search="@ViewBag.SearchTerm" class="btn btn-sm btn-outline-secondary @(currentFilter == "Pending Approval" ? "active" : "")">Pending Approval</a>
+                <a asp-action="Payables" asp-route-statusFilter="Approved" asp-route-search="@ViewBag.SearchTerm" class="btn btn-sm btn-outline-secondary @(currentFilter == "Approved" ? "active" : "")">Approved</a>
+            </div>
+
+            <!-- Search Bill -->
+            <form method="get" asp-action="Payables" class="d-flex gap-2" style="max-width: 320px; width: 100%;">
+                <input type="hidden" name="statusFilter" value="@currentFilter" />
+                <input type="text" name="search" value="@ViewBag.SearchTerm" placeholder="Search supplier or bill..." class="form-control" />
+                <button type="submit" class="btn btn-dark"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+        </div>
+
+        <!-- Invoices List Card -->
+        <div class="finance-card p-4">
+            <div class="table-responsive">
+                <table class="table align-middle table-hover mb-0" id="payablesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="40"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)" /></th>
+                            <th>Bill No</th>
+                            <th>Vendor</th>
+                            <th>Order References</th>
+                            <th>Amount</th>
+                            <th>Due Date</th>
+                            <th>3-Way Match Status</th>
+                            <th>Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var bill in Model)
+                        {
+                            var statusClass = bill.Status == "Approved" ? "badge-approved" : "badge-pending";
+                            <tr>
+                                <td>
+                                    @if (bill.Status == "Pending Approval")
+                                    {
+                                        <input type="checkbox" class="bill-checkbox" value="@bill.BillId" />
+                                    }
+                                </td>
+                                <td><span class="fw-bold text-dark">@bill.BillNo</span></td>
+                                <td>@bill.VendorName</td>
+                                <td>
+                                    <div class="small">
+                                        <div class="text-secondary"><i class="fa-solid fa-file-contract me-1"></i>PO: @bill.PurchaseOrderNo</div>
+                                        <div class="text-secondary"><i class="fa-solid fa-truck-ramp-box me-1"></i>GRN: @bill.GrnNo</div>
+                                    </div>
+                                </td>
+                                <td><strong>₹ @bill.Amount.ToString("N2")</strong></td>
+                                <td>@bill.DueDate.ToString("dd-MMM-yyyy")</td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <span class="match-pill @(bill.PoMatch ? "match-ok" : "match-fail")">
+                                            <i class="fa-solid @(bill.PoMatch ? "fa-check" : "fa-xmark")"></i> PO Match
+                                        </span>
+                                        <span class="match-pill @(bill.GrnMatch ? "match-ok" : "match-fail")">
+                                            <i class="fa-solid @(bill.GrnMatch ? "fa-check" : "fa-xmark")"></i> GRN Match
+                                        </span>
+                                        <span class="match-pill @(bill.PriceMatch ? "match-ok" : "match-fail")">
+                                            <i class="fa-solid @(bill.PriceMatch ? "fa-check" : "fa-xmark")"></i> Price Match
+                                        </span>
+                                    </div>
+                                </td>
+                                <td><span class="badge @statusClass">@bill.Status</span></td>
+                                <td class="text-center">
+                                    @if (bill.Status == "Pending Approval")
+                                    {
+                                        <button type="button" class="btn btn-success btn-sm btn-action" onclick="approveSingle(@bill.BillId)">
+                                            <i class="fa-solid fa-check me-1"></i> Approve
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Released</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function approveSingle(billId) {
+            if (confirm("Approve and release payment for this vendor bill?")) {
+                $.post('@Url.Action("ApprovePaymentRelease", "Finance")', { billId: billId }, function(res) {
+                    if (res.success) {
+                        alert(res.message);
+                        location.reload();
+                    } else {
+                        alert("Error: " + res.message);
+                    }
+                });
+            }
+        }
+
+        function toggleSelectAll(master) {
+            $('.bill-checkbox').prop('checked', master.checked);
+        }
+
+        function batchApprove() {
+            const selectedIds = [];
+            $('.bill-checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+
+            if (selectedIds.length === 0) {
+                alert("Please select at least one vendor bill to approve.");
+                return;
+            }
+
+            if (confirm(`Are you sure you want to approve payment release for all ${selectedIds.length} selected bills?`)) {
+                let successCount = 0;
+                let processed = 0;
+
+                selectedIds.forEach(id => {
+                    $.post('@Url.Action("ApprovePaymentRelease", "Finance")', { billId: id }, function(res) {
+                        processed++;
+                        if (res.success) successCount++;
+                        if (processed === selectedIds.length) {
+                            alert(`Successfully processed batch payment sign-off for ${successCount} bills.`);
+                            location.reload();
+                        }
+                    });
+                });
+            }
+        }
+    </script>
+}
