@@ -1,0 +1,218 @@
+@model ERP_System.Models.TaxSummaryViewModel
+@{
+    ViewData["Title"] = "Statutory Tax Filing Hub";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+    .tax-wrapper {
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 1.5rem 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    .finance-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+</style>
+
+<div class="tax-wrapper">
+    <div class="container-fluid px-4">
+        
+        <!-- Module Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">Statutory Tax Compliance</span>
+                <h1 class="h3 mb-0 fw-bold text-slate-800">GST & TDS Return Hub</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-primary" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>Print Summary</button>
+                <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Tax Summary KPI Cards -->
+        <div class="row g-4 mb-4">
+            <!-- GST Outward Collected -->
+            <div class="col-lg-4">
+                <div class="finance-card p-4">
+                    <h6 class="text-secondary small fw-bold text-uppercase mb-3"><i class="fa-solid fa-arrow-right-to-bracket text-primary me-2"></i>GST Outward (Sales)</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Taxable Sales:</span>
+                        <strong>₹ @Model.TaxableSales.ToString("N2")</strong>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between text-success">
+                        <span>Total GST Liability:</span>
+                        <strong class="h5 mb-0 fw-bold">₹ @Model.TotalGSTCollected.ToString("N2")</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GST Inward Input Tax Credit -->
+            <div class="col-lg-4">
+                <div class="finance-card p-4">
+                    <h6 class="text-secondary small fw-bold text-uppercase mb-3"><i class="fa-solid fa-arrow-right-from-bracket text-warning me-2"></i>Input Tax Credit (ITC)</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Eligible Purchases:</span>
+                        <strong>₹ @Model.TaxablePurchases.ToString("N2")</strong>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between text-primary">
+                        <span>Total ITC Available:</span>
+                        <strong class="h5 mb-0 fw-bold">₹ @Model.TotalGSTPaid.ToString("N2")</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Net Payable GST -->
+            <div class="col-lg-4">
+                <div class="finance-card p-4">
+                    <h6 class="text-secondary small fw-bold text-uppercase mb-3"><i class="fa-solid fa-scale-balanced text-danger me-2"></i>Net Tax Payable</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Net GST (Outward - ITC):</span>
+                        <strong>₹ @Model.NetGstPayable.ToString("N2")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">TDS Deducted (Form 26Q):</span>
+                        <strong>₹ @Model.TdsDeducted.ToString("N2")</strong>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between text-danger">
+                        <span>Total Liability Due:</span>
+                        <strong class="h5 mb-0 fw-bold">₹ @((Model.NetGstPayable + Model.TdsDeducted).ToString("N2"))</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filing Status Matrix -->
+        <div class="finance-card p-4 mb-4">
+            <h5 class="fw-bold text-dark mb-4"><i class="fa-solid fa-calendar text-primary me-2"></i>Statutory Compliance Calendar (@Model.Period)</h5>
+            
+            <div class="table-responsive">
+                <table class="table align-middle table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Form Code</th>
+                            <th>Filing Period</th>
+                            <th>Due Date</th>
+                            <th>Filing Date</th>
+                            <th>Status</th>
+                            <th>Payment Challan Reference</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var filing in Model.FilingStatusList)
+                        {
+                            var statusClass = filing.Status == "Filed" ? "badge bg-success-subtle text-success" : "badge bg-warning-subtle text-warning";
+                            <tr>
+                                <td><span class="fw-bold">@filing.FormName</span></td>
+                                <td>@filing.Period</td>
+                                <td>@filing.DueDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@(filing.FilingDate?.ToString("dd-MMM-yyyy") ?? "-")</td>
+                                <td><span class="@statusClass">@filing.Status</span></td>
+                                <td><code class="text-dark">@(string.IsNullOrEmpty(filing.PaymentChallanNo) ? "N/A" : filing.PaymentChallanNo)</code></td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="downloadComputation('@filing.FormName')">
+                                        <i class="fa-solid fa-download me-1"></i> Download Computation
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GST Outward Details / HSN Code Wise Summary -->
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="finance-card p-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-tags text-secondary me-2"></i>GSTR-1 Outward Supply Summary</h6>
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Category / Slab</th>
+                                <th>Taxable Value</th>
+                                <th>CGST (9%)</th>
+                                <th>SGST (9%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>GST 18% Standard Goods</td>
+                                <td>₹ 1,50,00,000</td>
+                                <td>₹ 13,50,000</td>
+                                <td>₹ 13,50,000</td>
+                            </tr>
+                            <tr>
+                                <td>GST 18% Consulting Services</td>
+                                <td>₹ 35,00,000</td>
+                                <td>₹ 3,15,000</td>
+                                <td>₹ 3,15,000</td>
+                            </tr>
+                            <tr class="table-secondary fw-bold">
+                                <td>Total Outward Details</td>
+                                <td>₹ 1,85,00,000</td>
+                                <td>₹ 16,65,000</td>
+                                <td>₹ 16,65,000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TDS section details -->
+            <div class="col-lg-6">
+                <div class="finance-card p-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check text-secondary me-2"></i>TDS Deduction Details (Quarterly Return 26Q)</h6>
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Section Code</th>
+                                <th>Nature of Payment</th>
+                                <th>Base Amount</th>
+                                <th>TDS Deducted (10%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Section 194C</td>
+                                <td>Contractor Payments</td>
+                                <td>₹ 12,00,000</td>
+                                <td>₹ 1,20,000</td>
+                            </tr>
+                            <tr>
+                                <td>Section 194J</td>
+                                <td>Professional Fees</td>
+                                <td>₹ 12,00,000</td>
+                                <td>₹ 1,20,000</td>
+                            </tr>
+                            <tr class="table-secondary fw-bold">
+                                <td>Total TDS Deductions</td>
+                                <td>-</td>
+                                <td>₹ 24,00,000</td>
+                                <td>₹ 2,40,000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function downloadComputation(formName) {
+            alert(`Generating statutory tax computation sheet for form ${formName} (${Model.Period}). Download will start shortly.`);
+        }
+    </script>
+}

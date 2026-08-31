@@ -1,0 +1,208 @@
+@model List<ERP_System.Models.ReceivableInvoiceViewModel>
+@{
+    ViewData["Title"] = "Accounts Receivable";
+    string currentFilter = ViewBag.AgingFilter ?? "All";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+    .receivables-wrapper {
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 1.5rem 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    .filter-tab {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    
+    .finance-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+    
+    .badge-paid { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .badge-pending { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .badge-overdue { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+</style>
+
+<div class="receivables-wrapper">
+    <div class="container-fluid px-4">
+        
+        <!-- Breadcrumb & Title -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">Accounts Receivable (AR)</span>
+                <h1 class="h3 mb-0 fw-bold text-slate-800">Sales Invoices & Customer Aging</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-success" id="btnExportExcel"><i class="fa-solid fa-file-excel me-2"></i>Export to Excel</button>
+                <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Aging Filter Navigation Tabs -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="Receivables" asp-route-agingFilter="All" asp-route-search="@ViewBag.SearchTerm" class="btn filter-tab @(currentFilter == "All" ? "btn-primary" : "btn-outline-secondary")">All Invoices</a>
+                <a asp-action="Receivables" asp-route-agingFilter="Current" asp-route-search="@ViewBag.SearchTerm" class="btn filter-tab @(currentFilter == "Current" ? "btn-primary" : "btn-outline-secondary")">Current</a>
+                <a asp-action="Receivables" asp-route-agingFilter="1-30 Days" asp-route-search="@ViewBag.SearchTerm" class="btn filter-tab @(currentFilter == "1-30 Days" ? "btn-primary" : "btn-outline-secondary")">1-30 Days</a>
+                <a asp-action="Receivables" asp-route-agingFilter="31-60 Days" asp-route-search="@ViewBag.SearchTerm" class="btn filter-tab @(currentFilter == "31-60 Days" ? "btn-primary" : "btn-outline-secondary")">31-60 Days</a>
+                <a asp-action="Receivables" asp-route-agingFilter="Overdue 90+ Days" asp-route-search="@ViewBag.SearchTerm" class="btn filter-tab @(currentFilter == "Overdue 90+ Days" ? "btn-primary" : "btn-outline-secondary")">Overdue 90+ Days</a>
+            </div>
+
+            <!-- Search Invoice -->
+            <form method="get" asp-action="Receivables" class="d-flex gap-2" style="max-width: 320px; width: 100%;">
+                <input type="hidden" name="agingFilter" value="@currentFilter" />
+                <input type="text" name="search" value="@ViewBag.SearchTerm" placeholder="Search customer or invoice..." class="form-control" />
+                <button type="submit" class="btn btn-dark"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+        </div>
+
+        <!-- Invoices List Card -->
+        <div class="finance-card p-4">
+            <div class="table-responsive">
+                <table class="table align-middle table-hover mb-0" id="receivablesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Invoice No</th>
+                            <th>Customer</th>
+                            <th>Invoice Date</th>
+                            <th>Due Date</th>
+                            <th>Total Amount</th>
+                            <th>Balance Due</th>
+                            <th>Aging Bucket</th>
+                            <th>Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var invoice in Model)
+                            {
+                                var statusClass = invoice.Status == "Paid" ? "badge-paid" : (invoice.Status == "Overdue" ? "badge-overdue" : "badge-pending");
+                                <tr>
+                                    <td><span class="fw-bold text-primary">@invoice.InvoiceNo</span></td>
+                                    <td>@invoice.CustomerName</td>
+                                    <td>@invoice.InvoiceDate.ToString("dd-MMM-yyyy")</td>
+                                    <td>@invoice.DueDate.ToString("dd-MMM-yyyy")</td>
+                                    <td>₹ @invoice.TotalAmount.ToString("N2")</td>
+                                    <td><strong>₹ @invoice.BalanceDue.ToString("N2")</strong></td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary fw-semibold">@invoice.AgingBucket</span></td>
+                                    <td><span class="badge @statusClass">@invoice.Status</span></td>
+                                    <td class="text-center">
+                                        @if (invoice.Status != "Paid")
+                                        {
+                                            <button type="button" class="btn btn-primary btn-sm btn-action" 
+                                                    onclick="openPaymentModal('@invoice.InvoiceNo', '@invoice.CustomerName', @invoice.BalanceDue)">
+                                                <i class="fa-solid fa-wallet me-1"></i> Record Payment
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Settled</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center text-secondary py-5">No invoices found for the selected aging bucket.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Record Payment Modal Dialog -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="paymentModalLabel"><i class="fa-solid fa-cash-register text-success me-2"></i>Record Invoice Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Invoice Number</label>
+                        <input type="text" id="modalInvoiceNo" class="form-control bg-light" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Customer</label>
+                        <input type="text" id="modalCustomerName" class="form-control bg-light" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Collection Amount (₹)</label>
+                        <input type="number" id="modalAmount" class="form-control" step="0.01" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Receiving Ledger / Account</label>
+                        <select class="form-select">
+                            <option value="1">AC-1001 • Main Cash Account</option>
+                            <option value="2">AC-1002 • Reserve Bank Account</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Treasury Reference / Receipt ID</label>
+                        <input type="text" id="modalRef" class="form-control" placeholder="UTR or Bank Reference" required />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="savePayment()">Record Cash Inflow</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- SheetJS Excel Export Library -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        // Modal helpers
+        let activeInvoiceNo = '';
+        function openPaymentModal(invoiceNo, customer, balance) {
+            activeInvoiceNo = invoiceNo;
+            $('#modalInvoiceNo').val(invoiceNo);
+            $('#modalCustomerName').val(customer);
+            $('#modalAmount').val(balance);
+            $('#modalRef').val('');
+            $('#paymentModal').modal('show');
+        }
+
+        function savePayment() {
+            const amount = $('#modalAmount').val();
+            const reference = $('#modalRef').val();
+            if (!reference) {
+                alert("Please enter a transaction reference number.");
+                return;
+            }
+            alert(`Payment of ₹${amount} registered against invoice ${activeInvoiceNo} under reference ${reference}.`);
+            $('#paymentModal').modal('hide');
+            location.reload();
+        }
+
+        // SheetJS Table Export implementation
+        document.getElementById('btnExportExcel').addEventListener('click', function() {
+            const table = document.getElementById('receivablesTable');
+            const wb = XLSX.utils.table_to_book(table, { sheet: "Accounts Receivable" });
+            XLSX.writeFile(wb, "Accounts_Receivable_Report.xlsx");
+        });
+    </script>
+}

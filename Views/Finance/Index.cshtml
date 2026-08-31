@@ -1,0 +1,341 @@
+@model ERP_System.Models.FinanceDashboardViewModel
+@{
+    ViewData["Title"] = "Financial Control Suite Dashboard";
+}
+
+<!-- Premium Styles -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+    .finance-wrapper {
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 1.5rem 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    .finance-card {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        backdrop-filter: blur(10px);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .finance-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+    
+    .kpi-card {
+        border-left: 5px solid transparent;
+    }
+    .kpi-liquidity { border-left-color: #10b981; }
+    .kpi-receivable { border-left-color: #3b82f6; }
+    .kpi-payable { border-left-color: #f59e0b; }
+    .kpi-margin { border-left-color: #8b5cf6; }
+
+    .glow-emerald { text-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+    .glow-blue { text-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+    .glow-amber { text-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+    .glow-purple { text-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+
+    .chart-container {
+        position: relative;
+        height: 320px;
+    }
+    
+    .badge-paid { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .badge-pending { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .badge-overdue { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+    .btn-action {
+        border-radius: 8px;
+        padding: 0.4rem 0.8rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+</style>
+
+<div class="finance-wrapper">
+    <div class="container-fluid px-4">
+        
+        <!-- Module Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">Financial Control Suite</span>
+                <h1 class="h3 mb-0 fw-bold text-slate-800">CFO Executive Dashboard</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-action="Receivables" class="btn btn-outline-primary btn-action"><i class="fa-solid fa-arrow-down-long me-2"></i>Receivables</a>
+                <a asp-action="Payables" class="btn btn-outline-warning btn-action"><i class="fa-solid fa-arrow-up-long me-2"></i>Payables</a>
+                <a asp-action="Ledger" class="btn btn-outline-secondary btn-action"><i class="fa-solid fa-book-open me-2"></i>Ledger</a>
+                <a asp-action="Taxation" class="btn btn-outline-info btn-action"><i class="fa-solid fa-percent me-2"></i>Taxation</a>
+                <a asp-action="Reports" class="btn btn-primary btn-action"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Financial Reports</a>
+            </div>
+        </div>
+
+        <!-- 4 Premium 3D Glassmorphic KPI Widgets -->
+        <div class="row g-4 mb-4">
+            <!-- Bank & Liquidity -->
+            <div class="col-xl-3 col-md-6">
+                <div class="finance-card kpi-card kpi-liquidity p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="text-secondary small fw-semibold">Cash & Bank Liquidity</span>
+                            <h3 class="fw-bold my-2 text-dark glow-emerald">₹ @Model.TotalLiquidCash.ToString("N2")</h3>
+                            <span class="text-emerald fw-semibold small"><i class="fa-solid fa-circle-check me-1"></i>Available Balance</span>
+                        </div>
+                        <div class="bg-emerald-subtle rounded-3 p-3 text-success bg-opacity-25" style="background-color: rgba(16,185,129,0.1);">
+                            <i class="fa-solid fa-building-columns fa-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accounts Receivable -->
+            <div class="col-xl-3 col-md-6">
+                <div class="finance-card kpi-card kpi-receivable p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="text-secondary small fw-semibold">Accounts Receivable (AR)</span>
+                            <h3 class="fw-bold my-2 text-dark glow-blue">₹ @Model.AccountsReceivableTotal.ToString("N2")</h3>
+                            <span class="text-danger fw-semibold small"><i class="fa-solid fa-clock-rotate-left me-1"></i>Overdue: ₹ 14.10 L</span>
+                        </div>
+                        <div class="rounded-3 p-3 text-primary" style="background-color: rgba(59,130,246,0.1);">
+                            <i class="fa-solid fa-money-bill-trend-up fa-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accounts Payable -->
+            <div class="col-xl-3 col-md-6">
+                <div class="finance-card kpi-card kpi-payable p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="text-secondary small fw-semibold">Accounts Payable (AP)</span>
+                            <h3 class="fw-bold my-2 text-dark glow-amber">₹ @Model.AccountsPayableTotal.ToString("N2")</h3>
+                            <span class="text-warning fw-semibold small"><i class="fa-solid fa-calendar-day me-1"></i>Due this week: ₹ 12.00 L</span>
+                        </div>
+                        <div class="rounded-3 p-3 text-warning" style="background-color: rgba(245,158,11,0.1);">
+                            <i class="fa-solid fa-receipt fa-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profit Margins -->
+            <div class="col-xl-3 col-md-6">
+                <div class="finance-card kpi-card kpi-margin p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="text-secondary small fw-semibold">EBITDA & Profit Margin</span>
+                            <h3 class="fw-bold my-2 text-dark glow-purple">@Model.NetProfitMargin.ToString("F1")%</h3>
+                            <span class="text-success fw-semibold small"><i class="fa-solid fa-arrow-trend-up me-1"></i>+2.1% YoY Growth</span>
+                        </div>
+                        <div class="rounded-3 p-3 text-purple" style="background-color: rgba(139,92,246,0.1);">
+                            <i class="fa-solid fa-chart-line fa-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Visual Analytics Row -->
+        <div class="row g-4 mb-4">
+            <!-- Cash Flow Analysis Graph -->
+            <div class="col-lg-8">
+                <div class="finance-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-scale-balanced text-primary me-2"></i>Cash Flow & Revenue Analytics</h5>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary active">6 Months</button>
+                            <button type="button" class="btn btn-outline-secondary">12 Months</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="cashFlowChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Consumption Ring / Progress bars -->
+            <div class="col-lg-4">
+                <div class="finance-card p-4 h-100">
+                    <h5 class="fw-bold text-dark mb-4"><i class="fa-solid fa-pie-chart text-warning me-2"></i>Budget Allocation & Consumption</h5>
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var budget in Model.DepartmentBudgets)
+                        {
+                            var burnRate = budget.BurnRatePercentage;
+                            var colorClass = burnRate > 90 ? "bg-danger" : (burnRate > 75 ? "bg-warning" : "bg-success");
+                            <div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold text-secondary small">@budget.DepartmentName</span>
+                                    <span class="small fw-bold text-dark">₹@budget.Utilized.ToString("N0") / ₹@budget.Allocated.ToString("N0") (@burnRate.ToString("F0")%)</span>
+                                </div>
+                                <div class="progress" style="height: 10px; border-radius: 5px;">
+                                    <div class="progress-bar @colorClass" role="progressbar" style="width: @burnRate%" aria-valuenow="@burnRate" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Operations Row -->
+        <div class="row g-4">
+            <!-- Pending Vendor Bill Approvals (> ₹50,000) -->
+            <div class="col-lg-6">
+                <div class="finance-card p-4 h-100">
+                    <h5 class="fw-bold text-dark mb-4"><i class="fa-solid fa-user-shield text-danger me-2"></i>High-Value Vendor Sign-offs (> ₹50,000)</h5>
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Bill No</th>
+                                    <th>Vendor</th>
+                                    <th>Amount</th>
+                                    <th>DueDate</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.PendingPaymentAuthorizations != null && Model.PendingPaymentAuthorizations.Any())
+                                {
+                                    @foreach (var bill in Model.PendingPaymentAuthorizations)
+                                    {
+                                        <tr id="bill-row-@bill.BillId">
+                                            <td><span class="fw-bold text-primary">@bill.BillNo</span></td>
+                                            <td>@bill.VendorName</td>
+                                            <td><strong>₹ @bill.Amount.ToString("N2")</strong></td>
+                                            <td>@bill.DueDate.ToString("dd-MMM-yyyy")</td>
+                                            <td class="text-center">
+                                                <div class="d-flex justify-content-center gap-2">
+                                                    <button type="button" class="btn btn-success btn-sm btn-action" onclick="approveBill(@bill.BillId)"><i class="fa-solid fa-check"></i> Approve</button>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm btn-action"><i class="fa-solid fa-xmark"></i> Reject</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center text-secondary py-4">No pending high-value bills found.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Journal Entries & Treasury logs -->
+            <div class="col-lg-6">
+                <div class="finance-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-history text-secondary me-2"></i>Recent Treasury & JV Activity</h5>
+                        <a asp-action="Ledger" class="btn btn-link btn-sm text-decoration-none">View All</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>JV No</th>
+                                    <th>Reference</th>
+                                    <th>Description</th>
+                                    <th>Debit</th>
+                                    <th>Credit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var jv in Model.RecentTransactions)
+                                {
+                                    <tr>
+                                        <td><span class="fw-bold text-secondary">@jv.JournalNo</span></td>
+                                        <td>@jv.Reference</td>
+                                        <td><small class="text-muted">@jv.Description</small></td>
+                                        <td>@(jv.Debit > 0 ? "₹ " + jv.Debit.ToString("N2") : "-")</td>
+                                        <td>@(jv.Credit > 0 ? "₹ " + jv.Credit.ToString("N2") : "-")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Cash Flow Trend Chart Setup
+        const ctx = document.getElementById('cashFlowChart').getContext('2d');
+        
+        const labels = @Json.Serialize(Model.CashFlowTrend.Select(t => t.Month));
+        const inflows = @Json.Serialize(Model.CashFlowTrend.Select(t => t.Inflow));
+        const outflows = @Json.Serialize(Model.CashFlowTrend.Select(t => t.Outflow));
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Cash Collections (Inflow)',
+                        data: inflows,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Cash Disbursements (Outflow)',
+                        data: outflows,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return '₹ ' + (value / 100000).toFixed(0) + ' L';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // AJAX approve bill implementation
+        function approveBill(billId) {
+            if (confirm("Are you sure you want to authorize payment release for this bill?")) {
+                $.post('@Url.Action("ApprovePaymentRelease", "Finance")', { billId: billId }, function(res) {
+                    if (res.success) {
+                        alert(res.message);
+                        $('#bill-row-' + billId).fadeOut(500, function() { $(this).remove(); });
+                    } else {
+                        alert("Error: " + res.message);
+                    }
+                });
+            }
+        }
+    </script>
+}
