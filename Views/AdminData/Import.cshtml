@@ -5,471 +5,2736 @@
     ViewData["Title"] = "Bulk Data Import Studio";
 }
 
-<!-- Premium Alert & Notifications -->
+<!-- =========================================================
+     LIBRARIES
+     ========================================================= -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
+
+<!-- =========================================================
+     PAGE STYLES
+     ========================================================= -->
 <style>
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+    :root {
+        --import-primary: #2563eb;
+        --import-primary-dark: #1d4ed8;
+        --import-success: #16a34a;
+        --import-danger: #dc2626;
+        --import-warning: #d97706;
+        --import-border: #e2e8f0;
+        --import-muted: #64748b;
+        --import-bg: #f8fafc;
+        --import-dark: #0f172a;
     }
+
+    .import-page {
+        min-height: 100%;
+    }
+
+    /* Glass Panels */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.90);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(15, 23, 42, 0.035);
+    }
+
+        .glass-panel:hover {
+            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.045);
+        }
+
+    /* Header */
+    .page-title {
+        font-size: 1.35rem;
+        letter-spacing: -0.02em;
+    }
+
+    .breadcrumb a {
+        color: var(--import-primary);
+    }
+
+    /* Upload Zone */
     .upload-zone {
+        position: relative;
         border: 2px dashed #cbd5e1;
-        background: #f8fafc;
-        border-radius: 12px;
-        padding: 40px 20px;
+        background: linear-gradient( 135deg, #f8fafc 0%, #ffffff 100% );
+        border-radius: 14px;
+        padding: 42px 20px;
         text-align: center;
         cursor: pointer;
-        transition: all 0.25s ease;
+        transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
     }
-    .upload-zone:hover, .upload-zone.dragover {
-        border-color: #2563eb;
-        background: #f0fdf4;
+
+        .upload-zone:hover {
+            border-color: var(--import-primary);
+            background: #eff6ff;
+            transform: translateY(-1px);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--import-primary);
+            background: #eff6ff;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+            transform: scale(1.005);
+        }
+
+    .upload-icon {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 15px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #eff6ff;
+        color: var(--import-primary);
+        font-size: 1.9rem;
     }
+
+    .upload-zone-title {
+        font-weight: 700;
+        color: var(--import-dark);
+        margin-bottom: 5px;
+    }
+
+    .upload-zone-subtitle {
+        color: var(--import-muted);
+        font-size: 0.82rem;
+        margin-bottom: 0;
+    }
+
+    /* Selected File */
+    .selected-file {
+        border: 1px solid #dbeafe;
+        background: #eff6ff;
+        border-radius: 10px;
+    }
+
+    .selected-file-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 9px;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--import-primary);
+        flex-shrink: 0;
+    }
+
+    .file-name {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Guidelines */
     .rules-card {
-        border-left: 4px solid #2563eb;
+        border-left: 4px solid var(--import-primary);
         background: #f8fafc;
-        border-radius: 8px;
+        border-radius: 9px;
+    }
+
+    .schema-box {
+        background: #ffffff;
+        border: 1px solid var(--import-border);
+        border-radius: 9px;
+        font-family: Consolas, Monaco, monospace;
+        font-size: 0.76rem;
+        line-height: 1.65;
+        word-break: break-word;
+    }
+
+    /* Module Info */
+    .module-info-card {
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        border-radius: 10px;
+    }
+
+    .module-info-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: var(--import-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* Preview */
+    .preview-console {
+        border: 1px solid var(--import-border);
+        border-radius: 12px;
+        background: #f8fafc;
+    }
+
+    .preview-stat {
+        position: relative;
+        padding: 10px;
+    }
+
+        .preview-stat:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 15%;
+            width: 1px;
+            height: 70%;
+            background: #e2e8f0;
+        }
+
+    .preview-stat-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    /* Error List */
+    .error-container {
+        max-height: 180px;
+        overflow-y: auto;
+        border-radius: 9px;
+    }
+
+        .error-container ul {
+            margin-bottom: 0;
+        }
+
+        .error-container li {
+            margin-bottom: 3px;
+        }
+
+    /* Progress */
+    .import-progress-wrapper {
+        background: #f1f5f9;
+        border-radius: 99px;
+        padding: 3px;
+    }
+
+    .import-progress {
+        height: 7px;
+        border-radius: 99px;
+        overflow: hidden;
+    }
+
+    /* History */
+    .history-table {
+        min-width: 900px;
+    }
+
+        .history-table thead th {
+            white-space: nowrap;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .history-table tbody td {
+            font-size: 0.82rem;
+        }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* Buttons */
+    .btn-primary {
+        background-color: var(--import-primary);
+        border-color: var(--import-primary);
+    }
+
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background-color: var(--import-primary-dark);
+            border-color: var(--import-primary-dark);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.65;
+        }
+
+    /* Empty History */
+    .empty-history {
+        padding: 45px 20px;
+    }
+
+    .empty-history-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 12px;
+        border-radius: 16px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    /* Loading */
+    .loading-spinner {
+        width: 17px;
+        height: 17px;
+        border-width: 2px;
+    }
+
+    /* Mobile */
+    @@media (max-width: 767.98px) {
+        .glass-panel {
+            border-radius: 12px;
+        }
+
+        .upload-zone {
+            padding: 32px 15px;
+        }
+
+        .page-title {
+            font-size: 1.15rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+        }
+
+            .btn-group .btn {
+                border-radius: 6px !important;
+                margin-bottom: 4px;
+            }
     }
 </style>
 
-<div class="container-fluid py-4 text-start">
 
-    <!-- Top Header -->
+<!-- =========================================================
+     PAGE
+     ========================================================= -->
+<div class="container-fluid py-4 text-start import-page">
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
     <div class="d-flex justify-content-between align-items-center mb-4">
+
         <div>
+
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item text-secondary">Data Operations</li>
-                    <li class="breadcrumb-item active" aria-current="page">Bulk Import</li>
+
+                    <li class="breadcrumb-item">
+                        <a href="/Dashboard"
+                           class="text-decoration-none">
+                            Admin Dashboard
+                        </a>
+                    </li>
+
+                    <li class="breadcrumb-item text-secondary">
+                        Data Operations
+                    </li>
+
+                    <li class="breadcrumb-item active"
+                        aria-current="page">
+                        Bulk Import
+                    </li>
+
                 </ol>
             </nav>
-            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-file-import text-primary me-2"></i>Enterprise Bulk Data Import Studio</h4>
-            <p class="text-secondary small mb-0">Bulk upload master data from Excel/CSV files with pre-validation schema checkers.</p>
+
+            <h4 class="fw-bold mb-1 text-dark page-title">
+
+                <i class="fa-solid fa-file-import text-primary me-2"></i>
+
+                Enterprise Bulk Data Import Studio
+
+            </h4>
+
+            <p class="text-secondary small mb-0">
+                Upload, validate and safely import large master-data files into your ERP system.
+            </p>
+
         </div>
+
     </div>
 
+
+    <!-- =====================================================
+         MAIN ROW
+         ===================================================== -->
     <div class="row g-4">
-        
-        <!-- Left Panel: Upload Zone & Form -->
+
+        <!-- =================================================
+             LEFT: IMPORT WIZARD
+             ================================================= -->
         <div class="col-lg-7">
+
             <div class="glass-panel p-4 h-100">
-                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Import Wizard</h5>
-                
-                <form id="importForm" onsubmit="event.preventDefault(); startValidation();">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
+                    <h5 class="fw-bold text-dark mb-0">
+
+                        <i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>
+
+                        Import Wizard
+
+                    </h5>
+
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+                        Step-by-Step
+                    </span>
+
+                </div>
+
+
+                <form id="importForm">
+
                     @Html.AntiForgeryToken()
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Select Target Import Module</label>
-                        <div class="d-flex gap-2">
-                            <select id="moduleSelect" class="form-select" onchange="updateGuidelines()">
-                                <option value="Items & SKUs Catalog">📦 Items & SKUs Catalog</option>
-                                <option value="Customer Directory">👥 Customer Directory</option>
-                                <option value="Vendor / Supplier Directory">🏢 Vendor / Supplier Directory</option>
-                                <option value="Employee Profiles & KYC">💼 Employee Profiles & KYC</option>
-                                <option value="Opening Stock Balances">📊 Opening Stock Balances</option>
-                            </select>
-                            <button type="button" class="btn btn-outline-primary fw-bold text-nowrap" onclick="downloadActiveTemplate()">
-                                <i class="fa-solid fa-download me-1.5"></i>Get Template
-                            </button>
-                        </div>
-                    </div>
 
-                    <!-- Drag-and-Drop Area -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Choose Data File (.csv, .xlsx)</label>
-                        <div class="upload-zone" id="dropzone" onclick="document.getElementById('fileInput').click()">
-                            <div class="fs-1 text-secondary mb-2"><i class="fa-solid fa-file-excel"></i></div>
-                            <h6 class="fw-semibold text-dark mb-1">Drag and drop file here, or click to browse</h6>
-                            <p class="text-muted small mb-0">Supports Excel (.xlsx, .xls) and CSV files. Max file size: 10 MB.</p>
-                            <input type="file" id="fileInput" style="display: none;" accept=".csv, .xlsx, .xls" onchange="handleFileSelected(this.files[0])" />
-                        </div>
-                        <div id="fileSelectedDisplay" class="bg-light border rounded-3 p-2.5 mt-2 d-none align-items-center justify-content-between">
-                            <span class="text-dark fw-semibold small font-monospace" id="fileNameText">filename.csv</span>
-                            <button type="button" class="btn-close btn-sm" onclick="clearFileSelected()"></button>
-                        </div>
-                    </div>
 
-                    <!-- Duplicate Strategy Selection -->
+                    <!-- =========================================
+                         STEP 1: MODULE
+                         ========================================= -->
                     <div class="mb-4">
-                        <label class="form-label small fw-bold text-secondary d-block">Duplicate Record Strategy</label>
-                        <div class="btn-group w-100" role="group" aria-label="Strategy selection">
-                            <input type="radio" class="btn-check" name="strategy" id="strategySkip" value="Skip Existing" checked />
-                            <label class="btn btn-outline-secondary small py-2 fw-semibold" for="strategySkip">Skip Existing</label>
 
-                            <input type="radio" class="btn-check" name="strategy" id="strategyOverwrite" value="Overwrite Existing" />
-                            <label class="btn btn-outline-secondary small py-2 fw-semibold" for="strategyOverwrite">Overwrite Existing</label>
+                        <label class="form-label small fw-bold text-secondary">
 
-                            <input type="radio" class="btn-check" name="strategy" id="strategyReject" value="Reject Entire File" />
-                            <label class="btn btn-outline-secondary small py-2 fw-semibold" for="strategyReject">Reject Entire File</label>
+                            <span class="text-primary me-1">01.</span>
+                            Select Target Import Module
+
+                        </label>
+
+                        <div class="d-flex gap-2">
+
+                            <select id="moduleSelect"
+                                    class="form-select"
+                                    onchange="updateGuidelines(); updateModuleInfo();">
+
+                                <option value="Items & SKUs Catalog">
+                                    📦 Items & SKUs Catalog
+                                </option>
+
+                                <option value="Customer Directory">
+                                    👥 Customer Directory
+                                </option>
+
+                                <option value="Vendor / Supplier Directory">
+                                    🏢 Vendor / Supplier Directory
+                                </option>
+
+                                <option value="Employee Profiles & KYC">
+                                    💼 Employee Profiles & KYC
+                                </option>
+
+                                <option value="Opening Stock Balances">
+                                    📊 Opening Stock Balances
+                                </option>
+
+                            </select>
+
+
+                            <button type="button"
+                                    class="btn btn-outline-primary fw-bold text-nowrap"
+                                    id="btnTemplate"
+                                    onclick="downloadActiveTemplate()">
+
+                                <i class="fa-solid fa-download me-1"></i>
+
+                                Get Template
+
+                            </button>
+
                         </div>
+
                     </div>
 
-                    <!-- Action Button & Progress Bar -->
+
+                    <!-- Module Info -->
+                    <div class="module-info-card p-3 mb-4">
+
+                        <div class="d-flex align-items-center">
+
+                            <div class="module-info-icon me-3">
+
+                                <i class="fa-solid fa-box-open"
+                                   id="moduleInfoIcon"></i>
+
+                            </div>
+
+                            <div>
+
+                                <div class="small text-secondary">
+                                    Current Import Module
+                                </div>
+
+                                <div class="fw-bold text-dark"
+                                     id="moduleInfoName">
+                                    Items & SKUs Catalog
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =========================================
+                         STEP 2: FILE
+                         ========================================= -->
+                    <div class="mb-4">
+
+                        <label class="form-label small fw-bold text-secondary">
+
+                            <span class="text-primary me-1">02.</span>
+                            Choose Data File
+
+                        </label>
+
+
+                        <div class="upload-zone"
+                             id="dropzone">
+
+                            <div class="upload-icon">
+
+                                <i class="fa-solid fa-file-excel"></i>
+
+                            </div>
+
+                            <div class="upload-zone-title">
+
+                                Drag & drop your file here
+
+                            </div>
+
+                            <div class="text-secondary small mb-2">
+
+                                or click to browse from your computer
+
+                            </div>
+
+                            <p class="upload-zone-subtitle">
+
+                                CSV, XLS or XLSX • Maximum 10 MB • Maximum 10,000 rows
+
+                            </p>
+
+                            <input type="file"
+                                   id="fileInput"
+                                   class="d-none"
+                                   accept=".csv,.xlsx,.xls" />
+
+                        </div>
+
+
+                        <!-- Selected File -->
+                        <div id="fileSelectedDisplay"
+                             class="selected-file p-2 mt-2 d-none align-items-center justify-content-between">
+
+                            <div class="d-flex align-items-center min-w-0">
+
+                                <div class="selected-file-icon me-2">
+
+                                    <i class="fa-solid fa-file-lines"></i>
+
+                                </div>
+
+                                <div class="min-w-0">
+
+                                    <div class="small text-secondary">
+                                        Selected file
+                                    </div>
+
+                                    <div class="file-name text-dark fw-bold small"
+                                         id="fileNameText">
+                                        filename.csv
+                                    </div>
+
+                                    <div class="text-secondary"
+                                         style="font-size:0.7rem;"
+                                         id="fileSizeText">
+                                        0 KB
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger ms-2"
+                                    onclick="clearFileSelected()"
+                                    title="Remove file">
+
+                                <i class="fa-solid fa-xmark"></i>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =========================================
+                         STEP 3: DUPLICATE STRATEGY
+                         ========================================= -->
+                    <div class="mb-4">
+
+                        <label class="form-label small fw-bold text-secondary d-block">
+
+                            <span class="text-primary me-1">03.</span>
+                            Duplicate Record Strategy
+
+                        </label>
+
+
+                        <div class="btn-group w-100"
+                             role="group"
+                             aria-label="Duplicate strategy">
+
+                            <input type="radio"
+                                   class="btn-check"
+                                   name="strategy"
+                                   id="strategySkip"
+                                   value="Skip Existing"
+                                   checked />
+
+                            <label class="btn btn-outline-secondary small py-2 fw-semibold"
+                                   for="strategySkip">
+
+                                <i class="fa-solid fa-forward-step me-1"></i>
+
+                                Skip Existing
+
+                            </label>
+
+
+                            <input type="radio"
+                                   class="btn-check"
+                                   name="strategy"
+                                   id="strategyOverwrite"
+                                   value="Overwrite Existing" />
+
+                            <label class="btn btn-outline-secondary small py-2 fw-semibold"
+                                   for="strategyOverwrite">
+
+                                <i class="fa-solid fa-rotate me-1"></i>
+
+                                Overwrite Existing
+
+                            </label>
+
+
+                            <input type="radio"
+                                   class="btn-check"
+                                   name="strategy"
+                                   id="strategyReject"
+                                   value="Reject Entire File" />
+
+                            <label class="btn btn-outline-secondary small py-2 fw-semibold"
+                                   for="strategyReject">
+
+                                <i class="fa-solid fa-ban me-1"></i>
+
+                                Reject Entire File
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =========================================
+                         VALIDATE BUTTON
+                         ========================================= -->
                     <div class="mb-3">
-                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2.5" id="btnValidate" disabled>
-                            <i class="fa-solid fa-magnifying-glass-chart me-1.5"></i>Start Validation & Preview
+
+                        <button type="submit"
+                                class="btn btn-primary w-100 fw-bold py-2"
+                                id="btnValidate"
+                                disabled>
+
+                            <i class="fa-solid fa-magnifying-glass-chart me-2"></i>
+
+                            Start Validation & Preview
+
                         </button>
+
                     </div>
 
-                    <div class="progress d-none mb-3" style="height: 8px;" id="progressContainer">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%" id="progressBar"></div>
+
+                    <!-- Progress -->
+                    <div class="d-none mb-4"
+                         id="progressContainer">
+
+                        <div class="d-flex justify-content-between mb-1">
+
+                            <span class="small fw-semibold text-secondary">
+                                Processing file...
+                            </span>
+
+                            <span class="small fw-bold text-primary"
+                                  id="progressText">
+                                0%
+                            </span>
+
+                        </div>
+
+                        <div class="import-progress-wrapper">
+
+                            <div class="progress import-progress">
+
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     role="progressbar"
+                                     id="progressBar"
+                                     style="width:0%;">
+                                </div>
+
+                            </div>
+
+                        </div>
+
                     </div>
+
                 </form>
 
-                <!-- Validation Preview Console (Initially Hidden) -->
-                <div class="border rounded-3 p-3 bg-light d-none" id="previewConsole">
-                    <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-list-check text-primary me-1.5"></i>Pre-Validation Result</h6>
-                    <div class="row g-2 text-center mb-3">
-                        <div class="col-4 border-end">
-                            <span class="text-secondary small d-block">Total Rows</span>
-                            <span class="fw-bold text-dark fs-5" id="previewTotal">0</span>
-                        </div>
-                        <div class="col-4 border-end">
-                            <span class="text-secondary small d-block text-success">Valid Rows</span>
-                            <span class="fw-bold text-success fs-5" id="previewValid">0</span>
-                        </div>
-                        <div class="col-4">
-                            <span class="text-secondary small d-block text-danger">Error Rows</span>
-                            <span class="fw-bold text-danger fs-5" id="previewErrors">0</span>
-                        </div>
+
+                <!-- =================================================
+                     VALIDATION PREVIEW
+                     ================================================= -->
+                <div class="preview-console p-3 d-none"
+                     id="previewConsole">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+
+                        <h6 class="fw-bold text-dark mb-0">
+
+                            <i class="fa-solid fa-list-check text-primary me-1"></i>
+
+                            Pre-Validation Result
+
+                        </h6>
+
+                        <span class="badge bg-success-subtle text-success border border-success-subtle"
+                              id="validationStatusBadge">
+
+                            Ready
+
+                        </span>
+
                     </div>
-                    <div class="alert alert-danger d-none py-2 px-3 small text-start" id="errorsContainer">
-                        <div class="fw-semibold text-danger mb-1">Pre-Validation Warning Logs:</div>
-                        <ul class="mb-0 ps-3 font-monospace" id="errorsList" style="font-size: 0.75rem;"></ul>
+
+
+                    <!-- Statistics -->
+                    <div class="row g-0 text-center mb-3">
+
+                        <div class="col-4 preview-stat">
+
+                            <span class="text-secondary small d-block">
+                                Total Rows
+                            </span>
+
+                            <span class="preview-stat-value text-dark"
+                                  id="previewTotal">
+                                0
+                            </span>
+
+                        </div>
+
+
+                        <div class="col-4 preview-stat">
+
+                            <span class="text-secondary small d-block">
+                                Valid Rows
+                            </span>
+
+                            <span class="preview-stat-value text-success"
+                                  id="previewValid">
+                                0
+                            </span>
+
+                        </div>
+
+
+                        <div class="col-4 preview-stat">
+
+                            <span class="text-secondary small d-block">
+                                Error Rows
+                            </span>
+
+                            <span class="preview-stat-value text-danger"
+                                  id="previewErrors">
+                                0
+                            </span>
+
+                        </div>
+
                     </div>
-                    <div class="text-end">
-                        <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="resetPreview()">Cancel</button>
-                        <button type="button" class="btn btn-sm btn-success fw-bold px-3" id="btnCommit" onclick="commitImport()">
-                            <i class="fa-solid fa-circle-check me-1.5"></i>Commit & Write Records
+
+
+                    <!-- Validation Errors -->
+                    <div class="alert alert-danger d-none py-2 px-3 small text-start error-container"
+                         id="errorsContainer">
+
+                        <div class="fw-bold mb-1">
+
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+
+                            Validation Warning Logs
+
+                        </div>
+
+                        <ul class="mb-0 ps-3 font-monospace"
+                            id="errorsList"
+                            style="font-size:0.74rem;">
+                        </ul>
+
+                    </div>
+
+
+                    <!-- Preview Message -->
+                    <div class="alert alert-success d-none py-2 px-3 small"
+                         id="validMessage">
+
+                        <i class="fa-solid fa-circle-check me-1"></i>
+
+                        All uploaded rows passed validation.
+
+                    </div>
+
+
+                    <!-- Preview Actions -->
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary"
+                                onclick="resetPreview()">
+
+                            <i class="fa-solid fa-arrow-left me-1"></i>
+
+                            Back
+
                         </button>
+
+
+                        <button type="button"
+                                class="btn btn-sm btn-success fw-bold px-3"
+                                id="btnCommit"
+                                onclick="commitImport()">
+
+                            <i class="fa-solid fa-circle-check me-1"></i>
+
+                            Commit & Write Records
+
+                        </button>
+
                     </div>
+
                 </div>
+
             </div>
+
         </div>
 
-        <!-- Right Panel: Rules & Guidelines -->
+
+        <!-- =================================================
+             RIGHT: GUIDELINES
+             ================================================= -->
         <div class="col-lg-5">
-            <div class="glass-panel p-4 h-100 text-start">
-                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-book-bookmark text-primary me-2"></i>Import Guidelines</h5>
+
+            <div class="glass-panel p-4 h-100">
+
+                <h5 class="fw-bold text-dark mb-3">
+
+                    <i class="fa-solid fa-book-bookmark text-primary me-2"></i>
+
+                    Import Guidelines
+
+                </h5>
+
+
+                <!-- Formatting Rules -->
                 <div class="rules-card p-3 mb-3">
-                    <div class="fw-bold text-dark small mb-1.5">Formatting Instructions</div>
+
+                    <div class="fw-bold text-dark small mb-2">
+
+                        <i class="fa-solid fa-circle-info text-primary me-1"></i>
+
+                        Formatting Instructions
+
+                    </div>
+
                     <ul class="small mb-0 ps-3 text-secondary">
-                        <li><strong>File Formats:</strong> Must be plain CSV or validated Excel sheets.</li>
-                        <li><strong>Max Limits:</strong> Files are capped at <strong>10,000 rows</strong> per run.</li>
-                        <li><strong>Date Fields:</strong> Must be in ISO <code>YYYY-MM-DD</code> schema.</li>
-                        <li><strong>Codes:</strong> Codes and primary keys must be unique.</li>
+
+                        <li class="mb-2">
+                            <strong>File Formats:</strong>
+                            CSV, XLS or XLSX files are supported.
+                        </li>
+
+                        <li class="mb-2">
+                            <strong>Maximum Size:</strong>
+                            Files are limited to <strong>10 MB</strong>.
+                        </li>
+
+                        <li class="mb-2">
+                            <strong>Maximum Rows:</strong>
+                            Each import supports up to <strong>10,000 rows</strong>.
+                        </li>
+
+                        <li class="mb-2">
+                            <strong>Date Fields:</strong>
+                            Use ISO
+                            <code>YYYY-MM-DD</code>
+                            format where applicable.
+                        </li>
+
+                        <li>
+                            <strong>Codes:</strong>
+                            Primary codes should be unique.
+                        </li>
+
                     </ul>
+
                 </div>
 
-                <div class="bg-light border rounded-3 p-3">
-                    <div class="fw-bold text-dark small mb-2"><i class="fa-solid fa-code text-primary me-1.5"></i>Required Columns Schema</div>
-                    <div class="font-monospace small text-secondary p-2 bg-white border rounded" id="guidelinesBox" style="font-size: 0.75rem;">
-                        ItemCode, ItemName, Category, Unit, PurchasePrice, SellingPrice, HSN, ReorderLevel
+
+                <!-- Required Schema -->
+                <div class="bg-light border rounded-3 p-3 mb-3">
+
+                    <div class="fw-bold text-dark small mb-2">
+
+                        <i class="fa-solid fa-code text-primary me-1"></i>
+
+                        Required Columns Schema
+
                     </div>
+
+
+                    <div class="schema-box p-3 text-secondary"
+                         id="guidelinesBox">
+
+                        ItemCode, ItemName, Category, Unit, PurchasePrice, SellingPrice, HSN, ReorderLevel
+
+                    </div>
+
                 </div>
+
+
+                <!-- Import Flow -->
+                <div class="bg-white border rounded-3 p-3">
+
+                    <div class="fw-bold text-dark small mb-3">
+
+                        <i class="fa-solid fa-route text-primary me-1"></i>
+
+                        Import Process
+
+                    </div>
+
+
+                    <div class="d-flex align-items-start mb-3">
+
+                        <div class="badge bg-primary rounded-circle me-2"
+                             style="width:26px;height:26px;padding-top:6px;">
+                            1
+                        </div>
+
+                        <div>
+                            <div class="fw-semibold small text-dark">
+                                Download Template
+                            </div>
+                            <div class="text-secondary"
+                                 style="font-size:0.74rem;">
+                                Use the correct module structure.
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="d-flex align-items-start mb-3">
+
+                        <div class="badge bg-primary rounded-circle me-2"
+                             style="width:26px;height:26px;padding-top:6px;">
+                            2
+                        </div>
+
+                        <div>
+                            <div class="fw-semibold small text-dark">
+                                Upload Data
+                            </div>
+                            <div class="text-secondary"
+                                 style="font-size:0.74rem;">
+                                Select or drag your completed file.
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="d-flex align-items-start mb-3">
+
+                        <div class="badge bg-primary rounded-circle me-2"
+                             style="width:26px;height:26px;padding-top:6px;">
+                            3
+                        </div>
+
+                        <div>
+                            <div class="fw-semibold small text-dark">
+                                Validate
+                            </div>
+                            <div class="text-secondary"
+                                 style="font-size:0.74rem;">
+                                The server checks the uploaded records.
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="d-flex align-items-start">
+
+                        <div class="badge bg-success rounded-circle me-2"
+                             style="width:26px;height:26px;padding-top:6px;">
+                            4
+                        </div>
+
+                        <div>
+                            <div class="fw-semibold small text-dark">
+                                Commit
+                            </div>
+                            <div class="text-secondary"
+                                 style="font-size:0.74rem;">
+                                Valid records are written to the database.
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
+
         </div>
 
     </div>
 
-    <!-- Bottom Panel: Recent Import History -->
+
+    <!-- =====================================================
+         RECENT IMPORT HISTORY
+         ===================================================== -->
     <div class="glass-panel p-4 mt-4">
-        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Recent Bulk Import Logs</h5>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+
+            <div>
+
+                <h5 class="fw-bold text-dark mb-1">
+
+                    <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>
+
+                    Recent Bulk Import Logs
+
+                </h5>
+
+                <div class="small text-secondary">
+                    Review previous import transactions and validation results.
+                </div>
+
+            </div>
+
+        </div>
+
+
         <div class="table-responsive">
-            <table class="table align-middle table-hover text-start">
+
+            <table class="table align-middle table-hover text-start history-table">
+
                 <thead class="table-light">
+
                     <tr>
+
                         <th>Date & Time</th>
+
                         <th>Module Area</th>
+
                         <th>Imported File Name</th>
-                        <th class="text-center">Total Rows</th>
-                        <th class="text-center text-success">Successful</th>
-                        <th class="text-center text-danger">Failed</th>
-                        <th>Process Status</th>
-                        <th class="text-center">Error Logs</th>
+
+                        <th class="text-center">
+                            Total Rows
+                        </th>
+
+                        <th class="text-center text-success">
+                            Successful
+                        </th>
+
+                        <th class="text-center text-danger">
+                            Failed
+                        </th>
+
+                        <th>
+                            Process Status
+                        </th>
+
+                        <th class="text-center">
+                            Error Logs
+                        </th>
+
                     </tr>
+
                 </thead>
+
+
                 <tbody>
-                    @if (Model.ImportLogs.Count == 0)
+
+                    @if (Model?.ImportLogs == null || Model.ImportLogs.Count == 0)
                     {
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                <i class="fa-solid fa-box-open fs-3 d-block mb-1.5"></i>
-                                No bulk import log history found.
+
+                            <td colspan="8">
+
+                                <div class="empty-history text-center">
+
+                                    <div class="empty-history-icon">
+
+                                        <i class="fa-solid fa-box-open"></i>
+
+                                    </div>
+
+                                    <div class="fw-bold text-dark mb-1">
+                                        No Import History
+                                    </div>
+
+                                    <div class="text-secondary small">
+                                        Completed bulk import transactions will appear here.
+                                    </div>
+
+                                </div>
+
                             </td>
+
                         </tr>
                     }
                     else
                     {
-                        @foreach (var log in Model.ImportLogs)
+                        foreach (var log in Model.ImportLogs)
                         {
                             var badgeClass = log.Status switch
                             {
-                                "Success" => "bg-success-subtle text-success border-success-subtle",
-                                "Failed" => "bg-danger-subtle text-danger border-danger-subtle",
-                                "Partial" => "bg-warning-subtle text-warning-emphasis border-warning-subtle",
+                                "Success" => "bg-success-subtle text-success border border-success-subtle",
+                                "Failed" => "bg-danger-subtle text-danger border border-danger-subtle",
+                                "Partial" => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
                                 _ => "bg-light text-secondary border"
                             };
 
+                            var statusIcon = log.Status switch
+                            {
+                                "Success" => "fa-circle-check",
+                                "Failed" => "fa-circle-xmark",
+                                "Partial" => "fa-circle-exclamation",
+                                _ => "fa-clock"
+                            };
+
                             <tr>
-                                <td class="font-monospace text-secondary small">@log.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="fw-bold text-dark">@log.ModuleType</td>
-                                <td class="font-monospace small">@log.Filename</td>
-                                <td class="text-center font-monospace fw-bold">@log.TotalRows</td>
-                                <td class="text-center font-monospace text-success fw-bold">@log.SuccessRows</td>
-                                <td class="text-center font-monospace text-danger fw-bold">@log.FailedRows</td>
-                                <td>
-                                    <span class="badge @badgeClass border px-2.5 py-1 text-uppercase small">@log.Status</span>
+
+                                <td class="font-monospace text-secondary small">
+                                    @log.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                 </td>
+
+
+                                <td>
+
+                                    <span class="fw-bold text-dark">
+                                        @log.ModuleType
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="font-monospace small text-secondary"
+                                          title="@log.Filename">
+
+                                        @log.Filename
+
+                                    </span>
+
+                                </td>
+
+
                                 <td class="text-center">
-                                    @if (!string.IsNullOrEmpty(log.LogFileUrl))
+
+                                    <span class="font-monospace fw-bold">
+                                        @log.TotalRows
+                                    </span>
+
+                                </td>
+
+
+                                <td class="text-center">
+
+                                    <span class="font-monospace text-success fw-bold">
+                                        @log.SuccessRows
+                                    </span>
+
+                                </td>
+
+
+                                <td class="text-center">
+
+                                    <span class="font-monospace text-danger fw-bold">
+                                        @log.FailedRows
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="status-badge @badgeClass">
+
+                                        <i class="fa-solid @statusIcon"></i>
+
+                                        @log.Status
+
+                                    </span>
+
+                                </td>
+
+
+                                <td class="text-center">
+
+                                    @if (!string.IsNullOrWhiteSpace(log.LogFileUrl))
                                     {
-                                        <a href="@log.LogFileUrl" target="_blank" class="btn btn-sm btn-outline-danger px-2.5 py-1">
-                                            <i class="fa-solid fa-file-circle-exclamation me-1"></i>View Log
+                                        <a href="@log.LogFileUrl"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="btn btn-sm btn-outline-danger">
+
+                                            <i class="fa-solid fa-file-circle-exclamation me-1"></i>
+
+                                            View Log
+
                                         </a>
                                     }
                                     else
                                     {
-                                        <span class="text-muted small">No Errors</span>
+                                        <span class="text-muted small">
+
+                                            <i class="fa-solid fa-check me-1"></i>
+
+                                            No Errors
+
+                                        </span>
                                     }
+
                                 </td>
+
                             </tr>
                         }
                     }
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
 
 </div>
 
+
+<!-- =========================================================
+     JAVASCRIPT
+     ========================================================= -->
 <script>
+
+    "use strict";
+
+
+    /* =========================================================
+       GLOBAL STATE
+       ========================================================= */
+
     let activeFile = null;
     let preValidationData = null;
+    let progressTimer = null;
 
-    // Initialize dropzone drag-and-drop
-    const dropzone = document.getElementById("dropzone");
-    if (dropzone) {
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropzone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                dropzone.classList.add("dragover");
-            }, false);
-        });
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropzone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                dropzone.classList.remove("dragover");
-            }, false);
-        });
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const MAX_ROWS = 10000;
 
-        dropzone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const file = dt.files[0];
-            handleFileSelected(file);
-        }, false);
-    }
 
-    // Dynamic Guidelines mapping based on dropdown Target Module
-    function updateGuidelines() {
-        const mod = document.getElementById("moduleSelect").value;
-        const box = document.getElementById("guidelinesBox");
-        
-        let schemaText = "";
-        switch (mod) {
-            case "Items & SKUs Catalog":
-                schemaText = "ItemCode, ItemName, Category, Unit, PurchasePrice, SellingPrice, HSN, ReorderLevel";
-                break;
-            case "Customer Directory":
-                schemaText = "CustomerCode, CompanyName, ContactPerson, Email, Phone, GSTIN, BillingAddress";
-                break;
-            case "Vendor / Supplier Directory":
-                schemaText = "VendorCode, VendorName, ContactPerson, Email, Phone, PaymentTerms";
-                break;
-            case "Employee Profiles & KYC":
-                schemaText = "EmployeeCode, FullName, Email, Phone, Department, Designation, DateOfJoining";
-                break;
-            case "Opening Stock Balances":
-                schemaText = "ItemCode, WarehouseCode, BatchNo, Quantity, UnitCost";
-                break;
-        }
-        box.textContent = schemaText;
-    }
+    /* =========================================================
+       DOM READY
+       ========================================================= */
 
-    // Trigger download template via C# controller template builder
-    function downloadActiveTemplate() {
-        const mod = document.getElementById("moduleSelect").value;
-        window.location.href = `/AdminData/DownloadTemplate?moduleType=${encodeURIComponent(mod)}`;
-    }
+    document.addEventListener("DOMContentLoaded", function () {
 
-    // Validate size and handle selected file
-    function handleFileSelected(file) {
-        if (!file) return;
+        initializeDropzone();
+        initializeForm();
 
-        if (file.size > 10 * 1024 * 1024) {
-            Swal.fire({
-                icon: 'error',
-                title: 'File Too Large',
-                text: 'The uploaded file exceeds the 10 MB maximum file size limit.',
-                confirmButtonColor: '#ef4444'
-            });
+        updateGuidelines();
+        updateModuleInfo();
+
+    });
+
+
+    /* =========================================================
+       INITIALIZE FORM
+       ========================================================= */
+
+    function initializeForm() {
+
+        const form = document.getElementById("importForm");
+
+        if (!form) {
             return;
         }
 
-        activeFile = file;
-        document.getElementById("fileNameText").textContent = file.name;
-        document.getElementById("fileSelectedDisplay").classList.replace("d-none", "d-flex");
-        document.getElementById("btnValidate").disabled = false;
-        toastr.info(`File '${file.name}' staged for import pre-validation.`);
+        form.addEventListener("submit", function (event) {
+
+            event.preventDefault();
+
+            startValidation();
+
+        });
+
     }
+
+
+    /* =========================================================
+       INITIALIZE DRAG & DROP
+       ========================================================= */
+
+    function initializeDropzone() {
+
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("fileInput");
+
+        if (!dropzone || !fileInput) {
+            return;
+        }
+
+
+        dropzone.addEventListener("click", function () {
+
+            if (!isImportBusy()) {
+                fileInput.click();
+            }
+
+        });
+
+
+        fileInput.addEventListener("change", function () {
+
+            if (this.files && this.files.length > 0) {
+
+                handleFileSelected(this.files[0]);
+
+            }
+
+        });
+
+
+        ["dragenter", "dragover"].forEach(function (eventName) {
+
+            dropzone.addEventListener(eventName, function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (!isImportBusy()) {
+
+                    dropzone.classList.add("dragover");
+
+                }
+
+            });
+
+        });
+
+
+        ["dragleave", "drop"].forEach(function (eventName) {
+
+            dropzone.addEventListener(eventName, function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                dropzone.classList.remove("dragover");
+
+            });
+
+        });
+
+
+        dropzone.addEventListener("drop", function (event) {
+
+            if (isImportBusy()) {
+                return;
+            }
+
+            const files = event.dataTransfer.files;
+
+            if (files && files.length > 0) {
+
+                handleFileSelected(files[0]);
+
+            }
+
+        });
+
+    }
+
+
+    /* =========================================================
+       MODULE GUIDELINES
+       ========================================================= */
+
+    function updateGuidelines() {
+
+        const module = document.getElementById("moduleSelect").value;
+        const box = document.getElementById("guidelinesBox");
+
+        if (!box) {
+            return;
+        }
+
+
+        const schemas = {
+
+            "Items & SKUs Catalog":
+                "ItemCode, ItemName, Category, Unit, PurchasePrice, SellingPrice, HSN, ReorderLevel",
+
+            "Customer Directory":
+                "CustomerCode, CompanyName, ContactPerson, Email, Phone, GSTIN, BillingAddress",
+
+            "Vendor / Supplier Directory":
+                "VendorCode, VendorName, ContactPerson, Email, Phone, PaymentTerms",
+
+            "Employee Profiles & KYC":
+                "EmployeeCode, FullName, Email, Phone, Department, Designation, DateOfJoining",
+
+            "Opening Stock Balances":
+                "ItemCode, WarehouseCode, BatchNo, Quantity, UnitCost"
+
+        };
+
+
+        box.textContent =
+            schemas[module] ||
+            "No schema available for the selected module.";
+
+    }
+
+
+    /* =========================================================
+       MODULE INFORMATION
+       ========================================================= */
+
+    function updateModuleInfo() {
+
+        const module = document.getElementById("moduleSelect").value;
+
+        const nameElement =
+            document.getElementById("moduleInfoName");
+
+        const iconElement =
+            document.getElementById("moduleInfoIcon");
+
+
+        if (nameElement) {
+
+            nameElement.textContent = module;
+
+        }
+
+
+        if (!iconElement) {
+            return;
+        }
+
+
+        const icons = {
+
+            "Items & SKUs Catalog":
+                "fa-boxes-stacked",
+
+            "Customer Directory":
+                "fa-users",
+
+            "Vendor / Supplier Directory":
+                "fa-building",
+
+            "Employee Profiles & KYC":
+                "fa-user-tie",
+
+            "Opening Stock Balances":
+                "fa-warehouse"
+
+        };
+
+
+        iconElement.className =
+            "fa-solid " +
+            (icons[module] || "fa-box-open");
+
+    }
+
+
+    /* =========================================================
+       DOWNLOAD TEMPLATE
+       ========================================================= */
+
+    function downloadActiveTemplate() {
+
+        if (isImportBusy()) {
+            return;
+        }
+
+
+        const module =
+            document.getElementById("moduleSelect").value;
+
+
+        if (!module) {
+
+            toastr.warning("Please select an import module.");
+
+            return;
+
+        }
+
+
+        window.location.href =
+            "/AdminData/DownloadTemplate?moduleType=" +
+            encodeURIComponent(module);
+
+    }
+
+
+    /* =========================================================
+       FILE VALIDATION
+       ========================================================= */
+
+    function handleFileSelected(file) {
+
+        if (!file) {
+            return;
+        }
+
+
+        clearValidationState();
+
+
+        const fileName =
+            file.name.toLowerCase();
+
+
+        const validExtensions = [
+            ".csv",
+            ".xlsx",
+            ".xls"
+        ];
+
+
+        const validExtension =
+            validExtensions.some(function (extension) {
+
+                return fileName.endsWith(extension);
+
+            });
+
+
+        if (!validExtension) {
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "Unsupported File Type",
+
+                text:
+                    "Please upload a CSV, XLS or XLSX file.",
+
+                confirmButtonColor: "#ef4444"
+
+            });
+
+            resetFileInput();
+
+            return;
+
+        }
+
+
+        if (file.size <= 0) {
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "Empty File",
+
+                text:
+                    "The selected file is empty.",
+
+                confirmButtonColor: "#ef4444"
+
+            });
+
+            resetFileInput();
+
+            return;
+
+        }
+
+
+        if (file.size > MAX_FILE_SIZE) {
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "File Too Large",
+
+                text:
+                    "The uploaded file exceeds the 10 MB maximum file size limit.",
+
+                confirmButtonColor: "#ef4444"
+
+            });
+
+            resetFileInput();
+
+            return;
+
+        }
+
+
+        activeFile = file;
+
+
+        document.getElementById("fileNameText")
+            .textContent = file.name;
+
+
+        document.getElementById("fileSizeText")
+            .textContent = formatFileSize(file.size);
+
+
+        const selectedDisplay =
+            document.getElementById("fileSelectedDisplay");
+
+
+        selectedDisplay.classList.remove("d-none");
+        selectedDisplay.classList.add("d-flex");
+
+
+        const validateButton =
+            document.getElementById("btnValidate");
+
+
+        validateButton.disabled = false;
+
+
+        toastr.success(
+            "File '" +
+            escapeForText(file.name) +
+            "' is ready for validation."
+        );
+
+    }
+
+
+    /* =========================================================
+       CLEAR SELECTED FILE
+       ========================================================= */
 
     function clearFileSelected() {
+
         activeFile = null;
-        document.getElementById("fileInput").value = "";
-        document.getElementById("fileSelectedDisplay").classList.replace("d-flex", "d-none");
-        document.getElementById("btnValidate").disabled = true;
+
+        resetFileInput();
+
+
+        const selectedDisplay =
+            document.getElementById("fileSelectedDisplay");
+
+
+        selectedDisplay.classList.remove("d-flex");
+        selectedDisplay.classList.add("d-none");
+
+
+        document.getElementById("fileNameText")
+            .textContent = "filename.csv";
+
+
+        document.getElementById("fileSizeText")
+            .textContent = "0 KB";
+
+
+        document.getElementById("btnValidate")
+            .disabled = true;
+
+
         resetPreview();
+
     }
+
+
+    function resetFileInput() {
+
+        const fileInput =
+            document.getElementById("fileInput");
+
+        if (fileInput) {
+            fileInput.value = "";
+        }
+
+    }
+
+
+    /* =========================================================
+       RESET PREVIEW
+       ========================================================= */
 
     function resetPreview() {
+
         preValidationData = null;
-        document.getElementById("previewConsole").classList.add("d-none");
-        document.getElementById("errorsContainer").classList.add("d-none");
-        document.getElementById("errorsList").innerHTML = "";
+
+        const consoleElement =
+            document.getElementById("previewConsole");
+
+
+        consoleElement.classList.add("d-none");
+
+
+        document.getElementById("errorsContainer")
+            .classList.add("d-none");
+
+
+        document.getElementById("validMessage")
+            .classList.add("d-none");
+
+
+        document.getElementById("errorsList")
+            .innerHTML = "";
+
+
+        document.getElementById("previewTotal")
+            .textContent = "0";
+
+
+        document.getElementById("previewValid")
+            .textContent = "0";
+
+
+        document.getElementById("previewErrors")
+            .textContent = "0";
+
+
+        const commitButton =
+            document.getElementById("btnCommit");
+
+
+        if (commitButton) {
+            commitButton.disabled = false;
+        }
+
+
+        const statusBadge =
+            document.getElementById("validationStatusBadge");
+
+
+        if (statusBadge) {
+
+            statusBadge.className =
+                "badge bg-secondary-subtle text-secondary border border-secondary-subtle";
+
+            statusBadge.textContent = "Ready";
+
+        }
+
     }
 
-    // Execute validate & preview AJAX transaction
-    function startValidation() {
-        if (!activeFile) return;
 
-        const mod = document.getElementById("moduleSelect").value;
-        const form = document.getElementById("importForm");
-        const token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+    function clearValidationState() {
 
-        const formData = new FormData();
-        formData.append("file", activeFile);
-        formData.append("moduleType", mod);
-        formData.append("__RequestVerificationToken", token);
+        preValidationData = null;
 
-        document.getElementById("progressContainer").classList.remove("d-none");
-        const bar = document.getElementById("progressBar");
-        bar.style.width = "20%";
+        document.getElementById("previewConsole")
+            .classList.add("d-none");
 
-        let progressInterval = setInterval(() => {
-            let width = parseInt(bar.style.width);
-            if (width < 80) bar.style.width = (width + 15) + "%";
-        }, 150);
+    }
 
-        fetch("/AdminData/ValidateAndPreview", {
-            method: "POST",
-            body: formData
-        })
-        .then(res => res.json())
-        .then(data => {
-            clearInterval(progressInterval);
-            bar.style.width = "100%";
-            
-            setTimeout(() => {
-                document.getElementById("progressContainer").classList.add("d-none");
-                bar.style.width = "0%";
-                
-                if (data.success) {
-                    preValidationData = data;
-                    document.getElementById("previewTotal").textContent = data.totalRows;
-                    document.getElementById("previewValid").textContent = data.validRows;
-                    document.getElementById("previewErrors").textContent = data.errorRows;
 
-                    if (data.errorRows > 0) {
-                        const list = document.getElementById("errorsList");
-                        list.innerHTML = "";
-                        data.errors.forEach(err => {
-                            const li = document.createElement("li");
-                            li.textContent = err;
-                            list.appendChild(li);
-                        });
-                        document.getElementById("errorsContainer").classList.remove("d-none");
-                    } else {
-                        document.getElementById("errorsContainer").classList.add("d-none");
+    /* =========================================================
+       START VALIDATION
+       ========================================================= */
+
+    async function startValidation() {
+
+        if (!activeFile) {
+
+            toastr.warning(
+                "Please select a file before starting validation."
+            );
+
+            return;
+
+        }
+
+
+        if (isImportBusy()) {
+            return;
+        }
+
+
+        const module =
+            document.getElementById("moduleSelect").value;
+
+
+        const form =
+            document.getElementById("importForm");
+
+
+        const tokenInput =
+            form.querySelector(
+                'input[name="__RequestVerificationToken"]'
+            );
+
+
+        if (!tokenInput) {
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "Security Token Missing",
+
+                text:
+                    "The anti-forgery security token could not be found. Please refresh the page and try again.",
+
+                confirmButtonColor: "#ef4444"
+
+            });
+
+            return;
+
+        }
+
+
+        const token =
+            tokenInput.value;
+
+
+        const formData =
+            new FormData();
+
+
+        formData.append(
+            "file",
+            activeFile
+        );
+
+
+        formData.append(
+            "moduleType",
+            module
+        );
+
+
+        formData.append(
+            "__RequestVerificationToken",
+            token
+        );
+
+
+        setValidationLoading(true);
+
+
+        startProgressAnimation();
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/AdminData/ValidateAndPreview",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            const data =
+                await parseJsonResponse(response);
+
+
+            finishProgressAnimation();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data?.message ||
+                    "The server rejected the validation request."
+                );
+
+            }
+
+
+            if (!data || data.success !== true) {
+
+                throw new Error(
+                    data?.message ||
+                    "Validation failed."
+                );
+
+            }
+
+
+            handleValidationSuccess(data);
+
+        }
+        catch (error) {
+
+            finishProgressAnimation();
+
+            console.error(
+                "Bulk import validation error:",
+                error
+            );
+
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "Validation Failed",
+
+                text:
+                    error.message ||
+                    "The server validation parser failed.",
+
+                confirmButtonColor: "#ef4444"
+
+            });
+
+        }
+        finally {
+
+            setValidationLoading(false);
+
+        }
+
+    }
+
+
+    /* =========================================================
+       HANDLE VALIDATION SUCCESS
+       ========================================================= */
+
+    function handleValidationSuccess(data) {
+
+        preValidationData = data;
+
+
+        const totalRows =
+            Number(data.totalRows || 0);
+
+
+        const validRows =
+            Number(data.validRows || 0);
+
+
+        const errorRows =
+            Number(data.errorRows || 0);
+
+
+        document.getElementById("previewTotal")
+            .textContent = totalRows;
+
+
+        document.getElementById("previewValid")
+            .textContent = validRows;
+
+
+        document.getElementById("previewErrors")
+            .textContent = errorRows;
+
+
+        const previewConsole =
+            document.getElementById("previewConsole");
+
+
+        previewConsole.classList.remove("d-none");
+
+
+        const errorsContainer =
+            document.getElementById("errorsContainer");
+
+
+        const errorsList =
+            document.getElementById("errorsList");
+
+
+        const validMessage =
+            document.getElementById("validMessage");
+
+
+        errorsList.innerHTML = "";
+
+
+        validMessage.classList.add("d-none");
+
+
+        if (errorRows > 0) {
+
+            errorsContainer.classList.remove("d-none");
+
+
+            const errors =
+                Array.isArray(data.errors)
+                    ? data.errors
+                    : [];
+
+
+            if (errors.length === 0) {
+
+                const li =
+                    document.createElement("li");
+
+                li.textContent =
+                    "The server reported validation errors, but no detailed messages were returned.";
+
+                errorsList.appendChild(li);
+
+            }
+            else {
+
+                errors.forEach(function (error) {
+
+                    const li =
+                        document.createElement("li");
+
+                    li.textContent =
+                        String(error);
+
+                    errorsList.appendChild(li);
+
+                });
+
+            }
+
+        }
+        else {
+
+            errorsContainer.classList.add("d-none");
+
+            validMessage.classList.remove("d-none");
+
+        }
+
+
+        updateValidationStatus(errorRows);
+
+
+        toastr.success(
+            "Validation checklist completed successfully."
+        );
+
+
+        previewConsole.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest"
+        });
+
+    }
+
+
+    /* =========================================================
+       VALIDATION STATUS
+       ========================================================= */
+
+    function updateValidationStatus(errorRows) {
+
+        const badge =
+            document.getElementById(
+                "validationStatusBadge"
+            );
+
+
+        if (errorRows > 0) {
+
+            badge.className =
+                "badge bg-warning-subtle text-warning-emphasis border border-warning-subtle";
+
+            badge.textContent =
+                "Review Required";
+
+        }
+        else {
+
+            badge.className =
+                "badge bg-success-subtle text-success border border-success-subtle";
+
+            badge.textContent =
+                "Validation Passed";
+
+        }
+
+    }
+
+
+    /* =========================================================
+       COMMIT IMPORT
+       ========================================================= */
+
+    async function commitImport() {
+
+        if (!preValidationData) {
+
+            toastr.warning(
+                "Please validate the file before committing."
+            );
+
+            return;
+
+        }
+
+
+        if (isImportBusy()) {
+            return;
+        }
+
+
+        const module =
+            document.getElementById("moduleSelect").value;
+
+
+        const strategyElement =
+            document.querySelector(
+                'input[name="strategy"]:checked'
+            );
+
+
+        const strategy =
+            strategyElement
+                ? strategyElement.value
+                : "Skip Existing";
+
+
+        const totalRows =
+            Number(preValidationData.totalRows || 0);
+
+
+        const validRows =
+            Number(preValidationData.validRows || 0);
+
+
+        const errorRows =
+            Number(preValidationData.errorRows || 0);
+
+
+        if (!preValidationData.sessionKey) {
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "Session Expired",
+
+                text:
+                    "The validation session is no longer available. Please upload and validate the file again.",
+
+                confirmButtonColor: "#ef4444"
+
+            });
+
+            return;
+
+        }
+
+
+        if (totalRows <= 0) {
+
+            Swal.fire({
+
+                icon: "warning",
+
+                title: "Nothing to Import",
+
+                text:
+                    "The uploaded file does not contain any importable rows.",
+
+                confirmButtonColor: "#2563eb"
+
+            });
+
+            return;
+
+        }
+
+
+        if (validRows <= 0) {
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "No Valid Records",
+
+                text:
+                    "There are no valid records available to commit.",
+
+                confirmButtonColor: "#ef4444"
+
+            });
+
+            return;
+
+        }
+
+
+        /*
+         * If the server returned errors, ask the user
+         * to confirm before committing the valid rows.
+         */
+        if (errorRows > 0) {
+
+            const confirmation =
+                await Swal.fire({
+
+                    icon: "warning",
+
+                    title: "Validation Errors Found",
+
+                    html:
+                        "<div class='text-start'>" +
+                        "<p class='mb-2'>Some rows contain validation errors.</p>" +
+                        "<div class='small'>" +
+                        "<strong>" +
+                        validRows +
+                        "</strong> valid rows will be processed.</div>" +
+                        "<div class='small text-danger'>" +
+                        "<strong>" +
+                        errorRows +
+                        "</strong> rows contain errors.</div>" +
+                        "</div>",
+
+                    showCancelButton: true,
+
+                    confirmButtonText:
+                        "Continue with Valid Rows",
+
+                    cancelButtonText:
+                        "Cancel",
+
+                    confirmButtonColor:
+                        "#16a34a",
+
+                    cancelButtonColor:
+                        "#64748b"
+
+                });
+
+
+            if (!confirmation.isConfirmed) {
+                return;
+            }
+
+        }
+
+
+        const form =
+            document.getElementById("importForm");
+
+
+        const tokenInput =
+            form.querySelector(
+                'input[name="__RequestVerificationToken"]'
+            );
+
+
+        if (!tokenInput) {
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "Security Token Missing",
+
+                text:
+                    "The anti-forgery security token could not be found.",
+
+                confirmButtonColor: "#ef4444"
+
+            });
+
+            return;
+
+        }
+
+
+        const formData =
+            new FormData();
+
+
+        formData.append(
+            "sessionKey",
+            preValidationData.sessionKey
+        );
+
+
+        formData.append(
+            "moduleType",
+            module
+        );
+
+
+        formData.append(
+            "duplicateStrategy",
+            strategy
+        );
+
+
+        formData.append(
+            "totalRows",
+            totalRows
+        );
+
+
+        formData.append(
+            "validRows",
+            validRows
+        );
+
+
+        formData.append(
+            "errorRows",
+            errorRows
+        );
+
+
+        formData.append(
+            "__RequestVerificationToken",
+            tokenInput.value
+        );
+
+
+        const commitButton =
+            document.getElementById("btnCommit");
+
+
+        commitButton.disabled = true;
+
+
+        commitButton.innerHTML =
+            '<span class="spinner-border loading-spinner me-1" role="status"></span>' +
+            'Committing...';
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/AdminData/CommitImport",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            const data =
+                await parseJsonResponse(response);
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data?.message ||
+                    "The server rejected the import transaction."
+                );
+
+            }
+
+
+            if (!data || data.success !== true) {
+
+                throw new Error(
+                    data?.message ||
+                    "The import transaction failed."
+                );
+
+            }
+
+
+            await Swal.fire({
+
+                icon: "success",
+
+                title: "Import Completed",
+
+                text:
+                    data.message ||
+                    "The import was successfully completed.",
+
+                confirmButtonColor:
+                    "#2563eb"
+
+            });
+
+
+            window.location.reload();
+
+        }
+        catch (error) {
+
+            console.error(
+                "Bulk import commit error:",
+                error
+            );
+
+
+            commitButton.disabled = false;
+
+
+            commitButton.innerHTML =
+                '<i class="fa-solid fa-circle-check me-1"></i>' +
+                'Commit & Write Records';
+
+
+            Swal.fire({
+
+                icon: "error",
+
+                title: "Commit Failed",
+
+                text:
+                    error.message ||
+                    "Failed to commit batch records.",
+
+                confirmButtonColor:
+                    "#ef4444"
+
+            });
+
+        }
+
+    }
+
+
+    /* =========================================================
+       PROGRESS ANIMATION
+       ========================================================= */
+
+    function startProgressAnimation() {
+
+        const container =
+            document.getElementById(
+                "progressContainer"
+            );
+
+
+        const bar =
+            document.getElementById(
+                "progressBar"
+            );
+
+
+        const text =
+            document.getElementById(
+                "progressText"
+            );
+
+
+        container.classList.remove("d-none");
+
+
+        let progress = 10;
+
+
+        bar.style.width =
+            progress + "%";
+
+
+        text.textContent =
+            progress + "%";
+
+
+        clearInterval(progressTimer);
+
+
+        progressTimer =
+            setInterval(function () {
+
+                if (progress < 90) {
+
+                    progress += Math.floor(
+                        Math.random() * 8
+                    ) + 2;
+
+
+                    if (progress > 90) {
+                        progress = 90;
                     }
 
-                    document.getElementById("previewConsole").classList.remove("d-none");
-                    toastr.success("Validation checklist completed.");
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Validation Failed',
-                        text: data.message,
-                        confirmButtonColor: '#ef4444'
-                    });
+
+                    bar.style.width =
+                        progress + "%";
+
+
+                    text.textContent =
+                        progress + "%";
+
                 }
+
             }, 300);
-        })
-        .catch(err => {
-            clearInterval(progressInterval);
-            document.getElementById("progressContainer").classList.add("d-none");
-            console.error(err);
-            toastr.error("Server validation parser failed.");
-        });
+
     }
 
-    // Commit records database transaction
-    function commitImport() {
-        if (!preValidationData) return;
 
-        const mod = document.getElementById("moduleSelect").value;
-        const strategy = document.querySelector('input[name="strategy"]:checked').value;
-        const form = document.getElementById("importForm");
-        const token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+    function finishProgressAnimation() {
 
-        const formData = new FormData();
-        formData.append("sessionKey", preValidationData.sessionKey);
-        formData.append("moduleType", mod);
-        formData.append("duplicateStrategy", strategy);
-        formData.append("totalRows", preValidationData.totalRows);
-        formData.append("validRows", preValidationData.validRows);
-        formData.append("errorRows", preValidationData.errorRows);
-        formData.append("__RequestVerificationToken", token);
+        clearInterval(progressTimer);
 
-        document.getElementById("btnCommit").disabled = true;
-        toastr.info("Committing batch data transaction...");
 
-        fetch("/AdminData/CommitImport", {
-            method: "POST",
-            body: formData
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Import Completed',
-                    text: data.message,
-                    confirmButtonColor: '#2563eb'
-                }).then(() => {
-                    window.location.reload();
-                });
-            } else {
-                document.getElementById("btnCommit").disabled = false;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Commit Failed',
-                    text: data.message,
-                    confirmButtonColor: '#ef4444'
-                });
-            }
-        })
-        .catch(err => {
-            document.getElementById("btnCommit").disabled = false;
-            console.error(err);
-            toastr.error("Failed to commit batch records.");
-        });
+        const bar =
+            document.getElementById(
+                "progressBar"
+            );
+
+
+        const text =
+            document.getElementById(
+                "progressText"
+            );
+
+
+        bar.style.width =
+            "100%";
+
+
+        text.textContent =
+            "100%";
+
+
+        setTimeout(function () {
+
+            document.getElementById(
+                "progressContainer"
+            ).classList.add("d-none");
+
+
+            bar.style.width =
+                "0%";
+
+
+            text.textContent =
+                "0%";
+
+        }, 350);
+
     }
+
+
+    /* =========================================================
+       LOADING STATE
+       ========================================================= */
+
+    function setValidationLoading(isLoading) {
+
+        const button =
+            document.getElementById(
+                "btnValidate"
+            );
+
+
+        const templateButton =
+            document.getElementById(
+                "btnTemplate"
+            );
+
+
+        if (isLoading) {
+
+            button.disabled = true;
+
+
+            button.innerHTML =
+                '<span class="spinner-border loading-spinner me-2" role="status"></span>' +
+                'Validating File...';
+
+
+            templateButton.disabled = true;
+
+        }
+        else {
+
+            button.disabled =
+                !activeFile;
+
+
+            button.innerHTML =
+                '<i class="fa-solid fa-magnifying-glass-chart me-2"></i>' +
+                'Start Validation & Preview';
+
+
+            templateButton.disabled = false;
+
+        }
+
+    }
+
+
+    /* =========================================================
+       BUSY CHECK
+       ========================================================= */
+
+    function isImportBusy() {
+
+        const validateButton =
+            document.getElementById(
+                "btnValidate"
+            );
+
+
+        const commitButton =
+            document.getElementById(
+                "btnCommit"
+            );
+
+
+        const validating =
+            validateButton &&
+            validateButton.innerText
+                .toLowerCase()
+                .includes("validating");
+
+
+        const committing =
+            commitButton &&
+            commitButton.innerText
+                .toLowerCase()
+                .includes("committing");
+
+
+        return validating || committing;
+
+    }
+
+
+    /* =========================================================
+       JSON RESPONSE PARSER
+       ========================================================= */
+
+    async function parseJsonResponse(response) {
+
+        const contentType =
+            response.headers.get(
+                "content-type"
+            ) || "";
+
+
+        if (!contentType.includes("application/json")) {
+
+            const text =
+                await response.text();
+
+
+            throw new Error(
+                "The server returned an unexpected response. " +
+                "Please check the controller endpoint and server logs."
+            );
+
+        }
+
+
+        return await response.json();
+
+    }
+
+
+    /* =========================================================
+       FILE SIZE FORMATTER
+       ========================================================= */
+
+    function formatFileSize(bytes) {
+
+        if (bytes === 0) {
+            return "0 Bytes";
+        }
+
+
+        const units = [
+            "Bytes",
+            "KB",
+            "MB",
+            "GB"
+        ];
+
+
+        const index =
+            Math.floor(
+                Math.log(bytes) /
+                Math.log(1024)
+            );
+
+
+        return (
+            parseFloat(
+                (
+                    bytes /
+                    Math.pow(1024, index)
+                ).toFixed(2)
+            ) +
+            " " +
+            units[index]
+        );
+
+    }
+
+
+    /* =========================================================
+       TEXT SAFETY
+       ========================================================= */
+
+    function escapeForText(value) {
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    }
+
 </script>

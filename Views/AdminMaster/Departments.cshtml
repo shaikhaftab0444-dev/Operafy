@@ -1,221 +1,2082 @@
 @model ERP_System.Models.DepartmentViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Department Master";
 }
 
-<div class="container-fluid py-4 text-start">
-    <!-- Header controls -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-sitemap text-primary me-2"></i>Department Master</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Department Master</li>
-                </ol>
-            </nav>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <!-- Filter & Search Controls -->
-            <form action="/AdminMaster/Departments" method="get" class="d-flex flex-wrap gap-2 align-items-center">
-                <div class="input-group input-group-sm" style="width: 220px;">
-                    <span class="input-group-text bg-light text-secondary border-end-0 small fw-semibold">Branch</span>
-                    <select name="branchId" class="form-select border-start-0" onchange="this.form.submit()">
-                        <option value="0" selected="@(Model.SelectedBranchId == 0 ? "selected" : null)">All Branches</option>
-                        @foreach (var b in Model.Branches)
-                        {
-                            <option value="@b.BranchId" selected="@(Model.SelectedBranchId == b.BranchId ? "selected" : null)">@b.BranchName</option>
-                        }
-                    </select>
-                </div>
-                <div class="input-group input-group-sm" style="width: 220px;">
-                    <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Search departments..." value="@Model.SearchTerm" />
-                    <button type="submit" class="btn btn-outline-primary">Go</button>
-                </div>
-            </form>
+<style>
+    /* =========================================================
+           DEPARTMENT MASTER
+           PREMIUM ERP UI
+           ========================================================= */
 
-            <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#addDeptModal">
-                <i class="fa-solid fa-plus me-1.5"></i>Add Department
-            </button>
-        </div>
-    </div>
-
-    <!-- Alert Notifications -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show small py-2" role="alert" style="max-width: 900px;">
-            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show small py-2" role="alert" style="max-width: 900px;">
-            <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
-            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+    :root {
+        --dept-primary: #4f46e5;
+        --dept-primary-dark: #3730a3;
+        --dept-primary-soft: #eef2ff;
+        --dept-success: #16a34a;
+        --dept-success-soft: #dcfce7;
+        --dept-danger: #dc2626;
+        --dept-danger-soft: #fee2e2;
+        --dept-warning: #d97706;
+        --dept-warning-soft: #fef3c7;
+        --dept-info: #0284c7;
+        --dept-info-soft: #e0f2fe;
+        --dept-text: #172033;
+        --dept-muted: #6b7280;
+        --dept-border: #e5e7eb;
+        --dept-bg: #f6f8fc;
+        --dept-card: #ffffff;
+        --dept-radius: 18px;
     }
 
-    <!-- Departments Data Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm" style="max-width: 1100px;">
-        <h5 class="fw-bold mb-3">Enterprise Departments</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light text-uppercase fw-bold text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                    <tr>
-                        <th>Dept Code</th>
-                        <th>Department Name</th>
-                        <th>Assigned Branch</th>
-                        <th>Department HOD</th>
-                        <th>Parent Hierarchy</th>
-                        <th>Staff Count</th>
-                        <th>Status</th>
-                        <th class="text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.Departments != null && Model.Departments.Any())
-                    {
-                        @foreach (var d in Model.Departments)
-                        {
-                            var random = new Random(d.DepartmentId);
-                            var staffCount = random.Next(4, 18); // Mocked employee count per Dynamics 365 dashboard standard
-                            
-                            <tr>
-                                <td class="fw-bold text-dark"><code>@d.DepartmentCode</code></td>
-                                <td>@d.DepartmentName</td>
-                                <td><span class="text-secondary"><i class="fa-solid fa-building me-1.5 small text-muted"></i>@(d.Branch != null ? d.Branch.BranchName : "Head Office")</span></td>
-                                <td>
-                                    @if (d.HOD != null)
-                                    {
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 28px; height: 28px; font-size: 0.75rem;">
-                                                <i class="fa-solid fa-user-tie"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-semibold">@d.HOD.FullName</div>
-                                                <div class="text-muted small" style="font-size: 0.7rem;">@d.HOD.Email</div>
-                                            </div>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted small">Not Assigned</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (d.ParentDepartment != null)
-                                    {
-                                        <span class="badge bg-light text-secondary border">@d.ParentDepartment.DepartmentName</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted small">-</span>
-                                    }
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary-subtle text-primary border rounded-pill px-2.5">@staffCount Employees</span>
-                                </td>
-                                <td>
-                                    @if (d.IsActive)
-                                    {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5">Active</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5">Inactive</span>
-                                    }
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        <!-- Toggle Status -->
-                                        <form action="/AdminMaster/ToggleDepartmentStatus" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@d.DepartmentId" />
-                                            <button type="submit" class="btn btn-sm btn-outline-warning py-1 px-2.5 rounded-pill" title="Toggle Status">
-                                                <i class="fa-solid @(d.IsActive ? "fa-ban" : "fa-check")"></i>
-                                            </button>
-                                        </form>
+    /* =========================
+           PAGE
+           ========================= */
 
-                                        <!-- Delete -->
-                                        <form action="/AdminMaster/DeleteDepartment" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this department?')">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@d.DepartmentId" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2.5 rounded-pill" title="Delete">
-                                                <i class="fa-solid fa-trash-can"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+    .department-page {
+        min-height: 100vh;
+        background: radial-gradient(circle at top right, rgba(79, 70, 229, 0.08), transparent 30%), radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.05), transparent 28%), var(--dept-bg);
+        color: var(--dept-text);
+        padding-bottom: 40px;
+    }
 
-<!-- Add Department Modal -->
-<div class="modal fade text-start" id="addDeptModal" tabindex="-1" aria-labelledby="addDeptLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="/AdminMaster/CreateDepartment" method="post">
-                @Html.AntiForgeryToken()
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="addDeptLabel">Add Department</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    .department-wrapper {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* =========================
+           ANIMATIONS
+           ========================= */
+
+    @@keyframes deptFadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes deptFadeIn {
+        from
+
+    {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+
+    }
+
+    @@keyframes deptScale {
+        from
+
+    {
+        opacity: 0;
+        transform: scale(.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    }
+
+    @@keyframes deptPulse {
+        0%, 100%
+
+    {
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, .10);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(79, 70, 229, .02);
+    }
+
+    }
+
+    .dept-animate {
+        animation: deptFadeUp .55s ease both;
+    }
+
+    .dept-delay-1 {
+        animation-delay: .08s;
+    }
+
+    .dept-delay-2 {
+        animation-delay: .16s;
+    }
+
+    .dept-delay-3 {
+        animation-delay: .24s;
+    }
+
+    .dept-delay-4 {
+        animation-delay: .32s;
+    }
+
+    /* =========================
+           HEADER
+           ========================= */
+
+    .dept-header {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 26px 28px;
+        margin-bottom: 22px;
+        border: 1px solid rgba(229, 231, 235, .9);
+        border-radius: var(--dept-radius);
+        background: rgba(255, 255, 255, .88);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 10px 35px rgba(15, 23, 42, .055);
+        overflow: hidden;
+    }
+
+        .dept-header::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient( 180deg, var(--dept-primary), #7c3aed, #06b6d4 );
+        }
+
+    .dept-title-area {
+        position: relative;
+        z-index: 1;
+    }
+
+    .dept-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -.5px;
+        color: var(--dept-text);
+    }
+
+    .dept-title-icon {
+        width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        color: var(--dept-primary);
+        background: var(--dept-primary-soft);
+        box-shadow: inset 0 0 0 1px rgba(79, 70, 229, .08);
+        animation: deptPulse 3s ease-in-out infinite;
+    }
+
+    .dept-subtitle {
+        margin: 5px 0 0 56px;
+        color: var(--dept-muted);
+        font-size: .82rem;
+    }
+
+    .dept-breadcrumb {
+        margin: 8px 0 0 56px;
+    }
+
+        .dept-breadcrumb .breadcrumb {
+            margin: 0;
+            font-size: .75rem;
+        }
+
+        .dept-breadcrumb a {
+            color: var(--dept-primary);
+            font-weight: 600;
+        }
+
+    .dept-header-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* =========================
+           BUTTONS
+           ========================= */
+
+    .dept-btn-primary {
+        border: 0;
+        color: #fff;
+        background: linear-gradient( 135deg, var(--dept-primary), #6366f1 );
+        box-shadow: 0 8px 18px rgba(79, 70, 229, .20);
+        transition: all .25s ease;
+    }
+
+        .dept-btn-primary:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(79, 70, 229, .28);
+            background: linear-gradient( 135deg, var(--dept-primary-dark), var(--dept-primary) );
+        }
+
+        .dept-btn-primary:active {
+            transform: translateY(0);
+        }
+
+    /* =========================
+           ALERTS
+           ========================= */
+
+    .dept-alert {
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, .05);
+        animation: deptFadeUp .4s ease both;
+    }
+
+    .dept-alert-success {
+        color: #166534;
+        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    }
+
+    .dept-alert-danger {
+        color: #991b1b;
+        background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    }
+
+    /* =========================
+           SUMMARY CARDS
+           ========================= */
+
+    .dept-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .dept-stat-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        min-height: 105px;
+        padding: 18px;
+        background: var(--dept-card);
+        border: 1px solid var(--dept-border);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, .045);
+        transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease;
+        animation: deptFadeUp .55s ease both;
+    }
+
+        .dept-stat-card:nth-child(1) {
+            animation-delay: .08s;
+        }
+
+        .dept-stat-card:nth-child(2) {
+            animation-delay: .16s;
+        }
+
+        .dept-stat-card:nth-child(3) {
+            animation-delay: .24s;
+        }
+
+        .dept-stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(79, 70, 229, .18);
+            box-shadow: 0 16px 35px rgba(15, 23, 42, .09);
+        }
+
+        .dept-stat-card::after {
+            content: "";
+            position: absolute;
+            right: -35px;
+            bottom: -45px;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: rgba(79, 70, 229, .045);
+        }
+
+    .dept-stat-icon {
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        font-size: 1.1rem;
+    }
+
+        .dept-stat-icon.primary {
+            color: var(--dept-primary);
+            background: var(--dept-primary-soft);
+        }
+
+        .dept-stat-icon.success {
+            color: var(--dept-success);
+            background: var(--dept-success-soft);
+        }
+
+        .dept-stat-icon.warning {
+            color: var(--dept-warning);
+            background: var(--dept-warning-soft);
+        }
+
+    .dept-stat-label {
+        margin-bottom: 2px;
+        color: var(--dept-muted);
+        font-size: .75rem;
+        font-weight: 600;
+    }
+
+    .dept-stat-value {
+        color: var(--dept-text);
+        font-size: 1.45rem;
+        line-height: 1.2;
+        font-weight: 800;
+    }
+
+    /* =========================
+           FILTER PANEL
+           ========================= */
+
+    .dept-filter-card {
+        padding: 18px;
+        margin-bottom: 22px;
+        border: 1px solid var(--dept-border);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, .95);
+        box-shadow: 0 8px 28px rgba(15, 23, 42, .045);
+        animation: deptFadeUp .55s ease .28s both;
+    }
+
+    .dept-filter-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 14px;
+    }
+
+    .dept-filter-heading {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 750;
+        font-size: .9rem;
+        color: var(--dept-text);
+    }
+
+        .dept-filter-heading i {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            color: var(--dept-primary);
+            background: var(--dept-primary-soft);
+        }
+
+    .dept-filter-reset {
+        color: var(--dept-muted);
+        text-decoration: none;
+        font-size: .76rem;
+        font-weight: 600;
+        transition: color .2s ease;
+    }
+
+        .dept-filter-reset:hover {
+            color: var(--dept-primary);
+        }
+
+    .dept-filter-form {
+        display: grid;
+        grid-template-columns: minmax(220px, .8fr) minmax(260px, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .dept-field-label {
+        display: block;
+        margin-bottom: 6px;
+        color: #4b5563;
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .dept-control {
+        min-height: 42px;
+        border: 1px solid #dfe3ea;
+        border-radius: 11px;
+        background-color: #fff;
+        color: var(--dept-text);
+        font-size: .82rem;
+        box-shadow: none;
+        transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+
+        .dept-control:hover {
+            border-color: #c7cbd4;
+        }
+
+        .dept-control:focus {
+            border-color: var(--dept-primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, .09);
+        }
+
+    .dept-search-group {
+        position: relative;
+    }
+
+    .dept-search-icon {
+        position: absolute;
+        left: 13px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .dept-search-input {
+        padding-left: 38px;
+    }
+
+    .dept-filter-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+        .dept-filter-buttons .btn {
+            min-height: 42px;
+            border-radius: 11px;
+            font-size: .78rem;
+            font-weight: 700;
+            padding: 0 17px;
+        }
+
+    /* =========================
+           TABLE CARD
+           ========================= */
+
+    .dept-table-card {
+        overflow: hidden;
+        border: 1px solid var(--dept-border);
+        border-radius: 18px;
+        background: var(--dept-card);
+        box-shadow: 0 10px 35px rgba(15, 23, 42, .055);
+        animation: deptScale .55s ease .35s both;
+    }
+
+    .dept-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--dept-border);
+        background: linear-gradient( 180deg, #ffffff, #fbfcfe );
+    }
+
+    .dept-table-heading {
+        margin: 0;
+        font-size: .98rem;
+        font-weight: 800;
+        color: var(--dept-text);
+    }
+
+    .dept-table-caption {
+        margin: 3px 0 0;
+        color: var(--dept-muted);
+        font-size: .72rem;
+    }
+
+    .dept-table-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        border-radius: 999px;
+        color: var(--dept-primary);
+        background: var(--dept-primary-soft);
+        font-size: .7rem;
+        font-weight: 700;
+    }
+
+    .dept-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .dept-table {
+        min-width: 1050px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .dept-table thead th {
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--dept-border);
+            background: #f8fafc;
+            color: #6b7280;
+            font-size: .66rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .65px;
+            white-space: nowrap;
+        }
+
+        .dept-table tbody td {
+            padding: 15px 16px;
+            border-bottom: 1px solid #f0f1f4;
+            color: #374151;
+            font-size: .79rem;
+            vertical-align: middle;
+        }
+
+        .dept-table tbody tr {
+            position: relative;
+            transition: background-color .22s ease, transform .22s ease;
+            animation: deptFadeUp .4s ease both;
+        }
+
+            .dept-table tbody tr:hover {
+                background: #fafbff;
+            }
+
+            .dept-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .dept-code {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 9px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: var(--dept-primary);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: .71rem;
+        font-weight: 700;
+    }
+
+    .dept-name {
+        color: var(--dept-text);
+        font-size: .83rem;
+        font-weight: 750;
+    }
+
+    .dept-name-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .dept-mini-icon {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 32px;
+        border-radius: 9px;
+        color: var(--dept-primary);
+        background: var(--dept-primary-soft);
+        font-size: .72rem;
+    }
+
+    .dept-branch {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #4b5563;
+        font-weight: 600;
+    }
+
+        .dept-branch i {
+            color: #9ca3af;
+        }
+
+    /* =========================
+           HOD
+           ========================= */
+
+    .dept-hod {
+        display: flex;
+        align-items: center;
+        min-width: 190px;
+    }
+
+    .dept-hod-avatar {
+        width: 35px;
+        height: 35px;
+        flex: 0 0 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 9px;
+        border-radius: 11px;
+        color: #fff;
+        background: linear-gradient( 135deg, var(--dept-primary), #7c3aed );
+        font-size: .75rem;
+        box-shadow: 0 5px 12px rgba(79, 70, 229, .18);
+    }
+
+    .dept-hod-name {
+        color: var(--dept-text);
+        font-size: .76rem;
+        font-weight: 700;
+    }
+
+    .dept-hod-email {
+        max-width: 180px;
+        overflow: hidden;
+        color: #9ca3af;
+        font-size: .65rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dept-not-assigned {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 8px;
+        border-radius: 8px;
+        color: #9ca3af;
+        background: #f9fafb;
+        font-size: .7rem;
+        font-weight: 600;
+    }
+
+    /* =========================
+           BADGES
+           ========================= */
+
+    .dept-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: .67rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .dept-badge-parent {
+        color: #4b5563;
+        border: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+
+    .dept-badge-staff {
+        color: var(--dept-primary);
+        border: 1px solid #dbeafe;
+        background: #eff6ff;
+    }
+
+    .dept-badge-active {
+        color: #15803d;
+        background: #dcfce7;
+    }
+
+    .dept-badge-inactive {
+        color: #b91c1c;
+        background: #fee2e2;
+    }
+
+    /* =========================
+           ACTIONS
+           ========================= */
+
+    .dept-actions {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .dept-action-btn {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px !important;
+        transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+
+        .dept-action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .dept-action-warning:hover {
+        box-shadow: 0 6px 15px rgba(217, 119, 6, .15);
+    }
+
+    .dept-action-danger:hover {
+        box-shadow: 0 6px 15px rgba(220, 38, 38, .15);
+    }
+
+    /* =========================
+           EMPTY STATE
+           ========================= */
+
+    .dept-empty {
+        padding: 65px 25px !important;
+        text-align: center;
+    }
+
+    .dept-empty-icon {
+        width: 70px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        border-radius: 20px;
+        color: #94a3b8;
+        background: #f1f5f9;
+        font-size: 1.5rem;
+        animation: deptPulse 3s ease infinite;
+    }
+
+    .dept-empty-title {
+        margin-bottom: 5px;
+        color: var(--dept-text);
+        font-weight: 800;
+        font-size: .95rem;
+    }
+
+    .dept-empty-text {
+        margin: 0;
+        color: #9ca3af;
+        font-size: .75rem;
+    }
+
+    /* =========================
+           MODAL
+           ========================= */
+
+    .dept-modal .modal-dialog {
+        max-width: 650px;
+    }
+
+    .dept-modal .modal-content {
+        overflow: hidden;
+        border: 0;
+        border-radius: 20px;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, .22);
+        animation: deptScale .25s ease both;
+    }
+
+    .dept-modal-header {
+        position: relative;
+        padding: 20px 22px;
+        color: #fff;
+        border: 0;
+        background: linear-gradient( 135deg, #3730a3, #4f46e5, #6366f1 );
+    }
+
+        .dept-modal-header::after {
+            content: "";
+            position: absolute;
+            right: -35px;
+            top: -55px;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .08);
+        }
+
+    .dept-modal-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .dept-modal-title-icon {
+        width: 35px;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .14);
+    }
+
+    .dept-modal-header .btn-close {
+        position: relative;
+        z-index: 3;
+        opacity: .9;
+        filter: brightness(0) invert(1);
+    }
+
+    .dept-modal-body {
+        padding: 24px;
+        background: #fff;
+    }
+
+    .dept-form-group {
+        margin-bottom: 17px;
+    }
+
+    .dept-form-label {
+        display: block;
+        margin-bottom: 7px;
+        color: #374151;
+        font-size: .72rem;
+        font-weight: 750;
+    }
+
+    .dept-required {
+        color: var(--dept-danger);
+    }
+
+    .dept-modal .form-control,
+    .dept-modal .form-select {
+        min-height: 43px;
+        border: 1px solid #e1e5eb;
+        border-radius: 10px;
+        color: var(--dept-text);
+        font-size: .8rem;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .dept-modal textarea.form-control {
+        min-height: auto;
+    }
+
+    .dept-modal .form-control:focus,
+    .dept-modal .form-select:focus {
+        border-color: var(--dept-primary);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, .09);
+    }
+
+    .dept-modal .form-control::placeholder {
+        color: #b4bac4;
+    }
+
+    .dept-switch {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1px solid #e8eaf0;
+        border-radius: 11px;
+        background: #fafbfc;
+    }
+
+        .dept-switch .form-check-input {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .dept-switch .form-check-label {
+            margin: 0;
+            color: #374151;
+            font-size: .76rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+    .dept-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 15px 22px;
+        border-top: 1px solid #edf0f3;
+        background: #fafbfc;
+    }
+
+        .dept-modal-footer .btn {
+            min-height: 38px;
+            padding: 0 17px;
+            border-radius: 10px;
+            font-size: .76rem;
+            font-weight: 700;
+        }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 1200px) {
+        .dept-filter-form
+
+    {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .dept-filter-buttons {
+        grid-column: 1 / -1;
+    }
+
+    }
+
+    @@media (max-width: 992px) {
+        .dept-summary-grid
+
+    {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .dept-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .dept-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .department-page
+
+    {
+        padding-top: 10px;
+    }
+
+    .dept-header {
+        padding: 20px;
+        border-radius: 15px;
+    }
+
+    .dept-title {
+        font-size: 1.25rem;
+    }
+
+    .dept-title-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .dept-subtitle,
+    .dept-breadcrumb {
+        margin-left: 52px;
+    }
+
+    .dept-header-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+        .dept-header-actions > * {
+            width: 100%;
+        }
+
+    .dept-summary-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .dept-stat-card {
+        min-height: 88px;
+    }
+
+    .dept-filter-card {
+        padding: 15px;
+    }
+
+    .dept-filter-form {
+        grid-template-columns: 1fr;
+    }
+
+    .dept-filter-buttons {
+        grid-column: auto;
+    }
+
+        .dept-filter-buttons .btn {
+            flex: 1;
+        }
+
+    .dept-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px;
+    }
+
+    .dept-table-count {
+        align-self: flex-start;
+    }
+
+    .dept-modal .modal-dialog {
+        margin: 10px;
+    }
+
+    .dept-modal-body {
+        padding: 18px;
+    }
+
+    }
+
+    @@media (max-width: 576px) {
+        .department-page .container-fluid
+
+    {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .dept-header {
+        padding: 17px;
+    }
+
+    .dept-title {
+        font-size: 1.1rem;
+    }
+
+    .dept-title-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+
+    .dept-subtitle {
+        font-size: .73rem;
+    }
+
+    .dept-stat-card {
+        padding: 14px;
+    }
+
+    .dept-stat-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+    }
+
+    .dept-stat-value {
+        font-size: 1.25rem;
+    }
+
+    .dept-filter-top {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .dept-filter-reset {
+        margin-left: 39px;
+    }
+
+    .dept-modal-footer {
+        flex-direction: column-reverse;
+    }
+
+        .dept-modal-footer .btn {
+            width: 100%;
+        }
+
+    }
+
+    /* =========================
+           ACCESSIBILITY
+           ========================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after
+
+    {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+
+    }
+</style>
+
+<div class="department-page">
+    <div class="container-fluid py-3 py-md-4 text-start">
+        <div class="department-wrapper">
+
+            <!-- =====================================================
+                 HEADER
+                 ===================================================== -->
+            <div class="dept-header dept-animate">
+
+                <div class="dept-title-area">
+
+                    <h1 class="dept-title">
+                        <span class="dept-title-icon">
+                            <i class="fa-solid fa-sitemap"></i>
+                        </span>
+                        Department Master
+                    </h1>
+
+                    <div class="dept-subtitle">
+                        Manage organizational departments, hierarchy, branches and HOD assignments.
+                    </div>
+
+                    <div class="dept-breadcrumb">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a href="/Dashboard" class="text-decoration-none">
+                                        <i class="fa-solid fa-house me-1"></i>
+                                        Dashboard
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">
+                                    Department Master
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Department Code</label>
-                        <input type="text" name="DepartmentCode" class="form-control text-uppercase" placeholder="e.g. HR-DEPT" required />
+
+                <div class="dept-header-actions">
+
+                    <button type="button"
+                            class="btn dept-btn-primary rounded-pill px-4 btn-sm"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addDeptModal">
+
+                        <i class="fa-solid fa-plus me-2"></i>
+                        Add Department
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- =====================================================
+                 ALERTS
+                 ===================================================== -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert dept-alert dept-alert-success alert-dismissible fade show small mb-3"
+                     role="alert">
+
+                    <i class="fa-solid fa-circle-check me-2"></i>
+
+                    @TempData["SuccessMessage"]
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert dept-alert dept-alert-danger alert-dismissible fade show small mb-3"
+                     role="alert">
+
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>
+
+                    @TempData["ErrorMessage"]
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+            }
+
+
+            <!-- =====================================================
+                 SUMMARY CARDS
+                 ===================================================== -->
+            @{
+                var totalDepartments = Model.Departments?.Count() ?? 0;
+                var activeDepartments = Model.Departments?.Count(x => x.IsActive) ?? 0;
+                var inactiveDepartments = totalDepartments - activeDepartments;
+            }
+
+            <div class="dept-summary-grid">
+
+                <div class="dept-stat-card">
+
+                    <div class="dept-stat-icon primary">
+                        <i class="fa-solid fa-building"></i>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Department Name</label>
-                        <input type="text" name="DepartmentName" class="form-control" placeholder="e.g. Human Resources" required />
+
+                    <div>
+                        <div class="dept-stat-label">
+                            Total Departments
+                        </div>
+
+                        <div class="dept-stat-value">
+                            @totalDepartments
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Assigned Branch</label>
-                        <select name="BranchId" class="form-select" required>
+
+                </div>
+
+
+                <div class="dept-stat-card">
+
+                    <div class="dept-stat-icon success">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                    <div>
+                        <div class="dept-stat-label">
+                            Active Departments
+                        </div>
+
+                        <div class="dept-stat-value">
+                            @activeDepartments
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="dept-stat-card">
+
+                    <div class="dept-stat-icon warning">
+                        <i class="fa-solid fa-circle-pause"></i>
+                    </div>
+
+                    <div>
+                        <div class="dept-stat-label">
+                            Inactive Departments
+                        </div>
+
+                        <div class="dept-stat-value">
+                            @inactiveDepartments
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =====================================================
+                 FILTER PANEL
+                 ===================================================== -->
+
+            <div class="dept-filter-card">
+
+                <div class="dept-filter-top">
+
+                    <div class="dept-filter-heading">
+                        <i class="fa-solid fa-sliders"></i>
+                        Search & Filter Departments
+                    </div>
+
+                    <a href="/AdminMaster/Departments"
+                       class="dept-filter-reset">
+
+                        <i class="fa-solid fa-rotate-left me-1"></i>
+                        Reset Filters
+
+                    </a>
+
+                </div>
+
+
+                <form action="/AdminMaster/Departments"
+                      method="get"
+                      class="dept-filter-form">
+
+                    <!-- Branch -->
+                    <div>
+
+                        <label class="dept-field-label">
+                            Branch
+                        </label>
+
+                        <select name="branchId"
+                                class="form-select dept-control"
+                                onchange="this.form.submit()">
+
+                            <option value="0"
+                                    selected="@(Model.SelectedBranchId == 0 ? "selected" : null)">
+                                All Branches
+                            </option>
+
                             @foreach (var b in Model.Branches)
                             {
-                                <option value="@b.BranchId">@b.BranchName</option>
+                                <option value="@b.BranchId"
+                                        selected="@(Model.SelectedBranchId == b.BranchId ? "selected" : null)">
+                                    @b.BranchName
+                                </option>
                             }
+
                         </select>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Head of Department (HOD)</label>
-                        <select name="HODId" class="form-select">
-                            <option value="">-- Select HOD --</option>
-                            @foreach (var u in Model.StaffList)
-                            {
-                                <option value="@u.UserId">@u.FullName (@u.Email)</option>
-                            }
-                        </select>
+
+
+                    <!-- Search -->
+                    <div>
+
+                        <label class="dept-field-label">
+                            Department Search
+                        </label>
+
+                        <div class="dept-search-group">
+
+                            <i class="fa-solid fa-magnifying-glass dept-search-icon"></i>
+
+                            <input type="text"
+                                   name="search"
+                                   class="form-control dept-control dept-search-input"
+                                   placeholder="Search by department name or code..."
+                                   value="@Model.SearchTerm" />
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Parent Department (For Hierarchy)</label>
-                        <select name="ParentDepartmentId" class="form-select">
-                            <option value="">-- No Parent (Top Level) --</option>
-                            @foreach (var d in Model.Departments ?? new List<ERP_System.Models.Department>())
-                            {
-                                <option value="@d.DepartmentId">@d.DepartmentName (@d.DepartmentCode)</option>
-                            }
-                        </select>
+
+
+                    <!-- Buttons -->
+                    <div class="dept-filter-buttons">
+
+                        <button type="submit"
+                                class="btn btn-primary">
+
+                            <i class="fa-solid fa-filter me-1"></i>
+                            Apply Filter
+
+                        </button>
+
+                        <a href="/AdminMaster/Departments"
+                           class="btn btn-outline-secondary">
+
+                            Clear
+
+                        </a>
+
                     </div>
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" name="IsActive" value="true" checked id="isActiveDept">
-                        <label class="form-check-label small fw-semibold" for="isActiveDept">Active Department</label>
+
+                </form>
+
+            </div>
+
+
+            <!-- =====================================================
+                 DEPARTMENT TABLE
+                 ===================================================== -->
+
+            <div class="dept-table-card">
+
+                <div class="dept-table-header">
+
+                    <div>
+
+                        <h2 class="dept-table-heading">
+                            <i class="fa-solid fa-layer-group text-primary me-2"></i>
+                            Enterprise Departments
+                        </h2>
+
+                        <p class="dept-table-caption">
+                            Organizational structure and department ownership
+                        </p>
+
                     </div>
+
+                    <div class="dept-table-count">
+
+                        <i class="fa-solid fa-building"></i>
+
+                        @totalDepartments
+                        @(totalDepartments == 1 ? "Department" : "Departments")
+
+                    </div>
+
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Department</button>
+
+
+                <div class="dept-table-wrapper">
+
+                    <table class="table dept-table align-middle mb-0">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Department Code
+                                </th>
+
+                                <th>
+                                    Department
+                                </th>
+
+                                <th>
+                                    Assigned Branch
+                                </th>
+
+                                <th>
+                                    Department HOD
+                                </th>
+
+                                <th>
+                                    Parent Hierarchy
+                                </th>
+
+                                <th>
+                                    Staff
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                                <th class="text-center">
+                                    Actions
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            @if (Model.Departments != null && Model.Departments.Any())
+                            {
+                                var rowIndex = 0;
+
+                                @foreach (var d in Model.Departments)
+                                {
+                                    var random = new Random(d.DepartmentId);
+
+                                    var staffCount = random.Next(4, 18);
+
+                                    rowIndex++;
+
+                                    <tr style="animation-delay: @(Math.Min(rowIndex * 0.035, 0.5).ToString(System.Globalization.CultureInfo.InvariantCulture))s;">
+
+                                        <!-- Department Code -->
+                                        <td>
+
+                                            <span class="dept-code">
+                                                @d.DepartmentCode
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- Department Name -->
+                                        <td>
+
+                                            <div class="dept-name-wrap">
+
+                                                <span class="dept-mini-icon">
+                                                    <i class="fa-solid fa-sitemap"></i>
+                                                </span>
+
+                                                <div class="dept-name">
+                                                    @d.DepartmentName
+                                                </div>
+
+                                            </div>
+
+                                        </td>
+
+
+                                        <!-- Branch -->
+                                        <td>
+
+                                            <span class="dept-branch">
+
+                                                <i class="fa-solid fa-building"></i>
+
+                                                @(d.Branch != null
+                                                                                        ? d.Branch.BranchName
+                                                                                        : "Head Office")
+
+                                    </span>
+
+                                        </td>
+
+
+                                        <!-- HOD -->
+                                        <td>
+
+                                    @if (d.HOD != null)
+                                            {
+                                                <div class="dept-hod">
+
+                                                    <div class="dept-hod-avatar">
+
+                                                        <i class="fa-solid fa-user-tie"></i>
+
+                                                    </div>
+
+                                                    <div>
+
+                                                        <div class="dept-hod-name">
+                                                            @d.HOD.FullName
+                                                        </div>
+
+                                                        <div class="dept-hod-email"
+                                                             title="@d.HOD.Email">
+
+                                                            @d.HOD.Email
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="dept-not-assigned">
+
+                                                    <i class="fa-solid fa-user-slash"></i>
+
+                                                    Not Assigned
+
+                                                </span>
+                                            }
+
+                                        </td>
+
+
+                                        <!-- Parent -->
+                                        <td>
+
+                                            @if (d.ParentDepartment != null)
+                                            {
+                                                <span class="dept-badge dept-badge-parent">
+
+                                                    <i class="fa-solid fa-arrow-turn-up"></i>
+
+                                                    @d.ParentDepartment.DepartmentName
+
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">
+                                                    Top Level
+                                                </span>
+                                            }
+
+                                        </td>
+
+
+                                        <!-- Staff -->
+                                        <td>
+
+                                            <span class="dept-badge dept-badge-staff">
+
+                                                <i class="fa-solid fa-users"></i>
+
+                                                @staffCount
+                                                @(staffCount == 1 ? "Employee" : "Employees")
+
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- Status -->
+                                        <td>
+
+                                            @if (d.IsActive)
+                                            {
+                                                <span class="dept-badge dept-badge-active">
+
+                                                    <i class="fa-solid fa-circle-check"></i>
+
+                                                    Active
+
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="dept-badge dept-badge-inactive">
+
+                                                    <i class="fa-solid fa-circle-xmark"></i>
+
+                                                    Inactive
+
+                                                </span>
+                                            }
+
+                                        </td>
+
+
+                                        <!-- Actions -->
+                                        <td>
+
+                                            <div class="dept-actions">
+
+                                                <!-- Toggle Status -->
+                                                <form action="/AdminMaster/ToggleDepartmentStatus"
+                                                      method="post"
+                                                      class="d-inline">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="id"
+                                                           value="@d.DepartmentId" />
+
+                                                    <button type="submit"
+                                                            class="btn btn-sm btn-outline-warning dept-action-btn dept-action-warning"
+                                                            title="@(d.IsActive ? "Deactivate Department" : "Activate Department")"
+                                                            aria-label="@(d.IsActive ? "Deactivate Department" : "Activate Department")">
+
+                                                        <i class="fa-solid @(d.IsActive ? "fa-ban" : "fa-check")"></i>
+
+                                                    </button>
+
+                                                </form>
+
+
+                                                <!-- Delete -->
+                                                <form action="/AdminMaster/DeleteDepartment"
+                                                      method="post"
+                                                      class="d-inline"
+                                                      onsubmit="return confirm('Are you sure you want to delete this department?');">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="id"
+                                                           value="@d.DepartmentId" />
+
+                                                    <button type="submit"
+                                                            class="btn btn-sm btn-outline-danger dept-action-btn dept-action-danger"
+                                                            title="Delete Department"
+                                                            aria-label="Delete Department">
+
+                                                        <i class="fa-solid fa-trash-can"></i>
+
+                                                    </button>
+
+                                                </form>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+
+                                    <td colspan="8" class="dept-empty">
+
+                                        <div class="dept-empty-icon">
+
+                                            <i class="fa-solid fa-folder-open"></i>
+
+                                        </div>
+
+                                        <div class="dept-empty-title">
+                                            No Departments Found
+                                        </div>
+
+                                        <p class="dept-empty-text">
+                                            No departments match your current filters.
+                                            Try changing the branch or search criteria.
+                                        </p>
+
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
                 </div>
-            </form>
+
+            </div>
+
         </div>
     </div>
 </div>
+
+
+<!-- =============================================================
+     ADD DEPARTMENT MODAL
+     ============================================================= -->
+
+<div class="modal fade dept-modal text-start"
+     id="addDeptModal"
+     tabindex="-1"
+     aria-labelledby="addDeptLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form action="/AdminMaster/CreateDepartment"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+
+                <!-- Modal Header -->
+                <div class="modal-header dept-modal-header">
+
+                    <h5 class="dept-modal-title"
+                        id="addDeptLabel">
+
+                        <span class="dept-modal-title-icon">
+
+                            <i class="fa-solid fa-plus"></i>
+
+                        </span>
+
+                        Add New Department
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+
+
+                <!-- Modal Body -->
+                <div class="dept-modal-body">
+
+                    <div class="row g-0">
+
+
+                        <!-- Department Code -->
+                        <div class="col-md-6 pe-md-2">
+
+                            <div class="dept-form-group">
+
+                                <label class="dept-form-label">
+                                    Department Code
+                                    <span class="dept-required">*</span>
+                                </label>
+
+                                <input type="text"
+                                       name="DepartmentCode"
+                                       class="form-control text-uppercase"
+                                       placeholder="e.g. HR-DEPT"
+                                       required />
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Department Name -->
+                        <div class="col-md-6 ps-md-2">
+
+                            <div class="dept-form-group">
+
+                                <label class="dept-form-label">
+                                    Department Name
+                                    <span class="dept-required">*</span>
+                                </label>
+
+                                <input type="text"
+                                       name="DepartmentName"
+                                       class="form-control"
+                                       placeholder="e.g. Human Resources"
+                                       required />
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Branch -->
+                        <div class="col-12">
+
+                            <div class="dept-form-group">
+
+                                <label class="dept-form-label">
+                                    Assigned Branch
+                                    <span class="dept-required">*</span>
+                                </label>
+
+                                <select name="BranchId"
+                                        class="form-select"
+                                        required>
+
+                                    @foreach (var b in Model.Branches)
+                                    {
+                                        <option value="@b.BranchId">
+                                            @b.BranchName
+                                        </option>
+                                    }
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- HOD -->
+                        <div class="col-12">
+
+                            <div class="dept-form-group">
+
+                                <label class="dept-form-label">
+                                    Head of Department (HOD)
+                                </label>
+
+                                <select name="HODId"
+                                        class="form-select">
+
+                                    <option value="">
+                                        -- Select HOD --
+                                    </option>
+
+                                    @foreach (var u in Model.StaffList)
+                                    {
+                                        <option value="@u.UserId">
+                                            @u.FullName (@u.Email)
+                                        </option>
+                                    }
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Parent Department -->
+                        <div class="col-12">
+
+                            <div class="dept-form-group">
+
+                                <label class="dept-form-label">
+                                    Parent Department
+                                </label>
+
+                                <select name="ParentDepartmentId"
+                                        class="form-select">
+
+                                    <option value="">
+                                        -- No Parent (Top Level) --
+                                    </option>
+
+                                    @foreach (var d in Model.Departments ?? new List<ERP_System.Models.Department>())
+                                    {
+                                        <option value="@d.DepartmentId">
+                                            @d.DepartmentName (@d.DepartmentCode)
+                                        </option>
+                                    }
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Active Switch -->
+                        <div class="col-12">
+
+                            <div class="dept-switch">
+
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       name="IsActive"
+                                       value="true"
+                                       checked
+                                       id="isActiveDept" />
+
+                                <label class="form-check-label"
+                                       for="isActiveDept">
+
+                                    <i class="fa-solid fa-circle-check text-success me-1"></i>
+
+                                    Active Department
+
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Modal Footer -->
+                <div class="dept-modal-footer">
+
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn dept-btn-primary">
+
+                        <i class="fa-solid fa-floppy-disk me-2"></i>
+
+                        Save Department
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        /* =====================================================
+           TABLE ROW HOVER / ENTRY
+           ===================================================== */
+
+        const rows = document.querySelectorAll(".dept-table tbody tr");
+
+        rows.forEach(function (row, index) {
+
+            if (!row.classList.contains("dept-empty")) {
+
+                row.style.animationDelay =
+                    Math.min(index * 0.035, 0.5) + "s";
+
+            }
+
+        });
+
+
+        /* =====================================================
+           AUTO DISMISS SUCCESS / ERROR ALERTS
+           ===================================================== */
+
+        const alerts = document.querySelectorAll(".dept-alert");
+
+        alerts.forEach(function (alert) {
+
+            setTimeout(function () {
+
+                if (typeof bootstrap !== "undefined") {
+
+                    const instance =
+                        bootstrap.Alert.getOrCreateInstance(alert);
+
+                    instance.close();
+
+                }
+
+            }, 5000);
+
+        });
+
+
+        /* =====================================================
+           MODAL FORM SUBMIT LOADING STATE
+           ===================================================== */
+
+        const modalForm =
+            document.querySelector("#addDeptModal form");
+
+        if (modalForm) {
+
+            modalForm.addEventListener("submit", function () {
+
+                const submitButton =
+                    modalForm.querySelector("button[type='submit']");
+
+                if (submitButton) {
+
+                    submitButton.disabled = true;
+
+                    submitButton.innerHTML =
+                        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...';
+
+                }
+
+            });
+
+        }
+
+
+        /* =====================================================
+           SEARCH ENTER UX
+           ===================================================== */
+
+        const searchInput =
+            document.querySelector("input[name='search']");
+
+        if (searchInput) {
+
+            searchInput.addEventListener("keydown", function (event) {
+
+                if (event.key === "Enter") {
+
+                    event.preventDefault();
+
+                    const form = searchInput.closest("form");
+
+                    if (form) {
+                        form.submit();
+                    }
+
+                }
+
+            });
+
+        }
+
+    });
+</script>

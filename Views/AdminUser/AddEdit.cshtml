@@ -1,6 +1,9 @@
+@model ERP_System.Controllers.AdminUserAddEditViewModel
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Add / Edit User";
+    bool isEdit = Model != null && Model.UserId > 0;
+    ViewData["Title"] = isEdit ? "Edit User" : "Add User";
 
     var roles = ViewBag.Roles as IEnumerable<ERP_System.Models.Role>
         ?? new List<ERP_System.Models.Role>();
@@ -650,11 +653,11 @@
                     <div>
 
                         <h4 class="user-page-title">
-                            Create New User Profile
+                            @(isEdit ? "Edit User Profile" : "Create New User Profile")
                         </h4>
 
                         <p class="user-page-subtitle">
-                            Create and configure a new user account for your organization.
+                            @(isEdit ? "Update account credentials and system access." : "Create and configure a new user account for your organization.")
                         </p>
 
                     </div>
@@ -688,7 +691,7 @@
                         <li class="breadcrumb-item active"
                             aria-current="page">
 
-                            Add User
+                            @(isEdit ? "Edit User" : "Add User")
 
                         </li>
 
@@ -747,7 +750,14 @@
 
             <div class="user-form-body">
 
-                <form>
+                <form asp-action="AddEdit" asp-controller="AdminUser" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="UserId" />
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div asp-validation-summary="All" class="alert alert-danger rounded-3 mb-4 small" role="alert"></div>
+                    }
 
                     <!-- PERSONAL INFORMATION -->
 
@@ -782,9 +792,11 @@
                                 <div class="input-wrapper">
 
                                     <input type="text"
+                                           asp-for="FullName"
                                            class="user-form-control"
                                            placeholder="e.g. Aftab Shaik"
                                            required />
+                                    <span asp-validation-for="FullName" class="text-danger small"></span>
 
                                 </div>
 
@@ -813,9 +825,11 @@
                                 <div class="input-wrapper">
 
                                     <input type="email"
+                                           asp-for="Email"
                                            class="user-form-control"
                                            placeholder="e.g. aftab@erp.com"
                                            required />
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
 
                                 </div>
 
@@ -844,9 +858,11 @@
                                 <div class="input-wrapper">
 
                                     <input type="text"
+                                           asp-for="UserName"
                                            class="user-form-control"
                                            placeholder="e.g. shaikhaftab"
                                            required />
+                                    <span asp-validation-for="UserName" class="text-danger small"></span>
 
                                 </div>
 
@@ -867,7 +883,10 @@
 
                                     Password
 
-                                    <span class="required-star">*</span>
+                                    @if (!isEdit)
+                                    {
+                                        <span class="required-star">*</span>
+                                    }
 
                                 </label>
 
@@ -875,10 +894,11 @@
                                 <div class="password-field-wrapper">
 
                                     <input type="password"
+                                           asp-for="Password"
                                            id="passwordInput"
                                            class="user-form-control"
-                                           placeholder="••••••••"
-                                           required />
+                                           placeholder="@(isEdit ? "•••••••• (Leave blank to keep existing)" : "")"
+                                           required="@(!isEdit)" />
 
 
                                     <button type="button"
@@ -891,6 +911,7 @@
                                     </button>
 
                                 </div>
+                                <span asp-validation-for="Password" class="text-danger small"></span>
 
                             </div>
 
@@ -929,12 +950,13 @@
                                 </label>
 
 
-                                <select class="user-form-select"
+                                <select asp-for="RoleId"
+                                        class="user-form-select"
                                         required>
 
                                     <option value=""
-                                            selected
-                                            disabled>
+                                            disabled
+                                            selected="@(Model?.RoleId == 0 ? "selected" : null)">
 
                                         Select user role
 
@@ -948,6 +970,7 @@
                                     }
 
                                 </select>
+                                <span asp-validation-for="RoleId" class="text-danger small"></span>
 
                             </div>
 
@@ -971,12 +994,13 @@
                                 </label>
 
 
-                                <select class="user-form-select"
+                                <select asp-for="BranchId"
+                                        class="user-form-select"
                                         required>
 
                                     <option value=""
-                                            selected
-                                            disabled>
+                                            disabled
+                                            selected="@(Model?.BranchId == 0 ? "selected" : null)">
 
                                         Select office branch
 
@@ -990,6 +1014,7 @@
                                     }
 
                                 </select>
+                                <span asp-validation-for="BranchId" class="text-danger small"></span>
 
                             </div>
 
@@ -1031,13 +1056,12 @@
                         </a>
 
 
-                        <button type="button"
-                                class="user-btn-save"
-                                onclick="alert('User profile added successfully in DB!')">
+                        <button type="submit"
+                                class="user-btn-save">
 
                             <i class="fa-solid fa-user-plus"></i>
 
-                            Save User
+                            @(isEdit ? "Update User" : "Save User")
 
                         </button>
 
