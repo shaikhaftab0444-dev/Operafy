@@ -3,480 +3,2745 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Designation Master";
-    var counts = ViewBag.DesignationEmployeeCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+
+    var counts = ViewBag.DesignationEmployeeCounts as Dictionary<int, int>
+                 ?? new Dictionary<int, int>();
+
+    var totalDesignations = Model.Designations?.Count ?? 0;
+    var activeDesignations = Model.Designations?.Count(x => x.IsActive) ?? 0;
+    var inactiveDesignations = totalDesignations - activeDesignations;
+    var totalDepartments = Model.Departments?.Count ?? 0;
 }
 
-<!-- Premium Alert Control -->
+<!-- =========================================================
+     DESIGNATION MASTER
+     PREMIUM ERP UI / RESPONSIVE / ANIMATED
+========================================================= -->
+<!-- SweetAlert -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
 <style>
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-        transition: all 0.3s ease;
-    }
-    .designation-table tbody tr {
-        transition: all 0.25s ease;
-    }
-    .designation-table tbody tr:hover {
-        transform: translateY(-2px);
-        background: #ffffff;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-    }
-    .badge-grade {
-        font-size: 0.72rem;
-        font-weight: 700;
-        padding: 4px 8px;
-        border-radius: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-    .grade-L5 { background-color: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
-    .grade-L4 { background-color: #faf5ff; color: #6b21a8; border: 1px solid #f3e8ff; }
-    .grade-L3 { background-color: #eff6ff; color: #1e40af; border: 1px solid #dbeafe; }
-    .grade-L2 { background-color: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
-    .grade-L1 { background-color: #f8fafc; color: #475569; border: 1px solid #f1f5f9; }
+    /* =========================================================
+           ROOT / PAGE
+        ========================================================= */
 
-    /* Custom iOS toggle switch */
-    .ios-switch .form-check-input {
-        width: 2.8em;
-        height: 1.55em;
-        background-color: #cbd5e1;
-        border: none;
-        cursor: pointer;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
-        transition: background-position 0.2s ease, background-color 0.2s ease;
-    }
-    .ios-switch .form-check-input:checked {
-        background-color: #10b981;
-        background-position: right center;
-        box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    :root {
+        --dm-primary: #2563eb;
+        --dm-primary-dark: #1d4ed8;
+        --dm-primary-soft: #eff6ff;
+        --dm-success: #10b981;
+        --dm-success-soft: #ecfdf5;
+        --dm-warning: #f59e0b;
+        --dm-warning-soft: #fffbeb;
+        --dm-danger: #ef4444;
+        --dm-danger-soft: #fef2f2;
+        --dm-dark: #0f172a;
+        --dm-text: #334155;
+        --dm-muted: #64748b;
+        --dm-border: #e2e8f0;
+        --dm-bg: #f8fafc;
+        --dm-white: #ffffff;
+        --dm-radius: 18px;
+        --dm-shadow: 0 10px 35px rgba(15, 23, 42, 0.06);
+        --dm-shadow-hover: 0 18px 45px rgba(15, 23, 42, 0.11);
     }
 
-    /* Modal Animation */
-    .modal.fade .modal-dialog {
-        transform: scale(0.95);
-        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    .designation-page {
+        min-height: 100vh;
+        background: radial-gradient(circle at 10% 0%, rgba(37, 99, 235, 0.055), transparent 28%), radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.045), transparent 25%), var(--dm-bg);
+        padding: 28px 0 50px;
     }
-    .modal.show .modal-dialog {
+
+    .designation-wrapper {
+        animation: pageReveal .65s ease both;
+    }
+
+    /* =========================================================
+           ANIMATIONS
+        ========================================================= */
+
+    @@keyframes pageReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes fadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes scaleIn {
+        from
+
+    {
+        opacity: 0;
+        transform: scale(.94);
+    }
+
+    to {
+        opacity: 1;
         transform: scale(1);
+    }
+
+    }
+
+    @@keyframes pulseSoft {
+        0%, 100%
+
+    {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, .18);
+    }
+
+    50% {
+        box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+    }
+
+    }
+
+    @@keyframes shine {
+        from
+
+    {
+        transform: translateX(-120%);
+    }
+
+    to {
+        transform: translateX(120%);
+    }
+
+    }
+
+    @@keyframes modalDrop {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-20px) scale(.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    }
+
+    /* =========================================================
+           PAGE HEADER
+        ========================================================= */
+
+    .dm-page-header {
+        margin-bottom: 26px;
+    }
+
+    .dm-breadcrumb {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+        font-size: .78rem;
+        color: var(--dm-muted);
+    }
+
+        .dm-breadcrumb a {
+            color: var(--dm-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color .2s ease;
+        }
+
+            .dm-breadcrumb a:hover {
+                color: var(--dm-primary-dark);
+            }
+
+    .dm-title-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .dm-title-icon {
+        width: 50px;
+        height: 50px;
+        flex: 0 0 50px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dm-primary);
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        border: 1px solid #dbeafe;
+        font-size: 20px;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, .10);
+    }
+
+    .dm-title {
+        margin: 0;
+        color: var(--dm-dark);
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -.4px;
+    }
+
+    .dm-subtitle {
+        color: var(--dm-muted);
+        font-size: .83rem;
+        margin-top: 3px;
+    }
+
+    .dm-add-btn {
+        position: relative;
+        overflow: hidden;
+        border: 0;
+        min-height: 44px;
+        padding: 0 20px;
+        border-radius: 13px;
+        background: linear-gradient(135deg, var(--dm-primary), #4f46e5);
+        box-shadow: 0 9px 22px rgba(37, 99, 235, .20);
+        font-size: .85rem;
+        font-weight: 700;
+        transition: transform .25s ease, box-shadow .25s ease;
+    }
+
+        .dm-add-btn::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            width: 45%;
+            background: linear-gradient( 90deg, transparent, rgba(255,255,255,.22), transparent );
+            transform: translateX(-120%);
+        }
+
+        .dm-add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(37, 99, 235, .27);
+        }
+
+            .dm-add-btn:hover::after {
+                animation: shine .75s ease;
+            }
+
+    /* =========================================================
+           SUMMARY CARDS
+        ========================================================= */
+
+    .dm-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-bottom: 22px;
+    }
+
+    .dm-summary-card {
+        position: relative;
+        overflow: hidden;
+        background: rgba(255,255,255,.88);
+        border: 1px solid rgba(226,232,240,.85);
+        border-radius: var(--dm-radius);
+        padding: 18px;
+        box-shadow: var(--dm-shadow);
+        transition: transform .28s ease, box-shadow .28s ease;
+        animation: fadeUp .55s ease both;
+    }
+
+        .dm-summary-card:nth-child(1) {
+            animation-delay: .05s;
+        }
+
+        .dm-summary-card:nth-child(2) {
+            animation-delay: .10s;
+        }
+
+        .dm-summary-card:nth-child(3) {
+            animation-delay: .15s;
+        }
+
+        .dm-summary-card:nth-child(4) {
+            animation-delay: .20s;
+        }
+
+        .dm-summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--dm-shadow-hover);
+        }
+
+        .dm-summary-card::before {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            right: -35px;
+            top: -40px;
+            background: rgba(37, 99, 235, .045);
+        }
+
+    .dm-summary-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+    }
+
+    .dm-stat-icon {
+        width: 43px;
+        height: 43px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 43px;
+        font-size: 17px;
+    }
+
+        .dm-stat-icon.blue {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .dm-stat-icon.green {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .dm-stat-icon.red {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .dm-stat-icon.purple {
+            background: #f5f3ff;
+            color: #7c3aed;
+        }
+
+    .dm-stat-label {
+        font-size: .73rem;
+        color: var(--dm-muted);
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .dm-stat-value {
+        font-size: 1.35rem;
+        color: var(--dm-dark);
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    /* =========================================================
+           ALERT
+        ========================================================= */
+
+    .dm-alert {
+        border: 0;
+        border-radius: 13px;
+        box-shadow: 0 5px 18px rgba(15,23,42,.05);
+        animation: fadeUp .4s ease both;
+    }
+
+    /* =========================================================
+           FILTER PANEL
+        ========================================================= */
+
+    .dm-filter-panel {
+        background: rgba(255,255,255,.92);
+        border: 1px solid var(--dm-border);
+        border-radius: var(--dm-radius);
+        padding: 20px;
+        box-shadow: var(--dm-shadow);
+        margin-bottom: 20px;
+        animation: fadeUp .55s ease .15s both;
+    }
+
+    .dm-filter-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .dm-filter-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--dm-dark);
+        font-size: .9rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .dm-filter-title-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--dm-primary-soft);
+        color: var(--dm-primary);
+        font-size: 13px;
+    }
+
+    .dm-filter-label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--dm-muted);
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+    }
+
+    .dm-form-control,
+    .dm-form-select {
+        min-height: 43px;
+        border-radius: 11px;
+        border: 1px solid var(--dm-border);
+        background: #fff;
+        color: var(--dm-text);
+        font-size: .82rem;
+        transition: all .22s ease;
+    }
+
+        .dm-form-control:focus,
+        .dm-form-select:focus {
+            border-color: rgba(37,99,235,.45);
+            box-shadow: 0 0 0 4px rgba(37,99,235,.08);
+        }
+
+    .dm-search-group {
+        position: relative;
+    }
+
+    .dm-search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        z-index: 3;
+        pointer-events: none;
+    }
+
+    .dm-search-input {
+        padding-left: 39px;
+    }
+
+    .dm-reset-btn {
+        min-height: 43px;
+        border-radius: 11px;
+        font-size: .78rem;
+        font-weight: 700;
+    }
+
+    /* =========================================================
+           TABLE PANEL
+        ========================================================= */
+
+    .dm-table-panel {
+        position: relative;
+        background: rgba(255,255,255,.96);
+        border: 1px solid var(--dm-border);
+        border-radius: var(--dm-radius);
+        box-shadow: var(--dm-shadow);
+        overflow: hidden;
+        animation: fadeUp .65s ease .22s both;
+    }
+
+    .dm-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 19px 21px;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .dm-table-heading {
+        margin: 0;
+        color: var(--dm-dark);
+        font-size: .94rem;
+        font-weight: 800;
+    }
+
+    .dm-table-description {
+        margin: 3px 0 0;
+        color: var(--dm-muted);
+        font-size: .74rem;
+    }
+
+    .dm-record-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 20px;
+        background: var(--dm-primary-soft);
+        color: var(--dm-primary);
+        border: 1px solid #dbeafe;
+        padding: 6px 10px;
+        font-size: .7rem;
+        font-weight: 800;
+    }
+
+    .dm-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .dm-table {
+        width: 100%;
+        min-width: 1050px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .dm-table thead th {
+            padding: 13px 15px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--dm-border);
+            color: #64748b;
+            font-size: .67rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .55px;
+            white-space: nowrap;
+        }
+
+        .dm-table tbody tr {
+            position: relative;
+            animation: fadeUp .45s ease both;
+            transition: background .25s ease, transform .25s ease, box-shadow .25s ease;
+        }
+
+            .dm-table tbody tr:hover {
+                background: #fbfdff;
+            }
+
+        .dm-table tbody td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f3f7;
+            color: var(--dm-text);
+            font-size: .79rem;
+            vertical-align: middle;
+        }
+
+        .dm-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+    /* =========================================================
+           DESIGNATION CODE
+        ========================================================= */
+
+    .dm-code {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 9px;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .3px;
+    }
+
+    /* =========================================================
+           TITLE / GRADE
+        ========================================================= */
+
+    .dm-designation-info {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 190px;
+    }
+
+    .dm-grade-icon {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+        color: var(--dm-primary);
+        border: 1px solid #dbeafe;
+        transition: transform .25s ease;
+    }
+
+    .dm-table tbody tr:hover .dm-grade-icon {
+        transform: rotate(-5deg) scale(1.06);
+    }
+
+    .dm-designation-title {
+        color: var(--dm-dark);
+        font-size: .82rem;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+
+    .dm-grade-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 6px;
+        padding: 3px 7px;
+        font-size: .61rem;
+        font-weight: 800;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+    }
+
+    .grade-L5 {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fee2e2;
+    }
+
+    .grade-L4 {
+        background: #faf5ff;
+        color: #6b21a8;
+        border: 1px solid #f3e8ff;
+    }
+
+    .grade-L3 {
+        background: #eff6ff;
+        color: #1e40af;
+        border: 1px solid #dbeafe;
+    }
+
+    .grade-L2 {
+        background: #f0fdf4;
+        color: #166534;
+        border: 1px solid #dcfce7;
+    }
+
+    .grade-L1 {
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* =========================================================
+           DEPARTMENT
+        ========================================================= */
+
+    .dm-department {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #475569;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .dm-department i {
+            color: #93c5fd;
+        }
+
+    /* =========================================================
+           STAFF BADGE
+        ========================================================= */
+
+    .dm-staff-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 20px;
+        padding: 6px 10px;
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #dbeafe;
+        font-size: .69rem;
+        font-weight: 800;
+        transition: all .25s ease;
+    }
+
+        .dm-staff-badge:hover {
+            transform: translateY(-1px);
+            background: #dbeafe;
+        }
+
+    /* =========================================================
+           CTC
+        ========================================================= */
+
+    .dm-ctc {
+        color: var(--dm-dark);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: .75rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .dm-ctc-label {
+        display: block;
+        color: #94a3b8;
+        font-family: inherit;
+        font-size: .61rem;
+        font-weight: 600;
+        margin-top: 2px;
+    }
+
+    /* =========================================================
+           STATUS
+        ========================================================= */
+
+    .dm-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 20px;
+        padding: 6px 10px;
+        font-size: .67rem;
+        font-weight: 800;
+    }
+
+    .dm-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+
+    .dm-status.active {
+        color: #047857;
+        background: var(--dm-success-soft);
+        border: 1px solid #bbf7d0;
+    }
+
+        .dm-status.active .dm-status-dot {
+            background: #10b981;
+            animation: pulseSoft 1.8s infinite;
+        }
+
+    .dm-status.inactive {
+        color: #64748b;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+        .dm-status.inactive .dm-status-dot {
+            background: #94a3b8;
+        }
+
+    /* =========================================================
+           ACTION BUTTONS
+        ========================================================= */
+
+    .dm-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .dm-action-btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        transition: all .23s ease;
+        font-size: .72rem;
+    }
+
+        .dm-action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .dm-edit-btn {
+        color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+    }
+
+        .dm-edit-btn:hover {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+    .dm-delete-btn {
+        color: #dc2626;
+        background: #fef2f2;
+        border: 1px solid #fee2e2;
+    }
+
+        .dm-delete-btn:hover {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+    /* =========================================================
+           IOS SWITCH
+        ========================================================= */
+
+    .dm-switch {
+        margin: 0;
+        padding-left: 0;
+    }
+
+        .dm-switch .form-check-input {
+            float: none;
+            margin: 0;
+            width: 38px;
+            height: 21px;
+            border: 0;
+            cursor: pointer;
+            background-color: #cbd5e1;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+            background-position: left center;
+            background-repeat: no-repeat;
+            background-size: auto 100%;
+            transition: background-position .2s ease, background-color .2s ease, box-shadow .2s ease;
+        }
+
+            .dm-switch .form-check-input:checked {
+                background-color: #10b981;
+                background-position: right center;
+                box-shadow: 0 0 0 4px rgba(16,185,129,.08);
+            }
+
+    /* =========================================================
+           EMPTY STATE
+        ========================================================= */
+
+    .dm-empty-state {
+        padding: 65px 20px !important;
+        text-align: center;
+    }
+
+    .dm-empty-icon {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 15px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #94a3b8;
+        font-size: 25px;
+        animation: scaleIn .55s ease both;
+    }
+
+    .dm-empty-title {
+        margin: 0 0 5px;
+        color: var(--dm-dark);
+        font-weight: 800;
+        font-size: .92rem;
+    }
+
+    .dm-empty-text {
+        margin: 0;
+        color: var(--dm-muted);
+        font-size: .76rem;
+    }
+
+    /* =========================================================
+           MODAL
+        ========================================================= */
+
+    .dm-modal .modal-dialog {
+        animation: modalDrop .35s cubic-bezier(.22,1,.36,1);
+    }
+
+    .dm-modal .modal-content {
+        border: 0;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(15,23,42,.20);
+    }
+
+    .dm-modal-header {
+        position: relative;
+        padding: 20px 22px;
+        background: linear-gradient(135deg, #f8fbff, #f1f5ff);
+        border-bottom: 1px solid #e5eaf2;
+    }
+
+    .dm-modal-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .dm-modal-icon {
+        width: 39px;
+        height: 39px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #dbeafe;
+        color: #2563eb;
+        font-size: 15px;
+    }
+
+    .dm-modal-title {
+        margin: 0;
+        color: var(--dm-dark);
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .dm-modal-subtitle {
+        margin: 2px 0 0;
+        color: var(--dm-muted);
+        font-size: .7rem;
+    }
+
+    .dm-modal .btn-close {
+        box-shadow: none;
+    }
+
+    .dm-modal-body {
+        padding: 23px;
+        background: #fff;
+    }
+
+    .dm-form-section {
+        margin-bottom: 20px;
+    }
+
+        .dm-form-section:last-child {
+            margin-bottom: 0;
+        }
+
+    .dm-section-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 12px;
+        color: #334155;
+        font-size: .75rem;
+        font-weight: 800;
+    }
+
+        .dm-section-label i {
+            color: #2563eb;
+        }
+
+    .dm-field-label {
+        display: block;
+        margin-bottom: 6px;
+        color: #475569;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+    .dm-required {
+        color: #ef4444;
+    }
+
+    .dm-modal .form-control,
+    .dm-modal .form-select {
+        min-height: 42px;
+        border-radius: 10px;
+        border: 1px solid #dfe5ed;
+        font-size: .8rem;
+        color: #334155;
+        transition: all .2s ease;
+    }
+
+    .dm-modal textarea.form-control {
+        min-height: 95px;
+        resize: vertical;
+    }
+
+    .dm-modal .form-control:focus,
+    .dm-modal .form-select:focus {
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 4px rgba(37,99,235,.08);
+    }
+
+    .dm-modal-footer {
+        padding: 15px 22px;
+        background: #f8fafc;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .dm-cancel-btn,
+    .dm-save-btn {
+        min-height: 39px;
+        border-radius: 10px;
+        padding: 0 17px;
+        font-size: .76rem;
+        font-weight: 700;
+    }
+
+    .dm-save-btn {
+        border: 0;
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+        box-shadow: 0 7px 18px rgba(37,99,235,.18);
+    }
+
+        .dm-save-btn:hover {
+            background: linear-gradient(135deg, #1d4ed8, #4338ca);
+        }
+
+    /* =========================================================
+           ACTIVE TOGGLE IN MODAL
+        ========================================================= */
+
+    .dm-publish-box {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 15px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .dm-publish-title {
+        color: #334155;
+        font-size: .77rem;
+        font-weight: 800;
+        margin-bottom: 2px;
+    }
+
+    .dm-publish-text {
+        color: #94a3b8;
+        font-size: .67rem;
+    }
+
+    /* =========================================================
+           VALIDATION
+        ========================================================= */
+
+    .field-validation-error {
+        display: block;
+        margin-top: 4px;
+        font-size: .68rem;
+        font-weight: 600;
+    }
+
+    /* =========================================================
+           MOBILE
+        ========================================================= */
+
+    @@media (max-width: 1100px) {
+        .dm-summary-grid
+
+    {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .designation-page
+
+    {
+        padding: 18px 0 35px;
+    }
+
+    .dm-page-header {
+        margin-bottom: 20px;
+    }
+
+        .dm-page-header > .d-flex {
+            align-items: flex-start !important;
+        }
+
+    .dm-title-row {
+        gap: 10px;
+    }
+
+    .dm-title-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+        border-radius: 12px;
+    }
+
+    .dm-title {
+        font-size: 1.2rem;
+    }
+
+    .dm-subtitle {
+        font-size: .72rem;
+    }
+
+    .dm-add-btn {
+        width: 100%;
+        margin-top: 13px;
+    }
+
+    .dm-summary-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .dm-summary-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .dm-stat-icon {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+        font-size: 14px;
+    }
+
+    .dm-stat-value {
+        font-size: 1.05rem;
+    }
+
+    .dm-stat-label {
+        font-size: .64rem;
+    }
+
+    .dm-filter-panel {
+        padding: 15px;
+        border-radius: 15px;
+    }
+
+    .dm-filter-head {
+        margin-bottom: 13px;
+    }
+
+    .dm-table-header {
+        padding: 15px;
+    }
+
+    .dm-table-heading {
+        font-size: .85rem;
+    }
+
+    .dm-table-description {
+        display: none;
+    }
+
+    .dm-record-count {
+        font-size: .63rem;
+    }
+
+    .dm-modal-body {
+        padding: 17px;
+    }
+
+    .dm-modal-header {
+        padding: 17px;
+    }
+
+    .dm-modal-footer {
+        padding: 13px 17px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .dm-summary-grid
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .dm-title {
+        font-size: 1.08rem;
+    }
+
+    .dm-breadcrumb {
+        font-size: .68rem;
+    }
+
+    .dm-filter-title {
+        font-size: .8rem;
+    }
+
+    .dm-table-panel {
+        border-radius: 14px;
+    }
+
+    }
+
+    /* =========================================================
+           REDUCED MOTION
+        ========================================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after
+
+    {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+
     }
 </style>
 
-<div class="container-fluid py-4 text-start">
 
-    <!-- Breadcrumb & Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Admin Dashboard</a></li>
-                    <li class="breadcrumb-item text-secondary">Master Setup</li>
-                    <li class="breadcrumb-item active" aria-current="page">Designation Master</li>
-                </ol>
-            </nav>
-            <h4 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-id-card text-primary me-2"></i>Designation Master</h4>
-        </div>
-        <div>
-            <button type="button" class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#addDesignationModal">
-                <i class="fa-solid fa-plus me-2"></i>Add New Designation
-            </button>
-        </div>
-    </div>
+<div class="designation-page">
+    <div class="container-fluid designation-wrapper">
 
-    <!-- Alert Notifications -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Action Completed',
-                    text: '@Html.Raw(TempData["SuccessMessage"])',
-                    confirmButtonColor: '#2563eb'
-                });
-            });
-        </script>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Database Error',
-                    text: '@Html.Raw(TempData["ErrorMessage"])',
-                    confirmButtonColor: '#ef4444'
-                });
-            });
-        </script>
-    }
+        <!-- =====================================================
+             PAGE HEADER
+        ====================================================== -->
 
-    <!-- Search & Quick Filters Bar -->
-    <div class="glass-panel p-4 mb-4">
-        <form method="get" action="/AdminMaster/Designations" id="filterForm" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label fw-semibold text-secondary small">Filter by Department</label>
-                <select class="form-select" name="departmentId" onchange="this.form.submit()">
-                    <option value="0">All Departments</option>
-                    @foreach (var d in Model.Departments)
-                    {
-                        <option value="@d.DepartmentId" selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">
-                            @d.DepartmentName
-                        </option>
-                    }
-                </select>
+        <div class="dm-page-header">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+
+                <div>
+                    <div class="dm-breadcrumb">
+                        <a href="/Dashboard">
+                            <i class="fa-solid fa-house me-1"></i>
+                            Admin Dashboard
+                        </a>
+
+                        <i class="fa-solid fa-chevron-right" style="font-size:7px;"></i>
+
+                        <span>Master Setup</span>
+
+                        <i class="fa-solid fa-chevron-right" style="font-size:7px;"></i>
+
+                        <span>Designation Master</span>
+                    </div>
+
+                    <div class="dm-title-row">
+                        <div class="dm-title-icon">
+                            <i class="fa-solid fa-id-card"></i>
+                        </div>
+
+                        <div>
+                            <h1 class="dm-title">Designation Master</h1>
+                            <div class="dm-subtitle">
+                                Manage job titles, hierarchy levels, salary bands and active designations.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="btn btn-primary dm-add-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addDesignationModal">
+
+                    <i class="fa-solid fa-plus me-2"></i>
+                    Add New Designation
+                </button>
+
             </div>
-            <div class="col-md-8">
-                <label class="form-label fw-semibold text-secondary small">Instant Search Lookup</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
-                    <input type="text" class="form-control border-start-0" id="designationSearch" name="search" value="@Model.SearchQuery" placeholder="Search designations by code or job title..." />
-                    @if (!string.IsNullOrEmpty(Model.SearchQuery) || Model.SelectedDepartmentId > 0)
-                    {
-                        <a href="/AdminMaster/Designations" class="btn btn-outline-secondary"><i class="fa-solid fa-rotate-left"></i> Reset</a>
-                    }
+        </div>
+
+
+        <!-- =====================================================
+             SUMMARY CARDS
+        ====================================================== -->
+
+        <div class="dm-summary-grid">
+
+            <div class="dm-summary-card">
+                <div class="dm-summary-content">
+                    <div class="dm-stat-icon blue">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+
+                    <div>
+                        <div class="dm-stat-label">Total Designations</div>
+                        <div class="dm-stat-value">@totalDesignations</div>
+                    </div>
                 </div>
             </div>
-        </form>
-    </div>
 
-    <!-- Frosted Glass Table of Designations -->
-    <div class="glass-panel p-4">
-        <div class="table-responsive">
-            <table class="table align-middle designation-table mb-0 text-start">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 15%;">Designation Code</th>
-                        <th style="width: 25%;">Job Title & Level</th>
-                        <th style="width: 18%;">Department</th>
-                        <th class="text-center" style="width: 12%;">Active Staff</th>
-                        <th style="width: 15%;">CTC Band (PA)</th>
-                        <th style="width: 10%;">Status</th>
-                        <th class="text-center" style="width: 10%;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.Designations.Count == 0)
-                    {
+
+            <div class="dm-summary-card">
+                <div class="dm-summary-content">
+                    <div class="dm-stat-icon green">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                    <div>
+                        <div class="dm-stat-label">Active</div>
+                        <div class="dm-stat-value">@activeDesignations</div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="dm-summary-card">
+                <div class="dm-summary-content">
+                    <div class="dm-stat-icon red">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+
+                    <div>
+                        <div class="dm-stat-label">Inactive</div>
+                        <div class="dm-stat-value">@inactiveDesignations</div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="dm-summary-card">
+                <div class="dm-summary-content">
+                    <div class="dm-stat-icon purple">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+
+                    <div>
+                        <div class="dm-stat-label">Departments</div>
+                        <div class="dm-stat-value">@totalDepartments</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             ALERTS
+        ====================================================== -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success dm-alert alert-dismissible fade show small mb-3"
+                 role="alert">
+
+                <i class="fa-solid fa-circle-check me-2"></i>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close">
+                </button>
+            </div>
+        }
+
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger dm-alert alert-dismissible fade show small mb-3"
+                 role="alert">
+
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close">
+                </button>
+            </div>
+        }
+
+
+        <!-- =====================================================
+             FILTER PANEL
+        ====================================================== -->
+
+        <div class="dm-filter-panel">
+
+            <div class="dm-filter-head">
+                <h2 class="dm-filter-title">
+                    <span class="dm-filter-title-icon">
+                        <i class="fa-solid fa-sliders"></i>
+                    </span>
+
+                    Search & Filter
+                </h2>
+
+                <span class="text-muted" style="font-size:.68rem;">
+                    <i class="fa-solid fa-bolt text-warning me-1"></i>
+                    Quick Lookup
+                </span>
+            </div>
+
+
+            <form method="get"
+                  action="/AdminMaster/Designations"
+                  id="filterForm">
+
+                <div class="row g-3 align-items-end">
+
+                    <!-- Department -->
+                    <div class="col-lg-4 col-md-5">
+
+                        <label class="dm-filter-label">
+                            Department
+                        </label>
+
+                        <select class="form-select dm-form-select"
+                                name="departmentId"
+                                onchange="this.form.submit()">
+
+                            <option value="0">
+                                All Departments
+                            </option>
+
+                            @foreach (var d in Model.Departments ?? new List<ERP_System.Models.Department>())
+                            {
+                                <option value="@d.DepartmentId"
+                                        selected="@(Model.SelectedDepartmentId == d.DepartmentId ? "selected" : null)">
+                                    @d.DepartmentName
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Search -->
+                    <div class="col-lg-6 col-md-5">
+
+                        <label class="dm-filter-label">
+                            Search Designation
+                        </label>
+
+                        <div class="dm-search-group">
+
+                            <i class="fa-solid fa-magnifying-glass dm-search-icon"></i>
+
+                            <input type="text"
+                                   class="form-control dm-form-control dm-search-input"
+                                   id="designationSearch"
+                                   name="search"
+                                   value="@Model.SearchQuery"
+                                   placeholder="Search by designation code or job title..." />
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Buttons -->
+                    <div class="col-lg-2 col-md-2">
+
+                        <div class="d-flex gap-2">
+
+                            <button type="submit"
+                                    class="btn btn-primary dm-reset-btn flex-grow-1">
+
+                                <i class="fa-solid fa-magnifying-glass me-1"></i>
+                                Search
+
+                            </button>
+
+                            @if (!string.IsNullOrEmpty(Model.SearchQuery) ||
+                                                        Model.SelectedDepartmentId > 0)
+                            {
+                                <a href="/AdminMaster/Designations"
+                                   class="btn btn-outline-secondary dm-reset-btn"
+                                   title="Reset filters">
+
+                                    <i class="fa-solid fa-rotate-left"></i>
+
+                                </a>
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+        <!-- =====================================================
+             DESIGNATION TABLE
+        ====================================================== -->
+
+        <div class="dm-table-panel">
+
+            <div class="dm-table-header">
+
+                <div>
+                    <h2 class="dm-table-heading">
+                        <i class="fa-solid fa-list-check text-primary me-2"></i>
+                        Organization Designations
+                    </h2>
+
+                    <p class="dm-table-description">
+                        Configure and maintain your organization's job hierarchy.
+                    </p>
+                </div>
+
+                <div class="dm-record-count">
+                    <i class="fa-solid fa-database"></i>
+                    @totalDesignations Records
+                </div>
+
+            </div>
+
+
+            <div class="dm-table-wrapper">
+
+                <table class="table dm-table align-middle text-start">
+
+                    <thead>
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-5">
-                                <i class="fa-solid fa-folder-open fs-3 d-block mb-2"></i>
-                                No active designations found matching the current search criteria.
-                            </td>
+
+                            <th style="width:12%;">
+                                Designation Code
+                            </th>
+
+                            <th style="width:25%;">
+                                Job Title & Level
+                            </th>
+
+                            <th style="width:17%;">
+                                Department
+                            </th>
+
+                            <th class="text-center" style="width:12%;">
+                                Active Staff
+                            </th>
+
+                            <th style="width:14%;">
+                                CTC Band
+                            </th>
+
+                            <th style="width:10%;">
+                                Status
+                            </th>
+
+                            <th class="text-center" style="width:10%;">
+                                Actions
+                            </th>
+
                         </tr>
-                    }
-                    else
-                    {
-                        @foreach (var d in Model.Designations)
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model.Designations == null || !Model.Designations.Any())
                         {
-                            var levelCode = d.HierarchyLevel.Split(' ')[0]; // L1, L2, L3, L4, L5
-                            var staffCount = counts.TryGetValue(d.DesignationId, out var count) ? count : 1;
+                            <tr>
 
-                            // Icon logic per hierarchy grade
-                            var gradeIcon = "fa-user-tie";
-                            if (levelCode == "L1") gradeIcon = "fa-seedling";
-                            else if (levelCode == "L2") gradeIcon = "fa-user-astronaut";
-                            else if (levelCode == "L3") gradeIcon = "fa-user-gear";
-                            else if (levelCode == "L4") gradeIcon = "fa-award";
+                                <td colspan="7" class="dm-empty-state">
 
-                            <tr class="designation-row">
-                                <td>
-                                    <span class="badge bg-light text-dark border font-monospace px-2.5 py-1.5 fw-bold">@d.DesignationCode</span>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-2 text-secondary text-center" style="width: 24px;"><i class="fa-solid @gradeIcon"></i></div>
-                                        <div>
-                                            <div class="fw-bold text-dark designation-title">@d.JobTitle</div>
-                                            <span class="badge badge-grade grade-@levelCode mt-1">@d.HierarchyLevel</span>
-                                        </div>
+                                    <div class="dm-empty-icon">
+                                        <i class="fa-solid fa-folder-open"></i>
                                     </div>
-                                </td>
-                                <td>
-                                    <span class="text-secondary small fw-semibold">
-                                        <i class="fa-solid fa-folder-open text-primary-subtle me-1"></i>@(d.Department?.DepartmentName ?? "General Operations")
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1 fw-bold pointer-cursor" title="Click to view staff roster">
-                                        <i class="fa-solid fa-users me-1 small"></i>@staffCount Staff
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-dark font-monospace" style="font-size:0.85rem;">
-                                        ₹ @((d.MinCTC / 100000m).ToString("F1"))L - @((d.MaxCTC / 100000m).ToString("F1"))L
-                                    </span>
-                                </td>
-                                <td>
-                                    @if (d.IsActive)
-                                    {
-                                        <span class="badge bg-emerald-subtle text-emerald-emphasis border border-success-subtle rounded-pill px-2.5 py-1 small">Active</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1 small">Inactive</span>
-                                    }
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center align-items-center gap-1.5">
-                                        <button type="button" 
-                                                onclick="openEditModal({
-                                                    id: @d.DesignationId,
-                                                    code: '@d.DesignationCode',
-                                                    title: '@d.JobTitle',
-                                                    deptId: @d.DepartmentId,
-                                                    level: '@d.HierarchyLevel',
-                                                    minCtc: @d.MinCTC,
-                                                    maxCtc: @d.MaxCTC,
-                                                    desc: '@Html.Raw(d.JobDescription ?? "")',
-                                                    active: '@d.IsActive'
-                                                })"
-                                                class="btn btn-sm btn-outline-primary border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Edit Designation Details">
-                                            <i class="fa-solid fa-pencil"></i>
-                                        </button>
-                                        
-                                        <form method="post" action="/AdminMaster/ToggleDesignationStatus" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@d.DesignationId" />
-                                            <div class="form-check form-switch ios-switch d-inline-block ms-1">
-                                                <input class="form-check-input" type="checkbox" role="switch" checked="@(d.IsActive ? "checked" : null)" onchange="this.form.submit()" />
-                                            </div>
-                                        </form>
 
-                                        <form method="post" action="/AdminMaster/DeleteDesignation" class="d-inline delete-form">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@d.DesignationId" />
-                                            <button type="button" onclick="confirmDelete(this)" class="btn btn-sm btn-outline-danger border p-1" style="width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;" title="Delete Designation">
-                                                <i class="fa-solid fa-trash-can"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                                    <h3 class="dm-empty-title">
+                                        No Designations Found
+                                    </h3>
+
+                                    <p class="dm-empty-text">
+                                        No designations match the current search or department filter.
+                                    </p>
+
                                 </td>
+
                             </tr>
                         }
-                    }
-                </tbody>
-            </table>
+                        else
+                        {
+                            var rowIndex = 0;
+
+                            foreach (var d in Model.Designations)
+                            {
+                                rowIndex++;
+
+                                var hierarchyValue = d.HierarchyLevel ?? "";
+                                var levelCode = hierarchyValue.Contains(" ")
+                                ? hierarchyValue.Split(' ')[0]
+                                : hierarchyValue;
+
+                                if (string.IsNullOrWhiteSpace(levelCode))
+                                {
+                                    levelCode = "L1";
+                                }
+
+                                var staffCount =
+                                counts.TryGetValue(d.DesignationId, out var count)
+                                ? count
+                                : 1;
+
+                                var gradeIcon = "fa-user-tie";
+
+                                if (levelCode == "L1")
+                                    gradeIcon = "fa-seedling";
+                                else if (levelCode == "L2")
+                                    gradeIcon = "fa-user-astronaut";
+                                else if (levelCode == "L3")
+                                    gradeIcon = "fa-user-gear";
+                                else if (levelCode == "L4")
+                                    gradeIcon = "fa-award";
+                                else if (levelCode == "L5")
+                                    gradeIcon = "fa-user-shield";
+
+                                <tr class="designation-row"
+                                    style="animation-delay:@(Math.Min(rowIndex * 0.035, 0.5))s;">
+
+                                    <!-- CODE -->
+                                    <td>
+                                        <span class="dm-code">
+                                            @d.DesignationCode
+                                        </span>
+                                    </td>
+
+
+                                    <!-- TITLE -->
+                                    <td>
+
+                                        <div class="dm-designation-info">
+
+                                            <div class="dm-grade-icon">
+                                                <i class="fa-solid @gradeIcon"></i>
+                                            </div>
+
+                                            <div>
+
+                                                <div class="dm-designation-title designation-title">
+                                                    @d.JobTitle
+                                                </div>
+
+                                                <span class="dm-grade-badge grade-@levelCode">
+                                                    @d.HierarchyLevel
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- DEPARTMENT -->
+                                    <td>
+
+                                        <span class="dm-department">
+
+                                            <i class="fa-solid fa-folder-tree"></i>
+
+                                            @(d.Department?.DepartmentName ?? "General Operations")
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- STAFF -->
+                                    <td class="text-center">
+
+                                        <span class="dm-staff-badge">
+
+                                            <i class="fa-solid fa-users"></i>
+
+                                            @staffCount
+
+                                            <span>Staff</span>
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- CTC -->
+                                    <td>
+
+                                        <div class="dm-ctc">
+
+                                            ₹ @((d.MinCTC / 100000m).ToString("F1"))L
+                                            -
+                                            @((d.MaxCTC / 100000m).ToString("F1"))L
+
+                                        </div>
+
+                                        <span class="dm-ctc-label">
+                                            Annual CTC Range
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+                                    <td>
+
+                                        @if (d.IsActive)
+                                        {
+                                            <span class="dm-status active">
+
+                                                <span class="dm-status-dot"></span>
+
+                                                Active
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="dm-status inactive">
+
+                                                <span class="dm-status-dot"></span>
+
+                                                Inactive
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    <!-- ACTIONS -->
+                                    <td>
+
+                                        <div class="dm-actions">
+
+                                            <!-- EDIT -->
+
+                                            <button type="button"
+                                                    class="btn dm-action-btn dm-edit-btn"
+                                                    title="Edit Designation"
+                                                    onclick="openEditModal(this)"
+                                                    data-id="@d.DesignationId"
+                                                    data-code="@d.DesignationCode"
+                                                    data-title="@d.JobTitle"
+                                                    data-dept-id="@d.DepartmentId"
+                                                    data-level="@d.HierarchyLevel"
+                                                    data-min-ctc="@d.MinCTC"
+                                                    data-max-ctc="@d.MaxCTC"
+                                                    data-description="@d.JobDescription"
+                                                    data-active="@d.IsActive">
+
+                                                <i class="fa-solid fa-pencil"></i>
+
+                                            </button>
+
+
+                                            <!-- STATUS SWITCH -->
+
+                                            <form method="post"
+                                                  action="/AdminMaster/ToggleDesignationStatus"
+                                                  class="d-inline">
+
+                                                @Html.AntiForgeryToken()
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@d.DesignationId" />
+
+                                                <div class="form-check form-switch dm-switch">
+
+                                                    <input class="form-check-input"
+                                                           type="checkbox"
+                                                           role="switch"
+                                                           checked="@(d.IsActive ? "checked" : null)"
+                                                           onchange="this.form.submit()"
+                                                           title="Toggle Status" />
+
+                                                </div>
+
+                                            </form>
+
+
+                                            <!-- DELETE -->
+
+                                            <form method="post"
+                                                  action="/AdminMaster/DeleteDesignation"
+                                                  class="d-inline delete-form">
+
+                                                @Html.AntiForgeryToken()
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@d.DesignationId" />
+
+                                                <button type="button"
+                                                        class="btn dm-action-btn dm-delete-btn"
+                                                        onclick="confirmDelete(this)"
+                                                        title="Delete Designation">
+
+                                                    <i class="fa-solid fa-trash-can"></i>
+
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
         </div>
+
     </div>
 </div>
 
-<!-- ========================================== -->
-<!--     ADD NEW DESIGNATION BOOTSTRAP MODAL    -->
-<!-- ========================================== -->
-<div class="modal fade" id="addDesignationModal" tabindex="-1" aria-labelledby="addModalTitle" aria-hidden="true">
+
+<!-- =========================================================
+     ADD DESIGNATION MODAL
+========================================================= -->
+
+<div class="modal fade dm-modal"
+     id="addDesignationModal"
+     tabindex="-1"
+     aria-labelledby="addModalTitle"
+     aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
-            <div class="modal-header bg-light border-bottom p-3">
-                <h5 class="modal-title fw-bold text-dark" id="addModalTitle"><i class="fa-solid fa-plus-circle text-primary me-2"></i>Create Designation Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="/AdminMaster/CreateDesignation" id="addForm">
-                @Html.AntiForgeryToken()
-                <div class="modal-body p-4 text-start">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold small text-secondary">Designation Code</label>
-                            <input type="text" asp-for="Designation.DesignationCode" class="form-control text-uppercase" placeholder="e.g. HR-MGR" maxlength="8" required oninput="this.value = this.value.toUpperCase();" />
-                            <span asp-validation-for="Designation.DesignationCode" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold small text-secondary">Job Title</label>
-                            <input type="text" asp-for="Designation.JobTitle" class="form-control" placeholder="e.g. Human Resources Manager" required />
-                            <span asp-validation-for="Designation.JobTitle" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Assign Department</label>
-                            <select asp-for="Designation.DepartmentId" class="form-select" required>
-                                <option value="">-- Choose Department --</option>
-                                @foreach (var d in Model.Departments)
-                                {
-                                    <option value="@d.DepartmentId">@d.DepartmentName</option>
-                                }
-                            </select>
-                            <span asp-validation-for="Designation.DepartmentId" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Hierarchy Level / Grade</label>
-                            <select asp-for="Designation.HierarchyLevel" class="form-select" required>
-                                <option value="">-- Choose Level --</option>
-                                <option value="L1 - Entry Level">L1 - Entry Level</option>
-                                <option value="L2 - Junior Associate">L2 - Junior Associate</option>
-                                <option value="L3 - Mid-Level">L3 - Mid-Level</option>
-                                <option value="L4 - Senior Specialist">L4 - Senior Specialist</option>
-                                <option value="L5 - Management / Executive">L5 - Management / Executive</option>
-                            </select>
-                            <span asp-validation-for="Designation.HierarchyLevel" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Minimum Salary CTC Band (Annual ₹)</label>
-                            <input type="number" asp-for="Designation.MinCTC" class="form-control" placeholder="e.g. 450000" min="0" required />
-                            <span asp-validation-for="Designation.MinCTC" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Maximum Salary CTC Band (Annual ₹)</label>
-                            <input type="number" asp-for="Designation.MaxCTC" class="form-control" placeholder="e.g. 700000" min="0" required />
-                            <span asp-validation-for="Designation.MaxCTC" class="text-danger small"></span>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold small text-secondary">Job Description & Responsibilities</label>
-                            <textarea asp-for="Designation.JobDescription" class="form-control" rows="3" placeholder="Enter key duties, skill expectations, and operational scopes..."></textarea>
-                            <span asp-validation-for="Designation.JobDescription" class="text-danger small"></span>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
-                                <input class="form-check-input" type="checkbox" asp-for="Designation.IsActive" checked />
-                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Designation.IsActive">Publish & Enable Active Status</label>
-                            </div>
-                        </div>
+
+        <div class="modal-content">
+
+            <div class="dm-modal-header">
+
+                <div class="dm-modal-title-wrap">
+
+                    <div class="dm-modal-icon">
+                        <i class="fa-solid fa-plus"></i>
                     </div>
+
+                    <div>
+                        <h5 class="dm-modal-title" id="addModalTitle">
+                            Create Designation
+                        </h5>
+
+                        <p class="dm-modal-subtitle">
+                            Add a new job title to your organization structure.
+                        </p>
+                    </div>
+
                 </div>
-                <div class="modal-footer bg-light border-top p-3">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fa-solid fa-save me-1.5"></i>Save Designation</button>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+
+            <form method="post"
+                  action="/AdminMaster/CreateDesignation"
+                  id="addForm">
+
+                @Html.AntiForgeryToken()
+
+                <div class="dm-modal-body">
+
+                    <!-- BASIC INFORMATION -->
+
+                    <div class="dm-form-section">
+
+                        <div class="dm-section-label">
+                            <i class="fa-solid fa-circle-info"></i>
+                            Basic Information
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+
+                                <label class="dm-field-label">
+                                    Designation Code
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <input type="text"
+                                       asp-for="Designation.DesignationCode"
+                                       class="form-control text-uppercase"
+                                       placeholder="e.g. HR-MGR"
+                                       maxlength="8"
+                                       required
+                                       oninput="this.value = this.value.toUpperCase();" />
+
+                                <span asp-validation-for="Designation.DesignationCode"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-md-8">
+
+                                <label class="dm-field-label">
+                                    Job Title
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <input type="text"
+                                       asp-for="Designation.JobTitle"
+                                       class="form-control"
+                                       placeholder="e.g. Human Resources Manager"
+                                       required />
+
+                                <span asp-validation-for="Designation.JobTitle"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="dm-field-label">
+                                    Department
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <select asp-for="Designation.DepartmentId"
+                                        class="form-select"
+                                        required>
+
+                                    <option value="">
+                                        -- Choose Department --
+                                    </option>
+
+                                    @foreach (var d in Model.Departments ?? new List<ERP_System.Models.Department>())
+                                    {
+                                        <option value="@d.DepartmentId">
+                                            @d.DepartmentName
+                                        </option>
+                                    }
+
+                                </select>
+
+                                <span asp-validation-for="Designation.DepartmentId"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="dm-field-label">
+                                    Hierarchy Level / Grade
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <select asp-for="Designation.HierarchyLevel"
+                                        class="form-select"
+                                        required>
+
+                                    <option value="">
+                                        -- Choose Level --
+                                    </option>
+
+                                    <option value="L1 - Entry Level">
+                                        L1 - Entry Level
+                                    </option>
+
+                                    <option value="L2 - Junior Associate">
+                                        L2 - Junior Associate
+                                    </option>
+
+                                    <option value="L3 - Mid-Level">
+                                        L3 - Mid-Level
+                                    </option>
+
+                                    <option value="L4 - Senior Specialist">
+                                        L4 - Senior Specialist
+                                    </option>
+
+                                    <option value="L5 - Management / Executive">
+                                        L5 - Management / Executive
+                                    </option>
+
+                                </select>
+
+                                <span asp-validation-for="Designation.HierarchyLevel"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- SALARY -->
+
+                    <div class="dm-form-section">
+
+                        <div class="dm-section-label">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                            Compensation
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+
+                                <label class="dm-field-label">
+                                    Minimum CTC
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <input type="number"
+                                       asp-for="Designation.MinCTC"
+                                       class="form-control"
+                                       placeholder="e.g. 450000"
+                                       min="0"
+                                       required />
+
+                                <span asp-validation-for="Designation.MinCTC"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="dm-field-label">
+                                    Maximum CTC
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <input type="number"
+                                       asp-for="Designation.MaxCTC"
+                                       class="form-control"
+                                       placeholder="e.g. 700000"
+                                       min="0"
+                                       required />
+
+                                <span asp-validation-for="Designation.MaxCTC"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- DESCRIPTION -->
+
+                    <div class="dm-form-section">
+
+                        <div class="dm-section-label">
+                            <i class="fa-solid fa-align-left"></i>
+                            Role Description
+                        </div>
+
+                        <label class="dm-field-label">
+                            Job Description & Responsibilities
+                        </label>
+
+                        <textarea asp-for="Designation.JobDescription"
+                                  class="form-control"
+                                  rows="4"
+                                  placeholder="Enter key duties, skill expectations, responsibilities and operational scope..."></textarea>
+
+                        <span asp-validation-for="Designation.JobDescription"
+                              class="text-danger small">
+                        </span>
+
+                    </div>
+
+
+                    <!-- ACTIVE -->
+
+                    <div class="dm-publish-box">
+
+                        <div class="form-check form-switch dm-switch">
+
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   asp-for="Designation.IsActive"
+                                   checked />
+
+                        </div>
+
+                        <div>
+
+                            <div class="dm-publish-title">
+                                Publish Designation
+                            </div>
+
+                            <div class="dm-publish-text">
+                                Enable this designation for active organization use.
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div>
+
+
+                <div class="dm-modal-footer d-flex justify-content-end gap-2">
+
+                    <button type="button"
+                            class="btn btn-outline-secondary dm-cancel-btn"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary dm-save-btn">
+
+                        <i class="fa-solid fa-check me-2"></i>
+                        Save Designation
+
+                    </button>
+
+                </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- ========================================== -->
-<!--     EDIT DESIGNATION BOOTSTRAP MODAL      -->
-<!-- ========================================== -->
-<div class="modal fade" id="editDesignationModal" tabindex="-1" aria-labelledby="editModalTitle" aria-hidden="true">
+
+<!-- =========================================================
+     EDIT DESIGNATION MODAL
+========================================================= -->
+
+<div class="modal fade dm-modal"
+     id="editDesignationModal"
+     tabindex="-1"
+     aria-labelledby="editModalTitle"
+     aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
-            <div class="modal-header bg-light border-bottom p-3">
-                <h5 class="modal-title fw-bold text-dark" id="editModalTitle"><i class="fa-solid fa-edit text-primary me-2"></i>Modify Designation Settings</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="/AdminMaster/EditDesignation" id="editForm">
-                @Html.AntiForgeryToken()
-                <input type="hidden" asp-for="Designation.DesignationId" id="editDesignationId" />
-                <div class="modal-body p-4 text-start">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold small text-secondary">Designation Code</label>
-                            <input type="text" asp-for="Designation.DesignationCode" id="editDesignationCode" class="form-control text-uppercase" readonly />
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold small text-secondary">Job Title</label>
-                            <input type="text" asp-for="Designation.JobTitle" id="editJobTitle" class="form-control" placeholder="e.g. Human Resources Manager" required />
-                            <span asp-validation-for="Designation.JobTitle" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Assign Department</label>
-                            <select asp-for="Designation.DepartmentId" id="editDepartmentId" class="form-select" required>
-                                @foreach (var d in Model.Departments)
-                                {
-                                    <option value="@d.DepartmentId">@d.DepartmentName</option>
-                                }
-                            </select>
-                            <span asp-validation-for="Designation.DepartmentId" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Hierarchy Level / Grade</label>
-                            <select asp-for="Designation.HierarchyLevel" id="editHierarchyLevel" class="form-select" required>
-                                <option value="L1 - Entry Level">L1 - Entry Level</option>
-                                <option value="L2 - Junior Associate">L2 - Junior Associate</option>
-                                <option value="L3 - Mid-Level">L3 - Mid-Level</option>
-                                <option value="L4 - Senior Specialist">L4 - Senior Specialist</option>
-                                <option value="L5 - Management / Executive">L5 - Management / Executive</option>
-                            </select>
-                            <span asp-validation-for="Designation.HierarchyLevel" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Minimum Salary CTC Band (Annual ₹)</label>
-                            <input type="number" asp-for="Designation.MinCTC" id="editMinCTC" class="form-control" placeholder="e.g. 450000" min="0" required />
-                            <span asp-validation-for="Designation.MinCTC" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Maximum Salary CTC Band (Annual ₹)</label>
-                            <input type="number" asp-for="Designation.MaxCTC" id="editMaxCTC" class="form-control" placeholder="e.g. 700000" min="0" required />
-                            <span asp-validation-for="Designation.MaxCTC" class="text-danger small"></span>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold small text-secondary">Job Description & Responsibilities</label>
-                            <textarea asp-for="Designation.JobDescription" id="editJobDescription" class="form-control" rows="3" placeholder="Enter key duties, skill expectations, and operational scopes..."></textarea>
-                            <span asp-validation-for="Designation.JobDescription" class="text-danger small"></span>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-check form-switch ios-switch d-flex align-items-center gap-2.5">
-                                <input class="form-check-input" type="checkbox" asp-for="Designation.IsActive" id="editIsActive" />
-                                <label class="form-check-label fw-semibold text-secondary small" asp-for="Designation.IsActive">Publish & Enable Active Status</label>
-                            </div>
-                        </div>
+
+        <div class="modal-content">
+
+            <div class="dm-modal-header">
+
+                <div class="dm-modal-title-wrap">
+
+                    <div class="dm-modal-icon">
+                        <i class="fa-solid fa-pen-to-square"></i>
                     </div>
+
+                    <div>
+
+                        <h5 class="dm-modal-title" id="editModalTitle">
+                            Edit Designation
+                        </h5>
+
+                        <p class="dm-modal-subtitle">
+                            Update designation details and organization settings.
+                        </p>
+
+                    </div>
+
                 </div>
-                <div class="modal-footer bg-light border-top p-3">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fa-solid fa-save me-1.5"></i>Apply Changes</button>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+
+            <form method="post"
+                  action="/AdminMaster/EditDesignation"
+                  id="editForm">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       asp-for="Designation.DesignationId"
+                       id="editDesignationId" />
+
+
+                <div class="dm-modal-body">
+
+                    <!-- BASIC INFORMATION -->
+
+                    <div class="dm-form-section">
+
+                        <div class="dm-section-label">
+                            <i class="fa-solid fa-circle-info"></i>
+                            Designation Information
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+
+                                <label class="dm-field-label">
+                                    Designation Code
+                                </label>
+
+                                <input type="text"
+                                       asp-for="Designation.DesignationCode"
+                                       id="editDesignationCode"
+                                       class="form-control text-uppercase"
+                                       readonly />
+
+                            </div>
+
+
+                            <div class="col-md-8">
+
+                                <label class="dm-field-label">
+                                    Job Title
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <input type="text"
+                                       asp-for="Designation.JobTitle"
+                                       id="editJobTitle"
+                                       class="form-control"
+                                       placeholder="e.g. Human Resources Manager"
+                                       required />
+
+                                <span asp-validation-for="Designation.JobTitle"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="dm-field-label">
+                                    Department
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <select asp-for="Designation.DepartmentId"
+                                        id="editDepartmentId"
+                                        class="form-select"
+                                        required>
+
+                                    @foreach (var d in Model.Departments ?? new List<ERP_System.Models.Department>())
+                                    {
+                                        <option value="@d.DepartmentId">
+                                            @d.DepartmentName
+                                        </option>
+                                    }
+
+                                </select>
+
+                                <span asp-validation-for="Designation.DepartmentId"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="dm-field-label">
+                                    Hierarchy Level / Grade
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <select asp-for="Designation.HierarchyLevel"
+                                        id="editHierarchyLevel"
+                                        class="form-select"
+                                        required>
+
+                                    <option value="L1 - Entry Level">
+                                        L1 - Entry Level
+                                    </option>
+
+                                    <option value="L2 - Junior Associate">
+                                        L2 - Junior Associate
+                                    </option>
+
+                                    <option value="L3 - Mid-Level">
+                                        L3 - Mid-Level
+                                    </option>
+
+                                    <option value="L4 - Senior Specialist">
+                                        L4 - Senior Specialist
+                                    </option>
+
+                                    <option value="L5 - Management / Executive">
+                                        L5 - Management / Executive
+                                    </option>
+
+                                </select>
+
+                                <span asp-validation-for="Designation.HierarchyLevel"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- SALARY -->
+
+                    <div class="dm-form-section">
+
+                        <div class="dm-section-label">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                            Compensation
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+
+                                <label class="dm-field-label">
+                                    Minimum CTC
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <input type="number"
+                                       asp-for="Designation.MinCTC"
+                                       id="editMinCTC"
+                                       class="form-control"
+                                       min="0"
+                                       required />
+
+                                <span asp-validation-for="Designation.MinCTC"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="dm-field-label">
+                                    Maximum CTC
+                                    <span class="dm-required">*</span>
+                                </label>
+
+                                <input type="number"
+                                       asp-for="Designation.MaxCTC"
+                                       id="editMaxCTC"
+                                       class="form-control"
+                                       min="0"
+                                       required />
+
+                                <span asp-validation-for="Designation.MaxCTC"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- DESCRIPTION -->
+
+                    <div class="dm-form-section">
+
+                        <div class="dm-section-label">
+                            <i class="fa-solid fa-align-left"></i>
+                            Role Description
+                        </div>
+
+                        <label class="dm-field-label">
+                            Job Description & Responsibilities
+                        </label>
+
+                        <textarea asp-for="Designation.JobDescription"
+                                  id="editJobDescription"
+                                  class="form-control"
+                                  rows="4"
+                                  placeholder="Enter responsibilities and operational scope..."></textarea>
+
+                        <span asp-validation-for="Designation.JobDescription"
+                              class="text-danger small">
+                        </span>
+
+                    </div>
+
+
+                    <!-- ACTIVE -->
+
+                    <div class="dm-publish-box">
+
+                        <div class="form-check form-switch dm-switch">
+
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   asp-for="Designation.IsActive"
+                                   id="editIsActive" />
+
+                        </div>
+
+                        <div>
+
+                            <div class="dm-publish-title">
+                                Active Designation
+                            </div>
+
+                            <div class="dm-publish-text">
+                                Turn off to mark this designation as inactive.
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div>
+
+
+                <div class="dm-modal-footer d-flex justify-content-end gap-2">
+
+                    <button type="button"
+                            class="btn btn-outline-secondary dm-cancel-btn"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary dm-save-btn">
+
+                        <i class="fa-solid fa-floppy-disk me-2"></i>
+                        Apply Changes
+
+                    </button>
+
+                </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
 
 <script>
-    // Realtime search lookup
+
     document.addEventListener("DOMContentLoaded", function () {
+
+        /* =====================================================
+           LIVE SEARCH
+        ===================================================== */
+
         const searchInput = document.getElementById("designationSearch");
+
         if (searchInput) {
-            searchInput.addEventListener("keyup", function () {
-                const query = this.value.toLowerCase().trim();
+
+            searchInput.addEventListener("input", function () {
+
+                const query = this.value
+                    .toLowerCase()
+                    .trim();
+
                 const rows = document.querySelectorAll(".designation-row");
 
-                rows.forEach(row => {
-                    const titleText = row.querySelector(".designation-title").textContent.toLowerCase();
-                    const codeText = row.querySelector(".font-monospace").textContent.toLowerCase();
-                    
-                    if (titleText.includes(query) || codeText.includes(query)) {
+                rows.forEach(function (row) {
+
+                    const titleElement =
+                        row.querySelector(".designation-title");
+
+                    const codeElement =
+                        row.querySelector(".dm-code");
+
+                    const titleText =
+                        titleElement
+                            ? titleElement.textContent.toLowerCase()
+                            : "";
+
+                    const codeText =
+                        codeElement
+                            ? codeElement.textContent.toLowerCase()
+                            : "";
+
+                    const match =
+                        titleText.includes(query) ||
+                        codeText.includes(query);
+
+                    if (match) {
+
                         row.style.display = "";
+
+                        row.animate(
+                            [
+                                {
+                                    opacity: 0.35,
+                                    transform: "translateY(4px)"
+                                },
+                                {
+                                    opacity: 1,
+                                    transform: "translateY(0)"
+                                }
+                            ],
+                            {
+                                duration: 180,
+                                easing: "ease-out"
+                            }
+                        );
+
                     } else {
+
                         row.style.display = "none";
+
                     }
+
                 });
+
             });
+
         }
+
+
+        /* =====================================================
+           FORM SUBMIT LOADING EFFECT
+        ===================================================== */
+
+        document.querySelectorAll("form").forEach(function (form) {
+
+            form.addEventListener("submit", function () {
+
+                const submitButton =
+                    form.querySelector(
+                        'button[type="submit"]:not([data-bs-dismiss])'
+                    );
+
+                if (!submitButton) {
+                    return;
+                }
+
+                if (form.classList.contains("delete-form")) {
+                    return;
+                }
+
+                if (submitButton.dataset.loading === "true") {
+                    return;
+                }
+
+                submitButton.dataset.loading = "true";
+
+                const originalHtml =
+                    submitButton.innerHTML;
+
+                submitButton.dataset.originalHtml =
+                    originalHtml;
+
+                submitButton.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+
+                submitButton.disabled = true;
+
+            });
+
+        });
+
     });
 
-    // Populate and open edit modal
-    function openEditModal(d) {
-        document.getElementById("editDesignationId").value = d.id;
-        document.getElementById("editDesignationCode").value = d.code;
-        document.getElementById("editJobTitle").value = d.title;
-        document.getElementById("editDepartmentId").value = d.deptId;
-        document.getElementById("editHierarchyLevel").value = d.level;
-        document.getElementById("editMinCTC").value = d.minCtc;
-        document.getElementById("editMaxCTC").value = d.maxCtc;
-        document.getElementById("editJobDescription").value = d.desc;
-        document.getElementById("editIsActive").checked = (d.active === 'True' || d.active === 'true');
 
-        const editModal = new bootstrap.Modal(document.getElementById("editDesignationModal"));
+    /* =========================================================
+       OPEN EDIT MODAL
+    ========================================================= */
+
+    function openEditModal(button) {
+
+        if (!button) {
+            return;
+        }
+
+        const id =
+            button.dataset.id;
+
+        const code =
+            button.dataset.code || "";
+
+        const title =
+            button.dataset.title || "";
+
+        const deptId =
+            button.dataset.deptId || "";
+
+        const level =
+            button.dataset.level || "";
+
+        const minCtc =
+            button.dataset.minCtc || "0";
+
+        const maxCtc =
+            button.dataset.maxCtc || "0";
+
+        const description =
+            button.dataset.description || "";
+
+        const active =
+            button.dataset.active === "True" ||
+            button.dataset.active === "true";
+
+
+        document.getElementById("editDesignationId").value =
+            id;
+
+        document.getElementById("editDesignationCode").value =
+            code;
+
+        document.getElementById("editJobTitle").value =
+            title;
+
+        document.getElementById("editDepartmentId").value =
+            deptId;
+
+        document.getElementById("editHierarchyLevel").value =
+            level;
+
+        document.getElementById("editMinCTC").value =
+            minCtc;
+
+        document.getElementById("editMaxCTC").value =
+            maxCtc;
+
+        document.getElementById("editJobDescription").value =
+            description;
+
+        document.getElementById("editIsActive").checked =
+            active;
+
+
+        const modalElement =
+            document.getElementById("editDesignationModal");
+
+        const editModal =
+            bootstrap.Modal.getOrCreateInstance(modalElement);
+
         editModal.show();
+
     }
 
-    // Confirm designation delete
-    function confirmDelete(btn) {
+
+    /* =========================================================
+       DELETE CONFIRMATION
+    ========================================================= */
+
+    function confirmDelete(button) {
+
         Swal.fire({
-            title: 'Delete Designation?',
-            text: "This action is permanent and cannot be undone. Active staff mapped to this designation will need reconfiguration.",
-            icon: 'warning',
+
+            title: "Delete Designation?",
+
+            html:
+                '<div style="font-size:.85rem;color:#64748b;">' +
+                'This action is permanent and cannot be undone.<br>' +
+                'Please confirm that you want to delete this designation.' +
+                '</div>',
+
+            icon: "warning",
+
             showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Yes, delete it'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                btn.closest('.delete-form').submit();
+
+            confirmButtonColor: "#ef4444",
+
+            cancelButtonColor: "#64748b",
+
+            confirmButtonText:
+                '<i class="fa-solid fa-trash-can me-1"></i> Yes, Delete',
+
+            cancelButtonText:
+                "Cancel",
+
+            reverseButtons: true,
+
+            focusCancel: true,
+
+            customClass: {
+
+                popup: "rounded-4",
+
+                confirmButton: "rounded-3",
+
+                cancelButton: "rounded-3"
+
             }
+
+        }).then(function (result) {
+
+            if (result.isConfirmed) {
+
+                const form =
+                    button.closest(".delete-form");
+
+                if (form) {
+
+                    const submitButton =
+                        document.createElement("button");
+
+                    submitButton.type = "submit";
+
+                    submitButton.style.display = "none";
+
+                    form.appendChild(submitButton);
+
+                    submitButton.click();
+
+                }
+
+            }
+
         });
+
     }
+
+
+    /* =========================================================
+       AUTO HIDE BOOTSTRAP ALERTS
+    ========================================================= */
+
+    setTimeout(function () {
+
+        document
+            .querySelectorAll(".dm-alert")
+            .forEach(function (alertElement) {
+
+                const alert =
+                    bootstrap.Alert.getOrCreateInstance(alertElement);
+
+                alert.close();
+
+            });
+
+    }, 5000);
+
 </script>
