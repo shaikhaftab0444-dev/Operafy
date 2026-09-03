@@ -21,6 +21,7 @@ namespace ERP_System.Models
     {
         public string Name { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty; // Present, On Leave, Late
         public string ClockInTime { get; set; } = "N/A";
         public string Avatar { get; set; } = string.Empty;

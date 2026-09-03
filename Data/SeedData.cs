@@ -1308,18 +1308,49 @@ namespace ERP_System.Data
 
             await context.Database.ExecuteSqlRawAsync(createDepartmentsSql);
 
-            // Seed departments if empty
-            if (!await context.Departments.AnyAsync())
-            {
-                var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@erp.com");
-                var adminUserId = adminUser?.UserId;
+            // Ensure erp_Users table has department, manager, and branch columns
+            string alterUsersSql = @"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'DepartmentId')
+                    ALTER TABLE AITStudent.erp_Users ADD DepartmentId INT NULL;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'DepartmentName')
+                    ALTER TABLE AITStudent.erp_Users ADD DepartmentName NVARCHAR(150) NULL;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'ReportingManagerId')
+                    ALTER TABLE AITStudent.erp_Users ADD ReportingManagerId NVARCHAR(50) NULL;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'ReportingManagerName')
+                    ALTER TABLE AITStudent.erp_Users ADD ReportingManagerName NVARCHAR(150) NULL;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'BranchName')
+                    ALTER TABLE AITStudent.erp_Users ADD BranchName NVARCHAR(150) NULL;
+            ";
+            await context.Database.ExecuteSqlRawAsync(alterUsersSql);
 
-                await context.Departments.AddRangeAsync(new List<Department>
+            // Seed departments if missing
+            var requiredDepartments = new List<(string Code, string Name)>
+            {
+                ("IT-DEPT", "IT & Software"),
+                ("SAL-DEPT", "Sales & Marketing"),
+                ("HR-DEPT", "Human Resources"),
+                ("FIN-DEPT", "Finance & Accounts"),
+                ("OPS-DEPT", "Operations & Logistics")
+            };
+
+            var existingDepts = await context.Departments.ToListAsync();
+            var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@erp.com");
+            var adminUserId = adminUser?.UserId;
+
+            foreach (var (code, name) in requiredDepartments)
+            {
+                if (!existingDepts.Any(d => d.DepartmentName.Equals(name, StringComparison.OrdinalIgnoreCase)))
                 {
-                    new Department { DepartmentCode = "HR-DEPT", DepartmentName = "Human Resources", HODId = adminUserId, BranchId = 3, IsActive = true, CreatedAt = DateTime.Now },
-                    new Department { DepartmentCode = "IT-DEPT", DepartmentName = "Information Technology & Dev", HODId = adminUserId, BranchId = 3, IsActive = true, CreatedAt = DateTime.Now },
-                    new Department { DepartmentCode = "SAL-DEPT", DepartmentName = "Sales & Customer Relations", HODId = adminUserId, BranchId = 3, IsActive = true, CreatedAt = DateTime.Now }
-                });
+                    await context.Departments.AddAsync(new Department
+                    {
+                        DepartmentCode = code,
+                        DepartmentName = name,
+                        HODId = adminUserId,
+                        BranchId = 3,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
+                    });
+                }
             }
 
             await context.SaveChangesAsync();

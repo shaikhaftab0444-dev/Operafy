@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,HR,Accountant")]
+    [Authorize(Roles = "Super Admin,Admin,HR,Accountant,Finance Manager")]
     public class PayrollController : Controller
     {
         private readonly ApplicationDbContext _context;

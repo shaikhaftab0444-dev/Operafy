@@ -1,191 +1,1961 @@
 @model List<ERP_System.Models.PayableBillViewModel>
 @{
+    Layout = "_DashboardLayout";
     ViewData["Title"] = "Accounts Payable";
     string currentFilter = ViewBag.StatusFilter ?? "All";
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
 <style>
+    /* =========================================================
+           ACCOUNTS PAYABLE - PREMIUM ERP UI
+           ========================================================= */
+
+    :root {
+        --ap-primary: #2563eb;
+        --ap-primary-dark: #1d4ed8;
+        --ap-primary-soft: #eff6ff;
+        --ap-success: #059669;
+        --ap-success-dark: #047857;
+        --ap-success-soft: #ecfdf5;
+        --ap-warning: #d97706;
+        --ap-warning-dark: #b45309;
+        --ap-warning-soft: #fffbeb;
+        --ap-danger: #dc2626;
+        --ap-danger-soft: #fef2f2;
+        --ap-info: #0891b2;
+        --ap-info-soft: #ecfeff;
+        --ap-dark: #172033;
+        --ap-text: #334155;
+        --ap-muted: #64748b;
+        --ap-border: #e2e8f0;
+        --ap-border-light: #eef2f7;
+        --ap-bg: #f6f8fb;
+        --ap-white: #ffffff;
+        --ap-radius: 18px;
+        --ap-radius-sm: 12px;
+        --ap-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+        --ap-shadow-hover: 0 16px 38px rgba(15, 23, 42, 0.09);
+    }
+
+    /* =========================================================
+           PAGE WRAPPER
+           ========================================================= */
+
     .payables-wrapper {
-        background: #f8fafc;
         min-height: 100vh;
-        padding: 1.5rem 0;
-        font-family: 'Segoe UI', system-ui, sans-serif;
+        padding: 18px 0 45px;
+        background: radial-gradient( circle at top right, rgba(37, 99, 235, 0.055), transparent 30% ), var(--ap-bg);
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--ap-text);
     }
-    
-    .finance-card {
-        background: #ffffff;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+
+        .payables-wrapper *,
+        .payables-wrapper *::before,
+        .payables-wrapper *::after {
+            box-sizing: border-box;
+        }
+
+    .ap-container {
+        max-width: 1700px;
+        margin: 0 auto;
     }
-    
-    .match-pill {
-        border-radius: 6px;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 600;
+
+    /* =========================================================
+           PAGE HEADER
+           ========================================================= */
+
+    .ap-page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+        padding: 4px 2px;
+        animation: apFadeUp 0.45s ease both;
+    }
+
+    .ap-header-left {
+        min-width: 0;
+    }
+
+    .ap-eyebrow {
         display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
+        gap: 8px;
+        margin-bottom: 7px;
+        color: var(--ap-primary);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
     }
-    .match-ok { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
-    .match-fail { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
 
-    .badge-approved { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
-    .badge-pending { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .ap-eyebrow i {
+            font-size: 0.7rem;
+        }
+
+    .ap-title {
+        margin: 0;
+        color: var(--ap-dark);
+        font-size: clamp(1.55rem, 2.4vw, 2.1rem);
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+    }
+
+    .ap-subtitle {
+        margin: 7px 0 0;
+        max-width: 760px;
+        color: var(--ap-muted);
+        font-size: 0.92rem;
+        line-height: 1.55;
+    }
+
+    .ap-header-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .ap-header-btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0.65rem 1rem;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+        .ap-header-btn:hover {
+            transform: translateY(-1px);
+        }
+
+    .ap-batch-btn {
+        color: #92400e;
+        background: #ffffff;
+        border: 1px solid #fcd34d;
+    }
+
+        .ap-batch-btn:hover {
+            color: #78350f;
+            background: var(--ap-warning-soft);
+            box-shadow: 0 7px 18px rgba(217, 119, 6, 0.11);
+        }
+
+    .ap-back-btn {
+        color: #ffffff;
+        background: var(--ap-dark);
+        border: 1px solid var(--ap-dark);
+        box-shadow: 0 7px 18px rgba(23, 32, 51, 0.12);
+    }
+
+        .ap-back-btn:hover {
+            color: #ffffff;
+            background: #0f172a;
+            box-shadow: 0 10px 22px rgba(23, 32, 51, 0.18);
+        }
+
+    /* =========================================================
+           SUMMARY CARDS
+           ========================================================= */
+
+    .ap-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 22px;
+        animation: apFadeUp 0.55s ease both;
+        animation-delay: 0.04s;
+    }
+
+    .ap-summary-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 112px;
+        padding: 18px;
+        border: 1px solid var(--ap-border);
+        border-radius: var(--ap-radius-sm);
+        background: var(--ap-white);
+        box-shadow: 0 5px 20px rgba(15, 23, 42, 0.035);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+        .ap-summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--ap-shadow-hover);
+        }
+
+        .ap-summary-card::after {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            right: -35px;
+            bottom: -40px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.045);
+        }
+
+    .ap-summary-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .ap-summary-label {
+        margin: 0 0 7px;
+        color: var(--ap-muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.055em;
+        text-transform: uppercase;
+    }
+
+    .ap-summary-value {
+        margin: 0;
+        color: var(--ap-dark);
+        font-size: 1.2rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+    }
+
+    .ap-summary-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 7px;
+        color: var(--ap-muted);
+        font-size: 0.73rem;
+        font-weight: 600;
+    }
+
+    .ap-summary-icon {
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        flex-shrink: 0;
+        font-size: 0.95rem;
+    }
+
+    .ap-icon-blue {
+        color: var(--ap-primary);
+        background: var(--ap-primary-soft);
+    }
+
+    .ap-icon-orange {
+        color: var(--ap-warning);
+        background: var(--ap-warning-soft);
+    }
+
+    .ap-icon-green {
+        color: var(--ap-success);
+        background: var(--ap-success-soft);
+    }
+
+    .ap-icon-red {
+        color: var(--ap-danger);
+        background: var(--ap-danger-soft);
+    }
+
+    /* =========================================================
+           FILTER TOOLBAR
+           ========================================================= */
+
+    .ap-toolbar-card {
+        margin-bottom: 18px;
+        padding: 16px;
+        border: 1px solid var(--ap-border);
+        border-radius: var(--ap-radius);
+        background: var(--ap-white);
+        box-shadow: var(--ap-shadow);
+        animation: apFadeUp 0.6s ease both;
+        animation-delay: 0.08s;
+    }
+
+    .ap-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .ap-filter-scroll {
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        padding-bottom: 2px;
+    }
+
+    .ap-filter-tabs {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 7px;
+        min-width: max-content;
+    }
+
+    .ap-filter-tab {
+        min-height: 39px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0.55rem 0.85rem;
+        border-radius: 9px !important;
+        border: 1px solid var(--ap-border);
+        background: #ffffff;
+        color: var(--ap-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+
+        .ap-filter-tab:hover {
+            color: var(--ap-primary);
+            border-color: #bfdbfe;
+            background: #f8fbff;
+            transform: translateY(-1px);
+        }
+
+        .ap-filter-tab.active {
+            color: #ffffff !important;
+            border-color: var(--ap-primary) !important;
+            background: var(--ap-primary) !important;
+            box-shadow: 0 5px 14px rgba(37, 99, 235, 0.16);
+        }
+
+            .ap-filter-tab.active:hover {
+                color: #ffffff !important;
+                background: var(--ap-primary-dark) !important;
+                border-color: var(--ap-primary-dark) !important;
+            }
+
+    .ap-search-form {
+        width: min(100%, 340px);
+        flex-shrink: 0;
+    }
+
+    .ap-search-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .ap-search-icon {
+        position: absolute;
+        left: 13px;
+        z-index: 2;
+        color: #94a3b8;
+        font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    .ap-search-input {
+        width: 100%;
+        min-height: 41px;
+        padding: 0.62rem 48px 0.62rem 35px;
+        border: 1px solid var(--ap-border);
+        border-radius: 10px;
+        outline: none;
+        background: #ffffff;
+        color: var(--ap-dark);
+        font-size: 0.8rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .ap-search-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .ap-search-input:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+        }
+
+    .ap-search-submit {
+        position: absolute;
+        right: 5px;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 7px;
+        color: #ffffff;
+        background: var(--ap-dark);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+        .ap-search-submit:hover {
+            background: var(--ap-primary);
+        }
+
+    /* =========================================================
+           TABLE CARD
+           ========================================================= */
+
+    .ap-table-card {
+        overflow: hidden;
+        border: 1px solid var(--ap-border);
+        border-radius: var(--ap-radius);
+        background: var(--ap-white);
+        box-shadow: var(--ap-shadow);
+        animation: apFadeUp 0.65s ease both;
+        animation-delay: 0.12s;
+    }
+
+    .ap-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--ap-border-light);
+    }
+
+    .ap-table-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+    }
+
+    .ap-heading-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: var(--ap-primary);
+        background: var(--ap-primary-soft);
+        flex-shrink: 0;
+    }
+
+    .ap-table-heading h2 {
+        margin: 0;
+        color: var(--ap-dark);
+        font-size: 0.98rem;
+        font-weight: 800;
+    }
+
+    .ap-table-heading p {
+        margin: 3px 0 0;
+        color: var(--ap-muted);
+        font-size: 0.74rem;
+    }
+
+    .ap-active-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border: 1px solid #dbeafe;
+        border-radius: 999px;
+        color: var(--ap-primary);
+        background: var(--ap-primary-soft);
+        font-size: 0.72rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .ap-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #payablesTable {
+        min-width: 1180px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        #payablesTable thead th {
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--ap-border);
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 0.69rem;
+            font-weight: 800;
+            letter-spacing: 0.065em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+            #payablesTable thead th:first-child {
+                padding-left: 20px;
+            }
+
+        #payablesTable tbody td {
+            padding: 15px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #475569;
+            font-size: 0.79rem;
+            font-weight: 500;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        #payablesTable tbody tr {
+            transition: background-color 0.18s ease;
+        }
+
+            #payablesTable tbody tr:hover {
+                background: #fbfdff;
+            }
+
+            #payablesTable tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+        #payablesTable tbody td:first-child {
+            padding-left: 20px;
+        }
+
+    /* =========================================================
+           CHECKBOX
+           ========================================================= */
+
+    .ap-checkbox {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        cursor: pointer;
+        accent-color: var(--ap-primary);
+        vertical-align: middle;
+    }
+
+        .ap-checkbox:focus {
+            outline: 3px solid rgba(37, 99, 235, 0.12);
+            outline-offset: 2px;
+        }
+
+    /* =========================================================
+           BILL NUMBER
+           ========================================================= */
+
+    .bill-number {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--ap-dark);
+        font-weight: 800;
+    }
+
+        .bill-number i {
+            color: var(--ap-primary);
+            font-size: 0.7rem;
+        }
+
+    .vendor-name {
+        max-width: 190px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--ap-dark);
+        font-weight: 700;
+    }
+
+    /* =========================================================
+           ORDER REFERENCES
+           ========================================================= */
+
+    .reference-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .reference-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+        .reference-item i {
+            width: 14px;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+    .reference-label {
+        color: #94a3b8;
+        font-weight: 700;
+    }
+
+    /* =========================================================
+           AMOUNT / DATE
+           ========================================================= */
+
+    .ap-amount {
+        color: var(--ap-dark);
+        font-weight: 800;
+    }
+
+    .ap-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #64748b;
+        font-size: 0.76rem;
+        font-weight: 600;
+    }
+
+        .ap-date i {
+            color: #94a3b8;
+        }
+
+    /* =========================================================
+           3-WAY MATCH
+           ========================================================= */
+
+    .match-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        max-width: 300px;
+    }
+
+    .match-pill {
+        min-height: 27px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.67rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+        .match-pill i {
+            font-size: 0.56rem;
+        }
+
+    .match-ok {
+        color: #047857;
+        background: var(--ap-success-soft);
+        border: 1px solid #a7f3d0;
+    }
+
+    .match-fail {
+        color: #b91c1c;
+        background: var(--ap-danger-soft);
+        border: 1px solid #fecaca;
+    }
+
+    /* =========================================================
+           STATUS BADGES
+           ========================================================= */
+
+    .ap-status-badge {
+        min-height: 27px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 0.69rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+        .ap-status-badge i {
+            font-size: 0.55rem;
+        }
+
+    .badge-approved {
+        color: #047857 !important;
+        background: var(--ap-success-soft) !important;
+        border: 1px solid #a7f3d0;
+    }
+
+    .badge-pending {
+        color: #b45309 !important;
+        background: var(--ap-warning-soft) !important;
+        border: 1px solid #fde68a;
+    }
+
+    /* =========================================================
+           ACTION BUTTON
+           ========================================================= */
+
+    .ap-approve-btn {
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 0.48rem 0.72rem;
+        border: 1px solid #a7f3d0 !important;
+        border-radius: 8px;
+        color: var(--ap-success) !important;
+        background: var(--ap-success-soft) !important;
+        font-size: 0.7rem;
+        font-weight: 800;
+        box-shadow: none !important;
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+
+        .ap-approve-btn:hover {
+            color: #ffffff !important;
+            background: var(--ap-success) !important;
+            border-color: var(--ap-success) !important;
+            transform: translateY(-1px);
+        }
+
+    .ap-released {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--ap-success);
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    /* =========================================================
+           TABLE FOOTER
+           ========================================================= */
+
+    .ap-table-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px 20px;
+        border-top: 1px solid var(--ap-border-light);
+        background: #fcfdff;
+    }
+
+    .ap-footer-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--ap-muted);
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+        .ap-footer-info i {
+            color: var(--ap-primary);
+        }
+
+    .ap-scroll-hint {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        color: #94a3b8;
+        font-size: 0.68rem;
+        font-weight: 600;
+    }
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .ap-empty-state {
+        padding: 60px 20px !important;
+        text-align: center;
+    }
+
+    .ap-empty-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        color: #64748b;
+        background: #f1f5f9;
+        font-size: 1.25rem;
+    }
+
+    .ap-empty-state strong {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--ap-dark);
+        font-size: 0.9rem;
+    }
+
+    .ap-empty-state span {
+        color: var(--ap-muted);
+        font-size: 0.78rem;
+    }
+
+    /* =========================================================
+           ANIMATION
+           ========================================================= */
+
+    @@keyframes apFadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(9px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* =========================================================
+           LARGE TABLETS
+           ========================================================= */
+
+    @@media (max-width: 1200px) {
+        .ap-summary-grid
+
+    {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ap-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .ap-search-form {
+        width: 100%;
+        max-width: 420px;
+    }
+
+    }
+
+    /* =========================================================
+           TABLETS
+           ========================================================= */
+
+    @@media (max-width: 992px) {
+        .payables-wrapper
+
+    {
+        padding-top: 12px;
+    }
+
+    .ap-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ap-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .ap-header-btn {
+        flex: 0 0 auto;
+    }
+
+    .ap-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ap-active-filter {
+        align-self: flex-start;
+    }
+
+    }
+
+    /* =========================================================
+           MOBILE
+           ========================================================= */
+
+    @@media (max-width: 768px) {
+        .payables-wrapper
+
+    {
+        padding: 8px 0 30px;
+    }
+
+    .payables-wrapper .container-fluid {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .ap-page-header {
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .ap-eyebrow {
+        font-size: 0.66rem;
+    }
+
+    .ap-title {
+        font-size: 1.42rem;
+    }
+
+    .ap-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .ap-header-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    .ap-header-btn {
+        width: 100%;
+        min-height: 42px;
+        font-size: 0.74rem;
+    }
+
+    .ap-summary-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .ap-summary-card {
+        min-height: 100px;
+        padding: 14px;
+    }
+
+    .ap-summary-label {
+        font-size: 0.65rem;
+    }
+
+    .ap-summary-value {
+        font-size: 0.95rem;
+    }
+
+    .ap-summary-note {
+        font-size: 0.65rem;
+    }
+
+    .ap-summary-icon {
+        width: 34px;
+        height: 34px;
+        font-size: 0.8rem;
+    }
+
+    .ap-toolbar-card {
+        margin-bottom: 14px;
+        padding: 12px;
+        border-radius: 14px;
+    }
+
+    .ap-filter-scroll {
+        width: 100%;
+    }
+
+    .ap-filter-tabs {
+        width: max-content;
+    }
+
+    .ap-filter-tab {
+        min-height: 36px;
+        padding: 0.48rem 0.7rem;
+        font-size: 0.7rem;
+    }
+
+    .ap-search-form {
+        max-width: none;
+    }
+
+    .ap-table-card {
+        border-radius: 14px;
+    }
+
+    .ap-table-header {
+        padding: 15px;
+    }
+
+    .ap-heading-icon {
+        width: 34px;
+        height: 34px;
+    }
+
+    .ap-table-heading h2 {
+        font-size: 0.88rem;
+    }
+
+    .ap-table-heading p {
+        font-size: 0.68rem;
+    }
+
+    .ap-scroll-hint {
+        display: inline-flex;
+    }
+
+    .ap-table-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 15px;
+    }
+
+    }
+
+    /* =========================================================
+           SMALL MOBILE
+           ========================================================= */
+
+    @@media (max-width: 480px) {
+        .ap-header-actions
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .ap-summary-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ap-summary-card {
+        min-height: 94px;
+        padding: 12px;
+    }
+
+    .ap-summary-icon {
+        display: none;
+    }
+
+    .ap-summary-value {
+        font-size: 0.88rem;
+    }
+
+    .ap-summary-label {
+        font-size: 0.6rem;
+    }
+
+    .ap-search-input {
+        min-height: 40px;
+    }
+
+    .ap-active-filter {
+        font-size: 0.66rem;
+    }
+
+    }
+
+    /* =========================================================
+           REDUCED MOTION
+           ========================================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .ap-page-header, .ap-summary-grid, .ap-toolbar-card, .ap-table-card
+
+    {
+        animation: none !important;
+    }
+
+    .ap-summary-card,
+    .ap-filter-tab,
+    .ap-header-btn,
+    .ap-approve-btn,
+    .ap-search-submit {
+        transition: none !important;
+    }
+
+    }
+
+    /* =========================================================
+           PRINT
+           ========================================================= */
+
+    @@media print {
+        body
+
+    {
+        background: #ffffff !important;
+    }
+
+    .payables-wrapper {
+        padding: 0 !important;
+        background: #ffffff !important;
+    }
+
+    .ap-header-actions,
+    .ap-toolbar-card,
+    .ap-summary-grid,
+    .ap-approve-btn,
+    .ap-table-footer {
+        display: none !important;
+    }
+
+    .ap-table-card {
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .ap-table-header {
+        padding: 10px 0;
+    }
+
+    .ap-table-wrap {
+        overflow: visible !important;
+    }
+
+    #payablesTable {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+        #payablesTable thead th,
+        #payablesTable tbody td {
+            padding: 8px 6px !important;
+            font-size: 10px !important;
+        }
+
+    .ap-title {
+        font-size: 20px !important;
+    }
+
+    .ap-subtitle {
+        font-size: 11px !important;
+    }
+
+    .ap-eyebrow {
+        font-size: 9px !important;
+    }
+
+    }
 </style>
 
+
 <div class="payables-wrapper">
-    <div class="container-fluid px-4">
-        
-        <!-- Module Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">Accounts Payable (AP)</span>
-                <h1 class="h3 mb-0 fw-bold text-slate-800">Vendor Bills & Disbursements</h1>
-            </div>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-warning" onclick="batchApprove()"><i class="fa-solid fa-list-check me-2"></i>Batch Payment Sign-off</button>
-                <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
-            </div>
-        </div>
 
-        <!-- Filters Grid -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div class="d-flex gap-2">
-                <a asp-action="Payables" asp-route-statusFilter="All" asp-route-search="@ViewBag.SearchTerm" class="btn btn-sm btn-outline-secondary @(currentFilter == "All" ? "active" : "")">All Bills</a>
-                <a asp-action="Payables" asp-route-statusFilter="Pending Approval" asp-route-search="@ViewBag.SearchTerm" class="btn btn-sm btn-outline-secondary @(currentFilter == "Pending Approval" ? "active" : "")">Pending Approval</a>
-                <a asp-action="Payables" asp-route-statusFilter="Approved" asp-route-search="@ViewBag.SearchTerm" class="btn btn-sm btn-outline-secondary @(currentFilter == "Approved" ? "active" : "")">Approved</a>
+    <div class="container-fluid px-4 ap-container">
+
+        <!-- =====================================================
+             PAGE HEADER
+             ===================================================== -->
+
+        <header class="ap-page-header">
+
+            <div class="ap-header-left">
+
+                <div class="ap-eyebrow">
+                    <i class="fa-solid fa-building-columns"></i>
+                    Accounts Payable
+                </div>
+
+                <h1 class="ap-title">
+                    Vendor Bills &amp; Disbursements
+                </h1>
+
+                <p class="ap-subtitle">
+                    Review vendor bills, verify three-way matching,
+                    and manage payment approvals from one centralized workspace.
+                </p>
+
             </div>
 
-            <!-- Search Bill -->
-            <form method="get" asp-action="Payables" class="d-flex gap-2" style="max-width: 320px; width: 100%;">
-                <input type="hidden" name="statusFilter" value="@currentFilter" />
-                <input type="text" name="search" value="@ViewBag.SearchTerm" placeholder="Search supplier or bill..." class="form-control" />
-                <button type="submit" class="btn btn-dark"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </form>
-        </div>
 
-        <!-- Invoices List Card -->
-        <div class="finance-card p-4">
-            <div class="table-responsive">
-                <table class="table align-middle table-hover mb-0" id="payablesTable">
-                    <thead class="table-light">
+            <div class="ap-header-actions">
+
+                <button type="button"
+                        class="btn ap-header-btn ap-batch-btn"
+                        onclick="batchApprove()">
+
+                    <i class="fa-solid fa-list-check"></i>
+
+                    <span>
+                        Batch Payment Sign-off
+                    </span>
+
+                </button>
+
+
+                <a asp-action="Index"
+                   class="btn ap-header-btn ap-back-btn">
+
+                    <i class="fa-solid fa-arrow-left"></i>
+
+                    <span>
+                        Back to Dashboard
+                    </span>
+
+                </a>
+
+            </div>
+
+        </header>
+
+
+        <!-- =====================================================
+             SUMMARY CARDS
+             ===================================================== -->
+
+        <section class="ap-summary-grid">
+
+            <!-- Total Bills -->
+            <div class="ap-summary-card">
+
+                <div class="ap-summary-top">
+
+                    <div>
+
+                        <p class="ap-summary-label">
+                            Total Bills
+                        </p>
+
+                        <p class="ap-summary-value">
+                            @(Model?.Count ?? 0)
+                        </p>
+
+                        <span class="ap-summary-note">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            Current view
+                        </span>
+
+                    </div>
+
+                    <span class="ap-summary-icon ap-icon-blue">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- Pending Approval -->
+            <div class="ap-summary-card">
+
+                <div class="ap-summary-top">
+
+                    <div>
+
+                        <p class="ap-summary-label">
+                            Pending Approval
+                        </p>
+
+                        <p class="ap-summary-value">
+                            @(Model?.Count(x => x.Status == "Pending Approval") ?? 0)
+                        </p>
+
+                        <span class="ap-summary-note">
+                            <i class="fa-solid fa-clock"></i>
+                            Awaiting sign-off
+                        </span>
+
+                    </div>
+
+                    <span class="ap-summary-icon ap-icon-orange">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- Approved -->
+            <div class="ap-summary-card">
+
+                <div class="ap-summary-top">
+
+                    <div>
+
+                        <p class="ap-summary-label">
+                            Approved
+                        </p>
+
+                        <p class="ap-summary-value">
+                            @(Model?.Count(x => x.Status == "Approved") ?? 0)
+                        </p>
+
+                        <span class="ap-summary-note">
+                            <i class="fa-solid fa-circle-check"></i>
+                            Released for payment
+                        </span>
+
+                    </div>
+
+                    <span class="ap-summary-icon ap-icon-green">
+                        <i class="fa-solid fa-check-double"></i>
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- Match Attention -->
+            <div class="ap-summary-card">
+
+                <div class="ap-summary-top">
+
+                    <div>
+
+                        <p class="ap-summary-label">
+                            Match Attention
+                        </p>
+
+                        <p class="ap-summary-value">
+                            @(Model?.Count(x => !x.PoMatch || !x.GrnMatch || !x.PriceMatch) ?? 0)
+                        </p>
+
+                        <span class="ap-summary-note">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            Requires review
+                        </span>
+
+                    </div>
+
+                    <span class="ap-summary-icon ap-icon-red">
+                        <i class="fa-solid fa-link-slash"></i>
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             FILTER & SEARCH TOOLBAR
+             ===================================================== -->
+
+        <section class="ap-toolbar-card">
+
+            <div class="ap-toolbar">
+
+                <!-- Filters -->
+                <div class="ap-filter-scroll">
+
+                    <div class="ap-filter-tabs">
+
+                        <a asp-action="Payables"
+                           asp-route-statusFilter="All"
+                           asp-route-search="@ViewBag.SearchTerm"
+                           class="btn ap-filter-tab @(currentFilter == "All" ? "active" : "")">
+
+                            <i class="fa-solid fa-layer-group"></i>
+                            All Bills
+
+                        </a>
+
+
+                        <a asp-action="Payables"
+                           asp-route-statusFilter="Pending Approval"
+                           asp-route-search="@ViewBag.SearchTerm"
+                           class="btn ap-filter-tab @(currentFilter == "Pending Approval" ? "active" : "")">
+
+                            <i class="fa-solid fa-clock"></i>
+                            Pending Approval
+
+                        </a>
+
+
+                        <a asp-action="Payables"
+                           asp-route-statusFilter="Approved"
+                           asp-route-search="@ViewBag.SearchTerm"
+                           class="btn ap-filter-tab @(currentFilter == "Approved" ? "active" : "")">
+
+                            <i class="fa-solid fa-circle-check"></i>
+                            Approved
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Search -->
+                <form method="get"
+                      asp-action="Payables"
+                      class="ap-search-form">
+
+                    <input type="hidden"
+                           name="statusFilter"
+                           value="@currentFilter" />
+
+                    <div class="ap-search-box">
+
+                        <i class="fa-solid fa-magnifying-glass ap-search-icon"></i>
+
+                        <input type="text"
+                               name="search"
+                               value="@ViewBag.SearchTerm"
+                               placeholder="Search supplier or bill..."
+                               class="ap-search-input"
+                               autocomplete="off" />
+
+                        <button type="submit"
+                                class="ap-search-submit"
+                                aria-label="Search bills">
+
+                            <i class="fa-solid fa-arrow-right"></i>
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             PAYABLE BILLS TABLE
+             ===================================================== -->
+
+        <section class="ap-table-card">
+
+            <!-- Table Header -->
+            <div class="ap-table-header">
+
+                <div class="ap-table-heading">
+
+                    <span class="ap-heading-icon">
+                        <i class="fa-solid fa-table-list"></i>
+                    </span>
+
+                    <div>
+
+                        <h2>
+                            Vendor Bill Register
+                        </h2>
+
+                        <p>
+                            Review bills, matching status, and payment approvals
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <span class="ap-active-filter">
+
+                    <i class="fa-solid fa-filter"></i>
+
+                    @currentFilter
+
+                </span>
+
+            </div>
+
+
+            <!-- Responsive Table -->
+            <div class="ap-table-wrap">
+
+                <table class="table align-middle mb-0"
+                       id="payablesTable">
+
+                    <thead>
+
                         <tr>
-                            <th width="40"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)" /></th>
-                            <th>Bill No</th>
-                            <th>Vendor</th>
-                            <th>Order References</th>
-                            <th>Amount</th>
-                            <th>Due Date</th>
-                            <th>3-Way Match Status</th>
-                            <th>Status</th>
-                            <th class="text-center">Action</th>
+
+                            <th width="45">
+                                <input type="checkbox"
+                                       id="selectAllCheckbox"
+                                       class="ap-checkbox"
+                                       onclick="toggleSelectAll(this)" />
+                            </th>
+
+                            <th>
+                                Bill No
+                            </th>
+
+                            <th>
+                                Vendor
+                            </th>
+
+                            <th>
+                                Order References
+                            </th>
+
+                            <th>
+                                Amount
+                            </th>
+
+                            <th>
+                                Due Date
+                            </th>
+
+                            <th>
+                                3-Way Match Status
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th class="text-center">
+                                Action
+                            </th>
+
                         </tr>
+
                     </thead>
+
+
                     <tbody>
-                        @foreach (var bill in Model)
+
+                        @if (Model != null && Model.Any())
                         {
-                            var statusClass = bill.Status == "Approved" ? "badge-approved" : "badge-pending";
+                            @foreach (var bill in Model)
+                            {
+                                var statusClass =
+                                bill.Status == "Approved"
+                                ? "badge-approved"
+                                : "badge-pending";
+
+                                <tr>
+
+                                    <!-- Selection -->
+                                    <td>
+
+                                        @if (bill.Status == "Pending Approval")
+                                        {
+                                            <input type="checkbox"
+                                                   class="bill-checkbox ap-checkbox"
+                                                   value="@bill.BillId" />
+                                        }
+
+                                    </td>
+
+
+                                    <!-- Bill Number -->
+                                    <td>
+
+                                        <span class="bill-number">
+
+                                            <i class="fa-solid fa-file-invoice"></i>
+
+                                            @bill.BillNo
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Vendor -->
+                                    <td>
+
+                                        <span class="vendor-name"
+                                              title="@bill.VendorName">
+
+                                            @bill.VendorName
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- References -->
+                                    <td>
+
+                                        <div class="reference-stack">
+
+                                            <div class="reference-item">
+
+                                                <i class="fa-solid fa-file-contract"></i>
+
+                                                <span class="reference-label">
+                                                    PO:
+                                                </span>
+
+                                                <span>
+                                                    @bill.PurchaseOrderNo
+                                                </span>
+
+                                            </div>
+
+
+                                            <div class="reference-item">
+
+                                                <i class="fa-solid fa-truck-ramp-box"></i>
+
+                                                <span class="reference-label">
+                                                    GRN:
+                                                </span>
+
+                                                <span>
+                                                    @bill.GrnNo
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Amount -->
+                                    <td>
+
+                                        <span class="ap-amount">
+                                            ₹ @bill.Amount.ToString("N2")
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Due Date -->
+                                    <td>
+
+                                        <span class="ap-date">
+
+                                            <i class="fa-regular fa-calendar-check"></i>
+
+                                            @bill.DueDate.ToString("dd-MMM-yyyy")
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- 3-Way Match -->
+                                    <td>
+
+                                        <div class="match-group">
+
+                                            <span class="match-pill @(bill.PoMatch ? "match-ok" : "match-fail")">
+
+                                                <i class="fa-solid @(bill.PoMatch ? "fa-check" : "fa-xmark")"></i>
+
+                                                PO Match
+
+                                            </span>
+
+
+                                            <span class="match-pill @(bill.GrnMatch ? "match-ok" : "match-fail")">
+
+                                                <i class="fa-solid @(bill.GrnMatch ? "fa-check" : "fa-xmark")"></i>
+
+                                                GRN Match
+
+                                            </span>
+
+
+                                            <span class="match-pill @(bill.PriceMatch ? "match-ok" : "match-fail")">
+
+                                                <i class="fa-solid @(bill.PriceMatch ? "fa-check" : "fa-xmark")"></i>
+
+                                                Price Match
+
+                                            </span>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Status -->
+                                    <td>
+
+                                        <span class="ap-status-badge @statusClass">
+
+                                            @if (bill.Status == "Approved")
+                                            {
+                                                <i class="fa-solid fa-circle-check"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-clock"></i>
+                                            }
+
+                                            @bill.Status
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Action -->
+                                    <td class="text-center">
+
+                                        @if (bill.Status == "Pending Approval")
+                                        {
+                                            <button type="button"
+                                                    class="btn ap-approve-btn"
+                                                    onclick="approveSingle(@bill.BillId)">
+
+                                                <i class="fa-solid fa-check"></i>
+
+                                                Approve
+
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="ap-released">
+
+                                                <i class="fa-solid fa-circle-check"></i>
+
+                                                Released
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
                             <tr>
-                                <td>
-                                    @if (bill.Status == "Pending Approval")
-                                    {
-                                        <input type="checkbox" class="bill-checkbox" value="@bill.BillId" />
-                                    }
-                                </td>
-                                <td><span class="fw-bold text-dark">@bill.BillNo</span></td>
-                                <td>@bill.VendorName</td>
-                                <td>
-                                    <div class="small">
-                                        <div class="text-secondary"><i class="fa-solid fa-file-contract me-1"></i>PO: @bill.PurchaseOrderNo</div>
-                                        <div class="text-secondary"><i class="fa-solid fa-truck-ramp-box me-1"></i>GRN: @bill.GrnNo</div>
+
+                                <td colspan="9"
+                                    class="ap-empty-state">
+
+                                    <div class="ap-empty-icon">
+
+                                        <i class="fa-solid fa-file-circle-xmark"></i>
+
                                     </div>
+
+                                    <strong>
+                                        No vendor bills found
+                                    </strong>
+
+                                    <span>
+                                        No bills match the selected status or search criteria.
+                                    </span>
+
                                 </td>
-                                <td><strong>₹ @bill.Amount.ToString("N2")</strong></td>
-                                <td>@bill.DueDate.ToString("dd-MMM-yyyy")</td>
-                                <td>
-                                    <div class="d-flex flex-wrap gap-1">
-                                        <span class="match-pill @(bill.PoMatch ? "match-ok" : "match-fail")">
-                                            <i class="fa-solid @(bill.PoMatch ? "fa-check" : "fa-xmark")"></i> PO Match
-                                        </span>
-                                        <span class="match-pill @(bill.GrnMatch ? "match-ok" : "match-fail")">
-                                            <i class="fa-solid @(bill.GrnMatch ? "fa-check" : "fa-xmark")"></i> GRN Match
-                                        </span>
-                                        <span class="match-pill @(bill.PriceMatch ? "match-ok" : "match-fail")">
-                                            <i class="fa-solid @(bill.PriceMatch ? "fa-check" : "fa-xmark")"></i> Price Match
-                                        </span>
-                                    </div>
-                                </td>
-                                <td><span class="badge @statusClass">@bill.Status</span></td>
-                                <td class="text-center">
-                                    @if (bill.Status == "Pending Approval")
-                                    {
-                                        <button type="button" class="btn btn-success btn-sm btn-action" onclick="approveSingle(@bill.BillId)">
-                                            <i class="fa-solid fa-check me-1"></i> Approve
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-success small fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Released</span>
-                                    }
-                                </td>
+
                             </tr>
                         }
+
                     </tbody>
+
                 </table>
+
             </div>
-        </div>
+
+
+            <!-- Table Footer -->
+            <div class="ap-table-footer">
+
+                <span class="ap-footer-info">
+
+                    <i class="fa-solid fa-circle-info"></i>
+
+                    Showing
+                    <strong>
+                        @(Model?.Count ?? 0)
+                    </strong>
+                    bill record(s)
+
+                </span>
+
+
+                <span class="ap-scroll-hint">
+
+                    <i class="fa-solid fa-arrows-left-right"></i>
+
+                    Swipe horizontally to view all columns
+
+                </span>
+
+            </div>
+
+        </section>
 
     </div>
+
 </div>
 
+
 @section Scripts {
+
     <script>
+
+        /* =====================================================
+           SINGLE BILL APPROVAL
+           ===================================================== */
+
         function approveSingle(billId) {
+
             if (confirm("Approve and release payment for this vendor bill?")) {
-                $.post('@Url.Action("ApprovePaymentRelease", "Finance")', { billId: billId }, function(res) {
-                    if (res.success) {
-                        alert(res.message);
-                        location.reload();
-                    } else {
-                        alert("Error: " + res.message);
+
+                $.post(
+                    '@Url.Action("ApprovePaymentRelease", "Finance")',
+                    {
+                        billId: billId
+                    },
+                    function (res) {
+
+                        if (res.success) {
+
+                            alert(res.message);
+
+                            location.reload();
+
+                        }
+                        else {
+
+                            alert("Error: " + res.message);
+
+                        }
+
                     }
-                });
+                );
+
             }
+
         }
+
+
+        /* =====================================================
+           SELECT / DESELECT ALL
+           ===================================================== */
 
         function toggleSelectAll(master) {
-            $('.bill-checkbox').prop('checked', master.checked);
+
+            $('.bill-checkbox').prop(
+                'checked',
+                master.checked
+            );
+
         }
 
+
+        /* =====================================================
+           BATCH APPROVAL
+           ===================================================== */
+
         function batchApprove() {
+
             const selectedIds = [];
-            $('.bill-checkbox:checked').each(function() {
-                selectedIds.push($(this).val());
+
+            $('.bill-checkbox:checked').each(function () {
+
+                selectedIds.push(
+                    $(this).val()
+                );
+
             });
 
+
             if (selectedIds.length === 0) {
-                alert("Please select at least one vendor bill to approve.");
+
+                alert(
+                    "Please select at least one vendor bill to approve."
+                );
+
                 return;
             }
 
-            if (confirm(`Are you sure you want to approve payment release for all ${selectedIds.length} selected bills?`)) {
+
+            if (
+                confirm(
+                    `Are you sure you want to approve payment release for all ${selectedIds.length} selected bills?`
+                )
+            ) {
+
                 let successCount = 0;
+
                 let processed = 0;
 
+
                 selectedIds.forEach(id => {
-                    $.post('@Url.Action("ApprovePaymentRelease", "Finance")', { billId: id }, function(res) {
-                        processed++;
-                        if (res.success) successCount++;
-                        if (processed === selectedIds.length) {
-                            alert(`Successfully processed batch payment sign-off for ${successCount} bills.`);
-                            location.reload();
+
+                    $.post(
+                        '@Url.Action("ApprovePaymentRelease", "Finance")',
+                        {
+                            billId: id
+                        },
+                        function (res) {
+
+                            processed++;
+
+
+                            if (res.success) {
+                                successCount++;
+                            }
+
+
+                            if (
+                                processed === selectedIds.length
+                            ) {
+
+                                alert(
+                                    `Successfully processed batch payment sign-off for ${successCount} bills.`
+                                );
+
+                                location.reload();
+
+                            }
+
                         }
-                    });
+                    );
+
                 });
+
             }
+
         }
+
+
+        /* =====================================================
+           SEARCH ENTER KEY SUPPORT
+           ===================================================== */
+
+        document.addEventListener(
+            'DOMContentLoaded',
+            function () {
+
+                const searchInput =
+                    document.querySelector(
+                        '.ap-search-input'
+                    );
+
+
+                if (searchInput) {
+
+                    searchInput.addEventListener(
+                        'keydown',
+                        function (event) {
+
+                            if (event.key === 'Enter') {
+
+                                event.preventDefault();
+
+                                this
+                                    .closest('form')
+                                    .submit();
+
+                            }
+
+                        }
+                    );
+
+                }
+
+            }
+        );
+
     </script>
 }

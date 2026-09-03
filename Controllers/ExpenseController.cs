@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,Manager,Sales Manager,Inventory Manager")]
+    [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant,Manager,Sales Manager,Inventory Manager")]
     public class ExpenseController : Controller
     {
         private readonly ApplicationDbContext _context;

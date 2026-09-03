@@ -1,4 +1,5 @@
 @{
+    Layout = "_DashboardLayout";
     ViewData["Title"] = "Financial Statements & Statutory Reports";
     var pl = ViewBag.PL as ERP_System.Models.FinancialStatementViewModel;
     var bs = ViewBag.BS as ERP_System.Models.FinancialStatementViewModel;
@@ -7,70 +8,538 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <style>
-    .reports-wrapper {
-        background: #f8fafc;
-        min-height: 100vh;
-        padding: 1.5rem 0;
-        font-family: 'Segoe UI', system-ui, sans-serif;
+    :root {
+        --fr-primary: #2563eb;
+        --fr-primary-dark: #1d4ed8;
+        --fr-success: #16a34a;
+        --fr-text: #0f172a;
+        --fr-muted: #64748b;
+        --fr-border: #e2e8f0;
+        --fr-soft: #f8fafc;
+        --fr-soft-blue: #eff6ff;
+        --fr-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+        --fr-radius: 18px;
     }
-    
-    .finance-card {
-        background: #ffffff;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+
+    .reports-wrapper {
+        min-height: 100vh;
+        padding: 18px 0 40px;
+        background: #f6f8fb;
+        font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--fr-text);
+    }
+
+    .reports-shell {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    .reports-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 22px;
+        padding: 24px 26px;
+        background: #fff;
+        border: 1px solid var(--fr-border);
+        border-radius: var(--fr-radius);
+        box-shadow: var(--fr-shadow);
+        animation: frFadeUp .45s ease both;
+    }
+
+    .header-copy {
+        min-width: 0;
+    }
+
+    .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 7px;
+        color: var(--fr-primary);
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+        .eyebrow::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--fr-primary);
+            box-shadow: 0 0 0 5px var(--fr-soft-blue);
+        }
+
+    .reports-title {
+        margin: 0;
+        font-size: clamp(1.35rem,2vw,1.85rem);
+        font-weight: 800;
+        letter-spacing: -.03em;
+    }
+
+    .reports-subtitle {
+        margin: 6px 0 0;
+        color: var(--fr-muted);
+        font-size: .9rem;
+    }
+
+    .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        justify-content: flex-end;
+    }
+
+        .header-actions .btn {
+            min-height: 42px;
+            border-radius: 11px;
+            font-weight: 700;
+            padding: .62rem .9rem;
+            transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+
+            .header-actions .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 18px rgba(15,23,42,.09);
+            }
+
+    .report-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+        padding: 12px;
+        background: #fff;
+        border: 1px solid var(--fr-border);
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(15,23,42,.04);
+        animation: frFadeUp .5s ease both;
+    }
+
+    .report-tabs {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        padding: 4px;
+        background: #f1f5f9;
+        border-radius: 11px;
     }
 
     .report-tab-btn {
-        font-weight: 600;
-        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: .65rem .9rem;
+        border: 0 !important;
+        border-radius: 8px !important;
+        color: #64748b !important;
+        background: transparent !important;
+        font-size: .82rem;
+        font-weight: 750;
+        transition: all .2s ease;
     }
 
-    .report-table th {
-        background-color: #f8fafc;
-        color: #475569;
-        font-weight: 700;
+        .report-tab-btn:hover {
+            color: #334155 !important;
+            background: #fff !important;
+        }
+
+        .report-tab-btn.active {
+            color: #fff !important;
+            background: var(--fr-primary) !important;
+            box-shadow: 0 5px 12px rgba(37,99,235,.22);
+        }
+
+        .report-tab-btn i {
+            font-size: .8rem;
+        }
+
+    .period-control {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        flex-shrink: 0;
+        padding: 4px 4px 4px 10px;
+        border: 1px solid var(--fr-border);
+        border-radius: 10px;
+        background: #fff;
     }
 
-    .section-total-row {
-        background-color: #f1f5f9;
-        font-weight: 700;
+        .period-control label {
+            color: #64748b;
+            font-size: .76rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .period-control .form-select {
+            min-width: 145px;
+            border: 0;
+            box-shadow: none;
+            font-size: .82rem;
+            font-weight: 700;
+            color: #1e293b;
+            cursor: pointer;
+        }
+
+            .period-control .form-select:focus {
+                box-shadow: none;
+            }
+
+    .finance-card {
+        background: #fff;
+        border: 1px solid var(--fr-border);
+        border-radius: var(--fr-radius);
+        box-shadow: var(--fr-shadow);
+        overflow: hidden;
+        animation: frFadeUp .55s ease both;
     }
 
-    .grand-total-row {
-        background-color: #e2e8f0;
+    .report-heading {
+        padding: 28px 30px 22px;
+        text-align: center;
+        border-bottom: 1px solid #edf1f5;
+        background: linear-gradient(180deg,#fff 0%,#fbfdff 100%);
+    }
+
+    .company-mark {
+        width: 42px;
+        height: 42px;
+        margin: 0 auto 10px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--fr-soft-blue);
+        color: var(--fr-primary);
+        font-size: 1rem;
+    }
+
+    .report-heading h3 {
+        margin: 0;
+        font-size: 1.15rem;
         font-weight: 800;
-        font-size: 1.1rem;
-        border-top: 2px solid #94a3b8;
-        border-bottom: 2px double #94a3b8;
+        letter-spacing: -.015em;
+    }
+
+    .report-heading h4 {
+        margin: 5px 0 3px;
+        font-size: .98rem;
+        font-weight: 750;
+        color: #475569 !important;
+    }
+
+    .report-heading span {
+        font-size: .76rem;
+        color: #94a3b8 !important;
+    }
+
+    .table-responsive-report {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .report-table {
+        width: 100%;
+        min-width: 720px;
+        margin: 0 !important;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .report-table th {
+            padding: 13px 18px;
+            background: #f8fafc !important;
+            color: #64748b !important;
+            border-top: 0 !important;
+            border-bottom: 1px solid var(--fr-border) !important;
+            font-size: .72rem;
+            letter-spacing: .045em;
+            text-transform: uppercase;
+            font-weight: 800 !important;
+            white-space: nowrap;
+        }
+
+        .report-table td {
+            padding: 13px 18px;
+            color: #334155;
+            border-color: #eef2f6 !important;
+            font-size: .84rem;
+            vertical-align: middle;
+        }
+
+        .report-table tbody tr:not(.section-row):not(.section-total-row):not(.grand-total-row) {
+            transition: background .18s ease;
+        }
+
+            .report-table tbody tr:not(.section-row):not(.section-total-row):not(.grand-total-row):hover {
+                background: #fafcff;
+            }
+
+        .report-table code {
+            display: inline-block;
+            padding: 4px 7px;
+            border: 1px solid #dbeafe;
+            border-radius: 6px;
+            background: #eff6ff;
+            color: #2563eb;
+            font-size: .72rem;
+            font-weight: 750;
+        }
+
+    .section-row td {
+        padding: 11px 18px !important;
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+        border-top: 1px solid #e2e8f0 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        font-size: .77rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-weight: 800 !important;
+    }
+
+    .section-total-row td {
+        padding: 12px 18px !important;
+        background: #f8fafc !important;
+        color: #475569;
+        font-weight: 750;
+        border-top: 1px solid #e2e8f0 !important;
+    }
+
+    .grand-total-row td {
+        padding: 16px 18px !important;
+        background: #eef4ff !important;
+        color: #0f172a !important;
+        border-top: 2px solid #bfdbfe !important;
+        border-bottom: 0 !important;
+        font-size: .92rem;
+        font-weight: 850 !important;
+    }
+
+    .grand-total-row .text-success {
+        color: #15803d !important;
+    }
+
+    .grand-total-row .text-primary {
+        color: #1d4ed8 !important;
+    }
+
+    .report-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 13px 20px;
+        border-top: 1px solid #edf1f5;
+        background: #fbfcfe;
+        color: #94a3b8;
+        font-size: .72rem;
+    }
+
+    @@keyframes frFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@media (max-width: 992px) {
+        .reports-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .report-toolbar {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .report-tabs {
+            width: 100%;
+        }
+
+        .report-tab-btn {
+            flex: 1;
+        }
+
+        .period-control {
+            justify-content: space-between;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .reports-wrapper {
+            padding: 10px 0 28px;
+        }
+
+        .container-fluid {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+        }
+
+        .reports-header {
+            padding: 18px;
+            margin-bottom: 14px;
+            border-radius: 14px;
+        }
+
+        .reports-title {
+            font-size: 1.3rem;
+        }
+
+        .header-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+            .header-actions .btn {
+                width: 100%;
+            }
+
+                .header-actions .btn:last-child {
+                    grid-column: 1 / -1;
+                }
+
+        .report-toolbar {
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+
+        .report-tabs {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .report-tab-btn {
+            width: 100%;
+        }
+
+        .period-control {
+            width: 100%;
+        }
+
+            .period-control .form-select {
+                flex: 1;
+            }
+
+        .finance-card {
+            border-radius: 14px;
+        }
+
+        .report-heading {
+            padding: 22px 16px 18px;
+        }
+
+        .report-table {
+            min-width: 650px;
+        }
+
+            .report-table th, .report-table td {
+                padding: 11px 13px;
+            }
+
+        .report-footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .header-actions {
+            grid-template-columns: 1fr;
+        }
+
+            .header-actions .btn:last-child {
+                grid-column: auto;
+            }
+
+        .period-control {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 9px;
+        }
+
+            .period-control .form-select {
+                min-width: 0;
+                width: 100%;
+            }
+
+        .report-table {
+            min-width: 600px;
+        }
     }
 
     @@media print {
         body * {
-            visibility: hidden;
+            visibility: hidden !important;
         }
+
         .printable-report-area, .printable-report-area * {
-            visibility: visible;
+            visibility: visible !important;
         }
+
         .printable-report-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+        }
+
+        .report-heading {
+            border-bottom: 1px solid #999 !important;
+        }
+
+        .report-table th, .section-row td, .section-total-row td, .grand-total-row td {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .report-table {
+            min-width: 0 !important;
+        }
+
+        .table-responsive-report {
+            overflow: visible !important;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: .01ms !important;
+            transition-duration: .01ms !important;
         }
     }
 </style>
 
 <div class="reports-wrapper">
-    <div class="container-fluid px-4">
-        
+    <div class="container-fluid px-4 reports-shell">
+
         <!-- Module Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">Accounting Statements</span>
-                <h1 class="h3 mb-0 fw-bold text-slate-800">Financial Reports Viewer</h1>
+        <div class="reports-header">
+            <div class="header-copy">
+                <div class="eyebrow">Accounting Statements</div>
+                <h1 class="reports-title">Financial Reports Viewer</h1>
+                <p class="reports-subtitle">Review, export and print your financial statements for the selected reporting period.</p>
             </div>
-            <div class="d-flex gap-2">
+            <div class="header-actions">
                 <button type="button" class="btn btn-outline-success" onclick="exportToExcel()"><i class="fa-solid fa-file-excel me-2"></i>Export Excel</button>
                 <button type="button" class="btn btn-outline-primary" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>Print PDF</button>
                 <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
@@ -78,17 +547,17 @@
         </div>
 
         <!-- Report Tabs Navigation -->
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-            <div class="nav nav-pills gap-2" id="reportTabs" role="tablist">
-                <button class="nav-link report-tab-btn active" id="tab-pl" data-bs-toggle="tab" data-bs-target="#panel-pl" type="button" role="tab">Income Statement (P&L)</button>
-                <button class="nav-link report-tab-btn" id="tab-bs" data-bs-toggle="tab" data-bs-target="#panel-bs" type="button" role="tab">Balance Sheet</button>
-                <button class="nav-link report-tab-btn" id="tab-tb" data-bs-toggle="tab" data-bs-target="#panel-tb" type="button" role="tab">Trial Balance</button>
+        <div class="report-toolbar">
+            <div class="nav nav-pills report-tabs" id="reportTabs" role="tablist">
+                <button class="nav-link report-tab-btn active" id="tab-pl" data-bs-toggle="tab" data-bs-target="#panel-pl" type="button" role="tab"><i class="fa-solid fa-chart-line"></i>Income Statement (P&amp;L)</button>
+                <button class="nav-link report-tab-btn" id="tab-bs" data-bs-toggle="tab" data-bs-target="#panel-bs" type="button" role="tab"><i class="fa-solid fa-scale-balanced"></i>Balance Sheet</button>
+                <button class="nav-link report-tab-btn" id="tab-tb" data-bs-toggle="tab" data-bs-target="#panel-tb" type="button" role="tab"><i class="fa-solid fa-list-check"></i>Trial Balance</button>
             </div>
 
             <!-- Report Period Selector -->
-            <form method="get" asp-action="Reports" class="d-flex align-items-center gap-2">
-                <label class="form-label mb-0 fw-semibold text-secondary small">Period:</label>
-                <select name="period" class="form-select form-select-sm" onchange="this.form.submit()">
+            <form method="get" asp-action="Reports" class="period-control">
+                <label for="reportPeriod">Reporting Period</label>
+                <select id="reportPeriod" name="period" class="form-select form-select-sm" onchange="this.form.submit()">
                     <option value="August 2026" selected>August 2026</option>
                     <option value="July 2026">July 2026</option>
                     <option value="Q1 FY26">Q1 FY26</option>
@@ -98,145 +567,157 @@
 
         <!-- Reports Panels Area -->
         <div class="tab-content" id="reportPanels">
-            
+
             <!-- INCOME STATEMENT PANEL -->
             <div class="tab-pane fade show active" id="panel-pl" role="tabpanel" aria-labelledby="tab-pl">
-                <div class="finance-card p-5 printable-report-area" id="plReportContainer">
-                    <div class="text-center mb-5">
-                        <h3 class="fw-bold text-dark mb-1">AIT Technologies Pvt Ltd</h3>
-                        <h4 class="text-secondary fw-semibold mb-1">Income Statement (Profit & Loss)</h4>
-                        <span class="text-muted small">For the period ended @ViewBag.Period</span>
+                <div class="finance-card printable-report-area" id="plReportContainer">
+                    <div class="report-heading">
+                        <div class="company-mark"><i class="fa-solid fa-building-columns"></i></div>
+                        <h3>AIT Technologies Pvt Ltd</h3>
+                        <h4>Income Statement (Profit &amp; Loss)</h4>
+                        <span>For the period ended @ViewBag.Period</span>
                     </div>
+                    <div class="table-responsive-report">
 
-                    <table class="table report-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Account Classification & Line Items</th>
-                                <th width="150">Account Code</th>
-                                <th width="200" class="text-end">Balance Amount (₹)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (pl != null)
-                            {
-                                @foreach (var sec in pl.Sections)
+                        <table class="table report-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Account Classification & Line Items</th>
+                                    <th width="150">Account Code</th>
+                                    <th width="200" class="text-end">Balance Amount (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (pl != null)
                                 {
-                                    <tr class="table-light"><td colspan="3" class="fw-bold">@sec.SectionName</td></tr>
-                                    @foreach (var item in sec.Items)
+                                    @foreach (var sec in pl.Sections)
                                     {
-                                        <tr>
-                                            <td class="ps-4">@item.AccountName</td>
-                                            <td><code>@item.AccountCode</code></td>
-                                            <td class="text-end">₹ @item.Amount.ToString("N2")</td>
+                                        <tr class="section-row"><td colspan="3">@sec.SectionName</td></tr>
+                                        @foreach (var item in sec.Items)
+                                        {
+                                            <tr>
+                                                <td class="ps-4">@item.AccountName</td>
+                                                <td><code>@item.AccountCode</code></td>
+                                                <td class="text-end">₹ @item.Amount.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                        <tr class="section-total-row">
+                                            <td class="ps-4">Total @sec.SectionName</td>
+                                            <td></td>
+                                            <td class="text-end">₹ @sec.SectionTotal.ToString("N2")</td>
                                         </tr>
                                     }
-                                    <tr class="section-total-row">
-                                        <td class="ps-4">Total @sec.SectionName</td>
+                                    <tr class="grand-total-row">
+                                        <td>Net Operating Income / Margin Surplus</td>
                                         <td></td>
-                                        <td class="text-end">₹ @sec.SectionTotal.ToString("N2")</td>
+                                        <td class="text-end text-success">₹ @pl.NetIncomeOrEquityTotal.ToString("N2")</td>
                                     </tr>
                                 }
-                                <tr class="grand-total-row">
-                                    <td>Net Operating Income / Margin Surplus</td>
-                                    <td></td>
-                                    <td class="text-end text-success">₹ @pl.NetIncomeOrEquityTotal.ToString("N2")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="report-footer"><span><i class="fa-regular fa-file-lines me-1"></i> Official financial statement</span><span>Generated from ERP accounting records</span></div>
                 </div>
             </div>
 
             <!-- BALANCE SHEET PANEL -->
             <div class="tab-pane fade" id="panel-bs" role="tabpanel" aria-labelledby="tab-bs">
-                <div class="finance-card p-5 printable-report-area" id="bsReportContainer">
-                    <div class="text-center mb-5">
-                        <h3 class="fw-bold text-dark mb-1">AIT Technologies Pvt Ltd</h3>
-                        <h4 class="text-secondary fw-semibold mb-1">Balance Sheet Statement</h4>
-                        <span class="text-muted small">As of @ViewBag.Period</span>
+                <div class="finance-card printable-report-area" id="bsReportContainer">
+                    <div class="report-heading">
+                        <div class="company-mark"><i class="fa-solid fa-building-columns"></i></div>
+                        <h3>AIT Technologies Pvt Ltd</h3>
+                        <h4>Balance Sheet Statement</h4>
+                        <span>As of @ViewBag.Period</span>
                     </div>
+                    <div class="table-responsive-report">
 
-                    <table class="table report-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Capital, Liability & Assets Structure</th>
-                                <th width="150">Account Code</th>
-                                <th width="200" class="text-end">Closing Balance (₹)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (bs != null)
-                            {
-                                @foreach (var sec in bs.Sections)
+                        <table class="table report-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Capital, Liability & Assets Structure</th>
+                                    <th width="150">Account Code</th>
+                                    <th width="200" class="text-end">Closing Balance (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (bs != null)
                                 {
-                                    <tr class="table-light"><td colspan="3" class="fw-bold">@sec.SectionName</td></tr>
-                                    @foreach (var item in sec.Items)
+                                    @foreach (var sec in bs.Sections)
                                     {
-                                        <tr>
-                                            <td class="ps-4">@item.AccountName</td>
-                                            <td><code>@item.AccountCode</code></td>
-                                            <td class="text-end">₹ @item.Amount.ToString("N2")</td>
+                                        <tr class="section-row"><td colspan="3">@sec.SectionName</td></tr>
+                                        @foreach (var item in sec.Items)
+                                        {
+                                            <tr>
+                                                <td class="ps-4">@item.AccountName</td>
+                                                <td><code>@item.AccountCode</code></td>
+                                                <td class="text-end">₹ @item.Amount.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                        <tr class="section-total-row">
+                                            <td class="ps-4">Total @sec.SectionName</td>
+                                            <td></td>
+                                            <td class="text-end">₹ @sec.SectionTotal.ToString("N2")</td>
                                         </tr>
                                     }
-                                    <tr class="section-total-row">
-                                        <td class="ps-4">Total @sec.SectionName</td>
+                                    <tr class="grand-total-row">
+                                        <td>Total Liabilities & Shareholder Equity</td>
                                         <td></td>
-                                        <td class="text-end">₹ @sec.SectionTotal.ToString("N2")</td>
+                                        <td class="text-end text-primary">₹ @bs.NetIncomeOrEquityTotal.ToString("N2")</td>
                                     </tr>
                                 }
-                                <tr class="grand-total-row">
-                                    <td>Total Liabilities & Shareholder Equity</td>
-                                    <td></td>
-                                    <td class="text-end text-primary">₹ @bs.NetIncomeOrEquityTotal.ToString("N2")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="report-footer"><span><i class="fa-regular fa-file-lines me-1"></i> Official financial statement</span><span>Generated from ERP accounting records</span></div>
                 </div>
             </div>
 
             <!-- TRIAL BALANCE PANEL -->
             <div class="tab-pane fade" id="panel-tb" role="tabpanel" aria-labelledby="tab-tb">
-                <div class="finance-card p-5 printable-report-area" id="tbReportContainer">
-                    <div class="text-center mb-5">
-                        <h3 class="fw-bold text-dark mb-1">AIT Technologies Pvt Ltd</h3>
-                        <h4 class="text-secondary fw-semibold mb-1">Trial Balance Ledger Verification</h4>
-                        <span class="text-muted small">For the period ended @ViewBag.Period</span>
+                <div class="finance-card printable-report-area" id="tbReportContainer">
+                    <div class="report-heading">
+                        <div class="company-mark"><i class="fa-solid fa-building-columns"></i></div>
+                        <h3>AIT Technologies Pvt Ltd</h3>
+                        <h4>Trial Balance Ledger Verification</h4>
+                        <span>For the period ended @ViewBag.Period</span>
                     </div>
+                    <div class="table-responsive-report">
 
-                    <table class="table report-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Account Title</th>
-                                <th width="120">Account Code</th>
-                                <th width="180" class="text-end">Debit Balance (₹)</th>
-                                <th width="180" class="text-end">Credit Balance (₹)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (tb != null)
-                            {
-                                @foreach (var sec in tb.Sections)
-                                {
-                                    @foreach (var item in sec.Items)
-                                    {
-                                        <tr>
-                                            <td>@item.AccountName</td>
-                                            <td><code>@item.AccountCode</code></td>
-                                            <td class="text-end">@(item.Debit > 0 ? "₹ " + item.Debit.ToString("N2") : "-")</td>
-                                            <td class="text-end">@(item.Credit > 0 ? "₹ " + item.Credit.ToString("N2") : "-")</td>
-                                        </tr>
-                                    }
-                                }
-                                <tr class="grand-total-row">
-                                    <td>Sum Total Ledger Balance</td>
-                                    <td></td>
-                                    <td class="text-end">₹ @tb.NetIncomeOrEquityTotal.ToString("N2")</td>
-                                    <td class="text-end">₹ @tb.NetIncomeOrEquityTotal.ToString("N2")</td>
+                        <table class="table report-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Account Title</th>
+                                    <th width="120">Account Code</th>
+                                    <th width="180" class="text-end">Debit Balance (₹)</th>
+                                    <th width="180" class="text-end">Credit Balance (₹)</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @if (tb != null)
+                                {
+                                    @foreach (var sec in tb.Sections)
+                                    {
+                                        @foreach (var item in sec.Items)
+                                        {
+                                            <tr>
+                                                <td>@item.AccountName</td>
+                                                <td><code>@item.AccountCode</code></td>
+                                                <td class="text-end">@(item.Debit > 0 ? "₹ " + item.Debit.ToString("N2") : "-")</td>
+                                                <td class="text-end">@(item.Credit > 0 ? "₹ " + item.Credit.ToString("N2") : "-")</td>
+                                            </tr>
+                                        }
+                                    }
+                                    <tr class="grand-total-row">
+                                        <td>Sum Total Ledger Balance</td>
+                                        <td></td>
+                                        <td class="text-end">₹ @tb.NetIncomeOrEquityTotal.ToString("N2")</td>
+                                        <td class="text-end">₹ @tb.NetIncomeOrEquityTotal.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="report-footer"><span><i class="fa-regular fa-file-lines me-1"></i> Ledger verification report</span><span>Generated from ERP accounting records</span></div>
                 </div>
             </div>
 

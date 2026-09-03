@@ -171,4 +171,72 @@ namespace ERP_System.Models
         public decimal Debit { get; set; } // For Trial Balance
         public decimal Credit { get; set; } // For Trial Balance
     }
+
+    // ==========================================
+    // BANK & CASH RECONCILIATION MODELS
+    // ==========================================
+    public class BankReconciliationViewModel
+    {
+        public string BankAccountName { get; set; } = "HDFC Corporate Current A/c - ...4829";
+        public string AccountNumber { get; set; } = "50200084924829";
+        public DateTime StatementDate { get; set; } = DateTime.Today;
+        public decimal StatementEndingBalance { get; set; } = 42500000.00m;
+        public decimal LedgerBookBalance { get; set; } = 42385000.00m;
+        public decimal UnclearedDepositsTotal => Transactions.Where(t => !t.IsMatched && t.Deposit > 0).Sum(t => t.Deposit);
+        public decimal UnclearedPaymentsTotal => Transactions.Where(t => !t.IsMatched && t.Withdrawal > 0).Sum(t => t.Withdrawal);
+        public decimal AdjustedBankBalance => StatementEndingBalance + UnclearedDepositsTotal - UnclearedPaymentsTotal;
+        public decimal UnreconciledDifference => LedgerBookBalance - (StatementEndingBalance + UnclearedDepositsTotal - UnclearedPaymentsTotal);
+        public bool IsBalanced => Math.Abs(UnreconciledDifference) < 1.00m;
+
+        public List<BankStatementItemViewModel> Transactions { get; set; } = new List<BankStatementItemViewModel>();
+    }
+
+    public class BankStatementItemViewModel
+    {
+        public int Id { get; set; }
+        public DateTime Date { get; set; }
+        public string ReferenceNo { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Withdrawal { get; set; }
+        public decimal Deposit { get; set; }
+        public string? ErpMatchRef { get; set; }
+        public bool IsMatched { get; set; }
+        public string Category { get; set; } = "General"; // Client Receipt, Vendor Payout, Bank Charges, Interest
+    }
+
+    // ==========================================
+    // FIXED ASSETS & DEPRECIATION MODELS
+    // ==========================================
+    public class FixedAssetsSummaryViewModel
+    {
+        public decimal TotalGrossCost => Assets.Sum(a => a.PurchaseCost);
+        public decimal TotalAccumulatedDepreciation => Assets.Sum(a => a.AccumulatedDepreciation);
+        public decimal TotalNetBookValue => Assets.Sum(a => a.NetBookValue);
+        public decimal TotalMonthlyDepreciation => Assets.Where(a => a.Status == "Active").Sum(a => a.MonthlyDepreciation);
+        public int TotalAssetCount => Assets.Count;
+        public int ActiveAssetsCount => Assets.Count(a => a.Status == "Active");
+
+        public List<FixedAssetViewModel> Assets { get; set; } = new List<FixedAssetViewModel>();
+    }
+
+    public class FixedAssetViewModel
+    {
+        public int AssetId { get; set; }
+        public string AssetCode { get; set; } = string.Empty;
+        public string AssetName { get; set; } = string.Empty;
+        public string Category { get; set; } = "IT Equipment"; // Laptops & IT, Vehicles, Machinery, Furniture
+        public string Location { get; set; } = "Head Office";
+        public DateTime PurchaseDate { get; set; } = DateTime.Today.AddMonths(-6);
+        public decimal PurchaseCost { get; set; }
+        public decimal SalvageValue { get; set; }
+        public int UsefulLifeYears { get; set; } = 3;
+        public string DepreciationMethod { get; set; } = "Straight Line Method (SLM)";
+        public decimal AccumulatedDepreciation { get; set; }
+        public decimal NetBookValue => Math.Max(0, PurchaseCost - AccumulatedDepreciation);
+        public decimal MonthlyDepreciation => UsefulLifeYears > 0 
+            ? Math.Round(Math.Max(0, PurchaseCost - SalvageValue) / (UsefulLifeYears * 12m), 2)
+            : 0;
+        public string Status { get; set; } = "Active"; // Active, Depreciated, Maintenance, Disposed
+    }
 }
+
