@@ -6,474 +6,2231 @@
 }
 
 <style>
-    .panel-expense {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-    }
-    
-    .table-expense th {
-        background-color: #fcfbfa !important;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        font-weight: 700;
-        color: #7c7267;
-        border-bottom: 1px solid var(--border-warm);
-        padding: 1rem 1.25rem;
-    }
-    
-    .table-expense td {
-        font-size: 0.875rem;
-        color: var(--text-color);
-        border-bottom: 1px solid var(--border-warm);
-        padding: 1rem 1.25rem;
-        vertical-align: middle;
+    :root {
+        --expense-primary: #2563eb;
+        --expense-primary-dark: #1d4ed8;
+        --expense-success: #10b981;
+        --expense-warning: #f59e0b;
+        --expense-danger: #ef4444;
+        --expense-purple: #8b5cf6;
+        --expense-dark: #0f172a;
+        --expense-text: #334155;
+        --expense-muted: #64748b;
+        --expense-border: #e2e8f0;
+        --expense-bg: #f8fafc;
+        --expense-white: #ffffff;
+        --expense-radius: 18px;
+        --expense-shadow: 0 8px 30px rgba(15, 23, 42, .055);
     }
 
-    .badge-exp-paid {
-        background-color: rgba(16, 185, 129, 0.08);
-        color: #10b981;
-        font-weight: 600;
-        border: 1px solid rgba(16, 185, 129, 0.2);
+    .expense-page {
+        min-height: 100vh;
+        padding: 8px 0 35px;
+        color: var(--expense-text);
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        animation: pageEnter .6s ease both;
     }
-    .badge-exp-pending {
-        background-color: rgba(245, 158, 11, 0.08);
-        color: #f59e0b;
-        font-weight: 600;
-        border: 1px solid rgba(245, 158, 11, 0.2);
+
+    @@keyframes pageEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(12px);
     }
-    .badge-exp-cancelled {
-        background-color: rgba(239, 68, 68, 0.08);
-        color: #ef4444;
-        font-weight: 600;
-        border: 1px solid rgba(239, 68, 68, 0.2);
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
+
+    }
+
+    /* =========================
+           PAGE HEADER
+           ========================= */
+
+    .expense-header {
+        position: relative;
+        overflow: hidden;
+        padding: 22px 24px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(226, 232, 240, .9);
+        border-radius: var(--expense-radius);
+        background: rgba(255,255,255,.96);
+        box-shadow: var(--expense-shadow);
+    }
+
+        .expense-header::before {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            top: -170px;
+            right: -70px;
+            border-radius: 50%;
+            background: rgba(37,99,235,.055);
+            pointer-events: none;
+        }
+
+        .expense-header::after {
+            content: "";
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            right: 190px;
+            bottom: -115px;
+            border-radius: 50%;
+            background: rgba(139,92,246,.045);
+            pointer-events: none;
+        }
+
+    .expense-header-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .expense-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 5px;
+        color: var(--expense-primary);
+        font-size: .69rem;
+        font-weight: 800;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+    }
+
+        .expense-kicker::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--expense-success);
+            box-shadow: 0 0 0 5px rgba(16,185,129,.1);
+            animation: statusPulse 2s infinite;
+        }
+
+    @@keyframes statusPulse {
+        0%,100%
+
+    {
+        box-shadow: 0 0 0 4px rgba(16,185,129,.09);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(16,185,129,.025);
+    }
+
+    }
+
+    .expense-title {
+        margin: 0;
+        color: var(--expense-dark);
+        font-size: clamp(1.3rem, 2.2vw, 1.75rem);
+        font-weight: 800;
+        letter-spacing: -.04em;
+    }
+
+    .expense-subtitle {
+        margin: 5px 0 0;
+        color: var(--expense-muted);
+        font-size: .82rem;
+    }
+
+    .expense-breadcrumb {
+        margin-top: 10px;
+    }
+
+        .expense-breadcrumb .breadcrumb {
+            margin-bottom: 0;
+            font-size: .72rem;
+        }
+
+        .expense-breadcrumb a {
+            color: var(--expense-primary);
+            font-weight: 650;
+        }
+
+    .expense-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+    }
+
+    .expense-header-btn {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 8px 14px;
+        border-radius: 10px !important;
+        font-size: .74rem;
+        font-weight: 750;
+        transition: all .25s ease;
+        white-space: nowrap;
+    }
+
+        .expense-header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(15,23,42,.1);
+        }
+
+    .expense-primary-btn {
+        color: #fff !important;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border: 0;
+    }
+
+        .expense-primary-btn:hover {
+            color: #fff !important;
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+        }
+
+    /* =========================
+           ALERTS
+           ========================= */
+
+    .expense-alert {
+        border-radius: 13px !important;
+        padding: 13px 16px !important;
+        font-size: .8rem;
+        animation: alertEnter .45s ease both;
+    }
+
+    @@keyframes alertEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-7px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* =========================
+           KPI CARDS
+           ========================= */
 
     .kpi-card-warm {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: 0 1px 3px rgba(13,20,36,0.03);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        min-height: 142px;
+        padding: 20px;
         display: flex;
         align-items: center;
-        gap: 1.25rem;
+        gap: 16px;
+        background: rgba(255,255,255,.97);
+        border: 1px solid var(--expense-border);
+        border-radius: var(--expense-radius);
+        box-shadow: var(--expense-shadow);
+        transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+        animation: cardReveal .65s ease both;
     }
+
+        .kpi-card-warm::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient( 90deg, transparent, rgba(37,99,235,.45), transparent );
+            transform: translateX(-100%);
+            transition: transform .65s ease;
+        }
+
+        .kpi-card-warm:hover {
+            transform: translateY(-5px);
+            border-color: #d4dce8;
+            box-shadow: 0 18px 42px rgba(15,23,42,.09);
+        }
+
+            .kpi-card-warm:hover::before {
+                transform: translateX(100%);
+            }
+
+    @@keyframes cardReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .kpi-card-warm:nth-child(1) {
+        animation-delay: .05s;
+    }
+
+    .kpi-card-warm:nth-child(2) {
+        animation-delay: .1s;
+    }
+
+    .kpi-card-warm:nth-child(3) {
+        animation-delay: .15s;
+    }
+
+    .kpi-card-warm:nth-child(4) {
+        animation-delay: .2s;
+    }
+
     .kpi-icon-box {
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        border-radius: 15px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.35rem;
-        flex-shrink: 0;
+        font-size: 1.2rem;
+        transition: transform .3s ease;
+    }
+
+    .kpi-card-warm:hover .kpi-icon-box {
+        transform: scale(1.08) rotate(-4deg);
+    }
+
+    .kpi-content {
+        min-width: 0;
+    }
+
+    .kpi-label {
+        margin-bottom: 5px;
+        color: var(--expense-muted);
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .055em;
+        text-transform: uppercase;
+    }
+
+    .kpi-value {
+        color: var(--expense-dark);
+        font-size: clamp(1.15rem, 2vw, 1.5rem);
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -.045em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .kpi-meta {
+        margin-top: 5px;
+        color: var(--expense-muted);
+        font-size: .69rem;
+        font-weight: 650;
+    }
+
+    /* =========================
+           COMMON PANELS
+           ========================= */
+
+    .panel-expense {
+        position: relative;
+        overflow: hidden;
+        background: rgba(255,255,255,.97);
+        border: 1px solid var(--expense-border);
+        border-radius: var(--expense-radius);
+        box-shadow: var(--expense-shadow);
+    }
+
+    .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--expense-dark);
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .section-heading-icon {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: rgba(37,99,235,.08);
+        color: var(--expense-primary);
+        font-size: .82rem;
+    }
+
+    /* =========================
+           FILTER PANEL
+           ========================= */
+
+    .filter-panel {
+        padding: 18px;
+        animation: cardReveal .65s .2s ease both;
+    }
+
+    .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .filter-description {
+        color: var(--expense-muted);
+        font-size: .7rem;
+        margin-top: 2px;
+    }
+
+    .filter-field {
+        position: relative;
+    }
+
+    .filter-field-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        z-index: 3;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: .78rem;
+        pointer-events: none;
+    }
+
+    .expense-input,
+    .expense-select {
+        min-height: 43px;
+        border: 1px solid #dfe6ee !important;
+        border-radius: 10px !important;
+        color: var(--expense-text);
+        background-color: #fff !important;
+        font-size: .77rem;
+        box-shadow: none !important;
+        transition: all .2s ease;
+    }
+
+    .expense-input {
+        padding-left: 39px !important;
+    }
+
+        .expense-input::placeholder {
+            color: #9aa7b7;
+        }
+
+        .expense-input:focus,
+        .expense-select:focus {
+            border-color: rgba(37,99,235,.55) !important;
+            box-shadow: 0 0 0 4px rgba(37,99,235,.08) !important;
+        }
+
+    .filter-btn {
+        min-height: 43px;
+        width: 100%;
+        border: 0;
+        border-radius: 10px !important;
+        color: #fff;
+        background: linear-gradient(135deg,#2563eb,#1d4ed8);
+        font-size: .75rem;
+        font-weight: 750;
+        transition: all .25s ease;
+    }
+
+        .filter-btn:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 9px 20px rgba(37,99,235,.2);
+        }
+
+    /* =========================
+           REGISTRY TABLE
+           ========================= */
+
+    .registry-panel {
+        animation: cardReveal .7s .28s ease both;
+    }
+
+    .registry-header {
+        padding: 17px 20px;
+        border-bottom: 1px solid #edf1f5;
+        background: linear-gradient(180deg,#fff,#fbfcfe);
+    }
+
+    .registry-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        color: var(--expense-dark);
+        font-size: .92rem;
+        font-weight: 800;
+    }
+
+    .registry-title-icon {
+        width: 35px;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: rgba(239,68,68,.08);
+        color: var(--expense-danger);
+    }
+
+    .registry-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
+        color: #64748b;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        font-size: .66rem;
+        font-weight: 750;
+    }
+
+    .table-scroll {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+
+        .table-scroll::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .table-scroll::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+
+        .table-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+    .table-expense {
+        width: 100%;
+        min-width: 980px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .table-expense th {
+            padding: 12px 16px;
+            color: #64748b;
+            background: #f8fafc !important;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: .65rem;
+            font-weight: 800;
+            letter-spacing: .065em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .table-expense td {
+            padding: 14px 16px;
+            color: var(--expense-text);
+            background: #fff;
+            border-bottom: 1px solid #eef2f6;
+            font-size: .76rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .table-expense tbody tr {
+            transition: background .2s ease, transform .2s ease;
+        }
+
+            .table-expense tbody tr:hover td {
+                background: #f8fbff;
+            }
+
+            .table-expense tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .voucher-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--expense-primary) !important;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: .74rem;
+        font-weight: 800;
+        text-decoration: none !important;
+        transition: color .2s ease;
+    }
+
+        .voucher-link:hover {
+            color: var(--expense-primary-dark) !important;
+        }
+
+        .voucher-link i {
+            opacity: .55;
+            font-size: .63rem;
+        }
+
+    .payee-name {
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--expense-dark);
+        font-weight: 750;
+    }
+
+    .payee-type {
+        margin-top: 3px;
+        color: #94a3b8;
+        font-size: .63rem;
+        font-weight: 600;
+    }
+
+    .document-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 9px;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 7px;
+        font-size: .64rem;
+        font-weight: 700;
+    }
+
+    .amount-value {
+        color: var(--expense-dark);
+        font-size: .82rem;
+        font-weight: 800;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: .64rem;
+        font-weight: 800;
+        border: 1px solid transparent;
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .badge-exp-paid {
+        background: rgba(16,185,129,.08);
+        color: #059669;
+        border-color: rgba(16,185,129,.18);
+    }
+
+    .badge-exp-pending {
+        background: rgba(245,158,11,.09);
+        color: #d97706;
+        border-color: rgba(245,158,11,.2);
+    }
+
+    .badge-exp-cancelled {
+        background: rgba(239,68,68,.08);
+        color: #dc2626;
+        border-color: rgba(239,68,68,.18);
+    }
+
+    .action-group {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
     }
 
     .btn-action-warm {
-        border: 1px solid var(--border-warm);
-        background-color: #ffffff;
-        color: var(--text-color);
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 0.35rem 0.75rem;
-        border-radius: 6px;
-        transition: all 0.2s;
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border: 1px solid #dfe6ee;
+        border-radius: 8px !important;
+        background: #fff;
+        color: var(--expense-text);
+        font-size: .67rem;
+        font-weight: 750;
+        transition: all .22s ease;
     }
-    .btn-action-warm:hover {
-        background-color: #faf8f5;
-        border-color: #cbd5e1;
-        color: var(--primary-warm);
+
+        .btn-action-warm:hover {
+            color: var(--expense-primary);
+            background: #f8fbff;
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 13px rgba(15,23,42,.07);
+        }
+
+        .btn-action-warm.btn-paid {
+            color: #059669;
+        }
+
+            .btn-action-warm.btn-paid:hover {
+                color: #047857;
+                background: #ecfdf5;
+                border-color: #a7f3d0;
+            }
+
+        .btn-action-warm.btn-delete:hover {
+            color: #dc2626;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+    /* =========================
+           EMPTY STATE
+           ========================= */
+
+    .empty-state {
+        padding: 55px 20px !important;
+        color: #94a3b8 !important;
+        text-align: center;
+    }
+
+    .empty-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: #f8fafc;
+        color: #94a3b8;
+        font-size: 1.25rem;
+    }
+
+    .empty-title {
+        color: #475569;
+        font-size: .8rem;
+        font-weight: 750;
+    }
+
+    /* =========================
+           MODALS
+           ========================= */
+
+    .expense-modal .modal-content {
+        overflow: hidden;
+        border: 0 !important;
+        border-radius: 18px !important;
+        box-shadow: 0 25px 70px rgba(15,23,42,.2) !important;
+    }
+
+    .expense-modal .modal-header {
+        padding: 17px 20px;
+        background: linear-gradient(135deg,#f8fafc,#fff);
+        border-bottom: 1px solid #e8edf3;
+    }
+
+    .expense-modal .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--expense-dark);
+        font-size: .94rem;
+        font-weight: 800;
+    }
+
+    .modal-title-icon {
+        width: 35px;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: rgba(37,99,235,.09);
+        color: var(--expense-primary);
+    }
+
+    .expense-modal .modal-body {
+        padding: 22px !important;
+        background: #fff;
+    }
+
+    .expense-modal .modal-footer {
+        padding: 13px 20px;
+        background: #f8fafc;
+        border-top: 1px solid #e8edf3;
+    }
+
+    .expense-label {
+        margin-bottom: 7px;
+        color: #334155;
+        font-size: .7rem;
+        font-weight: 750;
+    }
+
+    .expense-form-control {
+        min-height: 43px;
+        border: 1px solid #dfe6ee !important;
+        border-radius: 10px !important;
+        font-size: .76rem;
+        box-shadow: none !important;
+        transition: all .2s ease;
+    }
+
+        .expense-form-control:focus {
+            border-color: rgba(37,99,235,.55) !important;
+            box-shadow: 0 0 0 4px rgba(37,99,235,.08) !important;
+        }
+
+    textarea.expense-form-control {
+        min-height: 85px;
+        resize: vertical;
+    }
+
+    .modal-primary-btn {
+        min-height: 40px;
+        padding: 8px 16px;
+        border: 0;
+        border-radius: 9px !important;
+        color: #fff !important;
+        background: linear-gradient(135deg,#2563eb,#1d4ed8);
+        font-size: .72rem;
+        font-weight: 750;
+        transition: all .22s ease;
+    }
+
+        .modal-primary-btn:hover {
+            color: #fff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 7px 15px rgba(37,99,235,.18);
+        }
+
+    .modal-cancel-btn {
+        min-height: 40px;
+        border-radius: 9px !important;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+    /* =========================
+           VOUCHER PREVIEW
+           ========================= */
+
+    .voucher-card-box {
+        position: relative;
+        overflow: hidden;
+        padding: 22px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 15px;
+        background: linear-gradient(145deg,#fafcff,#f8fafc);
+    }
+
+        .voucher-card-box::after {
+            content: "";
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            right: -55px;
+            top: -55px;
+            border-radius: 50%;
+            background: rgba(37,99,235,.045);
+        }
+
+    .voucher-company {
+        color: var(--expense-dark);
+        font-size: .88rem;
+        font-weight: 800;
+    }
+
+    .voucher-company-sub {
+        color: #94a3b8;
+        font-size: .64rem;
+    }
+
+    .voucher-number {
+        color: var(--expense-danger);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: .76rem;
+        font-weight: 800;
+    }
+
+    .voucher-date {
+        color: #64748b;
+        font-size: .63rem;
+    }
+
+    .voucher-field-label {
+        margin-bottom: 4px;
+        color: #94a3b8;
+        font-size: .62rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .voucher-field-value {
+        color: var(--expense-dark);
+        font-size: .84rem;
+        font-weight: 750;
+    }
+
+    .voucher-amount-box {
+        margin: 17px 0;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 11px;
+        background: #fff;
+    }
+
+    .voucher-amount-label {
+        color: #64748b;
+        font-size: .67rem;
+        font-weight: 650;
+    }
+
+    .voucher-amount {
+        color: var(--expense-dark);
+        font-size: 1.05rem;
+        font-weight: 850;
+    }
+
+    /* =========================
+           ANIMATIONS
+           ========================= */
+
+    .section-animate {
+        opacity: 0;
+        animation: sectionEnter .65s ease forwards;
+    }
+
+    .delay-1 {
+        animation-delay: .08s;
+    }
+
+    .delay-2 {
+        animation-delay: .16s;
+    }
+
+    .delay-3 {
+        animation-delay: .24s;
+    }
+
+    .delay-4 {
+        animation-delay: .32s;
+    }
+
+    @@keyframes sectionEnter {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 1199.98px) {
+        .expense-header
+
+    {
+        padding: 20px;
+    }
+
+    .expense-actions {
+        width: 100%;
+    }
+
+    .expense-header-btn {
+        flex: 1 1 auto;
+    }
+
+    .table-expense {
+        min-width: 920px;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .expense-page
+
+    {
+        padding-top: 3px;
+    }
+
+    .expense-header {
+        padding: 17px;
+        border-radius: 14px;
+    }
+
+    .expense-title {
+        font-size: 1.28rem;
+    }
+
+    .expense-subtitle {
+        line-height: 1.5;
+    }
+
+    .expense-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    .expense-header-btn {
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 7px;
+        font-size: .68rem;
+    }
+
+    .kpi-card-warm {
+        min-height: 125px;
+        padding: 15px;
+        border-radius: 14px;
+    }
+
+    .kpi-icon-box {
+        width: 45px;
+        height: 45px;
+        min-width: 45px;
+        border-radius: 12px;
+    }
+
+    .kpi-label {
+        font-size: .62rem;
+    }
+
+    .kpi-value {
+        font-size: 1.05rem;
+    }
+
+    .filter-panel {
+        padding: 14px;
+    }
+
+    .filter-header {
+        align-items: flex-start;
+    }
+
+    .filter-description {
+        line-height: 1.45;
+    }
+
+    .registry-header {
+        padding: 14px;
+    }
+
+        .registry-header .d-flex {
+            align-items: flex-start !important;
+        }
+
+    .registry-title {
+        font-size: .82rem;
+    }
+
+    .registry-count {
+        font-size: .6rem;
+    }
+
+    .table-expense {
+        min-width: 900px;
+    }
+
+        .table-expense th,
+        .table-expense td {
+            padding: 12px;
+        }
+
+    .action-group {
+        justify-content: flex-start;
+    }
+
+    .expense-modal .modal-dialog {
+        margin: .75rem;
+    }
+
+    .expense-modal .modal-body {
+        padding: 17px !important;
     }
 
     .voucher-card-box {
-        border: 2px dashed #cbd5e1;
-        border-radius: 8px;
-        background: #fafaf9;
-        padding: 1.5rem;
+        padding: 16px;
     }
-</style>
 
-<!-- Top Header & Breadcrumbs -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
-    <div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Expense Management</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Expense Vouchers</li>
-            </ol>
-        </nav>
-    </div>
-    
-    <div class="d-flex gap-2">
-        <a href="/AccountHeads" class="btn btn-outline-secondary btn-sm px-3 py-2 fw-semibold">
-            <i class="fa-solid fa-wallet me-1.5"></i> Chart Account Heads
-        </a>
-        <button type="button" class="btn btn-primary-warm px-4 py-2" data-bs-toggle="modal" data-bs-target="#createExpenseModal">
-            <i class="fa-solid fa-plus me-1.5"></i> Log New Expense
-        </button>
-    </div>
-</div>
+    }
 
-<!-- Alerts -->
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm text-start mb-4" role="alert">
-        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm text-start mb-4" role="alert">
-        <i class="fa-solid fa-triangle-exclamation me-2"></i> @TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+    @@media (max-width: 479.98px) {
+        .expense-actions
 
-<!-- KPI Summary Cards Row -->
-<div class="row g-3 mb-4 text-start">
-    <div class="col-xl-3 col-sm-6">
-        <div class="kpi-card-warm">
-            <div class="kpi-icon-box bg-danger bg-opacity-10 text-danger">
-                <i class="fa-solid fa-hand-holding-dollar"></i>
-            </div>
-            <div>
-                <div class="text-muted small fw-semibold text-uppercase">Total Expense Outflow</div>
-                <div class="fs-4 fw-bold text-dark">@Model.TotalExpenseSpend.ToString("C0", inCulture)</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-sm-6">
-        <div class="kpi-card-warm">
-            <div class="kpi-icon-box bg-primary bg-opacity-10 text-primary">
-                <i class="fa-solid fa-receipt"></i>
-            </div>
-            <div>
-                <div class="text-muted small fw-semibold text-uppercase">Total Vouchers</div>
-                <div class="fs-4 fw-bold text-dark">@Model.TotalVouchersCount Vouchers</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-sm-6">
-        <div class="kpi-card-warm">
-            <div class="kpi-icon-box bg-success bg-opacity-10 text-success">
-                <i class="fa-solid fa-circle-check"></i>
-            </div>
-            <div>
-                <div class="text-muted small fw-semibold text-uppercase">Settled Vouchers</div>
-                <div class="fs-4 fw-bold text-success">@Model.PaidVouchersCount Settled</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-sm-6">
-        <div class="kpi-card-warm">
-            <div class="kpi-icon-box bg-warning bg-opacity-10 text-warning">
-                <i class="fa-solid fa-hourglass-half"></i>
-            </div>
-            <div>
-                <div class="text-muted small fw-semibold text-uppercase">Pending Approvals</div>
-                <div class="fs-4 fw-bold text-warning">@Model.TotalPendingAmount.ToString("C0", inCulture)</div>
-            </div>
-        </div>
-    </div>
-</div>
+    {
+        grid-template-columns: 1fr;
+    }
 
-<!-- Filters & Search Bar -->
-<div class="panel-expense p-3 mb-4 text-start">
-    <form method="get" asp-action="Index" class="row g-3 align-items-center">
-        <div class="col-lg-5 col-md-6">
-            <div class="input-group">
-                <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
-                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Search voucher number or payee name..." value="@Model.SearchTerm">
-            </div>
-        </div>
+    .expense-title {
+        font-size: 1.18rem;
+    }
 
-        <div class="col-lg-3 col-md-6">
-            <select name="status" class="form-select">
-                <option value="">All Payment Statuses</option>
-                <option value="Paid" selected="@(Model.SelectedStatus == "Paid" ? "selected" : null)">Paid</option>
-                <option value="Pending" selected="@(Model.SelectedStatus == "Pending" ? "selected" : null)">Pending</option>
-                <option value="Cancelled" selected="@(Model.SelectedStatus == "Cancelled" ? "selected" : null)">Cancelled</option>
-            </select>
-        </div>
+    .expense-kicker {
+        font-size: .62rem;
+    }
 
-        <div class="col-lg-3 col-md-6">
-            <select name="category" class="form-select">
-                <option value="">All Expense Categories</option>
-                @foreach (var cat in Model.CategoriesList)
-                {
-                    <option value="@cat" selected="@(Model.SelectedCategory == cat ? "selected" : null)">@cat</option>
-                }
-            </select>
-        </div>
+    .kpi-card-warm {
+        min-height: 115px;
+        padding: 13px;
+        gap: 11px;
+    }
 
-        <div class="col-lg-1 col-md-6 text-end">
-            <button type="submit" class="btn btn-primary-warm w-100"><i class="fa-solid fa-filter me-1"></i> Filter</button>
-        </div>
-    </form>
-</div>
+    .kpi-icon-box {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        font-size: 1rem;
+    }
 
-<!-- Expense Vouchers Registry Table Panel -->
-<div class="panel-expense p-0 overflow-hidden mb-5 text-start">
-    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-receipt me-2 text-muted"></i>Expense Vouchers Registry</h6>
-        <span class="badge bg-secondary rounded-pill font-monospace fs-7">Showing @Model.Expenses.Count Vouchers</span>
-    </div>
+    .kpi-value {
+        font-size: .98rem;
+    }
 
-    <div class="table-responsive">
-        <table class="table table-expense mb-0">
-            <thead>
-                <tr>
-                    <th>Voucher No</th>
-                    <th>Date</th>
-                    <th>Payee & Category</th>
-                    <th>Document Type</th>
-                    <th>Voucher Amount</th>
-                    <th>Status</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model.Expenses != null && Model.Expenses.Any())
-                {
-                    foreach (var exp in Model.Expenses)
-                    {
-                        var badgeClass = exp.Status == "Paid" ? "badge-exp-paid" :
-                                         exp.Status == "Pending" ? "badge-exp-pending" : "badge-exp-cancelled";
+    .kpi-label {
+        font-size: .57rem;
+    }
 
-                        <tr>
-                            <td>
-                                <a href="#" onclick="viewVoucher('@exp.TransactionNo', '@exp.PartyName', '@exp.Date.ToString("dd MMM yyyy")', '@exp.Amount.ToString("C0", inCulture)', '@exp.Status'); return false;" 
-                                   class="fw-bold text-primary font-monospace text-decoration-none">@exp.TransactionNo</a>
-                            </td>
-                            <td class="text-muted">
-                                <i class="fa-regular fa-calendar me-1 small"></i> @exp.Date.ToString("dd MMM yyyy")
-                            </td>
-                            <td>
-                                <div class="fw-bold text-dark mb-0">@exp.PartyName</div>
-                                <div class="text-muted small">Expense Account</div>
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-dark border">@exp.Type</span>
-                            </td>
-                            <td class="fw-bold text-dark fs-6">
-                                @exp.Amount.ToString("C0", inCulture)
-                            </td>
-                            <td>
-                                <span class="badge rounded-pill px-2.5 py-1.5 @badgeClass">
-                                    <i class="fa-solid fa-circle me-1" style="font-size:0.5rem;"></i> @exp.Status
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="btn-group">
-                                    @if (exp.Status == "Pending")
-                                    {
-                                        <form method="post" asp-action="UpdateStatus" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="transactionId" value="@exp.TransactionId" />
-                                            <input type="hidden" name="newStatus" value="Paid" />
-                                            <button type="submit" class="btn btn-action-warm btn-sm me-1 text-success" title="Mark as Settled / Paid">
-                                                <i class="fa-solid fa-circle-check me-1"></i> Mark Paid
-                                            </button>
-                                        </form>
-                                    }
+    .kpi-meta {
+        font-size: .61rem;
+    }
 
-                                    <button type="button" class="btn btn-action-warm btn-sm me-1" 
-                                            onclick="viewVoucher('@exp.TransactionNo', '@exp.PartyName', '@exp.Date.ToString("dd MMM yyyy")', '@exp.Amount.ToString("C0", inCulture)', '@exp.Status')" 
-                                            title="View Voucher Details">
-                                        <i class="fa-solid fa-file-lines text-secondary"></i>
-                                    </button>
+    .filter-header {
+        flex-direction: column;
+    }
 
-                                    <button type="button" class="btn btn-action-warm btn-sm me-1" 
-                                            onclick="openUpdateModal(@exp.TransactionId, '@exp.TransactionNo', '@exp.Status')">
-                                        <i class="fa-solid fa-pen-to-square text-primary me-1"></i> Status
-                                    </button>
+    .registry-header .d-flex {
+        flex-direction: column;
+        gap: 10px !important;
+    }
 
-                                    <form method="post" asp-action="Delete" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this expense voucher?');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="transactionId" value="@exp.TransactionId" />
-                                        <button type="submit" class="btn btn-action-warm btn-sm text-danger" title="Cancel Voucher">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-5">
-                            <i class="fa-solid fa-receipt fa-2x mb-3 text-muted opacity-50"></i>
-                            <div>No expense vouchers match your filter parameters.</div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
+    .registry-count {
+        align-self: flex-start;
+    }
 
-<!-- Create Expense Voucher Modal -->
-<div class="modal fade text-start" id="createExpenseModal" tabindex="-1" aria-labelledby="createExpenseModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow">
-            <form method="post" asp-action="CreateExpense">
-                @Html.AntiForgeryToken()
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title fw-bold" id="createExpenseModalLabel"><i class="fa-solid fa-receipt me-2 text-danger"></i>Log Expense Voucher</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after
+
+    {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    }
+
+    @@media print {
+        body *
+
+    {
+        visibility: hidden;
+    }
+
+    #viewVoucherModal,
+    #viewVoucherModal * {
+        visibility: visible;
+    }
+
+    #viewVoucherModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
+        #viewVoucherModal .modal-footer,
+        #viewVoucherModal .btn-close {
+            display: none !important;
+        }
+
+    }</style>
+
+<div class="expense-page">
+    <div class="container-fluid px-3 px-xl-4">
+
+        <!-- =========================
+             PAGE HEADER
+             ========================= -->
+
+        <div class="expense-header section-animate">
+            <div class="expense-header-content">
+                <div class="row align-items-center g-3">
+
+                    <div class="col-xl-7 col-lg-6">
+                        <div class="expense-kicker">
+                            Finance Operations
+                        </div>
+
+                        <h1 class="expense-title">
+                            Expense Management
+                        </h1>
+
+                        <p class="expense-subtitle">
+                            Track, review and manage organizational expense vouchers and payment settlements.
+                        </p>
+
+                        <div class="expense-breadcrumb">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item">
+                                        <a href="/Dashboard" class="text-decoration-none">
+                                            Dashboard
+                                        </a>
+                                    </li>
+
+                                    <li class="breadcrumb-item active"
+                                        aria-current="page">
+                                        Expense Vouchers
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-5 col-lg-6">
+                        <div class="expense-actions justify-content-lg-end">
+
+                            <a href="/AccountHeads"
+                               class="btn btn-outline-secondary expense-header-btn">
+                                <i class="fa-solid fa-wallet"></i>
+                                Chart Account Heads
+                            </a>
+
+                            <button type="button"
+                                    class="btn expense-primary-btn expense-header-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#createExpenseModal">
+                                <i class="fa-solid fa-plus"></i>
+                                Log New Expense
+                            </button>
+
+                        </div>
+                    </div>
+
                 </div>
-                <div class="modal-body p-4">
+            </div>
+        </div>
+
+        <!-- =========================
+             ALERTS
+             ========================= -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm expense-alert mb-4 section-animate"
+                 role="alert">
+                <i class="fa-solid fa-circle-check me-2"></i>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm expense-alert mb-4 section-animate"
+                 role="alert">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                @TempData["ErrorMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- =========================
+             KPI SUMMARY
+             ========================= -->
+
+        <div class="row g-3 mb-4 text-start">
+
+            <div class="col-xl-3 col-sm-6 section-animate delay-1">
+                <div class="kpi-card-warm">
+
+                    <div class="kpi-icon-box bg-danger bg-opacity-10 text-danger">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+
+                    <div class="kpi-content">
+                        <div class="kpi-label">
+                            Total Expense Outflow
+                        </div>
+
+                        <div class="kpi-value"
+                             title="@Model.TotalExpenseSpend.ToString("C0", inCulture)">
+                            @Model.TotalExpenseSpend.ToString("C0", inCulture)
+                        </div>
+
+                        <div class="kpi-meta">
+                            <i class="fa-solid fa-arrow-trend-down me-1 text-danger"></i>
+                            Recorded expense spend
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6 section-animate delay-1">
+                <div class="kpi-card-warm">
+
+                    <div class="kpi-icon-box bg-primary bg-opacity-10 text-primary">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+
+                    <div class="kpi-content">
+                        <div class="kpi-label">
+                            Total Vouchers
+                        </div>
+
+                        <div class="kpi-value">
+                            @Model.TotalVouchersCount
+                        </div>
+
+                        <div class="kpi-meta">
+                            <i class="fa-solid fa-file-invoice me-1 text-primary"></i>
+                            Expense vouchers recorded
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6 section-animate delay-2">
+                <div class="kpi-card-warm">
+
+                    <div class="kpi-icon-box bg-success bg-opacity-10 text-success">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                    <div class="kpi-content">
+                        <div class="kpi-label">
+                            Settled Vouchers
+                        </div>
+
+                        <div class="kpi-value text-success">
+                            @Model.PaidVouchersCount
+                        </div>
+
+                        <div class="kpi-meta">
+                            <i class="fa-solid fa-check me-1 text-success"></i>
+                            Successfully settled
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6 section-animate delay-2">
+                <div class="kpi-card-warm">
+
+                    <div class="kpi-icon-box bg-warning bg-opacity-10 text-warning">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </div>
+
+                    <div class="kpi-content">
+                        <div class="kpi-label">
+                            Pending Approvals
+                        </div>
+
+                        <div class="kpi-value text-warning"
+                             title="@Model.TotalPendingAmount.ToString("C0", inCulture)">
+                            @Model.TotalPendingAmount.ToString("C0", inCulture)
+                        </div>
+
+                        <div class="kpi-meta">
+                            <i class="fa-solid fa-clock me-1 text-warning"></i>
+                            Awaiting settlement
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- =========================
+             FILTER & SEARCH
+             ========================= -->
+
+        <div class="panel-expense filter-panel mb-4 text-start section-animate delay-2">
+
+            <div class="filter-header">
+
+                <div>
+                    <div class="section-heading">
+                        <span class="section-heading-icon">
+                            <i class="fa-solid fa-sliders"></i>
+                        </span>
+
+                        Expense Registry Filters
+                    </div>
+
+                    <div class="filter-description">
+                        Search and narrow down expense vouchers by payment status and category.
+                    </div>
+                </div>
+
+            </div>
+
+            <form method="get"
+                  asp-action="Index"
+                  class="row g-3 align-items-end">
+
+                <div class="col-xl-5 col-lg-5 col-md-6">
+
+                    <label class="expense-label">
+                        Search Vouchers
+                    </label>
+
+                    <div class="filter-field">
+
+                        <i class="fa-solid fa-magnifying-glass filter-field-icon"></i>
+
+                        <input type="text"
+                               name="search"
+                               class="form-control expense-input"
+                               placeholder="Search voucher number or payee name..."
+                               value="@Model.SearchTerm" />
+
+                    </div>
+
+                </div>
+
+                <div class="col-xl-3 col-lg-3 col-md-6">
+
+                    <label class="expense-label">
+                        Payment Status
+                    </label>
+
+                    <select name="status"
+                            class="form-select expense-select">
+
+                        <option value="">
+                            All Payment Statuses
+                        </option>
+
+                        <option value="Paid"
+                                selected="@(Model.SelectedStatus == "Paid" ? "selected" : null)">
+                            Paid
+                        </option>
+
+                        <option value="Pending"
+                                selected="@(Model.SelectedStatus == "Pending" ? "selected" : null)">
+                            Pending
+                        </option>
+
+                        <option value="Cancelled"
+                                selected="@(Model.SelectedStatus == "Cancelled" ? "selected" : null)">
+                            Cancelled
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-xl-3 col-lg-3 col-md-6">
+
+                    <label class="expense-label">
+                        Expense Category
+                    </label>
+
+                    <select name="category"
+                            class="form-select expense-select">
+
+                        <option value="">
+                            All Expense Categories
+                        </option>
+
+                        @foreach (var cat in Model.CategoriesList)
+                        {
+                            <option value="@cat"
+                                    selected="@(Model.SelectedCategory == cat ? "selected" : null)">
+                                @cat
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <div class="col-xl-1 col-lg-1 col-md-6">
+
+                    <button type="submit"
+                            class="btn filter-btn">
+                        <i class="fa-solid fa-filter me-1"></i>
+                        Filter
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+        <!-- =========================
+             EXPENSE REGISTRY
+             ========================= -->
+
+        <div class="panel-expense registry-panel mb-5 text-start">
+
+            <div class="registry-header">
+
+                <div class="d-flex justify-content-between align-items-center gap-3">
+
+                    <div>
+
+                        <h5 class="registry-title">
+
+                            <span class="registry-title-icon">
+                                <i class="fa-solid fa-receipt"></i>
+                            </span>
+
+                            Expense Vouchers Registry
+
+                        </h5>
+
+                        <div class="text-muted mt-1"
+                             style="font-size:.66rem;">
+                            Complete record of organizational expense transactions
+                        </div>
+
+                    </div>
+
+                    <span class="registry-count">
+                        <i class="fa-solid fa-layer-group"></i>
+                        Showing @Model.Expenses.Count Vouchers
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="table-scroll">
+
+                <table class="table table-expense">
+
+                    <thead>
+                        <tr>
+                            <th>Voucher No</th>
+                            <th>Date</th>
+                            <th>Payee & Category</th>
+                            <th>Document Type</th>
+                            <th>Voucher Amount</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Expenses != null && Model.Expenses.Any())
+                        {
+                            foreach (var exp in Model.Expenses)
+                            {
+                                var badgeClass =
+                                exp.Status == "Paid"
+                                ? "badge-exp-paid"
+                                : exp.Status == "Pending"
+                                ? "badge-exp-pending"
+                                : "badge-exp-cancelled";
+
+                                <tr>
+
+                                    <td>
+
+                                        <a href="#"
+                                           onclick="viewVoucher('@exp.TransactionNo', '@exp.PartyName', '@exp.Date.ToString("dd MMM yyyy")', '@exp.Amount.ToString("C0", inCulture)', '@exp.Status'); return false;"
+                                           class="voucher-link">
+
+                                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+
+                                            @exp.TransactionNo
+
+                                        </a>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="text-muted">
+                                            <i class="fa-regular fa-calendar me-1"></i>
+                                            @exp.Date.ToString("dd MMM yyyy")
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        <div class="payee-name"
+                                             title="@exp.PartyName">
+                                            @exp.PartyName
+                                        </div>
+
+                                        <div class="payee-type">
+                                            <i class="fa-solid fa-wallet me-1"></i>
+                                            Expense Account
+                                        </div>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="document-badge">
+                                            <i class="fa-regular fa-file-lines"></i>
+                                            @exp.Type
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="amount-value">
+                                            @exp.Amount.ToString("C0", inCulture)
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="status-badge @badgeClass">
+
+                                            <span class="status-dot"></span>
+
+                                            @exp.Status
+
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        <div class="action-group">
+
+                                            @if (exp.Status == "Pending")
+                                            {
+                                                <form method="post"
+                                                      asp-action="UpdateStatus"
+                                                      class="d-inline">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="transactionId"
+                                                           value="@exp.TransactionId" />
+
+                                                    <input type="hidden"
+                                                           name="newStatus"
+                                                           value="Paid" />
+
+                                                    <button type="submit"
+                                                            class="btn btn-action-warm btn-paid"
+                                                            title="Mark as Settled / Paid">
+
+                                                        <i class="fa-solid fa-circle-check"></i>
+                                                        <span class="d-none d-xl-inline">Mark Paid</span>
+
+                                                    </button>
+
+                                                </form>
+                                            }
+
+                                            <button type="button"
+                                                    class="btn btn-action-warm"
+                                                    onclick="viewVoucher('@exp.TransactionNo', '@exp.PartyName', '@exp.Date.ToString("dd MMM yyyy")', '@exp.Amount.ToString("C0", inCulture)', '@exp.Status')"
+                                                    title="View Voucher Details">
+
+                                                <i class="fa-solid fa-file-lines text-secondary"></i>
+
+                                            </button>
+
+                                            <button type="button"
+                                                    class="btn btn-action-warm"
+                                                    onclick="openUpdateModal(@exp.TransactionId, '@exp.TransactionNo', '@exp.Status')"
+                                                    title="Update Voucher Status">
+
+                                                <i class="fa-solid fa-pen-to-square text-primary"></i>
+                                                <span class="d-none d-xl-inline">Status</span>
+
+                                            </button>
+
+                                            <form method="post"
+                                                  asp-action="Delete"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Are you sure you want to cancel this expense voucher?');">
+
+                                                @Html.AntiForgeryToken()
+
+                                                <input type="hidden"
+                                                       name="transactionId"
+                                                       value="@exp.TransactionId" />
+
+                                                <button type="submit"
+                                                        class="btn btn-action-warm btn-delete"
+                                                        title="Cancel Voucher">
+
+                                                    <i class="fa-solid fa-trash"></i>
+
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="7"
+                                    class="empty-state">
+
+                                    <div class="empty-icon">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </div>
+
+                                    <div class="empty-title">
+                                        No expense vouchers found
+                                    </div>
+
+                                    <div class="small mt-1">
+                                        No vouchers match your current filter parameters.
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- =========================
+     CREATE EXPENSE MODAL
+     ========================= -->
+
+<div class="modal fade text-start expense-modal"
+     id="createExpenseModal"
+     tabindex="-1"
+     aria-labelledby="createExpenseModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+
+        <div class="modal-content">
+
+            <form method="post"
+                  asp-action="CreateExpense">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title"
+                        id="createExpenseModalLabel">
+
+                        <span class="modal-title-icon">
+                            <i class="fa-solid fa-receipt"></i>
+                        </span>
+
+                        Log Expense Voucher
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+                <div class="modal-body">
+
                     <div class="row g-3">
+
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Expense Category / Account Head</label>
-                            <select name="category" class="form-select" required>
-                                <option value="">Select Category...</option>
+
+                            <label class="expense-label">
+                                Expense Category / Account Head
+                            </label>
+
+                            <select name="category"
+                                    class="form-select expense-form-control"
+                                    required>
+
+                                <option value="">
+                                    Select Category...
+                                </option>
+
                                 @foreach (var cat in Model.CategoriesList)
                                 {
-                                    <option value="@cat">@cat</option>
+                                    <option value="@cat">
+                                        @cat
+                                    </option>
                                 }
+
                             </select>
+
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Payee / Vendor / Recipient Name</label>
-                            <input type="text" name="payeeName" class="form-control" placeholder="e.g. Office Depot, City Utilities, Reliance Electric" required />
+
+                            <label class="expense-label">
+                                Payee / Vendor / Recipient Name
+                            </label>
+
+                            <input type="text"
+                                   name="payeeName"
+                                   class="form-control expense-form-control"
+                                   placeholder="e.g. Office Depot, City Utilities, Reliance Electric"
+                                   required />
+
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Amount (₹)</label>
-                            <input type="number" name="amount" class="form-control" value="2500" min="1" step="0.01" required />
+
+                            <label class="expense-label">
+                                Amount (₹)
+                            </label>
+
+                            <input type="number"
+                                   name="amount"
+                                   class="form-control expense-form-control"
+                                   value="2500"
+                                   min="1"
+                                   step="0.01"
+                                   required />
+
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Initial Payment Status</label>
-                            <select name="status" class="form-select">
-                                <option value="Paid">Paid / Settled</option>
-                                <option value="Pending">Pending Approval / Unpaid</option>
+
+                            <label class="expense-label">
+                                Initial Payment Status
+                            </label>
+
+                            <select name="status"
+                                    class="form-select expense-form-control">
+
+                                <option value="Paid">
+                                    Paid / Settled
+                                </option>
+
+                                <option value="Pending">
+                                    Pending Approval / Unpaid
+                                </option>
+
                             </select>
+
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Expense Description & Notes</label>
-                            <textarea name="notes" class="form-control" rows="2" placeholder="Receipt details, invoice reference, or purpose..."></textarea>
+
+                            <label class="expense-label">
+                                Expense Description & Notes
+                            </label>
+
+                            <textarea name="notes"
+                                      class="form-control expense-form-control"
+                                      rows="3"
+                                      placeholder="Receipt details, invoice reference, or purpose..."></textarea>
+
                         </div>
+
                     </div>
+
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-warm px-4">Log Expense Voucher</button>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light modal-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn modal-primary-btn">
+
+                        <i class="fa-solid fa-check me-1"></i>
+                        Log Expense Voucher
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Expense Voucher Printable View Modal -->
-<div class="modal fade text-start" id="viewVoucherModal" tabindex="-1" aria-hidden="true">
+<!-- =========================
+     VIEW VOUCHER MODAL
+     ========================= -->
+
+<div class="modal fade text-start expense-modal"
+     id="viewVoucherModal"
+     tabindex="-1"
+     aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-invoice-dollar me-2 text-danger"></i>Expense Voucher Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">
+
+                    <span class="modal-title-icon"
+                          style="background:rgba(239,68,68,.09);color:#ef4444;">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </span>
+
+                    Expense Voucher Details
+
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
             </div>
-            <div class="modal-body p-4">
+
+            <div class="modal-body">
+
                 <div class="voucher-card-box">
-                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-4 pb-3 border-bottom">
+
                         <div>
-                            <h6 class="fw-bold mb-0 text-dark">AIT ERP Solutions</h6>
-                            <small class="text-muted">Corporate Expense Voucher</small>
+                            <div class="voucher-company">
+                                AIT ERP Solutions
+                            </div>
+
+                            <div class="voucher-company-sub">
+                                Corporate Expense Voucher
+                            </div>
                         </div>
+
                         <div class="text-end">
-                            <div class="fw-bold font-monospace text-danger" id="vchTxNo">EXP-10012</div>
-                            <small class="text-muted" id="vchDate">30 May 2026</small>
+
+                            <div class="voucher-number"
+                                 id="vchTxNo">
+                                EXP-10012
+                            </div>
+
+                            <div class="voucher-date"
+                                 id="vchDate">
+                                30 May 2026
+                            </div>
+
                         </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <small class="text-muted text-uppercase fw-semibold d-block">Payee / Account Head:</small>
-                        <div class="fw-bold text-dark fs-6" id="vchParty">Office Supplies</div>
+
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-3">
-                        <span class="text-muted small">Total Expense Amount:</span>
-                        <span class="fw-bold text-dark fs-5" id="vchAmount">₹2,500</span>
+                    <div class="mb-3">
+
+                        <div class="voucher-field-label">
+                            Payee / Account Head
+                        </div>
+
+                        <div class="voucher-field-value"
+                             id="vchParty">
+                            Office Supplies
+                        </div>
+
+                    </div>
+
+                    <div class="voucher-amount-box">
+
+                        <span class="voucher-amount-label">
+                            Total Expense Amount
+                        </span>
+
+                        <span class="voucher-amount"
+                              id="vchAmount">
+                            ₹2,500
+                        </span>
+
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted small">Voucher Status:</span>
-                        <span class="badge bg-success px-3 py-1.5" id="vchStatus">Paid</span>
+
+                        <span class="voucher-amount-label">
+                            Voucher Status
+                        </span>
+
+                        <span class="status-badge badge-exp-paid"
+                              id="vchStatus">
+
+                            <span class="status-dot"></span>
+                            Paid
+
+                        </span>
+
                     </div>
+
                 </div>
+
             </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-outline-primary" onclick="window.print();"><i class="fa-solid fa-print me-1.5"></i> Print Voucher</button>
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-light modal-cancel-btn"
+                        data-bs-dismiss="modal">
+                    Close
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-primary modal-cancel-btn"
+                        onclick="window.print();">
+
+                    <i class="fa-solid fa-print me-1"></i>
+                    Print Voucher
+
+                </button>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Update Status Modal -->
-<div class="modal fade text-start" id="updateStatusModal" tabindex="-1" aria-hidden="true">
+<!-- =========================
+     UPDATE STATUS MODAL
+     ========================= -->
+
+<div class="modal fade text-start expense-modal"
+     id="updateStatusModal"
+     tabindex="-1"
+     aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <form method="post" asp-action="UpdateStatus">
+
+        <div class="modal-content">
+
+            <form method="post"
+                  asp-action="UpdateStatus">
+
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="transactionId" id="modalTxId" />
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Update Voucher Status</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                <input type="hidden"
+                       name="transactionId"
+                       id="modalTxId" />
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+
+                        <span class="modal-title-icon">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </span>
+
+                        Update Voucher Status
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
                 </div>
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Voucher Number</label>
-                        <input type="text" id="modalTxNo" class="form-control bg-light" readonly />
-                    </div>
+
+                <div class="modal-body">
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Select New Payment Status</label>
-                        <select name="newStatus" id="modalNewStatus" class="form-select" required>
-                            <option value="Paid">Paid / Settled</option>
-                            <option value="Pending">Pending Approval</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
+
+                        <label class="expense-label">
+                            Voucher Number
+                        </label>
+
+                        <input type="text"
+                               id="modalTxNo"
+                               class="form-control expense-form-control bg-light"
+                               readonly />
+
                     </div>
+
+                    <div class="mb-1">
+
+                        <label class="expense-label">
+                            Select New Payment Status
+                        </label>
+
+                        <select name="newStatus"
+                                id="modalNewStatus"
+                                class="form-select expense-form-control"
+                                required>
+
+                            <option value="Paid">
+                                Paid / Settled
+                            </option>
+
+                            <option value="Pending">
+                                Pending Approval
+                            </option>
+
+                            <option value="Cancelled">
+                                Cancelled
+                            </option>
+
+                        </select>
+
+                    </div>
+
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-warm px-4">Update Status</button>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light modal-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn modal-primary-btn">
+
+                        <i class="fa-solid fa-check me-1"></i>
+                        Update Status
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
 
 @section Scripts {
+
     <script>
+
         function openUpdateModal(txId, txNo, currentStatus) {
+
             document.getElementById('modalTxId').value = txId;
+
             document.getElementById('modalTxNo').value = txNo;
+
             document.getElementById('modalNewStatus').value = currentStatus;
-            
-            const modalEl = new bootstrap.Modal(document.getElementById('updateStatusModal'));
-            modalEl.show();
+
+            const modalElement =
+                document.getElementById('updateStatusModal');
+
+            const modal =
+                new bootstrap.Modal(modalElement);
+
+            modal.show();
         }
 
-        function viewVoucher(txNo, party, dateStr, amountStr, status) {
+
+        function viewVoucher(
+            txNo,
+            party,
+            dateStr,
+            amountStr,
+            status
+        ) {
+
             document.getElementById('vchTxNo').innerText = txNo;
+
             document.getElementById('vchParty').innerText = party;
+
             document.getElementById('vchDate').innerText = dateStr;
+
             document.getElementById('vchAmount').innerText = amountStr;
-            document.getElementById('vchStatus').innerText = status;
-            
-            const modalEl = new bootstrap.Modal(document.getElementById('viewVoucherModal'));
-            modalEl.show();
+
+            const statusElement =
+                document.getElementById('vchStatus');
+
+            statusElement.innerText = status;
+
+            statusElement.className =
+                'status-badge ' +
+                (
+                    status === 'Paid'
+                        ? 'badge-exp-paid'
+                        : status === 'Pending'
+                            ? 'badge-exp-pending'
+                            : 'badge-exp-cancelled'
+                );
+
+            statusElement.innerHTML =
+                '<span class="status-dot"></span>' + status;
+
+            const modalElement =
+                document.getElementById('viewVoucherModal');
+
+            const modal =
+                new bootstrap.Modal(modalElement);
+
+            modal.show();
         }
+
     </script>
+
 }

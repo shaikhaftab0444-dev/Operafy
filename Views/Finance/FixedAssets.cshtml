@@ -1,0 +1,1839 @@
+@model ERP_System.Models.FixedAssetsSummaryViewModel
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Fixed Asset Management";
+
+    string currentCategory = ViewBag.CurrentCategory as string ?? "All";
+    string searchQuery = ViewBag.SearchQuery as string ?? "";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+    :root {
+        --asset-primary: #2563eb;
+        --asset-primary-dark: #1d4ed8;
+        --asset-success: #059669;
+        --asset-warning: #d97706;
+        --asset-danger: #dc2626;
+        --asset-purple: #7c3aed;
+        --asset-text: #172033;
+        --asset-muted: #64748b;
+        --asset-border: #e5e7eb;
+        --asset-bg: #f8fafc;
+        --asset-white: #ffffff;
+        --asset-radius: 16px;
+    }
+
+    .assets-wrapper {
+        min-height: 100vh;
+        padding: 8px 0 32px;
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--asset-text);
+    }
+
+    /* ================================
+           PAGE HEADER
+           ================================ */
+
+    .asset-page-header {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px solid rgba(226, 232, 240, .9);
+        border-radius: var(--asset-radius);
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 8px 30px rgba(15, 23, 42, .04);
+    }
+
+        .asset-page-header::after {
+            content: "";
+            position: absolute;
+            width: 190px;
+            height: 190px;
+            right: -75px;
+            top: -100px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .06);
+            pointer-events: none;
+        }
+
+    .asset-breadcrumb {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 7px;
+        font-size: .76rem;
+        font-weight: 600;
+        color: var(--asset-muted);
+    }
+
+        .asset-breadcrumb a {
+            color: var(--asset-primary);
+            text-decoration: none;
+            transition: color .2s ease;
+        }
+
+            .asset-breadcrumb a:hover {
+                color: var(--asset-primary-dark);
+            }
+
+    .asset-title-row {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+    }
+
+    .asset-title-icon {
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+        color: #fff;
+        font-size: 1.2rem;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .22);
+    }
+
+    .asset-page-title {
+        margin: 0;
+        font-size: 1.45rem;
+        font-weight: 750;
+        letter-spacing: -.45px;
+        color: #172033;
+    }
+
+    .asset-page-subtitle {
+        margin: 3px 0 0;
+        font-size: .82rem;
+        color: var(--asset-muted);
+    }
+
+    .asset-header-actions {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+        .asset-header-actions .btn {
+            min-height: 38px;
+            border-radius: 10px;
+            font-size: .78rem;
+            font-weight: 650;
+            padding: 8px 13px;
+        }
+
+    /* ================================
+           COMMON CARD
+           ================================ */
+
+    .asset-card {
+        background: var(--asset-white);
+        border: 1px solid var(--asset-border);
+        border-radius: var(--asset-radius);
+        box-shadow: 0 7px 25px rgba(15, 23, 42, .035);
+    }
+
+    /* ================================
+           SUCCESS ALERT
+           ================================ */
+
+    .asset-alert {
+        border-radius: 12px !important;
+        padding: 12px 15px;
+        font-size: .82rem;
+        margin-bottom: 18px;
+    }
+
+    /* ================================
+           KPI CARDS
+           ================================ */
+
+    .asset-kpi {
+        position: relative;
+        overflow: hidden;
+        min-height: 126px;
+        padding: 18px;
+        border-left: 4px solid transparent;
+        transition: transform .22s ease, box-shadow .22s ease;
+    }
+
+        .asset-kpi:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 32px rgba(15, 23, 42, .07);
+        }
+
+        .asset-kpi::after {
+            content: "";
+            position: absolute;
+            right: -35px;
+            bottom: -55px;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, .018);
+            pointer-events: none;
+        }
+
+    .asset-kpi-cost {
+        border-left-color: #3b82f6;
+    }
+
+    .asset-kpi-dep {
+        border-left-color: #f59e0b;
+    }
+
+    .asset-kpi-nbv {
+        border-left-color: #10b981;
+    }
+
+    .asset-kpi-monthly {
+        border-left-color: #8b5cf6;
+    }
+
+    .kpi-icon-box {
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        font-size: 1.08rem;
+        transition: transform .25s ease;
+    }
+
+    .asset-kpi:hover .kpi-icon-box {
+        transform: scale(1.06);
+    }
+
+    .kpi-label {
+        display: block;
+        margin-bottom: 3px;
+        color: #64748b;
+        font-size: .73rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+    }
+
+    .kpi-value {
+        display: block;
+        margin: 2px 0 3px;
+        color: #172033;
+        font-size: 1.28rem;
+        line-height: 1.2;
+        font-weight: 750;
+        letter-spacing: -.4px;
+    }
+
+    .kpi-meta {
+        display: block;
+        font-size: .72rem;
+        font-weight: 650;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ================================
+           REGISTER TOOLBAR
+           ================================ */
+
+    .asset-register-card {
+        overflow: hidden;
+    }
+
+    .asset-register-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--asset-border);
+        background: linear-gradient(180deg, #ffffff, #fbfdff);
+    }
+
+    .register-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .register-title-icon {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: #eff6ff;
+        color: var(--asset-primary);
+    }
+
+    .register-heading {
+        margin: 0;
+        font-size: .95rem;
+        font-weight: 750;
+        color: #172033;
+    }
+
+    .register-caption {
+        margin: 2px 0 0;
+        color: var(--asset-muted);
+        font-size: .74rem;
+    }
+
+    .asset-filter-area {
+        padding: 15px 20px;
+        background: #fbfcfe;
+        border-bottom: 1px solid var(--asset-border);
+    }
+
+    .asset-filter-scroll {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+    }
+
+        .asset-filter-scroll::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .asset-filter-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+    .asset-filter-btn {
+        flex: 0 0 auto;
+        border-radius: 9px !important;
+        font-size: .75rem !important;
+        font-weight: 650 !important;
+        white-space: nowrap;
+        padding: 7px 11px !important;
+    }
+
+    .asset-search-form {
+        min-width: 280px;
+    }
+
+    .asset-search-box {
+        position: relative;
+    }
+
+        .asset-search-box .form-control {
+            height: 38px;
+            padding-left: 37px;
+            padding-right: 42px;
+            border-color: #dbe2ea;
+            border-radius: 10px !important;
+            font-size: .78rem;
+            box-shadow: none;
+        }
+
+            .asset-search-box .form-control:focus {
+                border-color: #93c5fd;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+            }
+
+    .asset-search-icon {
+        position: absolute;
+        left: 13px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        z-index: 3;
+        pointer-events: none;
+        font-size: .78rem;
+    }
+
+    .asset-search-btn {
+        position: absolute;
+        right: 4px;
+        top: 4px;
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 7px;
+        background: #eff6ff;
+        color: var(--asset-primary);
+        z-index: 4;
+        transition: background .2s ease;
+    }
+
+        .asset-search-btn:hover {
+            background: #dbeafe;
+        }
+
+    /* ================================
+           TABLE
+           ================================ */
+
+    .asset-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .asset-table {
+        min-width: 1180px;
+        margin: 0;
+        font-size: .8rem;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .asset-table thead th {
+            padding: 13px 14px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: .68rem;
+            font-weight: 750;
+            letter-spacing: .45px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .asset-table tbody td {
+            padding: 13px 14px;
+            border-bottom: 1px solid #eef2f7;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .asset-table tbody tr {
+            transition: background .18s ease;
+        }
+
+            .asset-table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+            .asset-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .asset-code {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 8px;
+        border: 1px solid #dbe4ef;
+        border-radius: 7px;
+        background: #f8fafc;
+        color: #334155;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: .7rem;
+        font-weight: 700;
+    }
+
+    .asset-name {
+        color: #172033;
+        font-size: .81rem;
+        font-weight: 700;
+    }
+
+    .asset-monthly {
+        margin-top: 3px;
+        color: #64748b;
+        font-size: .69rem;
+    }
+
+    .asset-location {
+        color: #64748b;
+        font-size: .75rem;
+    }
+
+        .asset-location i {
+            color: #ef4444;
+        }
+
+    .asset-date {
+        color: #64748b;
+        font-weight: 650;
+        font-size: .74rem;
+    }
+
+    .asset-amount {
+        color: #172033;
+        font-weight: 750;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .asset-dep-amount {
+        color: #dc2626;
+        font-weight: 750;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .asset-nbv-amount {
+        color: #059669;
+        font-weight: 750;
+        font-size: .86rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .asset-life {
+        color: #64748b;
+        font-size: .74rem;
+        font-weight: 650;
+    }
+
+    .asset-method {
+        display: inline-flex;
+        margin-top: 4px;
+        padding: 3px 6px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: .63rem;
+        font-weight: 650;
+    }
+
+    .asset-category {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        max-width: 205px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-radius: 7px;
+        font-size: .68rem;
+        font-weight: 700;
+    }
+
+    .asset-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border-radius: 999px;
+        font-size: .68rem;
+        font-weight: 700;
+    }
+
+    /* ================================
+           EMPTY STATE
+           ================================ */
+
+    .asset-empty {
+        padding: 55px 20px;
+        text-align: center;
+    }
+
+    .asset-empty-icon {
+        width: 62px;
+        height: 62px;
+        margin: 0 auto 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 1.45rem;
+    }
+
+    .asset-empty h5 {
+        margin-bottom: 5px;
+        font-size: .95rem;
+        font-weight: 750;
+        color: #334155;
+    }
+
+    .asset-empty p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: .76rem;
+    }
+
+    /* ================================
+           MODAL
+           ================================ */
+
+    .asset-modal .modal-content {
+        overflow: hidden;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 18px !important;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, .18) !important;
+    }
+
+    .asset-modal .modal-header {
+        position: relative;
+        padding: 18px 21px;
+        border: 0;
+        background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    }
+
+        .asset-modal .modal-header::after {
+            content: "";
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            right: -35px;
+            top: -75px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.08);
+        }
+
+    .asset-modal-title {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 750;
+    }
+
+        .asset-modal-title i {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            background: rgba(255,255,255,.14);
+        }
+
+    .asset-modal .btn-close {
+        position: relative;
+        z-index: 3;
+    }
+
+    .asset-modal .modal-body {
+        padding: 23px;
+    }
+
+    .asset-modal-section {
+        margin-bottom: 18px;
+    }
+
+        .asset-modal-section:last-child {
+            margin-bottom: 0;
+        }
+
+    .asset-section-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #eef2f7;
+        color: #334155;
+        font-size: .76rem;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+    }
+
+        .asset-section-label i {
+            color: var(--asset-primary);
+        }
+
+    .asset-modal .form-label {
+        margin-bottom: 5px;
+        color: #475569;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+    .asset-modal .form-control,
+    .asset-modal .form-select {
+        min-height: 40px;
+        border-color: #dbe2ea;
+        border-radius: 9px;
+        font-size: .78rem;
+        box-shadow: none;
+    }
+
+        .asset-modal .form-control:focus,
+        .asset-modal .form-select:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+        }
+
+    .asset-modal .form-text {
+        color: #94a3b8;
+        font-size: .68rem;
+    }
+
+    .asset-modal .modal-footer {
+        padding: 14px 21px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+        .asset-modal .modal-footer .btn {
+            border-radius: 9px;
+            font-size: .75rem;
+            font-weight: 700;
+            padding: 8px 14px;
+        }
+
+    /* ================================
+           ANIMATIONS
+           ================================ */
+
+    .asset-page-header,
+    .asset-kpi,
+    .asset-register-card {
+        animation: assetFadeUp .4s ease both;
+    }
+
+        .asset-kpi:nth-child(2) {
+            animation-delay: .04s;
+        }
+
+        .asset-kpi:nth-child(3) {
+            animation-delay: .08s;
+        }
+
+        .asset-kpi:nth-child(4) {
+            animation-delay: .12s;
+        }
+
+    @@keyframes assetFadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* ================================
+           RESPONSIVE
+           ================================ */
+
+    @@media (max-width: 1199.98px) {
+        .asset-page-header
+
+    {
+        padding: 19px 20px;
+    }
+
+    .asset-page-title {
+        font-size: 1.3rem;
+    }
+
+    .asset-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    }
+
+    @@media (max-width: 991.98px) {
+        .assets-wrapper
+
+    {
+        padding-top: 4px;
+    }
+
+    .asset-filter-area > .d-flex {
+        align-items: stretch !important;
+        flex-direction: column;
+    }
+
+    .asset-search-form {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .asset-search-box {
+        width: 100%;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .assets-wrapper
+
+    {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .asset-page-header {
+        border-radius: 13px;
+        padding: 16px;
+    }
+
+    .asset-title-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+        border-radius: 11px;
+        font-size: 1rem;
+    }
+
+    .asset-page-title {
+        font-size: 1.12rem;
+    }
+
+    .asset-page-subtitle {
+        font-size: .74rem;
+    }
+
+    .asset-header-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+        .asset-header-actions .btn,
+        .asset-header-actions form,
+        .asset-header-actions form .btn {
+            width: 100%;
+        }
+
+    .asset-kpi {
+        min-height: 112px;
+        padding: 15px;
+    }
+
+    .kpi-value {
+        font-size: 1.12rem;
+    }
+
+    .asset-register-header,
+    .asset-filter-area {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .asset-table {
+        min-width: 1120px;
+    }
+
+    .asset-modal .modal-dialog {
+        margin: 10px;
+    }
+
+    .asset-modal .modal-body {
+        padding: 17px;
+    }
+
+    }
+
+    @@media (max-width: 575.98px) {
+        .asset-breadcrumb
+
+    {
+        font-size: .7rem;
+    }
+
+    .asset-title-row {
+        align-items: flex-start;
+    }
+
+    .asset-title-icon {
+        margin-top: 1px;
+    }
+
+    .asset-page-title {
+        font-size: 1rem;
+    }
+
+    .asset-page-subtitle {
+        font-size: .7rem;
+    }
+
+    .register-heading {
+        font-size: .86rem;
+    }
+
+    .register-caption {
+        font-size: .68rem;
+    }
+
+    .asset-filter-scroll {
+        margin-right: -15px;
+        padding-right: 15px;
+    }
+
+    }
+
+    /* ================================
+           PRINT
+           ================================ */
+
+    @@media print {
+        body
+
+    {
+        background: #fff !important;
+    }
+
+    .asset-page-header,
+    .asset-header-actions,
+    .asset-filter-area,
+    .asset-register-header,
+    .asset-alert,
+    .asset-kpi {
+        box-shadow: none !important;
+    }
+
+    .asset-header-actions,
+    .asset-filter-area {
+        display: none !important;
+    }
+
+    .asset-card,
+    .asset-page-header {
+        border: 0 !important;
+    }
+
+    .asset-table {
+        min-width: 0;
+        font-size: 9px;
+    }
+
+        .asset-table th,
+        .asset-table td {
+            padding: 5px;
+        }
+
+    .assets-wrapper {
+        padding: 0;
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after
+
+    {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+
+    }</style>
+
+
+<div class="assets-wrapper">
+    <div class="container-fluid px-3 px-xl-4">
+
+        <!-- ==========================================
+             PAGE HEADER
+             ========================================== -->
+        <div class="asset-page-header">
+            <div class="row align-items-center g-3">
+
+                <div class="col-xl-7 col-lg-6">
+                    <div class="asset-breadcrumb">
+                        <a asp-action="Index">
+                            <i class="fa-solid fa-layer-group me-1"></i>
+                            Finance Suite
+                        </a>
+                        <span>/</span>
+                        <span>Capital Assets</span>
+                    </div>
+
+                    <div class="asset-title-row">
+                        <div class="asset-title-icon">
+                            <i class="fa-solid fa-building-columns"></i>
+                        </div>
+
+                        <div>
+                            <h1 class="asset-page-title">
+                                Fixed Asset Management
+                            </h1>
+                            <p class="asset-page-subtitle">
+                                Manage capital assets, depreciation schedules and net book values.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-5 col-lg-6">
+                    <div class="asset-header-actions">
+
+                        <button type="button"
+                                class="btn btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#addAssetModal">
+                            <i class="fa-solid fa-plus me-1"></i>
+                            Register New Asset
+                        </button>
+
+                        <form asp-action="RunDepreciation"
+                              method="post"
+                              class="d-inline"
+                              onsubmit="return confirm('Execute monthly capital depreciation for all active fixed assets? This will post depreciation entries to General Ledger.');">
+
+                            <button type="submit"
+                                    class="btn btn-outline-warning">
+                                <i class="fa-solid fa-calculator me-1"></i>
+                                Run Monthly Depreciation
+                            </button>
+
+                        </form>
+
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                onclick="window.print()">
+                            <i class="fa-solid fa-print me-1"></i>
+                            Export Register
+                        </button>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- ==========================================
+             SUCCESS MESSAGE
+             ========================================== -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show asset-alert border-0 shadow-sm"
+                 role="alert">
+
+                <i class="fa-solid fa-circle-check me-2"></i>
+                <strong>Success:</strong>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+        }
+
+
+        <!-- ==========================================
+             KPI CARDS
+             ========================================== -->
+        <div class="row g-3 mb-4">
+
+            <!-- Gross Asset Value -->
+            <div class="col-xl-3 col-md-6">
+                <div class="asset-card asset-kpi asset-kpi-cost h-100">
+
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+
+                        <div class="flex-grow-1 min-w-0">
+
+                            <span class="kpi-label">
+                                Gross Asset Value
+                            </span>
+
+                            <span class="kpi-value text-truncate">
+                                ₹ @Model.TotalGrossCost.ToString("N2")
+                            </span>
+
+                            <span class="kpi-meta text-primary">
+                                <i class="fa-solid fa-cubes me-1"></i>
+                                @Model.TotalAssetCount Total Assets
+                            </span>
+
+                        </div>
+
+                        <div class="kpi-icon-box"
+                             style="background:rgba(59,130,246,.11);color:#3b82f6;">
+
+                            <i class="fa-solid fa-boxes-stacked"></i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- Accumulated Depreciation -->
+            <div class="col-xl-3 col-md-6">
+                <div class="asset-card asset-kpi asset-kpi-dep h-100">
+
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+
+                        <div class="flex-grow-1 min-w-0">
+
+                            <span class="kpi-label">
+                                Accumulated Depreciation
+                            </span>
+
+                            <span class="kpi-value text-truncate">
+                                ₹ @Model.TotalAccumulatedDepreciation.ToString("N2")
+                            </span>
+
+                            <span class="kpi-meta text-warning">
+                                <i class="fa-solid fa-arrow-trend-down me-1"></i>
+                                Amortized to date
+                            </span>
+
+                        </div>
+
+                        <div class="kpi-icon-box"
+                             style="background:rgba(245,158,11,.11);color:#f59e0b;">
+
+                            <i class="fa-solid fa-chart-line"></i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- Net Book Value -->
+            <div class="col-xl-3 col-md-6">
+                <div class="asset-card asset-kpi asset-kpi-nbv h-100">
+
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+
+                        <div class="flex-grow-1 min-w-0">
+
+                            <span class="kpi-label">
+                                Net Book Value
+                            </span>
+
+                            <span class="kpi-value text-truncate">
+                                ₹ @Model.TotalNetBookValue.ToString("N2")
+                            </span>
+
+                            <span class="kpi-meta text-success">
+                                <i class="fa-solid fa-building me-1"></i>
+                                Balance Sheet Asset Base
+                            </span>
+
+                        </div>
+
+                        <div class="kpi-icon-box"
+                             style="background:rgba(16,185,129,.11);color:#10b981;">
+
+                            <i class="fa-solid fa-vault"></i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- Monthly Depreciation -->
+            <div class="col-xl-3 col-md-6">
+                <div class="asset-card asset-kpi asset-kpi-monthly h-100">
+
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+
+                        <div class="flex-grow-1 min-w-0">
+
+                            <span class="kpi-label">
+                                Monthly Dep. Run Rate
+                            </span>
+
+                            <span class="kpi-value text-truncate">
+                                ₹ @Model.TotalMonthlyDepreciation.ToString("N2")
+                            </span>
+
+                            <span class="kpi-meta"
+                                  style="color:#7c3aed;">
+
+                                <i class="fa-solid fa-calendar-check me-1"></i>
+                                @Model.ActiveAssetsCount Active Assets
+
+                            </span>
+
+                        </div>
+
+                        <div class="kpi-icon-box"
+                             style="background:rgba(139,92,246,.11);color:#8b5cf6;">
+
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- ==========================================
+             ASSET REGISTER
+             ========================================== -->
+        <div class="asset-card asset-register-card">
+
+            <!-- Register Heading -->
+            <div class="asset-register-header">
+
+                <div class="d-flex align-items-center justify-content-between gap-3">
+
+                    <div class="register-title">
+
+                        <div class="register-title-icon">
+                            <i class="fa-solid fa-list-check"></i>
+                        </div>
+
+                        <div>
+                            <h2 class="register-heading">
+                                Fixed Asset Register
+                            </h2>
+
+                            <p class="register-caption">
+                                Track acquisition cost, depreciation and current book value.
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2">
+                        @Model.Assets.Count Assets
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- Filters -->
+            <div class="asset-filter-area">
+
+                <div class="d-flex justify-content-between align-items-center gap-3">
+
+                    <div class="asset-filter-scroll">
+
+                        <a asp-action="FixedAssets"
+                           asp-route-category="All"
+                           class="btn asset-filter-btn @(currentCategory == "All" ? "btn-primary" : "btn-outline-secondary")">
+
+                            <i class="fa-solid fa-layer-group me-1"></i>
+                            All Assets (@Model.Assets.Count)
+
+                        </a>
+
+
+                        <a asp-action="FixedAssets"
+                           asp-route-category="Laptops & IT Equipment"
+                           class="btn asset-filter-btn @(currentCategory.Contains("IT") ? "btn-primary" : "btn-outline-secondary")">
+
+                            <i class="fa-solid fa-laptop me-1"></i>
+                            Laptops & IT
+
+                        </a>
+
+
+                        <a asp-action="FixedAssets"
+                           asp-route-category="Vehicles & Transport"
+                           class="btn asset-filter-btn @(currentCategory.Contains("Vehicles") ? "btn-primary" : "btn-outline-secondary")">
+
+                            <i class="fa-solid fa-truck me-1"></i>
+                            Vehicles
+
+                        </a>
+
+
+                        <a asp-action="FixedAssets"
+                           asp-route-category="Industrial Machinery"
+                           class="btn asset-filter-btn @(currentCategory.Contains("Machinery") ? "btn-primary" : "btn-outline-secondary")">
+
+                            <i class="fa-solid fa-gears me-1"></i>
+                            Machinery
+
+                        </a>
+
+
+                        <a asp-action="FixedAssets"
+                           asp-route-category="Office Furniture & Fixtures"
+                           class="btn asset-filter-btn @(currentCategory.Contains("Furniture") ? "btn-primary" : "btn-outline-secondary")">
+
+                            <i class="fa-solid fa-chair me-1"></i>
+                            Furniture
+
+                        </a>
+
+                    </div>
+
+
+                    <!-- Search -->
+                    <form asp-action="FixedAssets"
+                          method="get"
+                          class="asset-search-form">
+
+                        <input type="hidden"
+                               name="category"
+                               value="@currentCategory" />
+
+                        <div class="asset-search-box">
+
+                            <i class="fa-solid fa-magnifying-glass asset-search-icon"></i>
+
+                            <input type="text"
+                                   name="search"
+                                   class="form-control"
+                                   placeholder="Search asset name or code..."
+                                   value="@searchQuery"
+                                   autocomplete="off" />
+
+                            <button type="submit"
+                                    class="asset-search-btn"
+                                    title="Search">
+
+                                <i class="fa-solid fa-arrow-right"></i>
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+
+            <!-- ==========================================
+                 ASSET TABLE
+                 ========================================== -->
+            <div class="asset-table-wrap">
+
+                <table class="table asset-table align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Asset Code</th>
+
+                            <th>Asset Name & Description</th>
+
+                            <th>Category</th>
+
+                            <th>Location</th>
+
+                            <th>Purchase Date</th>
+
+                            <th class="text-end">
+                                Cost (₹)
+                            </th>
+
+                            <th>
+                                Life / Method
+                            </th>
+
+                            <th class="text-end">
+                                Acc. Dep (₹)
+                            </th>
+
+                            <th class="text-end">
+                                Net Book Value (₹)
+                            </th>
+
+                            <th class="text-center">
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model.Assets != null && Model.Assets.Any())
+                        {
+                            foreach (var asset in Model.Assets)
+                            {
+                                <tr>
+
+                                    <!-- Asset Code -->
+                                    <td>
+
+                                        <span class="asset-code">
+                                            @asset.AssetCode
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Asset Name -->
+                                    <td>
+
+                                        <div class="asset-name">
+                                            @asset.AssetName
+                                        </div>
+
+                                        <div class="asset-monthly">
+                                            <i class="fa-solid fa-calendar-days me-1"></i>
+                                            Monthly Dep:
+                                            <strong>
+                                                ₹ @asset.MonthlyDepreciation.ToString("N2")
+                                            </strong>
+                                            /mo
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- Category -->
+                                    <td>
+
+                                        @if (asset.Category.Contains("IT"))
+                                        {
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle asset-category">
+
+                                                <i class="fa-solid fa-laptop"></i>
+                                                @asset.Category
+
+                                            </span>
+                                        }
+                                        else if (asset.Category.Contains("Vehicles"))
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle asset-category">
+
+                                                <i class="fa-solid fa-truck"></i>
+                                                @asset.Category
+
+                                            </span>
+                                        }
+                                        else if (asset.Category.Contains("Machinery"))
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle asset-category">
+
+                                                <i class="fa-solid fa-gears"></i>
+                                                @asset.Category
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle asset-category">
+
+                                                <i class="fa-solid fa-chair"></i>
+                                                @asset.Category
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    <!-- Location -->
+                                    <td>
+
+                                        <span class="asset-location">
+
+                                            <i class="fa-solid fa-location-dot me-1"></i>
+                                            @asset.Location
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Purchase Date -->
+                                    <td>
+
+                                        <span class="asset-date">
+                                            @asset.PurchaseDate.ToString("dd MMM yyyy")
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Purchase Cost -->
+                                    <td class="text-end">
+
+                                        <span class="asset-amount">
+                                            ₹ @asset.PurchaseCost.ToString("N2")
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Useful Life / Method -->
+                                    <td>
+
+                                        <div class="asset-life">
+                                            @asset.UsefulLifeYears Years
+                                        </div>
+
+                                        <span class="asset-method">
+                                            @asset.DepreciationMethod
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Accumulated Depreciation -->
+                                    <td class="text-end">
+
+                                        <span class="asset-dep-amount">
+                                            ₹ @asset.AccumulatedDepreciation.ToString("N2")
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Net Book Value -->
+                                    <td class="text-end">
+
+                                        <span class="asset-nbv-amount">
+                                            ₹ @asset.NetBookValue.ToString("N2")
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Status -->
+                                    <td class="text-center">
+
+                                        @if (asset.Status == "Active")
+                                        {
+                                            <span class="asset-status bg-success-subtle text-success border border-success-subtle">
+
+                                                <i class="fa-solid fa-circle-check"></i>
+                                                Active
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="asset-status bg-secondary-subtle text-secondary border border-secondary-subtle">
+
+                                                @asset.Status
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="10">
+
+                                    <div class="asset-empty">
+
+                                        <div class="asset-empty-icon">
+                                            <i class="fa-solid fa-box-open"></i>
+                                        </div>
+
+                                        <h5>
+                                            No Fixed Assets Found
+                                        </h5>
+
+                                        <p>
+                                            No assets match the selected category or search criteria.
+                                        </p>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ==========================================
+     ADD FIXED ASSET MODAL
+     ========================================== -->
+
+<div class="modal fade asset-modal"
+     id="addAssetModal"
+     tabindex="-1"
+     aria-labelledby="addAssetModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+
+        <div class="modal-content">
+
+            <form asp-action="AddFixedAsset"
+                  method="post">
+
+                <!-- Modal Header -->
+                <div class="modal-header">
+
+                    <h5 class="asset-modal-title"
+                        id="addAssetModalLabel">
+
+                        <i class="fa-solid fa-plus"></i>
+
+                        Register New Fixed Asset
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+
+                <!-- Modal Body -->
+                <div class="modal-body">
+
+                    <!-- Asset Information -->
+                    <div class="asset-modal-section">
+
+                        <div class="asset-section-label">
+
+                            <i class="fa-solid fa-cube"></i>
+                            Asset Information
+
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-8">
+
+                                <label class="form-label">
+                                    Asset Description / Name
+                                </label>
+
+                                <input type="text"
+                                       class="form-control"
+                                       name="AssetName"
+                                       placeholder="e.g. MacBook Pro M3, CNC Machine, Delivery Van"
+                                       required />
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <label class="form-label">
+                                    Asset Category
+                                </label>
+
+                                <select class="form-select"
+                                        name="Category"
+                                        required>
+
+                                    <option value="Laptops & IT Equipment">
+                                        Laptops & IT Equipment
+                                    </option>
+
+                                    <option value="Vehicles & Transport">
+                                        Vehicles & Transport
+                                    </option>
+
+                                    <option value="Industrial Machinery">
+                                        Industrial Machinery
+                                    </option>
+
+                                    <option value="Office Furniture & Fixtures">
+                                        Office Furniture & Fixtures
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Physical Location / Department
+                                </label>
+
+                                <input type="text"
+                                       class="form-control"
+                                       name="Location"
+                                       value="Head Office - IT Dept"
+                                       required />
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Purchase Date
+                                </label>
+
+                                <input type="date"
+                                       class="form-control"
+                                       name="PurchaseDate"
+                                       value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                       required />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Financial Information -->
+                    <div class="asset-modal-section">
+
+                        <div class="asset-section-label">
+
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                            Financial Details
+
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+
+                                <label class="form-label">
+                                    Purchase Value / Cost (₹)
+                                </label>
+
+                                <input type="number"
+                                       step="0.01"
+                                       class="form-control"
+                                       name="PurchaseCost"
+                                       placeholder="0.00"
+                                       required />
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <label class="form-label">
+                                    Salvage / Scrap Value (₹)
+                                </label>
+
+                                <input type="number"
+                                       step="0.01"
+                                       class="form-control"
+                                       name="SalvageValue"
+                                       value="0.00" />
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <label class="form-label">
+                                    Useful Life (Years)
+                                </label>
+
+                                <input type="number"
+                                       class="form-control"
+                                       name="UsefulLifeYears"
+                                       value="3"
+                                       min="1"
+                                       max="50"
+                                       required />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Depreciation -->
+                    <div class="asset-modal-section">
+
+                        <div class="asset-section-label">
+
+                            <i class="fa-solid fa-chart-line"></i>
+                            Depreciation Configuration
+
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-12">
+
+                                <label class="form-label">
+                                    Depreciation Calculation Method
+                                </label>
+
+                                <select class="form-select"
+                                        name="DepreciationMethod">
+
+                                    <option value="Straight Line Method (SLM)">
+                                        Straight Line Method (SLM) - Uniform Equal Periodic Expense
+                                    </option>
+
+                                    <option value="Written Down Value (WDV)">
+                                        Written Down Value (WDV) - Accelerated Reducing Balance
+                                    </option>
+
+                                </select>
+
+                                <div class="form-text">
+                                    Select the accounting method that will be used for depreciation calculation.
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Modal Footer -->
+                <div class="modal-footer bg-light">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary">
+
+                        <i class="fa-solid fa-save me-1"></i>
+                        Save to Asset Register
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

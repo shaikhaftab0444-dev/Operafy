@@ -7,6 +7,15 @@
     var roles = ViewBag.Roles as IEnumerable<ERP_System.Models.Role>
                  ?? new List<ERP_System.Models.Role>();
 
+    var departments = ViewBag.Departments as IEnumerable<ERP_System.Models.Department>
+                      ?? new List<ERP_System.Models.Department>();
+
+    var managers = ViewBag.Managers as IEnumerable<ERP_System.Models.User>
+                   ?? new List<ERP_System.Models.User>();
+
+    var branches = ViewBag.Branches as IEnumerable<ERP_System.Models.Branch>
+                   ?? new List<ERP_System.Models.Branch>();
+
     var employees = Model?.ToList()
                      ?? new List<ERP_System.Models.User>();
 
@@ -1072,7 +1081,7 @@
 
         <div class="row g-3 align-items-end">
 
-            <div class="col-lg-6">
+            <div class="col-lg-4">
 
                 <label class="filter-label">
                     Search Employees
@@ -1091,7 +1100,32 @@
                 </div>
 
             </div>
-            <div class="col-md-5 col-lg-3">
+
+            <div class="col-md-4 col-lg-3">
+
+                <label class="filter-label">
+                    Department
+                </label>
+
+                <select id="departmentSelect"
+                        class="form-select">
+
+                    <option value="">
+                        All Departments
+                    </option>
+
+                    @foreach (var dept in departments)
+                    {
+                        <option value="@dept.DepartmentId" selected="@(ViewBag.SelectedDepartmentId != null && (int)ViewBag.SelectedDepartmentId == dept.DepartmentId ? "selected" : null)">
+                            @dept.DepartmentName
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+            <div class="col-md-4 col-lg-2">
 
                 <label class="filter-label">
                     Role / Designation
@@ -1116,7 +1150,7 @@
             </div>
 
 
-            <div class="col-md-5 col-lg-2">
+            <div class="col-md-3 col-lg-2">
 
                 <label class="filter-label">
                     Employee Status
@@ -1142,7 +1176,7 @@
             </div>
 
 
-            <div class="col-md-2 col-lg-1">
+            <div class="col-md-1 col-lg-1">
 
                 <button type="button"
                         id="resetFilters"
@@ -1214,7 +1248,15 @@
                             </th>
 
                             <th>
+                                Department
+                            </th>
+
+                            <th>
                                 Role
+                            </th>
+
+                            <th>
+                                Reporting Manager
                             </th>
 
                             <th>
@@ -1258,6 +1300,8 @@
 
                             <tr class="employee-row"
                                 data-role-id="@emp.RoleId"
+                                data-dept-id="@emp.DepartmentId"
+                                data-dept-name="@(emp.DepartmentName ?? emp.Department?.DepartmentName ?? "")"
                                 data-status="@(emp.IsActive ? "active" : "inactive")">
 
                                 <!-- EMPLOYEE -->
@@ -1307,6 +1351,21 @@
                             </td>
 
 
+                            <!-- DEPARTMENT -->
+
+                            <td>
+
+                                <span class="badge bg-primary-subtle text-primary fw-semibold px-2 py-1 rounded-pill emp-dept" style="font-size: 0.76rem;">
+
+                                    <i class="fa-solid fa-building-user me-1"></i>
+
+                                    @(!string.IsNullOrWhiteSpace(emp.DepartmentName) ? emp.DepartmentName : (emp.Department?.DepartmentName ?? "General"))
+
+                                </span>
+
+                            </td>
+
+
                             <!-- ROLE -->
 
                             <td>
@@ -1320,6 +1379,25 @@
                                                                     : "Unassigned")
 
                                 </span>
+
+                            </td>
+
+
+                            <!-- REPORTING MANAGER -->
+
+                            <td>
+
+                                <div class="d-flex align-items-center gap-1 text-slate-700 emp-manager">
+
+                                    <i class="fa-solid fa-user-tie text-secondary small"></i>
+
+                                    <span class="small fw-semibold">
+
+                                        @(!string.IsNullOrWhiteSpace(emp.ReportingManagerName) ? emp.ReportingManagerName : "Direct to Management")
+
+                                    </span>
+
+                                </div>
 
                             </td>
 
@@ -1408,6 +1486,9 @@
                                                 data-name="@emp.FullName"
                                                 data-email="@emp.Email"
                                                 data-mobile="@emp.MobileNumber"
+                                                data-dept="@(!string.IsNullOrWhiteSpace(emp.DepartmentName) ? emp.DepartmentName : (emp.Department?.DepartmentName ?? "General"))"
+                                                data-manager="@(!string.IsNullOrWhiteSpace(emp.ReportingManagerName) ? emp.ReportingManagerName : "Direct to Management")"
+                                                data-branch="@(!string.IsNullOrWhiteSpace(emp.BranchName) ? emp.BranchName : "Head Office")"
                                                 data-role="@(emp.Role != null ? emp.Role.RoleName : "Unassigned")"
                                                 data-date="@emp.CreatedAt.ToString("dd MMM yyyy")"
                                                 data-photo="@emp.ProfilePhoto"
@@ -1429,6 +1510,9 @@
                                                 data-user="@emp.UserName"
                                                 data-email="@emp.Email"
                                                 data-mobile="@emp.MobileNumber"
+                                                data-dept-id="@emp.DepartmentId"
+                                                data-manager-id="@emp.ReportingManagerId"
+                                                data-branch="@(!string.IsNullOrWhiteSpace(emp.BranchName) ? emp.BranchName : "Head Office")"
                                                 data-role="@emp.RoleId"
                                                 data-active="@emp.IsActive.ToString().ToLower()"
                                                 data-bs-toggle="modal"
@@ -1614,6 +1698,98 @@
                                    name="MobileNumber"
                                    class="form-control"
                                    placeholder="e.g. 9876543210" />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Department <span class="text-danger">*</span>
+                            </label>
+
+                            <select name="DepartmentId"
+                                    class="form-select"
+                                    required>
+
+                                <option value="">
+                                    Select Department
+                                </option>
+
+                                @if (departments.Any())
+                                {
+                                    @foreach (var dept in departments)
+                                    {
+                                        <option value="@dept.DepartmentId">
+                                            @dept.DepartmentName
+                                        </option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option value="1">IT & Software</option>
+                                    <option value="2">Sales & Marketing</option>
+                                    <option value="3">Human Resources</option>
+                                    <option value="4">Finance & Accounts</option>
+                                    <option value="5">Operations & Logistics</option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Reporting Manager
+                            </label>
+
+                            <select name="ReportingManagerId"
+                                    class="form-select">
+
+                                <option value="">
+                                    Select Reporting Manager (Optional)
+                                </option>
+
+                                @foreach (var mgr in managers)
+                                {
+                                    <option value="@mgr.UserId">
+                                        @mgr.FullName (@(mgr.Role?.RoleName ?? "Manager"))
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Branch
+                            </label>
+
+                            <select name="BranchName"
+                                    class="form-select">
+
+                                @if (branches.Any())
+                                {
+                                    @foreach (var br in branches)
+                                    {
+                                        <option value="@br.BranchName">
+                                            @br.BranchName
+                                        </option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option value="Head Office">Head Office</option>
+                                    <option value="Pune Branch">Pune Branch</option>
+                                    <option value="Mumbai Hub">Mumbai Hub</option>
+                                }
+
+                            </select>
 
                         </div>
 
@@ -1807,6 +1983,89 @@
                                    name="MobileNumber"
                                    id="editMobileNumber"
                                    class="form-control" />
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Department
+                            </label>
+
+                            <select name="DepartmentId"
+                                    id="editDepartmentId"
+                                    class="form-select">
+
+                                <option value="">
+                                    Select Department
+                                </option>
+
+                                @foreach (var dept in departments)
+                                {
+                                    <option value="@dept.DepartmentId">
+                                        @dept.DepartmentName
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Reporting Manager
+                            </label>
+
+                            <select name="ReportingManagerId"
+                                    id="editReportingManagerId"
+                                    class="form-select">
+
+                                <option value="">
+                                    Select Reporting Manager (Optional)
+                                </option>
+
+                                @foreach (var mgr in managers)
+                                {
+                                    <option value="@mgr.UserId">
+                                        @mgr.FullName (@(mgr.Role?.RoleName ?? "Manager"))
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Branch
+                            </label>
+
+                            <select name="BranchName"
+                                    id="editBranchName"
+                                    class="form-select">
+
+                                @if (branches.Any())
+                                {
+                                    @foreach (var br in branches)
+                                    {
+                                        <option value="@br.BranchName">
+                                            @br.BranchName
+                                        </option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option value="Head Office">Head Office</option>
+                                    <option value="Pune Branch">Pune Branch</option>
+                                    <option value="Mumbai Hub">Mumbai Hub</option>
+                                }
+
+                            </select>
 
                         </div>
 
@@ -2111,6 +2370,84 @@
                 </div>
 
 
+                <div class="profile-detail-item">
+
+                    <div class="profile-detail-icon">
+
+                        <i class="fa-solid fa-building-user"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span class="profile-detail-label">
+                            Department
+                        </span>
+
+                        <span class="profile-detail-value"
+                              id="viewDepartment">
+
+                            General
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-detail-item">
+
+                    <div class="profile-detail-icon">
+
+                        <i class="fa-solid fa-user-tie"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span class="profile-detail-label">
+                            Reporting Manager
+                        </span>
+
+                        <span class="profile-detail-value"
+                              id="viewReportingManager">
+
+                            Direct to Management
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-detail-item">
+
+                    <div class="profile-detail-icon">
+
+                        <i class="fa-solid fa-location-dot"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span class="profile-detail-label">
+                            Branch
+                        </span>
+
+                        <span class="profile-detail-value"
+                              id="viewBranch">
+
+                            Head Office
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
             </div>
 
 
@@ -2144,6 +2481,9 @@
         const searchInput =
             document.getElementById("searchInput");
 
+        const departmentSelect =
+            document.getElementById("departmentSelect");
+
         const roleSelect =
             document.getElementById("roleSelect");
 
@@ -2173,6 +2513,9 @@
                 (searchInput?.value || "")
                     .trim()
                     .toLowerCase();
+
+            const deptValue =
+                departmentSelect?.value || "";
 
             const roleValue =
                 roleSelect?.value || "";
@@ -2205,6 +2548,9 @@
                         ?.textContent
                         .toLowerCase() || "";
 
+                const deptId =
+                    row.getAttribute("data-dept-id") || "";
+
                 const roleId =
                     row.getAttribute("data-role-id") || "";
 
@@ -2220,6 +2566,11 @@
                     mobile.includes(searchValue);
 
 
+                const matchesDept =
+                    !deptValue ||
+                    deptId === deptValue;
+
+
                 const matchesRole =
                     !roleValue ||
                     roleId === roleValue;
@@ -2232,6 +2583,7 @@
 
                 const shouldShow =
                     matchesSearch &&
+                    matchesDept &&
                     matchesRole &&
                     matchesStatus;
 
@@ -2292,6 +2644,16 @@
         }
 
 
+        if (departmentSelect) {
+
+            departmentSelect.addEventListener(
+                "change",
+                filterEmployees
+            );
+
+        }
+
+
         if (roleSelect) {
 
             roleSelect.addEventListener(
@@ -2324,6 +2686,10 @@
 
                     if (searchInput) {
                         searchInput.value = "";
+                    }
+
+                    if (departmentSelect) {
+                        departmentSelect.value = "";
                     }
 
                     if (roleSelect) {
@@ -2397,6 +2763,27 @@
 
                         document.getElementById("editRoleId").value =
                             role;
+
+                        const deptId =
+                            this.getAttribute("data-dept-id") || "";
+
+                        const managerId =
+                            this.getAttribute("data-manager-id") || "";
+
+                        const branch =
+                            this.getAttribute("data-branch") || "";
+
+                        if (document.getElementById("editDepartmentId")) {
+                            document.getElementById("editDepartmentId").value = deptId;
+                        }
+
+                        if (document.getElementById("editReportingManagerId")) {
+                            document.getElementById("editReportingManagerId").value = managerId;
+                        }
+
+                        if (document.getElementById("editBranchName")) {
+                            document.getElementById("editBranchName").value = branch;
+                        }
 
 
                         document.getElementById("statusUserId").value =
@@ -2649,6 +3036,27 @@
 
                         document.getElementById("viewDate").textContent =
                             date;
+
+                        const dept =
+                            this.getAttribute("data-dept") || "General";
+
+                        const manager =
+                            this.getAttribute("data-manager") || "Direct to Management";
+
+                        const branch =
+                            this.getAttribute("data-branch") || "Head Office";
+
+                        if (document.getElementById("viewDepartment")) {
+                            document.getElementById("viewDepartment").textContent = dept;
+                        }
+
+                        if (document.getElementById("viewReportingManager")) {
+                            document.getElementById("viewReportingManager").textContent = manager;
+                        }
+
+                        if (document.getElementById("viewBranch")) {
+                            document.getElementById("viewBranch").textContent = branch;
+                        }
 
 
                         const image =

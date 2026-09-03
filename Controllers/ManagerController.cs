@@ -503,24 +503,60 @@ namespace ERP_System.Controllers
                 });
             }
 
+            // Dynamically load active employees from database with department mapping
+            var teamUsers = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Where(u => u.IsActive && u.Role != null && u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin" && u.Role.RoleName != "System Admin")
+                .OrderBy(u => u.UserId)
+                .ToListAsync();
+
+            var teamAttendanceList = new List<TeamMemberStatus>();
+            if (teamUsers.Any())
+            {
+                foreach (var u in teamUsers)
+                {
+                    var initials = !string.IsNullOrWhiteSpace(u.FullName)
+                        ? string.Join("", u.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0])).ToUpper()
+                        : "EM";
+
+                    string dept = !string.IsNullOrWhiteSpace(u.DepartmentName) ? u.DepartmentName : (u.Department?.DepartmentName ?? "Operations & Logistics");
+
+                    teamAttendanceList.Add(new TeamMemberStatus
+                    {
+                        Name = u.FullName,
+                        Role = u.Role?.RoleName ?? "Team Member",
+                        Department = dept,
+                        Status = "Present",
+                        ClockInTime = "09:00 AM",
+                        Avatar = initials,
+                        StatusColor = "success"
+                    });
+                }
+            }
+            else
+            {
+                teamAttendanceList = new List<TeamMemberStatus>
+                {
+                    new TeamMemberStatus { Name = "Numan Khan", Role = "Sales Executive", Department = "Sales & Marketing", Status = "Present", ClockInTime = "08:58 AM", Avatar = "NK", StatusColor = "success" },
+                    new TeamMemberStatus { Name = "Aftab Shaik", Role = "Senior Developer", Department = "IT & Software", Status = "Present", ClockInTime = "09:05 AM", Avatar = "AS", StatusColor = "success" },
+                    new TeamMemberStatus { Name = "Sneha Patil", Role = "Operations Associate", Department = "Operations & Logistics", Status = "On Leave", ClockInTime = "N/A", Avatar = "SP", StatusColor = "danger" },
+                    new TeamMemberStatus { Name = "Rohan Sharma", Role = "Quality Analyst", Department = "IT & Software", Status = "Present", ClockInTime = "09:15 AM", Avatar = "RS", StatusColor = "success" },
+                    new TeamMemberStatus { Name = "Zoya Malik", Role = "Backend Engineer", Department = "IT & Software", Status = "Late", ClockInTime = "09:42 AM", Avatar = "ZM", StatusColor = "warning" },
+                    new TeamMemberStatus { Name = "Sameer Verma", Role = "UI/UX Designer", Department = "IT & Software", Status = "Present", ClockInTime = "09:00 AM", Avatar = "SV", StatusColor = "success" }
+                };
+            }
+
             return new ManagerDashboardViewModel
             {
-                TotalTeamCount = 6,
-                PresentTodayCount = 5,
+                TotalTeamCount = teamAttendanceList.Count,
+                PresentTodayCount = teamAttendanceList.Count(x => x.Status == "Present"),
                 PendingApprovalsCount = pendingApprovalsCount,
                 ActiveTasksCount = 8,
                 DelayedTasksCount = 1,
                 ProductivityRate = "94.2%",
 
-                TeamAttendance = new List<TeamMemberStatus>
-                {
-                    new TeamMemberStatus { Name = "Numan Khan", Role = "Sales Executive", Status = "Present", ClockInTime = "08:58 AM", Avatar = "NK", StatusColor = "success" },
-                    new TeamMemberStatus { Name = "Aftab Shaik", Role = "Senior Developer", Status = "Present", ClockInTime = "09:05 AM", Avatar = "AS", StatusColor = "success" },
-                    new TeamMemberStatus { Name = "Sneha Patil", Role = "Operations Associate", Status = "On Leave", ClockInTime = "N/A", Avatar = "SP", StatusColor = "danger" },
-                    new TeamMemberStatus { Name = "Rohan Sharma", Role = "Quality Analyst", Status = "Present", ClockInTime = "09:15 AM", Avatar = "RS", StatusColor = "success" },
-                    new TeamMemberStatus { Name = "Zoya Malik", Role = "Backend Engineer", Status = "Late", ClockInTime = "09:42 AM", Avatar = "ZM", StatusColor = "warning" },
-                    new TeamMemberStatus { Name = "Sameer Verma", Role = "UI/UX Designer", Status = "Present", ClockInTime = "09:00 AM", Avatar = "SV", StatusColor = "success" }
-                },
+                TeamAttendance = teamAttendanceList,
 
                 PendingApprovals = pendingApprovalsList,
 

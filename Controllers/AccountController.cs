@@ -75,6 +75,12 @@ namespace ERP_System.Controllers
                             new ClaimsPrincipal(claimsIdentity),
                             authProperties);
 
+                        var roleName = user.Role?.RoleName ?? "";
+                        if (roleName == "Finance Manager" || roleName == "Accountant")
+                        {
+                            return RedirectToAction("Index", "Finance");
+                        }
+
                         return RedirectToAction("Index", "Dashboard");
                     }
                 }

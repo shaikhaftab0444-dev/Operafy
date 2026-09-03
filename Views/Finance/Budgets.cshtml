@@ -1,44 +1,931 @@
 @model List<ERP_System.Models.DepartmentBudgetViewModel>
 @{
+    Layout = "_DashboardLayout";
     ViewData["Title"] = "Departmental Budget Allocations";
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
 <style>
-    .budgets-wrapper {
-        background: #f8fafc;
-        min-height: 100vh;
-        padding: 1.5rem 0;
-        font-family: 'Segoe UI', system-ui, sans-serif;
+    :root {
+        --budget-primary: #2563eb;
+        --budget-primary-dark: #1d4ed8;
+        --budget-text: #0f172a;
+        --budget-muted: #64748b;
+        --budget-border: #e2e8f0;
+        --budget-bg: #f8fafc;
+        --budget-card: #ffffff;
+        --budget-success: #059669;
+        --budget-warning: #d97706;
+        --budget-danger: #dc2626;
     }
-    
-    .finance-card {
-        background: #ffffff;
-        border: 1px solid rgba(226, 232, 240, 0.8);
+
+    * {
+        box-sizing: border-box;
+    }
+
+    .budgets-wrapper {
+        min-height: 100vh;
+        padding: 20px 0 40px;
+        background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.05), transparent 30%), linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--budget-text);
+    }
+
+    .budgets-container {
+        max-width: 1800px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    /* =========================
+           HEADER
+           ========================= */
+
+    .budget-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 24px;
+        animation: budgetFadeUp .45s ease both;
+    }
+
+    .budget-header-content {
+        min-width: 0;
+    }
+
+    .budget-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--budget-primary);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        margin-bottom: 7px;
+    }
+
+        .budget-eyebrow::before {
+            content: "";
+            width: 24px;
+            height: 3px;
+            border-radius: 999px;
+            background: var(--budget-primary);
+        }
+
+    .budget-title {
+        margin: 0;
+        color: #0f172a;
+        font-size: clamp(24px, 2vw, 32px);
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -.025em;
+    }
+
+    .budget-subtitle {
+        margin: 7px 0 0;
+        color: var(--budget-muted);
+        font-size: 14px;
+    }
+
+    .budget-back-btn {
+        min-height: 42px;
+        padding: 9px 15px !important;
+        border-radius: 10px !important;
+        border: 1px solid var(--budget-border) !important;
+        background: #fff !important;
+        color: #334155 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all .22s ease;
+        box-shadow: 0 5px 16px rgba(15, 23, 42, .03);
+    }
+
+        .budget-back-btn:hover {
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+            transform: translateY(-1px);
+        }
+
+    /* =========================
+           KPI CARDS
+           ========================= */
+
+    .budget-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .budget-summary-card {
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid rgba(226, 232, 240, .95);
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        padding: 18px;
+        box-shadow: 0 8px 26px rgba(15, 23, 42, .045);
+        animation: budgetFadeUp .5s ease both;
+    }
+
+        .budget-summary-card:nth-child(2) {
+            animation-delay: .05s;
+        }
+
+        .budget-summary-card:nth-child(3) {
+            animation-delay: .1s;
+        }
+
+        .budget-summary-card:nth-child(4) {
+            animation-delay: .15s;
+        }
+
+        .budget-summary-card::after {
+            content: "";
+            position: absolute;
+            right: -30px;
+            bottom: -35px;
+            width: 105px;
+            height: 105px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .045);
+        }
+
+    .budget-summary-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .budget-summary-label {
+        color: var(--budget-muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .budget-summary-value {
+        margin-top: 7px;
+        color: #0f172a;
+        font-size: 23px;
+        line-height: 1.1;
+        font-weight: 800;
+    }
+
+    .budget-summary-icon {
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #eff6ff;
+        color: var(--budget-primary);
+        font-size: 17px;
+    }
+
+    .budget-summary-card:nth-child(2) .budget-summary-icon {
+        background: #ecfdf5;
+        color: var(--budget-success);
+    }
+
+    .budget-summary-card:nth-child(3) .budget-summary-icon {
+        background: #fff7ed;
+        color: var(--budget-warning);
+    }
+
+    .budget-summary-card:nth-child(4) .budget-summary-icon {
+        background: #fef2f2;
+        color: var(--budget-danger);
+    }
+
+    .budget-summary-footer {
+        margin-top: 12px;
+        color: #94a3b8;
+        font-size: 11px;
+    }
+
+    /* =========================
+           MAIN CARD
+           ========================= */
+
+    .budget-card {
+        background: var(--budget-card);
+        border: 1px solid rgba(226, 232, 240, .95);
+        border-radius: 17px;
+        box-shadow: 0 8px 28px rgba(15, 23, 42, .045);
+        overflow: hidden;
+        animation: budgetFadeUp .55s ease both;
+    }
+
+    .budget-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    .budget-card-title-wrap {
+        min-width: 0;
+    }
+
+    .budget-card-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        color: #0f172a;
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+        .budget-card-title i {
+            color: var(--budget-primary);
+            font-size: 15px;
+        }
+
+    .budget-card-description {
+        margin: 5px 0 0 24px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    .budget-record-count {
+        padding: 5px 9px;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    /* =========================
+           TABLE
+           ========================= */
+
+    .budget-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .budget-table {
+        min-width: 1050px;
+        margin: 0 !important;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .budget-table thead th {
+            padding: 13px 15px !important;
+            background: #f8fafc !important;
+            color: #64748b !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .budget-table tbody td {
+            padding: 16px 15px !important;
+            border-bottom: 1px solid #eef2f7 !important;
+            color: #475569;
+            font-size: 12px;
+            vertical-align: middle;
+        }
+
+        .budget-table tbody tr {
+            transition: background .2s ease;
+        }
+
+            .budget-table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+            .budget-table tbody tr:last-child td {
+                border-bottom: 0 !important;
+            }
+
+    /* =========================
+           DEPARTMENT
+           ========================= */
+
+    .department-cell {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 180px;
+    }
+
+    .department-icon {
+        width: 38px;
+        height: 38px;
+        flex-shrink: 0;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: var(--budget-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .department-name {
+        color: #1e293b;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.3;
+    }
+
+    .department-label {
+        margin-top: 3px;
+        color: #94a3b8;
+        font-size: 10px;
+        font-weight: 600;
+    }
+
+    /* =========================
+           AMOUNTS
+           ========================= */
+
+    .budget-amount {
+        color: #334155;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .utilized-amount {
+        color: #475569;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .remaining-positive {
+        color: var(--budget-success);
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .remaining-negative {
+        color: var(--budget-danger);
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .amount-label {
+        display: block;
+        margin-top: 3px;
+        color: #94a3b8;
+        font-size: 9px;
+        font-weight: 600;
+    }
+
+    /* =========================
+           BURN RATE
+           ========================= */
+
+    .burn-rate-cell {
+        min-width: 280px;
+    }
+
+    .burn-rate-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+    }
+
+    .burn-rate-label {
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .burn-rate-percentage {
+        color: #334155;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .budget-progress {
+        width: 100%;
+        height: 8px !important;
+        overflow: hidden;
+        border-radius: 999px !important;
+        background: #e8eef5 !important;
+    }
+
+        .budget-progress .progress-bar {
+            border-radius: 999px;
+            transition: width .8s ease;
+        }
+
+    .progress-healthy {
+        background: #10b981 !important;
+    }
+
+    .progress-warning {
+        background: #f59e0b !important;
+    }
+
+    .progress-danger {
+        background: #ef4444 !important;
+    }
+
+    /* =========================
+           STATUS BADGES
+           ========================= */
+
+    .budget-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 9px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .status-healthy {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .status-critical {
+        background: #fff7ed;
+        color: #c2410c;
+    }
+
+    .status-overallocated {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .budget-status i {
+        font-size: 8px;
+    }
+
+    /* =========================
+           FOOTER
+           ========================= */
+
+    .budget-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 12px 20px;
+        background: #fbfdff;
+        border-top: 1px solid #edf2f7;
+        color: #94a3b8;
+        font-size: 11px;
+    }
+
+    .budget-footer-note {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+        .budget-footer-note i {
+            color: var(--budget-primary);
+        }
+
+    /* =========================
+           EMPTY STATE
+           ========================= */
+
+    .budget-empty {
+        padding: 65px 20px !important;
+        text-align: center;
+    }
+
+    .budget-empty-icon {
+        width: 62px;
+        height: 62px;
+        margin: 0 auto 13px;
+        border-radius: 16px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+    }
+
+    .budget-empty-title {
+        color: #334155;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .budget-empty-text {
+        margin-top: 5px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    /* =========================
+           ANIMATION
+           ========================= */
+
+    @@keyframes budgetFadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 1200px) {
+        .budget-summary-grid
+
+    {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    }
+
+    @@media (max-width: 900px) {
+        .budget-header
+
+    {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .budget-back-btn {
+        width: 100%;
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .budgets-wrapper
+
+    {
+        padding: 14px 0 30px;
+    }
+
+    .budgets-container {
+        padding: 0 14px;
+    }
+
+    .budget-summary-grid {
+        gap: 10px;
+    }
+
+    .budget-summary-card {
+        padding: 14px;
+        border-radius: 13px;
+    }
+
+    .budget-summary-value {
+        font-size: 20px;
+    }
+
+    .budget-summary-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        font-size: 14px;
+    }
+
+    .budget-summary-footer {
+        font-size: 10px;
+    }
+
+    .budget-card-header {
+        padding: 15px;
+    }
+
+    .budget-card-description {
+        display: none;
+    }
+
+    .budget-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .budget-card-footer {
+        padding: 11px 15px;
+    }
+
+    }
+
+    @@media (max-width: 576px) {
+        .budget-title
+
+    {
+        font-size: 23px;
+    }
+
+    .budget-subtitle {
+        font-size: 12px;
+    }
+
+    .budget-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .budget-summary-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .budget-summary-top {
+        flex: 1;
+    }
+
+    .budget-summary-icon {
+        order: 2;
+    }
+
+    .budget-summary-footer {
+        display: none;
+    }
+
+    .budget-summary-card::after {
+        display: none;
+    }
+
+    .budget-card-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .budget-summary-card, .budget-card, .budget-header
+
+    {
+        animation: none;
+    }
+
+    .budget-progress .progress-bar {
+        transition: none;
+    }
+
+    * {
+        transition: none !important;
+    }
+
+    }
+
+    /* =========================
+           PRINT
+           ========================= */
+
+    @@media print {
+        .budgets-wrapper
+
+    {
+        background: #fff !important;
+        padding: 0 !important;
+    }
+
+    .budget-header {
+        margin-bottom: 15px;
+    }
+
+    .budget-back-btn,
+    .budget-summary-grid {
+        display: none !important;
+    }
+
+    .budget-card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+    }
+
+    .budget-table {
+        min-width: 0;
+    }
+
     }
 </style>
 
 <div class="budgets-wrapper">
-    <div class="container-fluid px-4">
-        
-        <!-- Module Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <span class="text-uppercase text-secondary fw-semibold small tracking-wider">Financial Control</span>
-                <h1 class="h3 mb-0 fw-bold text-slate-800">Departmental Budgets & Allocation Matrix</h1>
+
+    <div class="budgets-container">
+
+        <!-- =========================
+             PAGE HEADER
+             ========================= -->
+
+        <div class="budget-header">
+
+            <div class="budget-header-content">
+
+                <div class="budget-eyebrow">
+                    Financial Control
+                </div>
+
+                <h1 class="budget-title">
+                    Departmental Budgets & Allocation Matrix
+                </h1>
+
+                <p class="budget-subtitle">
+                    Monitor departmental allocations, utilization and budget consumption in one place.
+                </p>
+
             </div>
-            <div class="d-flex gap-2">
-                <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
-            </div>
+
+            <a asp-action="Index"
+               class="btn budget-back-btn">
+
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Dashboard</span>
+
+            </a>
+
         </div>
 
-        <!-- Budgets Listing Card -->
-        <div class="finance-card p-4">
-            <div class="table-responsive">
-                <table class="table align-middle table-hover mb-0">
-                    <thead class="table-light">
+
+        <!-- =========================
+             SUMMARY CARDS
+             ========================= -->
+
+        <div class="budget-summary-grid">
+
+            <div class="budget-summary-card">
+
+                <div class="budget-summary-top">
+
+                    <div>
+                        <div class="budget-summary-label">
+                            Departments
+                        </div>
+
+                        <div class="budget-summary-value">
+                            @Model.Count
+                        </div>
+                    </div>
+
+                    <div class="budget-summary-icon">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+
+                </div>
+
+                <div class="budget-summary-footer">
+                    Active departmental allocations
+                </div>
+
+            </div>
+
+
+            <div class="budget-summary-card">
+
+                <div class="budget-summary-top">
+
+                    <div>
+                        <div class="budget-summary-label">
+                            Total Allocated
+                        </div>
+
+                        <div class="budget-summary-value">
+                            ₹ @Model.Sum(x => x.Allocated).ToString("N0")
+                        </div>
+                    </div>
+
+                    <div class="budget-summary-icon">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+
+                </div>
+
+                <div class="budget-summary-footer">
+                    Approved budget allocation
+                </div>
+
+            </div>
+
+
+            <div class="budget-summary-card">
+
+                <div class="budget-summary-top">
+
+                    <div>
+                        <div class="budget-summary-label">
+                            Total Utilized
+                        </div>
+
+                        <div class="budget-summary-value">
+                            ₹ @Model.Sum(x => x.Utilized).ToString("N0")
+                        </div>
+                    </div>
+
+                    <div class="budget-summary-icon">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+
+                </div>
+
+                <div class="budget-summary-footer">
+                    Current budget consumption
+                </div>
+
+            </div>
+
+
+            <div class="budget-summary-card">
+
+                <div class="budget-summary-top">
+
+                    <div>
+                        <div class="budget-summary-label">
+                            Remaining Budget
+                        </div>
+
+                        <div class="budget-summary-value">
+                            ₹ @Model.Sum(x => x.Allocated - x.Utilized).ToString("N0")
+                        </div>
+                    </div>
+
+                    <div class="budget-summary-icon">
+                        <i class="fa-solid fa-piggy-bank"></i>
+                    </div>
+
+                </div>
+
+                <div class="budget-summary-footer">
+                    Available balance across departments
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             BUDGET TABLE CARD
+             ========================= -->
+
+        <div class="budget-card">
+
+            <div class="budget-card-header">
+
+                <div class="budget-card-title-wrap">
+
+                    <h5 class="budget-card-title">
+
+                        <i class="fa-solid fa-chart-column"></i>
+
+                        Department Budget Overview
+
+                    </h5>
+
+                    <div class="budget-card-description">
+                        Track allocation, utilization, remaining balance and consumption burn rate.
+                    </div>
+
+                </div>
+
+                <span class="budget-record-count">
+                    @Model.Count Departments
+                </span>
+
+            </div>
+
+
+            <div class="budget-table-wrapper">
+
+                <table class="table align-middle budget-table">
+
+                    <thead>
+
                         <tr>
                             <th>Department Name</th>
                             <th>Allocated Budget</th>
@@ -47,36 +934,222 @@
                             <th width="300">Consumption Burn Rate</th>
                             <th>Status</th>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var budget in Model)
-                        {
-                            var burn = budget.BurnRatePercentage;
-                            var remaining = budget.Allocated - budget.Utilized;
-                            var colorClass = burn > 90 ? "bg-danger" : (burn > 75 ? "bg-warning" : "bg-success");
-                            var textStatus = burn > 95 ? "Over-allocated" : (burn > 80 ? "Critical Burn" : "Healthy");
-                            var badgeClass = burn > 95 ? "badge bg-danger-subtle text-danger" : (burn > 80 ? "badge bg-warning-subtle text-warning" : "badge bg-success-subtle text-success");
 
-                            <tr>
-                                <td><span class="fw-bold text-dark">@budget.DepartmentName</span></td>
-                                <td>₹ @budget.Allocated.ToString("N2")</td>
-                                <td>₹ @budget.Utilized.ToString("N2")</td>
-                                <td><strong class="@(remaining < 0 ? "text-danger" : "text-dark")">₹ @remaining.ToString("N2")</strong></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="progress flex-grow-1" style="height: 10px; border-radius: 5px;">
-                                            <div class="progress-bar @colorClass" role="progressbar" style="width: @burn%" aria-valuenow="@burn" aria-valuemin="0" aria-valuemax="100"></div>
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Any())
+                        {
+                            @foreach (var budget in Model)
+                            {
+                                var burn = budget.BurnRatePercentage;
+
+                                var remaining = budget.Allocated - budget.Utilized;
+
+                                var colorClass =
+                                burn > 90
+                                ? "progress-danger"
+                                : (burn > 75
+                                ? "progress-warning"
+                                : "progress-healthy");
+
+                                var textStatus =
+                                burn > 95
+                                ? "Over-allocated"
+                                : (burn > 80
+                                ? "Critical Burn"
+                                : "Healthy");
+
+                                var statusClass =
+                                burn > 95
+                                ? "status-overallocated"
+                                : (burn > 80
+                                ? "status-critical"
+                                : "status-healthy");
+
+                                <tr>
+
+                                    <!-- DEPARTMENT -->
+
+                                    <td>
+
+                                        <div class="department-cell">
+
+                                            <div class="department-icon">
+                                                <i class="fa-solid fa-building"></i>
+                                            </div>
+
+                                            <div>
+
+                                                <div class="department-name">
+                                                    @budget.DepartmentName
+                                                </div>
+
+                                                <div class="department-label">
+                                                    Department allocation
+                                                </div>
+
+                                            </div>
+
                                         </div>
-                                        <span class="small fw-bold">@burn.ToString("F0")%</span>
+
+                                    </td>
+
+
+                                    <!-- ALLOCATED -->
+
+                                    <td>
+
+                                        <span class="budget-amount">
+                                            ₹ @budget.Allocated.ToString("N2")
+                                        </span>
+
+                                        <span class="amount-label">
+                                            Allocated
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- UTILIZED -->
+
+                                    <td>
+
+                                        <span class="utilized-amount">
+                                            ₹ @budget.Utilized.ToString("N2")
+                                        </span>
+
+                                        <span class="amount-label">
+                                            Utilized
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- REMAINING -->
+
+                                    <td>
+
+                                        <span class="@(remaining < 0 ? "remaining-negative" : "remaining-positive")">
+
+                                            ₹ @remaining.ToString("N2")
+
+                                        </span>
+
+                                        <span class="amount-label">
+                                            @(remaining < 0 ? "Exceeded budget" : "Available balance")
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- BURN RATE -->
+
+                                    <td class="burn-rate-cell">
+
+                                        <div class="burn-rate-top">
+
+                                            <span class="burn-rate-label">
+                                                Budget Consumption
+                                            </span>
+
+                                            <span class="burn-rate-percentage">
+                                                @burn.ToString("F0")%
+                                            </span>
+
+                                        </div>
+
+                                        <div class="progress budget-progress">
+
+                                            <div class="progress-bar @colorClass"
+                                                 role="progressbar"
+                                                 style="width: @burn%"
+                                                 aria-valuenow="@burn"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+
+                                    <td>
+
+                                        <span class="budget-status @statusClass">
+
+                                            @if (burn > 95)
+                                            {
+                                                <i class="fa-solid fa-circle-exclamation"></i>
+                                            }
+                                            else if (burn > 80)
+                                            {
+                                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-circle-check"></i>
+                                            }
+
+                                            @textStatus
+
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="6" class="budget-empty">
+
+                                    <div class="budget-empty-icon">
+                                        <i class="fa-solid fa-chart-column"></i>
                                     </div>
+
+                                    <div class="budget-empty-title">
+                                        No department budgets found
+                                    </div>
+
+                                    <div class="budget-empty-text">
+                                        Departmental budget allocations will appear here once available.
+                                    </div>
+
                                 </td>
-                                <td><span class="@badgeClass">@textStatus</span></td>
+
                             </tr>
                         }
+
                     </tbody>
+
                 </table>
+
             </div>
+
+
+            <!-- CARD FOOTER -->
+
+            <div class="budget-card-footer">
+
+                <div class="budget-footer-note">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Burn rate indicates the percentage of allocated budget currently utilized.</span>
+                </div>
+
+                <div>
+                    @Model.Count department(s) tracked
+                </div>
+
+            </div>
+
         </div>
 
     </div>
+
 </div>

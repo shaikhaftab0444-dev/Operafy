@@ -48,6 +48,10 @@ namespace ERP_System.Controllers
             {
                 return RedirectToAction("Index", "InventoryDashboard");
             }
+            else if (roleName == "Finance Manager" || roleName == "Accountant")
+            {
+                return RedirectToAction("Index", "Finance");
+            }
             else if (roleName != "Super Admin" && roleName != "Admin")
             {
                 // Fallback for other custom/new roles to prevent showing them the Super Admin KPI dashboard

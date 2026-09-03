@@ -27,18 +27,79 @@ namespace ERP_System.Controllers
 
         // GET: /HREmployee/Directory
         [HttpGet]
-        public async Task<IActionResult> Directory()
+        public async Task<IActionResult> Directory(int? departmentId = null)
         {
+            // Ensure core departments exist
+            var existingDepts = await _context.Departments.ToListAsync();
+            var targetDeptNames = new[] { "IT & Software", "Sales & Marketing", "Human Resources", "Finance & Accounts", "Operations & Logistics" };
+            bool anyNew = false;
+            foreach (var dName in targetDeptNames)
+            {
+                if (!existingDepts.Any(d => d.DepartmentName.Equals(dName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    string code = dName switch
+                    {
+                        "IT & Software" => "IT-DEPT",
+                        "Sales & Marketing" => "SALES-DEPT",
+                        "Human Resources" => "HR-DEPT",
+                        "Finance & Accounts" => "FIN-DEPT",
+                        "Operations & Logistics" => "OPS-DEPT",
+                        _ => "GEN-DEPT"
+                    };
+                    _context.Departments.Add(new Department
+                    {
+                        DepartmentCode = code,
+                        DepartmentName = dName,
+                        BranchId = 3,
+                        IsActive = true,
+                        CreatedAt = DateTime.Now
+                    });
+                    anyNew = true;
+                }
+            }
+            if (anyNew)
+            {
+                await _context.SaveChangesAsync();
+            }
+
             // Do not show Super Admin and Admin to HR
-            var employees = await _context.Users
+            var query = _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin" && u.Role.RoleName != "System Admin")
-                .OrderBy(u => u.UserId)
-                .ToListAsync();
+                .Include(u => u.Department)
+                .Where(u => u.Role != null && u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin" && u.Role.RoleName != "System Admin");
+
+            if (departmentId.HasValue && departmentId.Value > 0)
+            {
+                query = query.Where(u => u.DepartmentId == departmentId.Value);
+            }
+
+            var employees = await query.OrderBy(u => u.UserId).ToListAsync();
             
             ViewBag.Roles = await _context.Roles
                 .Where(r => r.RoleName != "Super Admin" && r.RoleName != "Admin" && r.RoleName != "System Admin")
                 .ToListAsync();
+
+            ViewBag.Departments = await _context.Departments
+                .Where(d => d.IsActive)
+                .OrderBy(d => d.DepartmentName)
+                .ToListAsync();
+
+            // Populate active managers in the company
+            var managers = await _context.Users
+                .Include(u => u.Role)
+                .Where(u => u.IsActive && u.Role != null && (u.Role.RoleName == "Manager" || u.Role.RoleName.Contains("Manager") || u.Role.RoleName == "Admin" || u.Role.RoleName == "Super Admin" || u.Role.RoleName.Contains("Lead") || u.Role.RoleName.Contains("Head")))
+                .OrderBy(u => u.FullName)
+                .ToListAsync();
+
+            if (!managers.Any())
+            {
+                managers = await _context.Users.Where(u => u.IsActive).OrderBy(u => u.FullName).Take(5).ToListAsync();
+            }
+
+            ViewBag.Managers = managers;
+
+            ViewBag.Branches = await _context.Branches.Where(b => b.IsActive).ToListAsync();
+            ViewBag.SelectedDepartmentId = departmentId;
 
             return View(employees);
         }
@@ -46,31 +107,84 @@ namespace ERP_System.Controllers
         // POST: /HREmployee/CreateEmployee
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateEmployee(User employee, string Password, int SelectedRoleId, IFormFile? ProfilePhotoFile)
+        public async Task<IActionResult> CreateEmployee(CreateEmployeeInputModel model)
         {
-            if (ModelState.IsValid || (employee.UserName != null && employee.Email != null))
+            if (ModelState.IsValid || (!string.IsNullOrEmpty(model.UserName) && !string.IsNullOrEmpty(model.Email)))
             {
+                var employee = new User
+                {
+                    FullName = model.FullName,
+                    UserName = model.UserName,
+                    Email = model.Email,
+                    MobileNumber = model.MobileNumber,
+                    CompanyId = 1,
+                    BranchId = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    RoleId = model.SelectedRoleId
+                };
+
                 var hasher = new PasswordHasher<User>();
-                employee.PasswordHash = hasher.HashPassword(employee, string.IsNullOrEmpty(Password) ? "Monitor@2026" : Password);
-                employee.CompanyId = 1;
-                employee.BranchId = 3;
-                employee.IsActive = true;
-                employee.CreatedAt = DateTime.Now;
-                employee.RoleId = SelectedRoleId;
+                employee.PasswordHash = hasher.HashPassword(employee, string.IsNullOrEmpty(model.Password) ? "Monitor@2026" : model.Password);
+
+                // Department mapping
+                if (model.DepartmentId.HasValue && model.DepartmentId.Value > 0)
+                {
+                    employee.DepartmentId = model.DepartmentId.Value;
+                    var dept = await _context.Departments.FindAsync(model.DepartmentId.Value);
+                    employee.DepartmentName = dept?.DepartmentName ?? model.DepartmentName;
+                }
+                else if (!string.IsNullOrWhiteSpace(model.DepartmentName))
+                {
+                    employee.DepartmentName = model.DepartmentName;
+                    var dept = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentName == model.DepartmentName);
+                    if (dept != null) employee.DepartmentId = dept.DepartmentId;
+                }
+
+                // Reporting Manager mapping
+                if (!string.IsNullOrWhiteSpace(model.ReportingManagerId))
+                {
+                    employee.ReportingManagerId = model.ReportingManagerId;
+                    if (int.TryParse(model.ReportingManagerId, out int mgrId))
+                    {
+                        var mgr = await _context.Users.FindAsync(mgrId);
+                        employee.ReportingManagerName = mgr?.FullName ?? mgr?.UserName ?? model.ReportingManagerName;
+                    }
+                    else
+                    {
+                        employee.ReportingManagerName = model.ReportingManagerName;
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(model.ReportingManagerName))
+                {
+                    employee.ReportingManagerName = model.ReportingManagerName;
+                }
+
+                // Branch mapping
+                if (!string.IsNullOrWhiteSpace(model.BranchName))
+                {
+                    employee.BranchName = model.BranchName;
+                    var branch = await _context.Branches.FirstOrDefaultAsync(b => b.BranchName == model.BranchName);
+                    if (branch != null) employee.BranchId = branch.BranchId;
+                }
+                else
+                {
+                    employee.BranchName = "Head Office";
+                }
 
                 // Handle file upload
-                if (ProfilePhotoFile != null && ProfilePhotoFile.Length > 0)
+                if (model.ProfilePhotoFile != null && model.ProfilePhotoFile.Length > 0)
                 {
                     string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "profile_pics");
                     if (!System.IO.Directory.Exists(uploadsFolder))
                     {
                         System.IO.Directory.CreateDirectory(uploadsFolder);
                     }
-                    string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(ProfilePhotoFile.FileName);
+                    string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(model.ProfilePhotoFile.FileName);
                     string filePath = Path.Combine(uploadsFolder, uniqueFileName);
                     using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
-                        await ProfilePhotoFile.CopyToAsync(fileStream);
+                        await model.ProfilePhotoFile.CopyToAsync(fileStream);
                     }
                     employee.ProfilePhoto = "/uploads/profile_pics/" + uniqueFileName;
                 }
@@ -86,7 +200,8 @@ namespace ERP_System.Controllers
 
             var employees = await _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin" && u.Role.RoleName != "System Admin")
+                .Include(u => u.Department)
+                .Where(u => u.Role != null && u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin" && u.Role.RoleName != "System Admin")
                 .OrderBy(u => u.UserId)
                 .ToListAsync();
             
@@ -94,13 +209,17 @@ namespace ERP_System.Controllers
                 .Where(r => r.RoleName != "Super Admin" && r.RoleName != "Admin" && r.RoleName != "System Admin")
                 .ToListAsync();
 
+            ViewBag.Departments = await _context.Departments.Where(d => d.IsActive).OrderBy(d => d.DepartmentName).ToListAsync();
+            ViewBag.Managers = await _context.Users.Include(u => u.Role).Where(u => u.IsActive && u.Role != null && u.Role.RoleName.Contains("Manager")).ToListAsync();
+            ViewBag.Branches = await _context.Branches.Where(b => b.IsActive).ToListAsync();
+
             return View("Directory", employees);
         }
 
         // POST: /HREmployee/EditEmployee
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditEmployee(int UserId, string FullName, string UserName, string Email, string? MobileNumber, int SelectedRoleId, IFormFile? NewProfilePhotoFile)
+        public async Task<IActionResult> EditEmployee(int UserId, string FullName, string UserName, string Email, string? MobileNumber, int SelectedRoleId, int? DepartmentId, string? DepartmentName, string? ReportingManagerId, string? ReportingManagerName, string? BranchName, IFormFile? NewProfilePhotoFile)
         {
             var emp = await _context.Users.FindAsync(UserId);
             if (emp != null)
@@ -111,6 +230,47 @@ namespace ERP_System.Controllers
                 emp.MobileNumber = MobileNumber;
                 emp.RoleId = SelectedRoleId;
                 emp.UpdatedAt = DateTime.Now;
+
+                // Department
+                if (DepartmentId.HasValue && DepartmentId.Value > 0)
+                {
+                    emp.DepartmentId = DepartmentId.Value;
+                    var dept = await _context.Departments.FindAsync(DepartmentId.Value);
+                    emp.DepartmentName = dept?.DepartmentName ?? DepartmentName;
+                }
+                else if (!string.IsNullOrWhiteSpace(DepartmentName))
+                {
+                    emp.DepartmentName = DepartmentName;
+                    var dept = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentName == DepartmentName);
+                    if (dept != null) emp.DepartmentId = dept.DepartmentId;
+                }
+
+                // Reporting Manager
+                if (!string.IsNullOrWhiteSpace(ReportingManagerId))
+                {
+                    emp.ReportingManagerId = ReportingManagerId;
+                    if (int.TryParse(ReportingManagerId, out int mgrId))
+                    {
+                        var mgr = await _context.Users.FindAsync(mgrId);
+                        emp.ReportingManagerName = mgr?.FullName ?? mgr?.UserName ?? ReportingManagerName;
+                    }
+                    else
+                    {
+                        emp.ReportingManagerName = ReportingManagerName;
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(ReportingManagerName))
+                {
+                    emp.ReportingManagerName = ReportingManagerName;
+                }
+
+                // Branch
+                if (!string.IsNullOrWhiteSpace(BranchName))
+                {
+                    emp.BranchName = BranchName;
+                    var branch = await _context.Branches.FirstOrDefaultAsync(b => b.BranchName == BranchName);
+                    if (branch != null) emp.BranchId = branch.BranchId;
+                }
 
                 // Handle file upload
                 if (NewProfilePhotoFile != null && NewProfilePhotoFile.Length > 0)

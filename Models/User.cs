@@ -70,5 +70,22 @@ namespace ERP_System.Models
 
         [ForeignKey("BranchId")]
         public Branch? Branch { get; set; }
+
+        public int? DepartmentId { get; set; }
+
+        [StringLength(150)]
+        public string? DepartmentName { get; set; }
+
+        [ForeignKey("DepartmentId")]
+        public Department? Department { get; set; }
+
+        [StringLength(50)]
+        public string? ReportingManagerId { get; set; }
+
+        [StringLength(150)]
+        public string? ReportingManagerName { get; set; }
+
+        [StringLength(150)]
+        public string? BranchName { get; set; }
     }
 }
