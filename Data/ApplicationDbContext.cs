@@ -28,6 +28,7 @@ namespace ERP_System.Data
         public DbSet<AccountHead> AccountHeads { get; set; }
         public DbSet<StockAdjustment> StockAdjustments { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<Designation> Designations { get; set; }
         public DbSet<RegionalConfiguration> RegionalConfigurations { get; set; }
         public DbSet<ImportLog> ImportLogs { get; set; }
@@ -124,6 +125,7 @@ namespace ERP_System.Data
             modelBuilder.Entity<FinancialYear>().ToTable("erp_FinancialYears");
             modelBuilder.Entity<AccountHead>().ToTable("erp_AccountHeads");
             modelBuilder.Entity<RolePermission>().ToTable("erp_RolePermissions");
+            modelBuilder.Entity<UserPermission>().ToTable("erp_UserPermissions");
             modelBuilder.Entity<StockAdjustment>().ToTable("erp_StockAdjustments");
             modelBuilder.Entity<Lead>().ToTable("erp_Leads");
             modelBuilder.Entity<Quotation>().ToTable("erp_Quotations");

@@ -13,14 +13,26 @@
         userCompany = _switcherContext.Companies.Where(c => c.CompanyId == loggedCompanyId).Select(c => c.CompanyName).FirstOrDefault() ?? "ERP Solutions Ltd";
     }
 
+    var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     var allowedModules = new List<string>();
     if (User.Identity?.IsAuthenticated == true)
     {
-        allowedModules = _switcherContext.RolePermissions
+        var roleModules = _switcherContext.RolePermissions
             .Include(p => p.Role)
-            .Where(p => p.Role != null && p.Role.RoleName == userRole && p.IsAllowed)
+            .Where(p => p.Role != null && p.Role.RoleName == userRole && (p.IsAllowed || p.CanView))
             .Select(p => p.ModuleName)
             .ToList();
+
+        var userSpecificModules = new List<string>();
+        if (int.TryParse(currentUserIdClaim, out int loggedUid))
+        {
+            userSpecificModules = _switcherContext.UserPermissions
+                .Where(up => up.UserId == loggedUid && (up.IsAllowed || up.CanView))
+                .Select(up => up.ModuleName)
+                .ToList();
+        }
+
+        allowedModules = roleModules.Union(userSpecificModules).Distinct().ToList();
     }
 
     bool isMasterAdmin = userRole == "Super Admin" || userRole == "Admin";
@@ -32,19 +44,18 @@
     bool showCustomerMgmt = isMasterAdmin || allowedModules.Contains("CustomerManagement") || allowedModules.Contains("SalesCRM_CustomerDirectory");
     bool showSupplierMgmt = isMasterAdmin || allowedModules.Contains("SupplierManagement") || allowedModules.Contains("SupplyChain_PurchaseOrders");
     bool showProductMgmt = isMasterAdmin || allowedModules.Contains("ProductManagement") || allowedModules.Contains("SupplyChain_InventoryStock");
-    bool showInventoryMgmt = isMasterAdmin || allowedModules.Contains("InventoryManagement") || allowedModules.Contains("SupplyChain_InventoryStock");
+    bool showInventoryMgmt = isMasterAdmin || allowedModules.Contains("InventoryManagement") || allowedModules.Contains("SupplyChain_InventoryStock") || allowedModules.Contains("SupplyChain_GoodsReceipt");
     bool showPurchaseMgmt = isMasterAdmin || allowedModules.Contains("PurchaseManagement") || allowedModules.Contains("SupplyChain_PurchaseOrders");
-    bool showSalesMgmt = isMasterAdmin || allowedModules.Contains("SalesManagement") || allowedModules.Contains("SalesCRM_OrdersInvoicing");
+    bool showSalesMgmt = isMasterAdmin || allowedModules.Contains("SalesManagement") || allowedModules.Contains("SalesCRM_OrdersInvoicing") || allowedModules.Contains("SalesCRM_QuotationsEstimates");
     bool showExpenseMgmt = isMasterAdmin || allowedModules.Contains("ExpenseManagement") || allowedModules.Contains("FinanceAccounts_GeneralLedger");
     bool showAccounting = isMasterAdmin || allowedModules.Contains("Accounting") || allowedModules.Contains("FinanceAccounts_GeneralLedger");
-    bool showHRMgmt = isMasterAdmin || allowedModules.Contains("HRManagement") || allowedModules.Contains("HRManagement_DailyAttendance");
+    bool showHRMgmt = isMasterAdmin || allowedModules.Contains("HRManagement") || allowedModules.Contains("HRManagement_DailyAttendance") || allowedModules.Contains("HRManagement_LeaveRequests") || allowedModules.Contains("HRManagement_MonthlyPayroll") || allowedModules.Contains("HRManagement_EmployeeDirectory");
     bool showReports = isMasterAdmin || allowedModules.Contains("Reports") || allowedModules.Contains("FinanceAccounts_ReportsTax");
     bool showSettings = isMasterAdmin || allowedModules.Contains("Settings");
 
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Dashboard";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
 
-    var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     string? userProfilePhoto = null;
     if (int.TryParse(currentUserIdClaim, out int loggedUserId))
     {
@@ -1069,6 +1080,121 @@
                             <span>Raise Support Ticket</span>
                         </div>
                     </a>
+
+                    @if (showHRMgmt || showEmployeeMgmt)
+                    {
+                        <div class="menu-title font-bold text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.45); padding: 0.75rem 1rem 0.25rem; letter-spacing: 0.5px;">HR Operations</div>
+                        @if (allowedModules.Contains("HRManagement_EmployeeDirectory") || allowedModules.Contains("EmployeeManagement"))
+                        {
+                            <a href="/HREmployee/Directory" class="menu-link @(currentController == "HREmployee" && currentAction == "Directory" ? "active" : "")">
+                                <div><i class="fa-solid fa-users menu-icon"></i><span>Employee Directory</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("HRManagement_DailyAttendance"))
+                        {
+                            <a href="/HRAttendance/DailyLogs" class="menu-link @(currentController == "HRAttendance" ? "active" : "")">
+                                <div><i class="fa-solid fa-calendar-check menu-icon"></i><span>Attendance Logs</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("HRManagement_LeaveRequests"))
+                        {
+                            <a href="/HRLeave/Requests" class="menu-link @(currentController == "HRLeave" ? "active" : "")">
+                                <div><i class="fa-solid fa-umbrella-beach menu-icon"></i><span>Leave Approvals</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("HRManagement_MonthlyPayroll"))
+                        {
+                            <a href="/HRPayroll/PayrollProcessing" class="menu-link @(currentController == "HRPayroll" ? "active" : "")">
+                                <div><i class="fa-solid fa-file-invoice-dollar menu-icon"></i><span>Payroll Processing</span></div>
+                            </a>
+                        }
+                    }
+
+                    @if (showInventoryMgmt || showProductMgmt || showPurchaseMgmt)
+                    {
+                        <div class="menu-title font-bold text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.45); padding: 0.75rem 1rem 0.25rem; letter-spacing: 0.5px;">Warehouse & Supply Chain</div>
+                        @if (allowedModules.Contains("SupplyChain_InventoryStock") || allowedModules.Contains("InventoryManagement") || allowedModules.Contains("ProductManagement"))
+                        {
+                            <a href="/InvCatalog/Items" class="menu-link @(currentController == "InvCatalog" ? "active" : "")">
+                                <div><i class="fa-solid fa-boxes-stacked menu-icon"></i><span>Items & Stock</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("SupplyChain_PurchaseOrders") || allowedModules.Contains("PurchaseManagement"))
+                        {
+                            <a href="/PurchaseOrders" class="menu-link @(currentController == "PurchaseOrders" || currentController == "PurchaseManagement" ? "active" : "")">
+                                <div><i class="fa-solid fa-file-signature menu-icon"></i><span>Purchase Orders</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("SupplyChain_GoodsReceipt"))
+                        {
+                            <a href="/GoodsReceipt" class="menu-link @(currentController == "GoodsReceipt" ? "active" : "")">
+                                <div><i class="fa-solid fa-clipboard-check menu-icon"></i><span>Goods Receipt (GRN)</span></div>
+                            </a>
+                        }
+                    }
+
+                    @if (showSalesMgmt || showCustomerMgmt)
+                    {
+                        <div class="menu-title font-bold text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.45); padding: 0.75rem 1rem 0.25rem; letter-spacing: 0.5px;">Sales & CRM</div>
+                        @if (allowedModules.Contains("SalesCRM_CustomerDirectory") || allowedModules.Contains("CustomerManagement"))
+                        {
+                            <a href="/Customers" class="menu-link @(currentController == "Customers" ? "active" : "")">
+                                <div><i class="fa-solid fa-address-book menu-icon"></i><span>Customer Directory</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("SalesCRM_QuotationsEstimates"))
+                        {
+                            <a href="/SalesManagement/Quotations" class="menu-link @(currentController == "SalesManagement" && currentAction == "Quotations" ? "active" : "")">
+                                <div><i class="fa-solid fa-calculator menu-icon"></i><span>Quotations</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("SalesCRM_OrdersInvoicing") || allowedModules.Contains("SalesManagement"))
+                        {
+                            <a href="/Sales" class="menu-link @(currentController == "Sales" ? "active" : "")">
+                                <div><i class="fa-solid fa-receipt menu-icon"></i><span>Sales & Orders</span></div>
+                            </a>
+                        }
+                    }
+
+                    @if (showAccounting || showExpenseMgmt || showReports)
+                    {
+                        <div class="menu-title font-bold text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.45); padding: 0.75rem 1rem 0.25rem; letter-spacing: 0.5px;">Finance & Accounts</div>
+                        @if (allowedModules.Contains("FinanceAccounts_GeneralLedger") || allowedModules.Contains("Accounting") || allowedModules.Contains("ExpenseManagement"))
+                        {
+                            <a href="/Finance/Ledger" class="menu-link @(currentController == "Finance" && currentAction == "Ledger" ? "active" : "")">
+                                <div><i class="fa-solid fa-book-open menu-icon"></i><span>General Ledger & JV</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("FinanceAccounts_ReportsTax") || allowedModules.Contains("Reports"))
+                        {
+                            <a href="/FinanceReports" class="menu-link @(currentController == "FinanceReports" ? "active" : "")">
+                                <div><i class="fa-solid fa-chart-pie menu-icon"></i><span>Financial Reports</span></div>
+                            </a>
+                        }
+                    }
+
+                    @if (showCompany || showBranchMgmt || showUserMgmt || showSettings)
+                    {
+                        <div class="menu-title font-bold text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.45); padding: 0.75rem 1rem 0.25rem; letter-spacing: 0.5px;">Administration</div>
+                        @if (allowedModules.Contains("UserManagement"))
+                        {
+                            <a href="/UserManagement" class="menu-link @(currentController == "UserManagement" ? "active" : "")">
+                                <div><i class="fa-solid fa-user-shield menu-icon"></i><span>User Accounts</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("Company"))
+                        {
+                            <a href="/Company" class="menu-link @(currentController == "Company" ? "active" : "")">
+                                <div><i class="fa-solid fa-building menu-icon"></i><span>Company Settings</span></div>
+                            </a>
+                        }
+                        @if (allowedModules.Contains("BranchManagement"))
+                        {
+                            <a href="/Branches" class="menu-link @(currentController == "Branches" ? "active" : "")">
+                                <div><i class="fa-solid fa-code-branch menu-icon"></i><span>Branch Operations</span></div>
+                            </a>
+                        }
+                    }
                 }
                 else if (userRole == "Inventory Manager")
                 {

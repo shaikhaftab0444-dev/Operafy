@@ -213,6 +213,77 @@ namespace ERP_System.Controllers
             }
             return RedirectToAction(nameof(Locks));
         }
+
+        // POST: /AdminUser/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "User not found in the database." });
+
+                TempData["ErrorMessage"] = "User not found in the database.";
+                return RedirectToAction(nameof(Directory));
+            }
+
+            // Safety check: protect system root Super Admin
+            if (user.UserId == 1 || (user.UserCode == "USR001" && user.Email == "admin@erp.com"))
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "Primary Super Admin account is protected and cannot be deleted." });
+
+                TempData["ErrorMessage"] = "Primary Super Admin account is protected and cannot be deleted.";
+                return RedirectToAction(nameof(Directory));
+            }
+
+            try
+            {
+                // Cascade clean-up related records if any
+                var userPermissions = _context.UserPermissions.Where(p => p.UserId == id);
+                if (userPermissions.Any()) _context.UserPermissions.RemoveRange(userPermissions);
+
+                var punches = _context.ESSPunches.Where(p => p.UserId == id);
+                if (punches.Any()) _context.ESSPunches.RemoveRange(punches);
+
+                var leaves = _context.ESSLeaveApplications.Where(l => l.UserId == id);
+                if (leaves.Any()) _context.ESSLeaveApplications.RemoveRange(leaves);
+
+                var tasks = _context.ESSTasks.Where(t => t.UserId == id);
+                if (tasks.Any()) _context.ESSTasks.RemoveRange(tasks);
+
+                var expenses = _context.ESSExpenseClaims.Where(e => e.UserId == id);
+                if (expenses.Any()) _context.ESSExpenseClaims.RemoveRange(expenses);
+
+                var tickets = _context.ESSSupportTickets.Where(s => s.UserId == id);
+                if (tickets.Any()) _context.ESSSupportTickets.RemoveRange(tickets);
+
+                var salaryAssignments = _context.EmployeeSalaryAssignments.Where(a => a.UserId == id);
+                if (salaryAssignments.Any()) _context.EmployeeSalaryAssignments.RemoveRange(salaryAssignments);
+
+                var attendanceLogs = _context.HRAttendanceLogs.Where(a => a.UserId == id);
+                if (attendanceLogs.Any()) _context.HRAttendanceLogs.RemoveRange(attendanceLogs);
+
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = true, message = $"User '{user.FullName}' ({user.UserCode ?? "ID: " + user.UserId}) was permanently deleted." });
+
+                TempData["SuccessMessage"] = $"User '{user.FullName}' was deleted successfully.";
+            }
+            catch (Exception ex)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = $"Failed to delete user: {ex.Message}" });
+
+                TempData["ErrorMessage"] = $"Failed to delete user: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Directory));
+        }
     }
 
     public class AdminUserAddEditViewModel
