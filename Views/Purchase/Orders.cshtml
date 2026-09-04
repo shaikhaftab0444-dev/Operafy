@@ -1,0 +1,2062 @@
+@model List<ERP_System.Models.PurchaseOrderItem>
+
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Purchase Orders (PO) - NetSuite Lifecycle Tracker";
+}
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+    /* =========================================================
+           PURCHASE ORDER REGISTRY
+           Premium ERP UI
+           ========================================================= */
+
+    :root {
+        --po-primary: #2563eb;
+        --po-primary-dark: #1d4ed8;
+        --po-primary-soft: #eff6ff;
+        --po-info: #0891b2;
+        --po-info-soft: #ecfeff;
+        --po-success: #16a34a;
+        --po-success-soft: #f0fdf4;
+        --po-warning: #d97706;
+        --po-warning-soft: #fffbeb;
+        --po-danger: #dc2626;
+        --po-danger-soft: #fef2f2;
+        --po-text: #172033;
+        --po-muted: #64748b;
+        --po-border: #e5e7eb;
+        --po-bg: #f6f8fc;
+        --po-white: #ffffff;
+        --po-shadow: 0 10px 35px rgba(15, 23, 42, .06);
+        --po-shadow-hover: 0 18px 45px rgba(15, 23, 42, .10);
+    }
+
+    /* =========================================================
+           PAGE
+           ========================================================= */
+
+    .po-page {
+        min-height: 100vh;
+        background: radial-gradient( circle at top right, rgba(37, 99, 235, .055), transparent 30% ), radial-gradient( circle at bottom left, rgba(8, 145, 178, .04), transparent 28% ), var(--po-bg);
+        padding-bottom: 50px;
+    }
+
+    .po-container {
+        max-width: 1800px;
+        margin: 0 auto;
+    }
+
+    /* =========================================================
+           HEADER
+           ========================================================= */
+
+    .po-header {
+        position: relative;
+        background: var(--po-white);
+        border: 1px solid var(--po-border);
+        border-radius: 20px;
+        padding: 24px 26px;
+        margin-bottom: 20px;
+        box-shadow: var(--po-shadow);
+        overflow: hidden;
+        animation: poFadeUp .45s ease both;
+    }
+
+        .po-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient( 90deg, #2563eb, #0891b2, #6366f1 );
+        }
+
+    .po-header-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .po-breadcrumb {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 12px;
+    }
+
+        .po-breadcrumb a {
+            color: var(--po-muted);
+            text-decoration: none;
+            transition: color .2s ease;
+        }
+
+            .po-breadcrumb a:hover {
+                color: var(--po-primary);
+            }
+
+    .po-breadcrumb-separator {
+        color: #cbd5e1;
+    }
+
+    .po-system-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: var(--po-info-soft);
+        color: var(--po-info);
+        border: 1px solid #cffafe;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .04em;
+    }
+
+    .po-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 25px;
+    }
+
+    .po-title-wrapper {
+        min-width: 0;
+    }
+
+    .po-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+        color: var(--po-text);
+        font-size: clamp(1.35rem, 2vw, 1.85rem);
+        font-weight: 800;
+        letter-spacing: -.035em;
+        line-height: 1.2;
+    }
+
+    .po-title-icon {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        background: linear-gradient( 135deg, #0891b2, #2563eb );
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(8, 145, 178, .22);
+    }
+
+    .po-subtitle {
+        color: var(--po-muted);
+        font-size: 13px;
+        line-height: 1.6;
+        margin: 9px 0 0 56px;
+        max-width: 850px;
+    }
+
+    .po-header-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 9px;
+        flex-shrink: 0;
+    }
+
+    .po-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 38px;
+        padding: 8px 15px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        transition: all .22s ease;
+        white-space: nowrap;
+    }
+
+    .po-btn-dashboard {
+        color: #475569;
+        background: #fff;
+        border: 1px solid #dbe1ea;
+    }
+
+        .po-btn-dashboard:hover {
+            color: var(--po-primary);
+            border-color: #bfdbfe;
+            background: #f8fbff;
+            transform: translateY(-1px);
+        }
+
+    .po-btn-export {
+        color: #fff;
+        background: linear-gradient( 135deg, #0891b2, #0e7490 );
+        border: 1px solid #0891b2;
+        box-shadow: 0 7px 18px rgba(8, 145, 178, .18);
+    }
+
+        .po-btn-export:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 11px 24px rgba(8, 145, 178, .25);
+        }
+
+    /* =========================================================
+           KPI CARDS
+           ========================================================= */
+
+    .po-kpi-card {
+        position: relative;
+        height: 100%;
+        background: var(--po-white);
+        border: 1px solid var(--po-border);
+        border-radius: 17px;
+        padding: 18px;
+        box-shadow: var(--po-shadow);
+        overflow: hidden;
+        transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+        animation: poFadeUp .5s ease both;
+    }
+
+        .po-kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--po-shadow-hover);
+            border-color: #d9e1ec;
+        }
+
+        .po-kpi-card::after {
+            content: "";
+            position: absolute;
+            width: 95px;
+            height: 95px;
+            right: -42px;
+            top: -42px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .035);
+        }
+
+    .po-kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .po-kpi-label {
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .075em;
+        text-transform: uppercase;
+    }
+
+    .po-kpi-icon {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        font-size: 14px;
+    }
+
+    .po-kpi-primary .po-kpi-icon {
+        color: var(--po-primary);
+        background: var(--po-primary-soft);
+    }
+
+    .po-kpi-info .po-kpi-icon {
+        color: var(--po-info);
+        background: var(--po-info-soft);
+    }
+
+    .po-kpi-success .po-kpi-icon {
+        color: var(--po-success);
+        background: var(--po-success-soft);
+    }
+
+    .po-kpi-warning .po-kpi-icon {
+        color: var(--po-warning);
+        background: var(--po-warning-soft);
+    }
+
+    .po-kpi-value {
+        position: relative;
+        z-index: 1;
+        color: var(--po-text);
+        font-size: 21px;
+        font-weight: 800;
+        letter-spacing: -.025em;
+        margin-top: 13px;
+        line-height: 1.25;
+    }
+
+    .po-kpi-meta {
+        color: #94a3b8;
+        font-size: 11px;
+        margin-top: 7px;
+        line-height: 1.45;
+    }
+
+    /* =========================================================
+           MONEY
+           ========================================================= */
+
+    .compact-money {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        color: #172033;
+        font-weight: 800;
+        cursor: help;
+        border-bottom: 1px dashed #cbd5e1;
+        line-height: 1.4;
+    }
+
+        .compact-money:hover {
+            color: var(--po-primary);
+            border-bottom-color: #93c5fd;
+        }
+
+    /* =========================================================
+           REGISTRY CARD
+           ========================================================= */
+
+    .po-registry-card {
+        background: var(--po-white);
+        border: 1px solid var(--po-border);
+        border-radius: 19px;
+        box-shadow: var(--po-shadow);
+        overflow: hidden;
+        animation: poFadeUp .6s ease both;
+    }
+
+    .po-registry-header {
+        padding: 20px 22px;
+        border-bottom: 1px solid #edf0f4;
+        background: linear-gradient( 180deg, #fff, #fcfdff );
+    }
+
+    .po-registry-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .po-registry-heading-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--po-info);
+        background: var(--po-info-soft);
+    }
+
+    .po-registry-title {
+        color: var(--po-text);
+        font-size: 15px;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .po-registry-description {
+        color: #94a3b8;
+        font-size: 11px;
+        margin: 3px 0 0;
+    }
+
+    .po-registry-tools {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    /* =========================================================
+           SEARCH
+           ========================================================= */
+
+    .po-search-wrapper {
+        position: relative;
+        width: 285px;
+    }
+
+        .po-search-wrapper > i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+    .po-search-input {
+        width: 100%;
+        height: 39px;
+        padding: 8px 36px 8px 36px;
+        border: 1px solid #dbe1e8;
+        border-radius: 10px;
+        outline: none;
+        color: #334155;
+        background: #fff;
+        font-size: 12px;
+        transition: all .2s ease;
+    }
+
+        .po-search-input::placeholder {
+            color: #a0aec0;
+        }
+
+        .po-search-input:focus {
+            border-color: #67e8f9;
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, .08);
+        }
+
+    .po-search-clear {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 25px;
+        height: 25px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #94a3b8;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+        .po-search-clear:hover {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+    .po-result-count {
+        color: #94a3b8;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+           TABLE
+           ========================================================= */
+
+    .po-table-container {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+    }
+
+        .po-table-container::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .po-table-container::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+
+        .po-table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 20px;
+        }
+
+    .po-table {
+        width: 100%;
+        min-width: 1050px;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 0;
+    }
+
+        .po-table thead th {
+            padding: 12px 15px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .055em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .po-table tbody td {
+            padding: 15px;
+            border-bottom: 1px solid #edf1f5;
+            color: #475569;
+            font-size: 12px;
+            vertical-align: middle;
+            background: #fff;
+        }
+
+        .po-table tbody tr {
+            transition: background .18s ease, box-shadow .18s ease;
+        }
+
+            .po-table tbody tr:hover td {
+                background: #f8fbff;
+            }
+
+            .po-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    /* =========================================================
+           PO NUMBER
+           ========================================================= */
+
+    .po-number {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 9px;
+        border-radius: 8px;
+        background: var(--po-primary-soft);
+        color: var(--po-primary);
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+           VENDOR
+           ========================================================= */
+
+    .po-vendor-name {
+        display: block;
+        color: var(--po-text);
+        font-weight: 700;
+        line-height: 1.4;
+        margin-bottom: 3px;
+    }
+
+    .po-vendor-meta {
+        color: #94a3b8;
+        font-size: 10px;
+        font-weight: 600;
+    }
+
+    /* =========================================================
+           ITEM COUNT
+           ========================================================= */
+
+    .po-items-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border-radius: 8px;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+           STATUS BADGES
+           ========================================================= */
+
+    .po-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .po-status-transit {
+        color: #0e7490;
+        background: var(--po-info-soft);
+        border: 1px solid #a5f3fc;
+    }
+
+    .po-status-confirmed {
+        color: #1d4ed8;
+        background: var(--po-primary-soft);
+        border: 1px solid #bfdbfe;
+    }
+
+    .po-status-delivered {
+        color: #15803d;
+        background: var(--po-success-soft);
+        border: 1px solid #bbf7d0;
+    }
+
+    /* =========================================================
+           PAYMENT TERMS
+           ========================================================= */
+
+    .po-payment-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+           VIEW BUTTON
+           ========================================================= */
+
+    .po-view-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 33px;
+        padding: 6px 11px;
+        border-radius: 8px;
+        color: #475569;
+        background: #fff;
+        border: 1px solid #dbe1e8;
+        font-size: 10px;
+        font-weight: 800;
+        transition: all .2s ease;
+        white-space: nowrap;
+    }
+
+        .po-view-btn:hover {
+            color: var(--po-primary);
+            background: var(--po-primary-soft);
+            border-color: #bfdbfe;
+            transform: translateY(-1px);
+        }
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .po-empty-state {
+        padding: 55px 20px;
+        text-align: center;
+    }
+
+    .po-empty-icon {
+        width: 62px;
+        height: 62px;
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 17px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 23px;
+    }
+
+    .po-empty-state h6 {
+        color: #334155;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+
+    .po-empty-state p {
+        color: #94a3b8;
+        font-size: 12px;
+        margin: 0;
+    }
+
+    /* =========================================================
+           FOOTER
+           ========================================================= */
+
+    .po-registry-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 12px 18px;
+        background: #fafbfc;
+        border-top: 1px solid #edf1f5;
+        color: #94a3b8;
+        font-size: 10px;
+    }
+
+    .po-footer-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .po-footer-item i {
+            color: #64748b;
+        }
+
+    /* =========================================================
+           ANIMATIONS
+           ========================================================= */
+
+    @@keyframes poFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 1199.98px) {
+
+        .po-title-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .po-header-actions {
+            justify-content: flex-start;
+        }
+
+        .po-search-wrapper {
+            width: 260px;
+        }
+    }
+
+    @@media (max-width: 991.98px) {
+
+        .po-header {
+            padding: 20px;
+        }
+
+        .po-registry-header {
+            padding: 18px;
+        }
+
+            .po-registry-header > .d-flex {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+
+        .po-registry-tools {
+            width: 100%;
+        }
+
+        .po-search-wrapper {
+            width: 100%;
+        }
+
+        .po-result-count {
+            display: none;
+        }
+
+        .po-kpi-value {
+            font-size: 19px;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+
+        .po-page {
+            padding-bottom: 30px;
+        }
+
+        .po-container {
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
+
+        .po-header {
+            border-radius: 15px;
+            padding: 17px;
+            margin-bottom: 15px;
+        }
+
+        .po-title {
+            font-size: 1.28rem;
+        }
+
+        .po-title-icon {
+            width: 39px;
+            height: 39px;
+            flex-basis: 39px;
+            border-radius: 11px;
+        }
+
+        .po-subtitle {
+            margin-left: 0;
+            margin-top: 9px;
+            font-size: 12px;
+        }
+
+        .po-header-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 100%;
+        }
+
+        .po-btn {
+            width: 100%;
+        }
+
+        .po-registry-card {
+            border-radius: 15px;
+        }
+
+        .po-registry-tools {
+            display: block;
+        }
+
+        .po-search-wrapper {
+            width: 100%;
+        }
+
+        .po-table thead th,
+        .po-table tbody td {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+        .po-registry-footer {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 7px;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+
+        .po-header {
+            padding: 15px;
+        }
+
+        .po-breadcrumb {
+            font-size: 10px;
+        }
+
+        .po-system-badge {
+            font-size: 9px;
+            padding: 4px 8px;
+        }
+
+        .po-title {
+            font-size: 1.15rem;
+            gap: 9px;
+        }
+
+        .po-title-icon {
+            width: 35px;
+            height: 35px;
+            flex-basis: 35px;
+            font-size: 13px;
+        }
+
+        .po-header-actions {
+            grid-template-columns: 1fr;
+        }
+
+        .po-kpi-card {
+            padding: 15px;
+            border-radius: 14px;
+        }
+
+        .po-kpi-value {
+            font-size: 18px;
+        }
+
+        .po-registry-header {
+            padding: 15px;
+        }
+
+        .po-registry-title {
+            font-size: 14px;
+        }
+
+        .po-registry-description {
+            font-size: 10px;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+
+        *,
+        *::before,
+        *::after {
+            animation-duration: .01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: .01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+
+    /* =========================================================
+           PRINT
+           ========================================================= */
+
+    @@media print {
+
+        .po-page {
+            background: #fff !important;
+            padding: 0 !important;
+        }
+
+        .po-header,
+        .po-kpi-card,
+        .po-registry-card {
+            box-shadow: none !important;
+        }
+
+        .po-header-actions,
+        .po-registry-tools,
+        .po-registry-footer {
+            display: none !important;
+        }
+
+        .po-header,
+        .po-kpi-card,
+        .po-registry-card {
+            border: 1px solid #ddd !important;
+        }
+
+        .po-table {
+            min-width: 100% !important;
+        }
+
+        .po-table-container {
+            overflow: visible !important;
+        }
+    }
+</style>
+
+
+<div class="po-page">
+
+    <div class="container-fluid px-2 px-md-4 pt-3 pt-md-4 po-container">
+
+        <!-- =====================================================
+             HEADER
+             ===================================================== -->
+
+        <div class="po-header">
+
+            <div class="po-header-content">
+
+                <div class="po-breadcrumb">
+
+                    <a href="@Url.Action("Index", "Purchase")">
+                        <i class="fa fa-arrow-left me-1"></i>
+                        Control Hub
+                    </a>
+
+                    <span class="po-breadcrumb-separator">/</span>
+
+                    <span class="po-system-badge">
+                        <i class="fa fa-boxes-stacked"></i>
+                        NetSuite PO Fulfillment Suite
+                    </span>
+
+                </div>
+
+
+                <div class="po-title-row">
+
+                    <div class="po-title-wrapper">
+
+                        <h1 class="po-title">
+
+                            <span class="po-title-icon">
+                                <i class="fa fa-file-invoice"></i>
+                            </span>
+
+                            <span>
+                                Purchase Orders Registry
+                            </span>
+
+                        </h1>
+
+                        <p class="po-subtitle">
+                            Monitor supplier purchase orders, dispatch commitments,
+                            shipping progress, delivery milestones, and payment terms
+                            from one centralized procurement workspace.
+                        </p>
+
+                    </div>
+
+
+                    <div class="po-header-actions">
+
+                        <a href="@Url.Action("Index", "Purchase")"
+                           class="btn po-btn po-btn-dashboard">
+
+                            <i class="fa fa-gauge"></i>
+                            Dashboard
+
+                        </a>
+
+
+                        <div class="d-flex gap-2">
+                            <a href="@Url.Action("ExportPOLedger", "Purchase")"
+                               class="btn po-btn po-btn-export text-decoration-none">
+                                <i class="fa fa-file-arrow-down me-1"></i>
+                                Export PO Ledger (CSV)
+                            </a>
+                            <button type="button"
+                                    class="btn po-btn po-btn-dashboard"
+                                    onclick="window.print()">
+                                <i class="fa fa-print"></i>
+                                Print
+                            </button>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             KPI CARDS
+             ===================================================== -->
+
+        <div class="row g-3 mb-4">
+
+            <!-- Total Value -->
+            <div class="col-12 col-sm-6 col-lg-3">
+
+                <div class="po-kpi-card po-kpi-primary">
+
+                    <div class="po-kpi-top">
+
+                        <div class="po-kpi-label">
+                            Total Dispatched Value
+                        </div>
+
+                        <div class="po-kpi-icon">
+                            <i class="fa fa-indian-rupee-sign"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="po-kpi-value">
+
+                        <span class="compact-money"
+                              data-value="1807000">
+                        </span>
+
+                    </div>
+
+                    <div class="po-kpi-meta">
+                        <i class="fa fa-file-invoice me-1"></i>
+                        Across @Model.Count Active Purchase Orders
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- In Transit -->
+            <div class="col-12 col-sm-6 col-lg-3">
+
+                <div class="po-kpi-card po-kpi-info">
+
+                    <div class="po-kpi-top">
+
+                        <div class="po-kpi-label">
+                            In Transit Shipments
+                        </div>
+
+                        <div class="po-kpi-icon">
+                            <i class="fa fa-truck-fast"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="po-kpi-value">
+                        @Model.Count(p => p.Status == "In Transit") Shipments
+                    </div>
+
+                    <div class="po-kpi-meta">
+                        <i class="fa fa-location-crosshairs me-1"></i>
+                        Active GPS courier telemetry
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Delivered -->
+            <div class="col-12 col-sm-6 col-lg-3">
+
+                <div class="po-kpi-card po-kpi-success">
+
+                    <div class="po-kpi-top">
+
+                        <div class="po-kpi-label">
+                            Delivered &amp; 3-Way Matched
+                        </div>
+
+                        <div class="po-kpi-icon">
+                            <i class="fa fa-circle-check"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="po-kpi-value">
+                        @Model.Count(p => p.Status == "Delivered") Completed
+                    </div>
+
+                    <div class="po-kpi-meta">
+                        <i class="fa fa-check-double me-1"></i>
+                        Cleared for AP payment
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Confirmed -->
+            <div class="col-12 col-sm-6 col-lg-3">
+
+                <div class="po-kpi-card po-kpi-warning">
+
+                    <div class="po-kpi-top">
+
+                        <div class="po-kpi-label">
+                            Confirmed Pending Dispatch
+                        </div>
+
+                        <div class="po-kpi-icon">
+                            <i class="fa fa-clock"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="po-kpi-value">
+                        @Model.Count(p => p.Status == "Confirmed") Orders
+                    </div>
+
+                    <div class="po-kpi-meta">
+                        <i class="fa fa-industry me-1"></i>
+                        Factory assembly stage
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             PO REGISTRY
+             ===================================================== -->
+
+        <div class="po-registry-card">
+
+            <!-- Registry Header -->
+            <div class="po-registry-header">
+
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+
+                    <div class="po-registry-heading">
+
+                        <div class="po-registry-heading-icon">
+                            <i class="fa fa-table-list"></i>
+                        </div>
+
+                        <div>
+
+                            <h2 class="po-registry-title">
+                                Purchase Order Directory
+                            </h2>
+
+                            <p class="po-registry-description">
+                                Supplier commitments and fulfillment lifecycle
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="po-registry-tools">
+
+                        <div class="po-search-wrapper">
+
+                            <i class="fa fa-search"></i>
+
+                            <input type="text"
+                                   id="poSearch"
+                                   class="po-search-input"
+                                   placeholder="Search PO#, vendor, status..."
+                                   autocomplete="off"
+                                   onkeyup="filterPOTable()" />
+
+                            <button type="button"
+                                    id="poSearchClear"
+                                    class="po-search-clear"
+                                    onclick="clearPOSearch()"
+                                    title="Clear search">
+
+                                <i class="fa fa-xmark"></i>
+
+                            </button>
+
+                        </div>
+
+
+                        <span id="poResultCount"
+                              class="po-result-count">
+
+                            @Model.Count
+                            order@(Model.Count == 1 ? "" : "s")
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 TABLE
+                 ================================================= -->
+
+            <div class="po-table-container">
+
+                <table class="po-table"
+                       id="poDataTable">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                PO Number
+                            </th>
+
+                            <th>
+                                Vendor Partner
+                            </th>
+
+                            <th>
+                                Items Count
+                            </th>
+
+                            <th>
+                                PO Value
+                            </th>
+
+                            <th>
+                                Order Date
+                            </th>
+
+                            <th>
+                                Shipping Status
+                            </th>
+
+                            <th>
+                                Payment Terms
+                            </th>
+
+                            <th class="text-end">
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var po in Model)
+                            {
+                                <tr>
+
+                                    <!-- PO Number -->
+                                    <td>
+
+                                        <span class="po-number">
+                                            <i class="fa fa-file-lines me-1"></i>
+                                            @po.PONumber
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Vendor -->
+                                    <td>
+
+                                        <span class="po-vendor-name">
+                                            @po.VendorName
+                                        </span>
+
+                                        <span class="po-vendor-meta">
+                                            <i class="fa fa-circle-check me-1"></i>
+                                            GSTIN Verified Partner
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Items -->
+                                    <td>
+
+                                        <span class="po-items-badge">
+
+                                            <i class="fa fa-list"></i>
+
+                                            @po.ItemsCount
+                                            Line Item@(po.ItemsCount == 1 ? "" : "s")
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- PO Value -->
+                                    <td>
+
+                                        <span class="compact-money"
+                                              data-value="@po.TotalAmount">
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Order Date -->
+                                    <td>
+
+                                        <span class="text-muted">
+                                            <i class="fa fa-calendar-days me-1"></i>
+                                            @po.OrderDate
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Status -->
+                                    <td>
+
+                                        @if (po.Status == "In Transit")
+                                        {
+                                            <span class="po-status po-status-transit">
+
+                                                <i class="fa fa-truck-fast"></i>
+
+                                                In Transit
+
+                                            </span>
+                                        }
+                                        else if (po.Status == "Confirmed")
+                                        {
+                                            <span class="po-status po-status-confirmed">
+
+                                                <i class="fa fa-circle-check"></i>
+
+                                                Confirmed
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="po-status po-status-delivered">
+
+                                                <i class="fa fa-box-open"></i>
+
+                                                Delivered
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    <!-- Payment Terms -->
+                                    <td>
+
+                                        <span class="po-payment-badge">
+
+                                            <i class="fa fa-credit-card me-1"></i>
+
+                                            @po.PaymentTerms
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- Actions -->
+                                    <td class="text-end">
+
+                                        <button type="button"
+                                                class="btn po-view-btn"
+                                                onclick="viewPODetails('@po.PONumber', '@po.VendorName', '@po.ItemsCount', '@po.TotalAmount', '@po.OrderDate', '@po.Status', '@po.PaymentTerms')">
+
+                                            <i class="fa fa-eye"></i>
+
+                                            View
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr id="poEmptyRow">
+
+                                <td colspan="8">
+
+                                    <div class="po-empty-state">
+
+                                        <div class="po-empty-icon">
+                                            <i class="fa fa-file-circle-xmark"></i>
+                                        </div>
+
+                                        <h6>
+                                            No Purchase Orders Found
+                                        </h6>
+
+                                        <p>
+                                            There are currently no purchase orders available
+                                            in the registry.
+                                        </p>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- Footer -->
+            <div class="po-registry-footer">
+
+                <div class="po-footer-item">
+
+                    <i class="fa fa-circle-info"></i>
+
+                    <span>
+                        Hover over monetary values to view the exact Indian-formatted amount.
+                    </span>
+
+                </div>
+
+
+                <div class="po-footer-item">
+
+                    <i class="fa fa-arrows-left-right"></i>
+
+                    <span>
+                        Scroll horizontally on smaller screens to view all PO columns.
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ==========================================================================
+     MODAL: PURCHASE ORDER (PO) OFFICIAL VOUCHER SLIP
+     ========================================================================== -->
+<div class="modal fade" id="poDetailsModal" tabindex="-1" aria-labelledby="poDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+            <div class="modal-header bg-light border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1">SAP MM / PO VOUCHER</span>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="poDetailsModalLabel">
+                        <i class="fa fa-file-invoice text-primary me-2"></i> Purchase Order Details & Slip
+                    </h5>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="printPODetails()">
+                        <i class="fa fa-print me-1"></i> Print PO Slip
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <div class="modal-body p-4" id="printablePOArea">
+                <div class="p-3 border rounded-3 bg-white mb-3 shadow-sm">
+                    <!-- PO Slip Header -->
+                    <div class="row align-items-center mb-3 pb-3 border-bottom g-2">
+                        <div class="col-sm-7">
+                            <h4 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-layer-group text-primary"></i> Operafy ERP Systems Ltd
+                            </h4>
+                            <div class="text-muted small">Central Corporate Procurement & Supply Chain Division</div>
+                            <div class="text-muted extra-small" style="font-size: 0.72rem;">Operafy Tower, Sector 4, Silicon Boulevard, Bangalore - 560100 | GSTIN: 29AAACE9912K1Z9</div>
+                        </div>
+                        <div class="col-sm-5 text-sm-end">
+                            <div class="badge bg-dark text-white text-uppercase px-3 py-1.5 fw-bold mb-1" style="letter-spacing: 0.08em; font-size: 0.76rem;">
+                                OFFICIAL PURCHASE ORDER
+                            </div>
+                            <div class="fw-bold fs-5 text-primary" id="modalPoNumber">PO-2026-0891</div>
+                            <div class="text-muted small">Issue Date: <span id="modalPoDate" class="fw-semibold text-dark">29 Aug 2026</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Vendor & Consignee Info Grid -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3 h-100 border">
+                                <span class="text-muted text-uppercase fw-bold extra-small d-block mb-1">Vendor / Supplier (Payee):</span>
+                                <h6 class="fw-bold text-dark mb-1" id="modalVendorName">TechInfra Solutions Ltd</h6>
+                                <div class="small text-muted mb-1"><i class="fa fa-id-card me-1"></i> GSTIN: <span class="fw-semibold text-dark" id="modalVendorGstin">27AAACN8921K1Z2</span></div>
+                                <div class="small text-muted mb-1"><i class="fa fa-credit-card me-1"></i> Terms: <span class="badge bg-info-subtle text-info fw-bold" id="modalPaymentTerms">Net 30</span></div>
+                                <div class="small text-muted"><i class="fa fa-clock me-1"></i> Status: <span class="badge bg-success-subtle text-success fw-bold" id="modalPoStatus">In Transit</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3 h-100 border">
+                                <span class="text-muted text-uppercase fw-bold extra-small d-block mb-1">Billing & Delivery Destination (Consignee):</span>
+                                <h6 class="fw-bold text-dark mb-1">Operafy Central Logistics Depot</h6>
+                                <div class="small text-muted mb-1"><i class="fa fa-location-dot me-1"></i> Warehouse Bay 3, Nelamangala Logistics Park</div>
+                                <div class="small text-muted mb-1"><i class="fa fa-city me-1"></i> Bangalore, Karnataka - 562123</div>
+                                <div class="small text-muted"><i class="fa fa-shield me-1"></i> Receiving Gate: Commercial Intake Gate #2</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered table-sm align-middle text-center small mb-0">
+                            <thead class="table-light text-uppercase" style="font-size: 0.72rem; color: #475569;">
+                                <tr>
+                                    <th class="text-start">Item Description & Specification</th>
+                                    <th>HSN / SAC</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>Tax / GST</th>
+                                    <th class="text-end">Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalPoItemsBody">
+                                <tr>
+                                    <td class="text-start">
+                                        <span class="fw-bold text-dark d-block">Dell UltraSharp 27" Monitors (4K UHD)</span>
+                                        <span class="text-muted extra-small">Model U2723QE, USB-C Hub, IPS Black Technology</span>
+                                    </td>
+                                    <td>8471</td>
+                                    <td class="fw-bold">5 Nos</td>
+                                    <td>₹ 24,000.00</td>
+                                    <td>18% GST</td>
+                                    <td class="text-end fw-bold">₹ 1,20,000.00</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start">
+                                        <span class="fw-bold text-dark d-block">High-Speed Dual Band Managed Switches</span>
+                                        <span class="text-muted extra-small">24-Port Gigabit L2+ Managed Switch with 4 10G SFP+ Slots</span>
+                                    </td>
+                                    <td>8517</td>
+                                    <td class="fw-bold">4 Nos</td>
+                                    <td>₹ 45,000.00</td>
+                                    <td>18% GST</td>
+                                    <td class="text-end fw-bold">₹ 1,80,000.00</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start">
+                                        <span class="fw-bold text-dark d-block">Category-6e Shielded Network Spools (305m)</span>
+                                        <span class="text-muted extra-small">Pure Bare Copper 600MHz High Bandwidth</span>
+                                    </td>
+                                    <td>8544</td>
+                                    <td class="fw-bold">3 Nos</td>
+                                    <td>₹ 12,000.00</td>
+                                    <td>18% GST</td>
+                                    <td class="text-end fw-bold">₹ 36,000.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Financial Summary & Signatures -->
+                    <div class="row align-items-end g-3 pt-2">
+                        <div class="col-sm-7">
+                            <div class="p-3 border rounded-2 bg-light-subtle extra-small text-muted">
+                                <div class="fw-bold text-dark mb-1">Standard Purchase Terms:</div>
+                                1. Material subject to physical inspection & 3-way match upon inward delivery.<br />
+                                2. Vendor must quote PO Number on all Delivery Challans and Tax Invoices.<br />
+                                3. Warranty & SLA valid for 12 months from gate receipt date.
+                            </div>
+                            <div class="d-flex align-items-center gap-3 mt-3">
+                                <div class="text-center border p-2 rounded bg-light" style="min-width: 140px;">
+                                    <div class="text-success fw-bold small"><i class="fa fa-circle-check"></i> DIGITALLY SIGNED</div>
+                                    <div class="extra-small text-muted" id="modalSignatory">Aftab Shaik (CPO)</div>
+                                    <div class="text-muted" style="font-size: 0.65rem;">Operafy Procurement</div>
+                                </div>
+                                <div class="extra-small text-muted">
+                                    Certified ERP Document.<br />Generated via Operafy Procurement Suite.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-5">
+                            <div class="bg-light p-3 rounded-3 border">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>Subtotal (Net):</span>
+                                    <span class="fw-semibold text-dark" id="modalSubtotal">₹ 3,36,000.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>Integrated GST (18%):</span>
+                                    <span class="fw-semibold text-dark" id="modalTaxAmount">₹ 60,480.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small mb-2 pb-2 border-bottom">
+                                    <span>Round Off:</span>
+                                    <span class="fw-semibold text-dark">₹ 0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-dark">Total PO Value:</span>
+                                    <span class="fw-extrabold fs-5 text-primary" id="modalGrandTotal">₹ 3,96,480.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light px-4 py-2.5 d-flex justify-content-between">
+                <a href="@Url.Action("ExportPOLedger", "Purchase")" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa fa-file-arrow-down me-1"></i> Export Ledger CSV
+                </a>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary btn-sm px-3" onclick="printPODetails()">
+                        <i class="fa fa-print me-1"></i> Print PO
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    <script>
+
+        /* =====================================================
+           MONEY FORMATTERS
+           ===================================================== */
+
+        function parseMoneyValue(value) {
+
+            if (typeof value === "number") {
+
+                return Number.isFinite(value)
+                    ? value
+                    : 0;
+            }
+
+            var cleaned = String(value ?? "")
+                .replace(/[^0-9.-]/g, "");
+
+            var number = Number(cleaned);
+
+            return Number.isFinite(number)
+                ? number
+                : 0;
+        }
+
+
+        function trimMoneyDecimal(value) {
+
+            return value
+                .toFixed(2)
+                .replace(/\.00$/, "")
+                .replace(/(\.\d)0$/, "$1");
+        }
+
+
+        function compactIndianMoney(value) {
+
+            var number = parseMoneyValue(value);
+
+            var abs = Math.abs(number);
+
+            var sign = number < 0
+                ? "-"
+                : "";
+
+
+            if (abs >= 10000000) {
+
+                return sign +
+                    "₹" +
+                    trimMoneyDecimal(abs / 10000000) +
+                    "Cr";
+            }
+
+
+            if (abs >= 100000) {
+
+                return sign +
+                    "₹" +
+                    trimMoneyDecimal(abs / 100000) +
+                    "L";
+            }
+
+
+            if (abs >= 1000) {
+
+                return sign +
+                    "₹" +
+                    trimMoneyDecimal(abs / 1000) +
+                    "K";
+            }
+
+
+            return sign +
+                "₹" +
+                abs.toLocaleString("en-IN", {
+                    maximumFractionDigits: 2
+                });
+        }
+
+
+        function exactIndianMoney(value) {
+
+            var number = parseMoneyValue(value);
+
+            var formatted =
+                Math.abs(number).toLocaleString(
+                    "en-IN",
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                );
+
+            return number < 0
+                ? "-₹" + formatted
+                : "₹" + formatted;
+        }
+
+
+        function applyCompactMoneyFormatting(root) {
+
+            var scope = root || document;
+
+            scope
+                .querySelectorAll(".compact-money")
+                .forEach(function (element) {
+
+                    var rawValue =
+                        element.getAttribute("data-value") || "0";
+
+                    var compactValue =
+                        compactIndianMoney(rawValue);
+
+                    var exactValue =
+                        exactIndianMoney(rawValue);
+
+                    element.textContent =
+                        compactValue;
+
+                    element.setAttribute(
+                        "title",
+                        exactValue
+                    );
+
+                    element.setAttribute(
+                        "data-full-value",
+                        exactValue
+                    );
+
+                    element.setAttribute(
+                        "aria-label",
+                        exactValue
+                    );
+
+                });
+        }
+
+
+        /* =====================================================
+           SEARCH
+           ===================================================== */
+
+        function filterPOTable() {
+
+            var searchInput =
+                document.getElementById("poSearch");
+
+            if (!searchInput) {
+                return;
+            }
+
+            var filter =
+                searchInput.value
+                    .toUpperCase()
+                    .trim();
+
+            var table =
+                document.getElementById("poDataTable");
+
+            if (!table) {
+                return;
+            }
+
+            var tbody =
+                table.getElementsByTagName("tbody")[0];
+
+            if (!tbody) {
+                return;
+            }
+
+            var rows =
+                tbody.getElementsByTagName("tr");
+
+            var visibleCount = 0;
+
+
+            for (var i = 0; i < rows.length; i++) {
+
+                var row = rows[i];
+
+                if (row.id === "poEmptyRow") {
+                    continue;
+                }
+
+                var text =
+                    row.textContent ||
+                    row.innerText;
+
+                var matches =
+                    text
+                        .toUpperCase()
+                        .indexOf(filter) > -1;
+
+                row.style.display =
+                    matches ? "" : "none";
+
+                if (matches) {
+                    visibleCount++;
+                }
+            }
+
+
+            var clearButton =
+                document.getElementById(
+                    "poSearchClear"
+                );
+
+            if (clearButton) {
+
+                clearButton.style.display =
+                    filter.length > 0
+                        ? "flex"
+                        : "none";
+            }
+
+
+            updatePOResultCount(
+                visibleCount,
+                filter
+            );
+        }
+
+
+        function updatePOResultCount(
+            count,
+            filter
+        ) {
+
+            var resultCount =
+                document.getElementById(
+                    "poResultCount"
+                );
+
+            if (!resultCount) {
+                return;
+            }
+
+
+            if (filter && filter.length > 0) {
+
+                resultCount.textContent =
+                    count +
+                    " matching order" +
+                    (count === 1 ? "" : "s");
+
+            }
+            else {
+
+                resultCount.textContent =
+                    count +
+                    " order" +
+                    (count === 1 ? "" : "s");
+            }
+        }
+
+
+        function clearPOSearch() {
+
+            var searchInput =
+                document.getElementById(
+                    "poSearch"
+                );
+
+            if (!searchInput) {
+                return;
+            }
+
+            searchInput.value = "";
+
+            filterPOTable();
+
+            searchInput.focus();
+        }
+
+
+        /* =====================================================
+           VIEW PO DETAILS & PRINT
+           ===================================================== */
+
+        function viewPODetails(poNumber, vendor, itemsCount, totalAmount, orderDate, status, paymentTerms) {
+            // Populate immediate baseline values
+            if (document.getElementById("modalPoNumber")) document.getElementById("modalPoNumber").textContent = poNumber || "PO-2026-0891";
+            if (document.getElementById("modalPoDate")) document.getElementById("modalPoDate").textContent = orderDate || "29 Aug 2026";
+            if (document.getElementById("modalVendorName")) document.getElementById("modalVendorName").textContent = vendor || "TechInfra Solutions Ltd";
+            if (document.getElementById("modalPaymentTerms")) document.getElementById("modalPaymentTerms").textContent = paymentTerms || "Net 30";
+            if (document.getElementById("modalPoStatus")) document.getElementById("modalPoStatus").textContent = status || "Active";
+            if (document.getElementById("modalGrandTotal")) document.getElementById("modalGrandTotal").textContent = totalAmount || "₹ 4,20,000.00";
+
+            // Live fetch for enterprise details
+            fetch('@Url.Action("GetPODetails", "Purchase")?poNumber=' + encodeURIComponent(poNumber || ''))
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data && data.success) {
+                        if (data.po) {
+                            if (document.getElementById("modalPoNumber")) document.getElementById("modalPoNumber").textContent = data.po.poNumber;
+                            if (document.getElementById("modalPoDate")) document.getElementById("modalPoDate").textContent = data.po.orderDate;
+                            if (document.getElementById("modalVendorName")) document.getElementById("modalVendorName").textContent = data.po.vendorName;
+                            if (document.getElementById("modalPaymentTerms")) document.getElementById("modalPaymentTerms").textContent = data.po.paymentTerms;
+                            if (document.getElementById("modalPoStatus")) document.getElementById("modalPoStatus").textContent = data.po.status;
+                            if (document.getElementById("modalGrandTotal")) document.getElementById("modalGrandTotal").textContent = data.grandTotal || data.po.totalAmount;
+                        }
+                        if (data.gstin && document.getElementById("modalVendorGstin")) document.getElementById("modalVendorGstin").textContent = data.gstin;
+                        if (data.subtotal && document.getElementById("modalSubtotal")) document.getElementById("modalSubtotal").textContent = data.subtotal;
+                        if (data.taxAmount && document.getElementById("modalTaxAmount")) document.getElementById("modalTaxAmount").textContent = data.taxAmount;
+                        if (data.authorizedSignatory && document.getElementById("modalSignatory")) document.getElementById("modalSignatory").textContent = data.authorizedSignatory;
+
+                        if (data.items && data.items.length > 0) {
+                            var tbody = document.getElementById("modalPoItemsBody");
+                            if (tbody) {
+                                tbody.innerHTML = data.items.map(function (item) {
+                                    return '<tr>' +
+                                        '<td class="text-start"><span class="fw-bold text-dark d-block">' + item.item + '</span><span class="text-muted extra-small">Material Grade Standard, Verified Specifications</span></td>' +
+                                        '<td>' + item.hsn + '</td>' +
+                                        '<td class="fw-bold">' + item.qty + ' Nos</td>' +
+                                        '<td>' + item.unitPrice + '</td>' +
+                                        '<td>' + item.tax + '</td>' +
+                                        '<td class="text-end fw-bold">' + item.total + '</td>' +
+                                        '</tr>';
+                                }).join('');
+                            }
+                        }
+                    }
+                })
+                .catch(function (err) {
+                    console.warn("Could not fetch detailed PO info, displaying cached data.", err);
+                })
+                .finally(function () {
+                    var modalEl = document.getElementById("poDetailsModal");
+                    if (modalEl) {
+                        var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                        modal.show();
+                    }
+                });
+        }
+
+        function printPODetails() {
+            var printContents = document.getElementById('printablePOArea').innerHTML;
+            var printWin = window.open('', '_blank', 'width=900,height=800');
+            printWin.document.write('<html><head><title>Purchase Order Slip</title>');
+            printWin.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">');
+            printWin.document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
+            printWin.document.write('<style>body{padding:25px;font-family:Segoe UI,sans-serif;color:#1e293b;} @@media print {.no-print{display:none;}}</style>');
+            printWin.document.write('</head><body>');
+            printWin.document.write(printContents);
+            printWin.document.write('</body></html>');
+            printWin.document.close();
+            printWin.focus();
+            setTimeout(function() {
+                printWin.print();
+                printWin.close();
+            }, 400);
+        }
+
+
+        /* =====================================================
+           INITIALIZATION
+           ===================================================== */
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                /* Format all PO monetary values */
+                applyCompactMoneyFormatting();
+
+
+                /* Initialize result counter */
+                var rows =
+                    document.querySelectorAll(
+                        "#poDataTable tbody tr:not(#poEmptyRow)"
+                    );
+
+                updatePOResultCount(
+                    rows.length,
+                    ""
+                );
+
+            }
+        );
+
+    </script>
+}

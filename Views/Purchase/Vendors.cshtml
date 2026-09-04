@@ -1,0 +1,2073 @@
+@model List<ERP_System.Models.VendorScorecardItem>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Vendor Scorecards & Directory - SAP MM Evaluation";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+    :root {
+        --vendor-primary: #2563eb;
+        --vendor-primary-dark: #1d4ed8;
+        --vendor-success: #16a34a;
+        --vendor-warning: #f59e0b;
+        --vendor-danger: #dc2626;
+        --vendor-purple: #7c3aed;
+        --vendor-text: #172033;
+        --vendor-muted: #64748b;
+        --vendor-border: #e5e7eb;
+        --vendor-bg: #f5f7fb;
+        --vendor-card: #ffffff;
+        --vendor-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+        --vendor-shadow-hover: 0 18px 45px rgba(15, 23, 42, 0.11);
+    }
+
+    .vendor-page {
+        min-height: calc(100vh - 80px);
+        background: radial-gradient(circle at 5% 0%, rgba(37, 99, 235, 0.06), transparent 28%), radial-gradient(circle at 95% 10%, rgba(22, 163, 74, 0.05), transparent 25%), var(--vendor-bg);
+        padding-bottom: 50px;
+    }
+
+    .vendor-container {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* =========================
+           HEADER
+           ========================= */
+
+    .vendor-header {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 20px;
+        padding: 22px 24px;
+        box-shadow: var(--vendor-shadow);
+        backdrop-filter: blur(12px);
+        animation: vendorFadeDown 0.55s ease both;
+    }
+
+    .vendor-breadcrumb {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+        .vendor-breadcrumb a {
+            color: var(--vendor-muted);
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+            .vendor-breadcrumb a:hover {
+                color: var(--vendor-primary);
+            }
+
+    .vendor-breadcrumb-divider {
+        color: #cbd5e1;
+        font-size: 0.75rem;
+    }
+
+    .vendor-module-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: #ecfdf3;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        font-size: 0.69rem;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+    }
+
+    .vendor-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .vendor-title-icon {
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #dcfce7, #f0fdf4);
+        color: var(--vendor-success);
+        border: 1px solid #bbf7d0;
+        box-shadow: 0 8px 18px rgba(22, 163, 74, 0.1);
+    }
+
+    .vendor-title {
+        color: var(--vendor-text);
+        font-size: clamp(1.2rem, 2vw, 1.65rem);
+        font-weight: 800;
+        letter-spacing: -0.4px;
+        margin: 0;
+    }
+
+    .vendor-subtitle {
+        color: var(--vendor-muted);
+        font-size: 0.83rem;
+        line-height: 1.6;
+        margin: 4px 0 0;
+        max-width: 850px;
+    }
+
+    .vendor-actions {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        flex-wrap: wrap;
+    }
+
+    .vendor-btn {
+        border-radius: 10px !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        min-height: 38px;
+        padding: 8px 14px !important;
+        transition: all 0.22s ease !important;
+    }
+
+        .vendor-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .vendor-btn-primary {
+        box-shadow: 0 6px 16px rgba(22, 163, 74, 0.18);
+    }
+
+    /* =========================
+           KPI CARDS
+           ========================= */
+
+    .vendor-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+    }
+
+    .vendor-kpi {
+        position: relative;
+        overflow: hidden;
+        background: var(--vendor-card);
+        border: 1px solid var(--vendor-border);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: var(--vendor-shadow);
+        transition: all 0.25s ease;
+        animation: vendorFadeUp 0.55s ease both;
+    }
+
+        .vendor-kpi:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        .vendor-kpi:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .vendor-kpi:nth-child(3) {
+            animation-delay: 0.15s;
+        }
+
+        .vendor-kpi:nth-child(4) {
+            animation-delay: 0.2s;
+        }
+
+        .vendor-kpi:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--vendor-shadow-hover);
+            border-color: #dbeafe;
+        }
+
+        .vendor-kpi::after {
+            content: "";
+            position: absolute;
+            right: -28px;
+            top: -28px;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.035);
+        }
+
+    .vendor-kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .vendor-kpi-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+    }
+
+        .vendor-kpi-icon.blue {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .vendor-kpi-icon.green {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        .vendor-kpi-icon.orange {
+            background: #fff7ed;
+            color: #ea580c;
+        }
+
+        .vendor-kpi-icon.purple {
+            background: #faf5ff;
+            color: #7c3aed;
+        }
+
+    .vendor-kpi-label {
+        color: var(--vendor-muted);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.45px;
+        margin-top: 12px;
+    }
+
+    .vendor-kpi-value {
+        color: var(--vendor-text);
+        font-size: 1.45rem;
+        font-weight: 800;
+        margin-top: 3px;
+        letter-spacing: -0.5px;
+    }
+
+    .vendor-kpi-note {
+        color: #94a3b8;
+        font-size: 0.69rem;
+        margin-top: 3px;
+    }
+
+    /* =========================
+           FILTER BAR
+           ========================= */
+
+    .vendor-toolbar {
+        margin-top: 20px;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid var(--vendor-border);
+        border-radius: 16px;
+        padding: 13px;
+        box-shadow: var(--vendor-shadow);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        animation: vendorFadeUp 0.55s 0.2s ease both;
+    }
+
+    .vendor-search-wrap {
+        position: relative;
+        flex: 1 1 300px;
+        max-width: 520px;
+    }
+
+        .vendor-search-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.8rem;
+            pointer-events: none;
+        }
+
+    .vendor-search {
+        width: 100%;
+        height: 40px;
+        border: 1px solid #dbe2ea;
+        border-radius: 10px;
+        background: #f8fafc;
+        color: var(--vendor-text);
+        padding: 0 14px 0 38px;
+        font-size: 0.78rem;
+        outline: none;
+        transition: all 0.2s ease;
+    }
+
+        .vendor-search:focus {
+            background: #fff;
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+        }
+
+    .vendor-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .vendor-filter {
+        height: 40px;
+        border: 1px solid #dbe2ea;
+        border-radius: 10px;
+        background: #fff;
+        color: #475569;
+        padding: 0 12px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        outline: none;
+        cursor: pointer;
+    }
+
+        .vendor-filter:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+        }
+
+    .vendor-result-count {
+        color: #64748b;
+        font-size: 0.73rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* =========================
+           SECTION HEADER
+           ========================= */
+
+    .vendor-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 24px 2px 13px;
+    }
+
+    .vendor-section-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--vendor-text);
+        font-size: 0.98rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .vendor-section-title-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 0.75rem;
+    }
+
+    .vendor-section-note {
+        color: #94a3b8;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    /* =========================
+           VENDOR CARDS
+           ========================= */
+
+    .vendor-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 17px;
+    }
+
+    .vendor-card {
+        position: relative;
+        overflow: hidden;
+        background: var(--vendor-card);
+        border: 1px solid var(--vendor-border);
+        border-radius: 18px;
+        box-shadow: var(--vendor-shadow);
+        padding: 19px;
+        transition: all 0.28s ease;
+        animation: vendorCardIn 0.55s ease both;
+    }
+
+        .vendor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--vendor-shadow-hover);
+            border-color: #d5e3f8;
+        }
+
+        .vendor-card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #16a34a, #2563eb);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .vendor-card:hover::before {
+            opacity: 1;
+        }
+
+    .vendor-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .vendor-identity {
+        min-width: 0;
+    }
+
+    .vendor-category {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 7px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        font-size: 0.64rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-bottom: 7px;
+    }
+
+    .vendor-name {
+        color: var(--vendor-text);
+        font-size: 0.98rem;
+        font-weight: 800;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .vendor-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+        border-radius: 999px;
+        padding: 6px 9px;
+        background: #ecfdf3;
+        border: 1px solid #bbf7d0;
+        color: #15803d;
+        font-size: 0.64rem;
+        font-weight: 800;
+    }
+
+        .vendor-status i {
+            font-size: 0.62rem;
+        }
+
+    .vendor-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 14px;
+        padding-bottom: 13px;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .vendor-rating {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #b45309;
+        font-size: 0.78rem;
+        font-weight: 800;
+    }
+
+    .vendor-rating-star {
+        width: 27px;
+        height: 27px;
+        border-radius: 8px;
+        background: #fffbeb;
+        color: #f59e0b;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+    }
+
+    .vendor-spend {
+        text-align: right;
+        min-width: 0;
+    }
+
+    .vendor-spend-label {
+        display: block;
+        color: #94a3b8;
+        font-size: 0.61rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.25px;
+    }
+
+    .vendor-spend-value {
+        display: block;
+        color: #334155;
+        font-size: 0.77rem;
+        font-weight: 800;
+        margin-top: 2px;
+    }
+
+    .vendor-score-panel {
+        margin-top: 14px;
+        padding: 14px;
+        border-radius: 13px;
+        background: #f8fafc;
+        border: 1px solid #edf1f5;
+    }
+
+    .vendor-score-row + .vendor-score-row {
+        margin-top: 14px;
+    }
+
+    .vendor-score-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+    }
+
+    .vendor-score-label {
+        color: #64748b;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
+    .vendor-score-value {
+        font-size: 0.7rem;
+        font-weight: 800;
+    }
+
+        .vendor-score-value.green {
+            color: #16a34a;
+        }
+
+        .vendor-score-value.blue {
+            color: #2563eb;
+        }
+
+    .vendor-progress {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e9eef5;
+    }
+
+    .vendor-progress-bar {
+        height: 100%;
+        border-radius: inherit;
+        position: relative;
+        overflow: hidden;
+        transition: width 1s ease;
+    }
+
+        .vendor-progress-bar.green {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        .vendor-progress-bar.blue {
+            background: linear-gradient(90deg, #60a5fa, #2563eb);
+        }
+
+        .vendor-progress-bar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -35%;
+            width: 35%;
+            height: 100%;
+            background: rgba(255,255,255,0.35);
+            transform: skewX(-20deg);
+            animation: vendorProgressShine 2.7s infinite;
+        }
+
+    .vendor-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 15px;
+        padding-top: 13px;
+        border-top: 1px solid #eef2f7;
+    }
+
+    .vendor-verified {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #64748b;
+        font-size: 0.63rem;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
+        .vendor-verified i {
+            color: #16a34a;
+            font-size: 0.75rem;
+        }
+
+    .vendor-audit-btn {
+        border-radius: 9px !important;
+        font-size: 0.67rem !important;
+        font-weight: 800 !important;
+        padding: 7px 10px !important;
+        white-space: nowrap;
+        transition: all 0.2s ease !important;
+    }
+
+        .vendor-audit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.1);
+        }
+
+    /* =========================
+           EMPTY STATE
+           ========================= */
+
+    .vendor-empty {
+        display: none;
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 18px;
+        padding: 55px 20px;
+        text-align: center;
+        margin-top: 15px;
+    }
+
+    .vendor-empty-icon {
+        width: 55px;
+        height: 55px;
+        margin: 0 auto 12px;
+        border-radius: 15px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+    }
+
+    .vendor-empty h5 {
+        color: var(--vendor-text);
+        font-weight: 800;
+        font-size: 0.95rem;
+        margin-bottom: 5px;
+    }
+
+    .vendor-empty p {
+        color: #94a3b8;
+        font-size: 0.74rem;
+        margin: 0;
+    }
+
+    /* =========================
+           FOOTER INFO
+           ========================= */
+
+    .vendor-footer-info {
+        margin-top: 20px;
+        padding: 13px 15px;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: #94a3b8;
+        font-size: 0.67rem;
+        font-weight: 600;
+    }
+
+        .vendor-footer-info span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .vendor-footer-info i {
+            color: #64748b;
+        }
+
+    /* =========================
+           ANIMATIONS
+           ========================= */
+
+    @@keyframes vendorFadeDown {
+        from {
+            opacity: 0;
+            transform: translateY(-12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes vendorFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes vendorCardIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.985);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @@keyframes vendorProgressShine {
+        0% {
+            left: -35%;
+        }
+
+        45%,
+        100% {
+            left: 120%;
+        }
+    }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 1199.98px) {
+        .vendor-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .vendor-kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .vendor-page {
+            padding-bottom: 30px;
+        }
+
+        .vendor-header {
+            padding: 17px;
+            border-radius: 16px;
+        }
+
+        .vendor-title-row {
+            flex-direction: column;
+        }
+
+        .vendor-actions {
+            width: 100%;
+        }
+
+            .vendor-actions .vendor-btn {
+                flex: 1 1 auto;
+            }
+
+        .vendor-kpi-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .vendor-kpi {
+            padding: 14px;
+            border-radius: 14px;
+        }
+
+        .vendor-kpi-value {
+            font-size: 1.2rem;
+        }
+
+        .vendor-kpi-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+        }
+
+        .vendor-toolbar {
+            align-items: stretch;
+        }
+
+        .vendor-search-wrap {
+            max-width: none;
+            flex-basis: 100%;
+        }
+
+        .vendor-filter-group {
+            width: 100%;
+        }
+
+        .vendor-filter {
+            flex: 1 1 0;
+        }
+
+        .vendor-result-count {
+            width: 100%;
+        }
+
+        .vendor-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .vendor-section-header {
+            align-items: flex-start;
+            flex-direction: column;
+            margin-top: 20px;
+        }
+    }
+
+    @@media (max-width: 479.98px) {
+        .vendor-container {
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
+
+        .vendor-header {
+            padding: 15px;
+        }
+
+        .vendor-title-icon {
+            width: 40px;
+            height: 40px;
+            flex-basis: 40px;
+        }
+
+        .vendor-subtitle {
+            font-size: 0.76rem;
+        }
+
+        .vendor-actions {
+            flex-direction: column;
+        }
+
+            .vendor-actions .vendor-btn {
+                width: 100%;
+            }
+
+        .vendor-kpi-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .vendor-filter-group {
+            flex-direction: column;
+        }
+
+        .vendor-filter {
+            width: 100%;
+        }
+
+        .vendor-meta {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .vendor-spend {
+            text-align: left;
+        }
+
+        .vendor-card {
+            padding: 16px;
+        }
+
+        .vendor-card-head {
+            gap: 8px;
+        }
+
+        .vendor-status {
+            font-size: 0.58rem;
+            padding: 5px 7px;
+        }
+
+        .vendor-card-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .vendor-audit-btn {
+            width: 100%;
+        }
+
+        .vendor-footer-info {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+
+    /* =========================
+           REDUCED MOTION
+           ========================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .vendor-header,
+        .vendor-kpi,
+        .vendor-toolbar,
+        .vendor-card {
+            animation: none !important;
+        }
+
+        .vendor-progress-bar::after {
+            animation: none !important;
+        }
+
+        .vendor-card,
+        .vendor-kpi,
+        .vendor-btn,
+        .vendor-audit-btn {
+            transition: none !important;
+        }
+    }
+
+    /* =========================
+           PRINT
+           ========================= */
+
+    @@media print {
+        .vendor-page {
+            background: #fff !important;
+        }
+
+        .vendor-header,
+        .vendor-kpi,
+        .vendor-toolbar,
+        .vendor-card,
+        .vendor-footer-info {
+            box-shadow: none !important;
+        }
+
+        .vendor-actions,
+        .vendor-toolbar,
+        .vendor-audit-btn {
+            display: none !important;
+        }
+
+        .vendor-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .vendor-card {
+            break-inside: avoid;
+        }
+    }
+</style>
+
+<div class="vendor-page">
+    <div class="container-fluid px-2 px-md-4 pt-3 vendor-container">
+
+        <!-- =========================
+             HEADER
+             ========================= -->
+        <div class="vendor-header">
+
+            <div class="vendor-breadcrumb">
+                <a href="@Url.Action("Index", "Purchase")">
+                    <i class="fa fa-arrow-left me-1"></i>
+                    Control Hub
+                </a>
+
+                <span class="vendor-breadcrumb-divider">/</span>
+
+                <span class="vendor-module-badge">
+                    <i class="fa fa-shield-halved"></i>
+                    SAP MM Vendor Evaluation
+                    <span>(ME61)</span>
+                </span>
+            </div>
+
+            <div class="vendor-title-row">
+
+                <div class="d-flex align-items-start gap-3">
+
+                    <div class="vendor-title-icon">
+                        <i class="fa fa-handshake"></i>
+                    </div>
+
+                    <div>
+                        <h3 class="vendor-title">
+                            Vendor Directory & Scorecard Matrix
+                        </h3>
+
+                        <p class="vendor-subtitle">
+                            Quantitative supplier performance tracking across
+                            on-time delivery, quality acceptance, supplier ratings,
+                            and cumulative procurement spend.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="vendor-actions">
+
+                    <a href="@Url.Action("Index", "Purchase")"
+                       class="btn btn-outline-secondary vendor-btn">
+
+                        <i class="fa fa-gauge me-1"></i>
+                        Dashboard
+
+                    </a>
+
+                    <button type="button"
+                            class="btn btn-success vendor-btn vendor-btn-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#onboardVendorModal">
+
+                        <i class="fa fa-user-plus me-1"></i>
+                        Onboard New Vendor
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- =========================
+             KPI SUMMARY
+             ========================= -->
+        <div class="vendor-kpi-grid">
+
+            <div class="vendor-kpi">
+
+                <div class="vendor-kpi-top">
+                    <div>
+                        <div class="vendor-kpi-label mt-0">
+                            Total Vendors
+                        </div>
+
+                        <div class="vendor-kpi-value">
+                            @Model.Count
+                        </div>
+
+                        <div class="vendor-kpi-note">
+                            Registered supplier records
+                        </div>
+                    </div>
+
+                    <div class="vendor-kpi-icon blue">
+                        <i class="fa fa-building"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="vendor-kpi">
+
+                <div class="vendor-kpi-top">
+                    <div>
+                        <div class="vendor-kpi-label mt-0">
+                            Active Vendors
+                        </div>
+
+                        <div class="vendor-kpi-value" id="activeVendorCount">
+                            @Model.Count(v => v.Status != null && v.Status.ToLower() == "active")
+                        </div>
+
+                        <div class="vendor-kpi-note">
+                            Currently approved suppliers
+                        </div>
+                    </div>
+
+                    <div class="vendor-kpi-icon green">
+                        <i class="fa fa-circle-check"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="vendor-kpi">
+
+                <div class="vendor-kpi-top">
+                    <div>
+                        <div class="vendor-kpi-label mt-0">
+                            Avg. Rating
+                        </div>
+
+                        <div class="vendor-kpi-value" id="averageRating">
+                            -
+                        </div>
+
+                        <div class="vendor-kpi-note">
+                            Supplier performance index
+                        </div>
+                    </div>
+
+                    <div class="vendor-kpi-icon orange">
+                        <i class="fa fa-star"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="vendor-kpi">
+
+                <div class="vendor-kpi-top">
+                    <div>
+                        <div class="vendor-kpi-label mt-0">
+                            Verified Suppliers
+                        </div>
+
+                        <div class="vendor-kpi-value">
+                            @Model.Count
+                        </div>
+
+                        <div class="vendor-kpi-note">
+                            GSTIN verified & audited
+                        </div>
+                    </div>
+
+                    <div class="vendor-kpi-icon purple">
+                        <i class="fa fa-certificate"></i>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- =========================
+             FILTER / SEARCH TOOLBAR
+             ========================= -->
+        <div class="vendor-toolbar">
+
+            <div class="vendor-search-wrap">
+
+                <i class="fa fa-search"></i>
+
+                <input type="text"
+                       id="vendorSearch"
+                       class="vendor-search"
+                       placeholder="Search vendor, category or status..."
+                       autocomplete="off" />
+
+            </div>
+
+            <div class="vendor-filter-group">
+
+                <select id="vendorCategoryFilter" class="vendor-filter">
+                    <option value="all">All Categories</option>
+
+                    @foreach (var category in Model
+                                        .Where(v => !string.IsNullOrWhiteSpace(v.Category))
+                                        .Select(v => v.Category)
+                                        .Distinct()
+                                        .OrderBy(v => v))
+                    {
+                        <option value="@category.ToLower()">
+                            @category
+                        </option>
+                    }
+                </select>
+
+                <select id="vendorStatusFilter" class="vendor-filter">
+                    <option value="all">All Status</option>
+
+                    @foreach (var status in Model
+                                        .Where(v => !string.IsNullOrWhiteSpace(v.Status))
+                                        .Select(v => v.Status)
+                                        .Distinct()
+                                        .OrderBy(v => v))
+                    {
+                        <option value="@status.ToLower()">
+                            @status
+                        </option>
+                    }
+                </select>
+
+            </div>
+
+            <div class="vendor-result-count">
+                Showing <span id="vendorResultCount">@Model.Count</span> vendors
+            </div>
+
+        </div>
+
+        <!-- =========================
+             SECTION TITLE
+             ========================= -->
+        <div class="vendor-section-header">
+
+            <h4 class="vendor-section-title">
+
+                <span class="vendor-section-title-icon">
+                    <i class="fa fa-chart-column"></i>
+                </span>
+
+                Supplier Performance Scorecards
+
+            </h4>
+
+            <span class="vendor-section-note">
+                Live procurement evaluation matrix
+            </span>
+
+        </div>
+
+        <!-- =========================
+             VENDOR GRID
+             ========================= -->
+        <div class="vendor-grid" id="vendorGrid">
+
+            @foreach (var v in Model)
+            {
+                <div class="vendor-card vendor-item"
+                     data-name="@v.Name"
+                     data-category="@v.Category"
+                     data-status="@v.Status">
+
+                    <div>
+
+                        <!-- Card Header -->
+                        <div class="vendor-card-head">
+
+                            <div class="vendor-identity">
+
+                                <span class="vendor-category">
+                                    @v.Category
+                                </span>
+
+                                <h5 class="vendor-name"
+                                    title="@v.Name">
+                                    @v.Name
+                                </h5>
+
+                            </div>
+
+                            <span class="vendor-status">
+
+                                <i class="fa fa-certificate"></i>
+
+                                @v.Status
+
+                            </span>
+
+                        </div>
+
+                        <!-- Rating + Spend -->
+                        <div class="vendor-meta">
+
+                            <div class="vendor-rating">
+
+                                <span class="vendor-rating-star">
+                                    <i class="fa fa-star"></i>
+                                </span>
+
+                                <span>
+                                    @v.Rating
+                                </span>
+
+                            </div>
+
+                            <div class="vendor-spend">
+
+                                <span class="vendor-spend-label">
+                                    Cumulative YTD
+                                </span>
+
+                                <span class="vendor-spend-value vendor-money"
+                                      data-value="@v.SpendYTD">
+                                    @v.SpendYTD
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        <!-- Performance Score Panel -->
+                        <div class="vendor-score-panel">
+
+                            <!-- On-Time Delivery -->
+                            <div class="vendor-score-row">
+
+                                <div class="vendor-score-heading">
+
+                                    <span class="vendor-score-label">
+                                        <i class="fa fa-truck-fast me-1"></i>
+                                        On-Time Delivery SLA
+                                    </span>
+
+                                    <span class="vendor-score-value green">
+                                        @v.OnTimeDeliveryRate
+                                    </span>
+
+                                </div>
+
+                                <div class="vendor-progress">
+
+                                    <div class="vendor-progress-bar green"
+                                         style="width: @v.OnTimeDeliveryRate">
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <!-- Quality Score -->
+                            <div class="vendor-score-row">
+
+                                <div class="vendor-score-heading">
+
+                                    <span class="vendor-score-label">
+                                        <i class="fa fa-circle-check me-1"></i>
+                                        Quality Acceptance Score
+                                    </span>
+
+                                    <span class="vendor-score-value blue">
+                                        @v.QualityScore
+                                    </span>
+
+                                </div>
+
+                                <div class="vendor-progress">
+
+                                    <div class="vendor-progress-bar blue"
+                                         style="width: @v.QualityScore">
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Card Footer -->
+                    <div class="vendor-card-footer">
+
+                        <span class="vendor-verified">
+
+                            <i class="fa fa-circle-check"></i>
+
+                            GSTIN Verified & Audited
+
+                        </span>
+
+                        <button type="button"
+                                class="btn btn-sm btn-outline-primary vendor-audit-btn"
+                                onclick="openVendorAuditModal('@v.Name', '@v.Category', '@v.Rating', '@v.SpendYTD', '@v.OnTimeDeliveryRate', '@v.QualityScore', '@v.Status')">
+
+                            <i class="fa fa-file-contract me-1"></i>
+                            Full Audit Report
+
+                        </button>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+        <!-- =========================
+             EMPTY SEARCH STATE
+             ========================= -->
+        <div class="vendor-empty" id="vendorEmpty">
+
+            <div class="vendor-empty-icon">
+                <i class="fa fa-magnifying-glass"></i>
+            </div>
+
+            <h5>No vendors found</h5>
+
+            <p>
+                Try changing the search term or selecting a different filter.
+            </p>
+
+        </div>
+
+        <!-- =========================
+             FOOTER INFORMATION
+             ========================= -->
+        <div class="vendor-footer-info">
+
+            <span>
+                <i class="fa fa-database"></i>
+                Supplier records synchronized with procurement master data
+            </span>
+
+            <span>
+                <i class="fa fa-shield-halved"></i>
+                SAP MM evaluation controls enabled
+            </span>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ==========================================================================
+     TOAST NOTIFICATION CONTAINER
+     ========================================================================== -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1090;">
+    <div id="vendorLiveToast" class="toast align-items-center text-white border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <i id="vendorToastIcon" class="fa fa-circle-check fs-5"></i>
+                <span id="vendorToastMessage">Operation completed successfully.</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL: ONBOARD NEW VENDOR
+     ========================================================================== -->
+<div class="modal fade" id="onboardVendorModal" tabindex="-1" aria-labelledby="onboardVendorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+            <div class="modal-header bg-light border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success fw-bold px-2.5 py-1">SAP MM XK01</span>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="onboardVendorModalLabel">
+                        <i class="fa fa-building-circle-check text-success me-2"></i> Onboard New Enterprise Supplier
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="onboardVendorForm">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Register a new corporate vendor into the procurement registry. All fields will be verified against GSTIN and procurement compliance databases.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label small fw-bold text-dark">Supplier Enterprise Legal Name *</label>
+                            <input type="text" class="form-control" name="Name" id="newVendorName" placeholder="e.g. Apex Industrial Solutions Ltd" required />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-dark">Procurement Category *</label>
+                            <select class="form-select" name="Category" id="newVendorCategory" required>
+                                <option value="Industrial Hardware">Industrial Hardware</option>
+                                <option value="IT Infrastructure">IT Infrastructure & Hardware</option>
+                                <option value="Packaging & Office">Packaging & Office Supplies</option>
+                                <option value="Raw Materials">Raw Materials & Alloys</option>
+                                <option value="Logistics & Fleet">Logistics & Fleet Support</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">GSTIN Identification No. *</label>
+                            <input type="text" class="form-control text-uppercase" name="GSTIN" id="newVendorGstin" placeholder="e.g. 29AAACE1234F1Z8" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">PAN Number *</label>
+                            <input type="text" class="form-control text-uppercase" name="PAN" id="newVendorPan" placeholder="e.g. AAACE1234F" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Key Contact Person & Title *</label>
+                            <input type="text" class="form-control" name="ContactPerson" id="newVendorContact" placeholder="e.g. Anil Sharma (Key Account Director)" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Official Corporate Email *</label>
+                            <input type="email" class="form-control" name="Email" id="newVendorEmail" placeholder="e.g. accounts@vendorcorp.com" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Contact Phone / Mobile *</label>
+                            <input type="tel" class="form-control" name="Phone" id="newVendorPhone" placeholder="+91 98450 12345" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Credit & Payment Terms</label>
+                            <select class="form-select" name="PaymentTerms" id="newVendorTerms">
+                                <option value="Net 30">Net 30 Days</option>
+                                <option value="Net 45">Net 45 Days</option>
+                                <option value="Net 60">Net 60 Days</option>
+                                <option value="Advance 50%">Advance 50%</option>
+                                <option value="Immediate">Immediate / Advance</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Initial Baseline Rating</label>
+                            <input type="text" class="form-control" name="Rating" id="newVendorRating" value="4.8 / 5.0" />
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="vendorComplianceCheck" checked required />
+                                <label class="form-check-label small text-muted" for="vendorComplianceCheck">
+                                    I confirm that this supplier adheres to Operafy Vendor Code of Conduct, Anti-Bribery policies, and verified MSME/GSTIN credentials.
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm px-4" id="btnSubmitOnboardVendor">
+                        <i class="fa fa-check me-1"></i> Register & Onboard Supplier
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL: VENDOR AUDIT & SCORECARD DOSSIER
+     ========================================================================== -->
+<div class="modal fade" id="vendorAuditModal" tabindex="-1" aria-labelledby="vendorAuditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+            <div class="modal-header bg-light border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1">SAP MM ME61</span>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="vendorAuditModalLabel">
+                        <i class="fa fa-award text-primary me-2"></i> Supplier Performance & Audit Dossier
+                    </h5>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="printVendorAudit()">
+                        <i class="fa fa-print me-1"></i> Print Dossier
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <div class="modal-body p-4" id="printableVendorAuditArea">
+                <div class="p-3 border rounded-3 bg-white mb-3 shadow-sm">
+                    <!-- Vendor Dossier Header -->
+                    <div class="row align-items-center mb-3 pb-3 border-bottom g-2">
+                        <div class="col-sm-8">
+                            <h4 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2" id="auditVendorName">
+                                TechInfra Solutions Ltd
+                            </h4>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge bg-primary-subtle text-primary fw-bold" id="auditVendorCategory">Enterprise IT Partner</span>
+                                <span class="badge bg-success text-white fw-bold" id="auditVendorStatus">Preferred Partner</span>
+                                <span class="text-muted extra-small"><i class="fa fa-star text-warning me-1"></i>Score: <strong id="auditVendorRating" class="text-dark">4.9 / 5.0</strong></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-4 text-sm-end">
+                            <div class="badge bg-dark text-white text-uppercase px-3 py-1.5 fw-bold mb-1" style="letter-spacing: 0.08em; font-size: 0.76rem;">
+                                AUDITED SUPPLIER DOSSIER
+                            </div>
+                            <div class="text-muted small">Generated: <span class="fw-semibold text-dark">04 Sep 2026</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Core Metrics Grid -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="p-2.5 bg-light rounded-2 border">
+                                <span class="text-muted extra-small text-uppercase fw-bold d-block">Spend YTD</span>
+                                <span class="fs-5 fw-extrabold text-primary" id="auditVendorSpend">₹ 48,20,000</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2.5 bg-light rounded-2 border">
+                                <span class="text-muted extra-small text-uppercase fw-bold d-block">On-Time Delivery</span>
+                                <span class="fs-5 fw-extrabold text-success" id="auditOnTimeRate">99%</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2.5 bg-light rounded-2 border">
+                                <span class="text-muted extra-small text-uppercase fw-bold d-block">Quality Score</span>
+                                <span class="fs-5 fw-extrabold text-info" id="auditQualityScore">98%</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2.5 bg-light rounded-2 border">
+                                <span class="text-muted extra-small text-uppercase fw-bold d-block">Defect Ratio</span>
+                                <span class="fs-5 fw-extrabold text-secondary" id="auditDefectRate">0.24%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tax & Compliance Information -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3 h-100 border">
+                                <h6 class="fw-bold text-dark mb-2"><i class="fa fa-id-card text-primary me-1"></i> Tax & Corporate Identifiers</h6>
+                                <div class="small mb-1"><span class="text-muted">GSTIN:</span> <strong class="text-dark" id="auditVendorGstin">27AAACN8921K1Z2</strong> <span class="badge bg-success-subtle text-success extra-small ms-1">Active</span></div>
+                                <div class="small mb-1"><span class="text-muted">PAN:</span> <strong class="text-dark" id="auditVendorPan">AAACN8921K</strong></div>
+                                <div class="small mb-1"><span class="text-muted">Email:</span> <span id="auditVendorEmail" class="text-primary">procurement-support@techinfra.com</span></div>
+                                <div class="small"><span class="text-muted">Phone:</span> <span id="auditVendorPhone" class="text-dark">+91 98450 82910</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3 h-100 border">
+                                <h6 class="fw-bold text-dark mb-2"><i class="fa fa-handshake-angle text-primary me-1"></i> Procurement SLA & Settlement</h6>
+                                <div class="small mb-1"><span class="text-muted">Payment Terms:</span> <strong class="text-dark" id="auditPaymentTerms">Net 30 Days (Direct NEFT / RTGS)</strong></div>
+                                <div class="small mb-1"><span class="text-muted">Lead Time:</span> <strong class="text-dark" id="auditLeadTime">4-7 Business Days</strong></div>
+                                <div class="small mb-1"><span class="text-muted">3-Way Match:</span> <strong class="text-success">Automated Gate Verification Enabled</strong></div>
+                                <div class="small"><span class="text-muted">Dispute Settlement:</span> <span class="text-muted">Arbitration Bangalore Jurisdiction</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Certifications & Recent POs -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100">
+                                <h6 class="fw-bold text-dark mb-2"><i class="fa fa-certificate text-warning me-1"></i> Quality Accreditations</h6>
+                                <ul class="list-unstyled small mb-0 d-flex flex-column gap-1.5" id="auditCertificationsList">
+                                    <li><i class="fa fa-check-circle text-success me-1"></i> ISO 9001:2015 Quality Management</li>
+                                    <li><i class="fa fa-check-circle text-success me-1"></i> RoHS & REACH Directives Compliant</li>
+                                    <li><i class="fa fa-check-circle text-success me-1"></i> Dun & Bradstreet 5A1 Rating</li>
+                                    <li><i class="fa fa-check-circle text-success me-1"></i> CMMI Level 3 Validated Facility</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100">
+                                <h6 class="fw-bold text-dark mb-2"><i class="fa fa-history text-primary me-1"></i> Recent Order Execution</h6>
+                                <ul class="list-unstyled small mb-0 d-flex flex-column gap-1.5" id="auditRecentPOsList">
+                                    <li><i class="fa fa-file-invoice text-primary me-1"></i> PO-2026-0891 (₹ 4.20L - On-Time)</li>
+                                    <li><i class="fa fa-file-invoice text-primary me-1"></i> PO-2026-0872 (₹ 2.80L - On-Time)</li>
+                                    <li><i class="fa fa-file-invoice text-primary me-1"></i> PO-2026-0855 (₹ 6.10L - On-Time)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seal / Disclaimer -->
+                    <div class="p-2.5 bg-light rounded-2 border d-flex align-items-center justify-content-between">
+                        <div class="extra-small text-muted">
+                            <i class="fa fa-shield-check text-success me-1"></i> Verified & sealed by Operafy Supplier Relationship Management (SRM) Engine.
+                        </div>
+                        <div class="badge bg-dark text-white extra-small text-uppercase">VERIFIED AUDIT</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light px-4 py-2.5 d-flex justify-content-end">
+                <button type="button" class="btn btn-primary btn-sm px-3" onclick="printVendorAudit()">
+                    <i class="fa fa-print me-1"></i> Print Dossier
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const searchInput = document.getElementById("vendorSearch");
+        const categoryFilter = document.getElementById("vendorCategoryFilter");
+        const statusFilter = document.getElementById("vendorStatusFilter");
+        const resultCount = document.getElementById("vendorResultCount");
+        const emptyState = document.getElementById("vendorEmpty");
+        const vendorItems = Array.from(document.querySelectorAll(".vendor-item"));
+        const averageRatingElement = document.getElementById("averageRating");
+
+        function normalize(value) {
+            return (value || "").toString().trim().toLowerCase();
+        }
+
+        function filterVendors() {
+
+            const searchTerm = normalize(searchInput.value);
+            const selectedCategory = normalize(categoryFilter.value);
+            const selectedStatus = normalize(statusFilter.value);
+
+            let visibleCount = 0;
+
+            vendorItems.forEach(function (vendor) {
+
+                const name = normalize(vendor.dataset.name);
+                const category = normalize(vendor.dataset.category);
+                const status = normalize(vendor.dataset.status);
+
+                const matchesSearch =
+                    !searchTerm ||
+                    name.includes(searchTerm) ||
+                    category.includes(searchTerm) ||
+                    status.includes(searchTerm);
+
+                const matchesCategory =
+                    selectedCategory === "all" ||
+                    category === selectedCategory;
+
+                const matchesStatus =
+                    selectedStatus === "all" ||
+                    status === selectedStatus;
+
+                const shouldShow =
+                    matchesSearch &&
+                    matchesCategory &&
+                    matchesStatus;
+
+                vendor.style.display = shouldShow ? "" : "none";
+
+                if (shouldShow) {
+                    visibleCount++;
+                }
+            });
+
+            resultCount.textContent = visibleCount;
+
+            emptyState.style.display =
+                visibleCount === 0 ? "block" : "none";
+        }
+
+        function calculateAverageRating() {
+
+            const ratingValues = [];
+
+            vendorItems.forEach(function (vendor) {
+
+                const ratingText =
+                    vendor.querySelector(".vendor-rating > span:last-child")?.textContent || "";
+
+                const match = ratingText.replace(",", ".").match(/[\d.]+/);
+
+                if (match) {
+
+                    const rating = parseFloat(match[0]);
+
+                    if (!isNaN(rating)) {
+                        ratingValues.push(rating);
+                    }
+                }
+            });
+
+            if (ratingValues.length > 0) {
+
+                const total = ratingValues.reduce(
+                    (sum, rating) => sum + rating,
+                    0
+                );
+
+                const average = total / ratingValues.length;
+
+                averageRatingElement.textContent =
+                    average.toFixed(1) + " / 5";
+
+            } else {
+
+                averageRatingElement.textContent = "-";
+            }
+        }
+
+        function compactIndianMoney(value) {
+
+            if (value === null || value === undefined) {
+                return "";
+            }
+
+            let numeric = String(value)
+                .replace(/[₹,\s]/g, "")
+                .replace(/[^0-9.-]/g, "");
+
+            const amount = parseFloat(numeric);
+
+            if (isNaN(amount)) {
+                return value;
+            }
+
+            if (Math.abs(amount) >= 10000000) {
+                return "₹" + (amount / 10000000).toFixed(2) + "Cr";
+            }
+
+            if (Math.abs(amount) >= 100000) {
+                return "₹" + (amount / 100000).toFixed(2) + "L";
+            }
+
+            if (Math.abs(amount) >= 1000) {
+                return "₹" + (amount / 1000).toFixed(1) + "K";
+            }
+
+            return "₹" + amount.toLocaleString("en-IN", {
+                maximumFractionDigits: 2
+            });
+        }
+
+        function exactIndianMoney(value) {
+
+            if (value === null || value === undefined) {
+                return "";
+            }
+
+            let numeric = String(value)
+                .replace(/[₹,\s]/g, "")
+                .replace(/[^0-9.-]/g, "");
+
+            const amount = parseFloat(numeric);
+
+            if (isNaN(amount)) {
+                return value;
+            }
+
+            return "₹" + amount.toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function formatSpendValues() {
+
+            document.querySelectorAll(".vendor-money").forEach(function (element) {
+
+                const originalValue =
+                    element.dataset.value || element.textContent;
+
+                const exactValue =
+                    exactIndianMoney(originalValue);
+
+                const compactValue =
+                    compactIndianMoney(originalValue);
+
+                element.textContent = compactValue;
+
+                element.title = exactValue;
+                element.setAttribute("aria-label", exactValue);
+            });
+        }
+
+        searchInput.addEventListener("input", filterVendors);
+        categoryFilter.addEventListener("change", filterVendors);
+        statusFilter.addEventListener("change", filterVendors);
+
+        calculateAverageRating();
+        formatSpendValues();
+        filterVendors();
+
+        /* Vendor Onboarding Form Handler */
+        var onboardForm = document.getElementById("onboardVendorForm");
+        if (onboardForm) {
+            onboardForm.addEventListener("submit", function(e) {
+                e.preventDefault();
+                var btn = document.getElementById("btnSubmitOnboardVendor");
+                if (btn) btn.disabled = true;
+
+                var nameVal = document.getElementById("newVendorName").value;
+                var catVal = document.getElementById("newVendorCategory").value;
+                var rateVal = document.getElementById("newVendorRating").value || "4.8 / 5.0";
+                var statusVal = "Approved Partner";
+
+                var formData = {
+                    Name: nameVal,
+                    Category: catVal,
+                    Rating: rateVal,
+                    SpendYTD: "₹ 0.00",
+                    OnTimeDeliveryRate: "100%",
+                    QualityScore: "100%",
+                    Status: statusVal
+                };
+
+                fetch('@Url.Action("OnboardVendor", "Purchase")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(formData)
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        var modalEl = document.getElementById("onboardVendorModal");
+                        var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+                        onboardForm.reset();
+
+                        showVendorToast(data.message || "Vendor successfully onboarded!", true);
+
+                        // Prepend newly created vendor card dynamically
+                        var grid = document.querySelector(".vendor-grid");
+                        if (grid) {
+                            var newCard = document.createElement("div");
+                            newCard.className = "vendor-card vendor-item";
+                            newCard.setAttribute("data-name", formData.Name);
+                            newCard.setAttribute("data-category", formData.Category);
+                            newCard.setAttribute("data-status", formData.Status);
+                            newCard.innerHTML = `
+                                <div class="vendor-card-body">
+                                    <div class="vendor-header">
+                                        <div class="vendor-title-wrap">
+                                            <div class="vendor-avatar">` + formData.Name.substring(0, 2).toUpperCase() + `</div>
+                                            <div>
+                                                <h5 class="vendor-name mb-0">` + formData.Name + `</h5>
+                                                <div class="vendor-category">` + formData.Category + `</div>
+                                            </div>
+                                        </div>
+                                        <span class="vendor-badge badge-active">` + formData.Status + `</span>
+                                    </div>
+                                    <div class="vendor-stats-grid">
+                                        <div class="vendor-stat">
+                                            <div class="vendor-stat-label">Spend YTD</div>
+                                            <div class="vendor-stat-value vendor-money" data-value="0">₹0</div>
+                                        </div>
+                                        <div class="vendor-stat">
+                                            <div class="vendor-stat-label">SLA Rating</div>
+                                            <div class="vendor-stat-value rating-high"><i class="fa fa-star"></i> ` + formData.Rating + `</div>
+                                        </div>
+                                    </div>
+                                    <div class="vendor-performance">
+                                        <div class="vendor-score-row">
+                                            <div class="vendor-score-heading">
+                                                <span class="vendor-score-label"><i class="fa fa-truck-fast me-1"></i> On-Time Delivery</span>
+                                                <span class="vendor-score-value green">100%</span>
+                                            </div>
+                                            <div class="vendor-progress"><div class="vendor-progress-bar green" style="width: 100%"></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="vendor-card-footer">
+                                    <span class="vendor-verified"><i class="fa fa-circle-check"></i> GSTIN Verified</span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary vendor-audit-btn" onclick="openVendorAuditModal('` + formData.Name + `', '` + formData.Category + `', '` + formData.Rating + `', '₹ 0.00', '100%', '100%', '` + formData.Status + `')">
+                                        <i class="fa fa-file-contract me-1"></i> Full Audit Report
+                                    </button>
+                                </div>`;
+                            grid.prepend(newCard);
+
+                            // Update KPI count
+                            var totalKpi = document.querySelector(".vendor-kpi-value");
+                            if (totalKpi) {
+                                var cur = parseInt(totalKpi.textContent.trim(), 10) || 0;
+                                totalKpi.textContent = cur + 1;
+                            }
+                        }
+                    } else {
+                        showVendorToast(data.message || "Failed to onboard vendor.", false);
+                    }
+                })
+                .catch(function(err) {
+                    showVendorToast("Network error submitting vendor.", false);
+                })
+                .finally(function() {
+                    if (btn) btn.disabled = false;
+                });
+            });
+        }
+
+    });
+
+    /* Vendor Toast Notification Helper */
+    function showVendorToast(message, isSuccess = true) {
+        var toastEl = document.getElementById("vendorLiveToast");
+        if (!toastEl) return;
+        var msgEl = document.getElementById("vendorToastMessage");
+        var iconEl = document.getElementById("vendorToastIcon");
+        if (msgEl) msgEl.textContent = message;
+        if (iconEl) {
+            iconEl.className = isSuccess ? "fa fa-circle-check fs-5 text-white" : "fa fa-triangle-exclamation fs-5 text-white";
+        }
+        toastEl.className = "toast align-items-center text-white border-0 shadow-lg " + (isSuccess ? "bg-success" : "bg-danger");
+        var toast = bootstrap.Toast.getInstance(toastEl) || new bootstrap.Toast(toastEl, { delay: 4000 });
+        toast.show();
+    }
+
+    /* Vendor Audit Modal & Print Handlers */
+    window.openVendorAuditModal = function(name, category, rating, spendYtd, onTimeRate, qualityScore, status) {
+        if (document.getElementById("auditVendorName")) document.getElementById("auditVendorName").textContent = name || "Supplier Partner";
+        if (document.getElementById("auditVendorCategory")) document.getElementById("auditVendorCategory").textContent = category || "Enterprise Partner";
+        if (document.getElementById("auditVendorRating")) document.getElementById("auditVendorRating").textContent = rating || "4.8 / 5.0";
+        if (document.getElementById("auditVendorStatus")) document.getElementById("auditVendorStatus").textContent = status || "Preferred Partner";
+        if (document.getElementById("auditVendorSpend")) document.getElementById("auditVendorSpend").textContent = spendYtd || "₹ 24,50,000";
+        if (document.getElementById("auditOnTimeRate")) document.getElementById("auditOnTimeRate").textContent = onTimeRate || "98%";
+        if (document.getElementById("auditQualityScore")) document.getElementById("auditQualityScore").textContent = qualityScore || "99%";
+
+        // Live fetch for audit details
+        fetch('@Url.Action("GetVendorAudit", "Purchase")?vendorName=' + encodeURIComponent(name || ''))
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    if (data.gstin && document.getElementById("auditVendorGstin")) document.getElementById("auditVendorGstin").textContent = data.gstin;
+                    if (data.pan && document.getElementById("auditVendorPan")) document.getElementById("auditVendorPan").textContent = data.pan;
+                    if (data.contactEmail && document.getElementById("auditVendorEmail")) document.getElementById("auditVendorEmail").textContent = data.contactEmail;
+                    if (data.contactPhone && document.getElementById("auditVendorPhone")) document.getElementById("auditVendorPhone").textContent = data.contactPhone;
+                    if (data.leadTimeDays && document.getElementById("auditLeadTime")) document.getElementById("auditLeadTime").textContent = data.leadTimeDays;
+                    if (data.paymentTerms && document.getElementById("auditPaymentTerms")) document.getElementById("auditPaymentTerms").textContent = data.paymentTerms;
+                    if (data.rejectionRate && document.getElementById("auditDefectRate")) document.getElementById("auditDefectRate").textContent = data.rejectionRate;
+
+                    if (data.certifications && data.certifications.length > 0) {
+                        var certList = document.getElementById("auditCertificationsList");
+                        if (certList) {
+                            certList.innerHTML = data.certifications.map(function(c) {
+                                return '<li><i class="fa fa-check-circle text-success me-1"></i> ' + c + '</li>';
+                            }).join('');
+                        }
+                    }
+
+                    if (data.recentPOs && data.recentPOs.length > 0) {
+                        var poList = document.getElementById("auditRecentPOsList");
+                        if (poList) {
+                            poList.innerHTML = data.recentPOs.map(function(p) {
+                                return '<li><i class="fa fa-file-invoice text-primary me-1"></i> ' + p + '</li>';
+                            }).join('');
+                        }
+                    }
+                }
+            })
+            .catch(function(err) {
+                console.warn("Could not load full vendor audit data.", err);
+            })
+            .finally(function() {
+                var modalEl = document.getElementById("vendorAuditModal");
+                if (modalEl) {
+                    var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            });
+    };
+
+    window.printVendorAudit = function() {
+        var printContents = document.getElementById('printableVendorAuditArea').innerHTML;
+        var printWin = window.open('', '_blank', 'width=900,height=800');
+        printWin.document.write('<html><head><title>Vendor Performance Audit Dossier</title>');
+        printWin.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">');
+        printWin.document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
+        printWin.document.write('<style>body{padding:25px;font-family:Segoe UI,sans-serif;color:#1e293b;} @@media print {.no-print{display:none;}}</style>');
+        printWin.document.write('</head><body>');
+        printWin.document.write(printContents);
+        printWin.document.write('</body></html>');
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(function() {
+            printWin.print();
+            printWin.close();
+        }, 400);
+    };
+</script>
