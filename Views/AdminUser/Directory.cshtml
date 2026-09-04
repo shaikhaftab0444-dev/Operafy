@@ -460,6 +460,15 @@
         </div>
     }
 
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4 border-0 bg-danger-subtle text-danger-emphasis" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            <strong>Error:</strong> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- Users Directory Card -->
     <div class="directory-card">
 
@@ -488,7 +497,7 @@
                 </div>
 
                 <div class="directory-result-info">
-                    <span id="userCount">
+                    <span id="userCount" class="fw-semibold">
                         @Model.Count() users
                     </span>
                 </div>
@@ -511,7 +520,7 @@
                         <th>Assigned Role</th>
                         <th>Branch</th>
                         <th>Account Status</th>
-                        <th class="text-end">Actions</th>
+                        <th class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
 
@@ -523,11 +532,13 @@
 
                         @foreach (var u in Model)
                         {
-                            <tr class="user-row"
+                            var isRootAdmin = (u.UserId == 1 || (u.UserCode == "USR001" && u.Email == "admin@erp.com"));
+
+                            <tr class="user-row" id="user-row-@u.UserId"
                                 style="animation-delay: @(rowIndex * 0.04)s">
 
                                 <td>
-                                    <span class="badge bg-secondary-subtle text-secondary font-monospace">
+                                    <span class="badge bg-secondary-subtle text-secondary font-monospace px-2 py-1">
                                         @(string.IsNullOrEmpty(u.UserCode) ? $"USR{u.UserId:D3}" : u.UserCode)
                                     </span>
                                 </td>
@@ -540,7 +551,7 @@
 
                                 <td>
                                     <span class="username-text">
-                                        @@u.UserName
+                                        @(string.IsNullOrWhiteSpace(u.UserName) ? "-" : "@" + u.UserName)
                                     </span>
                                 </td>
 
@@ -552,16 +563,14 @@
 
                                 <td>
                                     <span class="role-badge">
-                                        @(u.Role != null
-                                                                        ? u.Role.RoleName
-                                                                        : "Employee")
+                                        @(u.Role != null ? u.Role.RoleName : "Employee")
                                     </span>
                                 </td>
 
                                 <td>
-                                    @(u.Branch != null
-                                                                ? u.Branch.BranchName
-                                                                : "Main Head Office")
+                                    <span class="text-muted small">
+                                        @(u.Branch != null ? u.Branch.BranchName : "Head Office")
+                                    </span>
                                 </td>
 
                                 <td>
@@ -581,10 +590,36 @@
                                     }
                                 </td>
 
-                                <td class="text-end">
-                                    <a href="/AdminUser/AddEdit/@u.UserId" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                        <i class="fa-solid fa-pen-to-square me-1"></i> Edit
-                                    </a>
+                                <td class="text-end pe-4">
+                                    <div class="d-inline-flex gap-1.5 align-items-center" style="gap: 6px;">
+                                        <a href="/AdminUser/AddEdit/@u.UserId" 
+                                           class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1"
+                                           title="Edit User Profile">
+                                            <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                                        </a>
+
+                                        @if (isRootAdmin)
+                                        {
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-light border text-muted rounded-pill px-2.5 py-1" 
+                                                    title="System Root Admin cannot be deleted" 
+                                                    disabled>
+                                                <i class="fa-solid fa-shield-halved text-secondary"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 delete-user-btn"
+                                                    data-user-id="@u.UserId"
+                                                    data-user-name="@u.FullName"
+                                                    data-user-email="@u.Email"
+                                                    data-user-code="@(string.IsNullOrEmpty(u.UserCode) ? $"USR{u.UserId:D3}" : u.UserCode)"
+                                                    title="Delete User">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        }
+                                    </div>
                                 </td>
 
                             </tr>
@@ -595,7 +630,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="6"
+                            <td colspan="8"
                                 class="text-center py-5 text-muted">
 
                                 <i class="fa-solid fa-users-slash fa-2x mb-3 d-block"></i>
@@ -608,7 +643,7 @@
                     <!-- Live Search Empty State -->
                     <tr id="noSearchResult" class="no-search-result">
 
-                        <td colspan="6">
+                        <td colspan="8">
 
                             <div class="no-result-icon">
                                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -636,40 +671,92 @@
 
 </div>
 
+<!-- Delete User Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header border-0 bg-danger-subtle text-danger px-4 pt-4 pb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger text-white" style="width: 44px; height: 44px; font-size: 1.2rem;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-danger mb-0" id="deleteUserModalLabel">Delete User</h5>
+                        <p class="small text-danger-emphasis mb-0">This action cannot be undone.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form id="deleteUserForm" method="post" action="/AdminUser/Delete">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="deleteUserIdInput" value="" />
+
+                <div class="modal-body px-4 py-3">
+                    <p class="text-secondary mb-3">Are you sure you want to permanently delete this user account from the system?</p>
+                    
+                    <div class="p-3 bg-light rounded-3 border d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-bold" id="deleteUserAvatar" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                            U
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="fw-bold text-dark text-truncate" id="deleteUserName">User Name</div>
+                            <div class="small text-muted text-truncate" id="deleteUserEmail">email@example.com</div>
+                            <span class="badge bg-secondary-subtle text-secondary font-monospace" id="deleteUserCode">USR000</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 px-3 small mt-3 mb-0 border-0 bg-warning-subtle text-warning-emphasis rounded-3">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        All associated profile permissions and task assignments for this user will be removed.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 px-4 pb-4 pt-2 d-flex gap-2 justify-content-end">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button type="submit" id="confirmDeleteBtn" class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="fa-solid fa-trash-can me-1"></i> Delete User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
         const searchInput = document.getElementById("userSearch");
         const clearSearch = document.getElementById("clearSearch");
         const searchContainer = document.querySelector(".directory-search");
-        const userRows = document.querySelectorAll(".user-row");
+        let userRows = document.querySelectorAll(".user-row");
         const noSearchResult = document.getElementById("noSearchResult");
         const userCount = document.getElementById("userCount");
 
-        const totalUsers = userRows.length;
+        function updateTotalCount() {
+            const count = document.querySelectorAll(".user-row:not([style*='display: none'])").length;
+            const total = document.querySelectorAll(".user-row").length;
+            if (searchInput.value.trim().length > 0) {
+                userCount.textContent = count + (count === 1 ? " user found" : " users found");
+            } else {
+                userCount.textContent = total + " users";
+            }
+        }
 
         function filterUsers() {
-
-            const searchValue =
-                searchInput.value.trim().toLowerCase();
-
+            const searchValue = searchInput.value.trim().toLowerCase();
             let visibleUsers = 0;
 
+            userRows = document.querySelectorAll(".user-row");
             userRows.forEach(function (row) {
-
-                const rowText =
-                    row.textContent.toLowerCase();
-
-                const isMatch =
-                    rowText.includes(searchValue);
-
-                row.style.display =
-                    isMatch ? "" : "none";
-
+                const rowText = row.textContent.toLowerCase();
+                const isMatch = rowText.includes(searchValue);
+                row.style.display = isMatch ? "" : "none";
                 if (isMatch) {
                     visibleUsers++;
                 }
-
             });
 
             if (searchValue.length > 0) {
@@ -684,41 +771,137 @@
                 noSearchResult.classList.remove("show");
             }
 
-            if (searchValue.length > 0) {
-
-                userCount.textContent =
-                    visibleUsers +
-                    (visibleUsers === 1
-                        ? " user found"
-                        : " users found");
-
-            } else {
-
-                userCount.textContent =
-                    totalUsers +
-                    " users";
-
-            }
-
+            updateTotalCount();
         }
 
-        searchInput.addEventListener(
-            "input",
-            filterUsers
-        );
+        if (searchInput) {
+            searchInput.addEventListener("input", filterUsers);
+        }
 
-        clearSearch.addEventListener(
-            "click",
-            function () {
-
+        if (clearSearch) {
+            clearSearch.addEventListener("click", function () {
                 searchInput.value = "";
-
                 filterUsers();
-
                 searchInput.focus();
+            });
+        }
 
-            }
-        );
+        // ==========================================
+        // DELETE USER MODAL & REAL-TIME HANDLING
+        // ==========================================
+        const deleteModalEl = document.getElementById("deleteUserModal");
+        const deleteModal = deleteModalEl ? new bootstrap.Modal(deleteModalEl) : null;
+        const deleteUserForm = document.getElementById("deleteUserForm");
+        const deleteUserIdInput = document.getElementById("deleteUserIdInput");
+        const deleteUserName = document.getElementById("deleteUserName");
+        const deleteUserEmail = document.getElementById("deleteUserEmail");
+        const deleteUserCode = document.getElementById("deleteUserCode");
+        const deleteUserAvatar = document.getElementById("deleteUserAvatar");
+        const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+
+        document.querySelectorAll(".delete-user-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                const userId = this.getAttribute("data-user-id");
+                const userName = this.getAttribute("data-user-name") || "User";
+                const userEmail = this.getAttribute("data-user-email") || "";
+                const userCode = this.getAttribute("data-user-code") || "";
+
+                if (deleteUserIdInput) deleteUserIdInput.value = userId;
+                if (deleteUserName) deleteUserName.textContent = userName;
+                if (deleteUserEmail) deleteUserEmail.textContent = userEmail;
+                if (deleteUserCode) deleteUserCode.textContent = userCode;
+                if (deleteUserAvatar) {
+                    deleteUserAvatar.textContent = userName.trim().charAt(0).toUpperCase();
+                }
+
+                if (deleteModal) {
+                    deleteModal.show();
+                }
+            });
+        });
+
+        if (deleteUserForm) {
+            deleteUserForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                const userId = deleteUserIdInput.value;
+                if (!userId) return;
+
+                const originalBtnHtml = confirmDeleteBtn.innerHTML;
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Deleting...';
+
+                const formData = new FormData(deleteUserForm);
+
+                fetch("/AdminUser/Delete", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("HTTP error " + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function (result) {
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = originalBtnHtml;
+                    if (deleteModal) deleteModal.hide();
+
+                    if (result.success) {
+                        // Smoothly animate & remove deleted user row
+                        const targetRow = document.getElementById("user-row-" + userId);
+                        if (targetRow) {
+                            targetRow.style.transition = "all 0.4s ease";
+                            targetRow.style.opacity = "0";
+                            targetRow.style.transform = "translateX(20px)";
+                            setTimeout(function () {
+                                targetRow.remove();
+                                updateTotalCount();
+                            }, 400);
+                        }
+
+                        // Show dynamic success toast/banner
+                        showToastAlert(result.message, "success");
+                    } else {
+                        showToastAlert(result.message || "Failed to delete user.", "danger");
+                    }
+                })
+                .catch(function (err) {
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = originalBtnHtml;
+                    if (deleteModal) deleteModal.hide();
+                    showToastAlert("An unexpected error occurred while deleting: " + err.message, "danger");
+                });
+            });
+        }
+
+        function showToastAlert(message, type) {
+            const container = document.querySelector(".user-directory-page");
+            if (!container) return;
+
+            const alertDiv = document.createElement("div");
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show rounded-4 shadow-sm mb-4 border-0 bg-${type}-subtle text-${type}-emphasis`;
+            alertDiv.setAttribute("role", "alert");
+            alertDiv.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'} me-2"></i>
+                <strong>${type === 'success' ? 'Success!' : 'Notice:'}</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+
+            const card = document.querySelector(".directory-card");
+            container.insertBefore(alertDiv, card);
+
+            setTimeout(function () {
+                if (alertDiv && alertDiv.parentNode) {
+                    alertDiv.classList.remove("show");
+                    setTimeout(() => alertDiv.remove(), 250);
+                }
+            }, 5000);
+        }
 
     });
 </script>

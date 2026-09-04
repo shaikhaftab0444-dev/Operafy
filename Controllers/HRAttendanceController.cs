@@ -10,7 +10,7 @@ using ERP_System.Models;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,HR")]
+    [Authorize(Roles = "Super Admin,Admin,HR,Manager,Employee")]
     public class HRAttendanceController : Controller
     {
         private readonly ApplicationDbContext _context;

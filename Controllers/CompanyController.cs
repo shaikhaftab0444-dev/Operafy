@@ -8,7 +8,7 @@ using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,HR,Manager")]
+    [Authorize(Roles = "Super Admin,Admin,HR,Manager,Employee")]
     public class CompanyController : Controller
     {
         private readonly ApplicationDbContext _context;
