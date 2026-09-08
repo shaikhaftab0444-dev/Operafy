@@ -36,6 +36,40 @@ namespace ERP_System.Controllers
             return View(model);
         }
 
+        // GET: /Purchase/OrderDetails
+        [HttpGet]
+        public IActionResult OrderDetails(string? poNumber)
+        {
+            if (string.IsNullOrWhiteSpace(poNumber))
+            {
+                var firstPo = PurchaseDataStore.GetOrders().FirstOrDefault();
+                poNumber = firstPo?.PONumber ?? "PO-2026-0891";
+            }
+
+            var po = PurchaseDataStore.GetOrderByNumber(poNumber)
+                     ?? PurchaseDataStore.GetOrders().FirstOrDefault(p => p.PONumber.Equals(poNumber, StringComparison.OrdinalIgnoreCase))
+                     ?? new PurchaseOrderItem
+                     {
+                         PONumber = poNumber,
+                         VendorName = "TechInfra Solutions Ltd",
+                         ItemsCount = 1,
+                         TotalAmount = "₹ 1,45,000.00",
+                         OrderDate = DateTime.Now.ToString("dd MMM yyyy"),
+                         Status = "Confirmed",
+                         PaymentTerms = "Net 30"
+                     };
+
+            PurchaseDataStore.EnsurePOEnriched(po);
+            return View("OrderDetails", po);
+        }
+
+        // GET: /Purchase/ViewOrder (friendly alias)
+        [HttpGet]
+        public IActionResult ViewOrder(string? poNumber)
+        {
+            return RedirectToAction("OrderDetails", new { poNumber });
+        }
+
         // GET: /Purchase/Vendors
         [HttpGet]
         public IActionResult Vendors()
@@ -44,12 +78,61 @@ namespace ERP_System.Controllers
             return View(model);
         }
 
+        // GET: /Purchase/VendorAudit
+        [HttpGet]
+        public IActionResult VendorAudit(string? vendorName)
+        {
+            if (string.IsNullOrWhiteSpace(vendorName))
+            {
+                var firstVendor = PurchaseDataStore.GetVendors().FirstOrDefault();
+                vendorName = firstVendor?.Name ?? "TechInfra Solutions Ltd";
+            }
+
+            var dossier = PurchaseDataStore.GetVendorAuditDossier(vendorName);
+            return View("VendorAudit", dossier);
+        }
+
+        // GET: /Purchase/AuditReport (friendly alias)
+        [HttpGet]
+        public IActionResult AuditReport(string? vendorName)
+        {
+            return RedirectToAction("VendorAudit", new { vendorName });
+        }
+
         // GET: /Purchase/Receipts
         [HttpGet]
         public IActionResult Receipts()
         {
             var model = PurchaseDataStore.GetReceipts();
             return View(model);
+        }
+
+        // GET: /Purchase/Slip
+        [HttpGet]
+        public IActionResult Slip(string? grnNumber)
+        {
+            if (string.IsNullOrWhiteSpace(grnNumber))
+            {
+                var firstGrn = PurchaseDataStore.GetReceipts().FirstOrDefault();
+                grnNumber = firstGrn?.GRNNumber ?? "GRN-2026-0411";
+            }
+
+            var slip = PurchaseDataStore.GetGRNSlipDetails(grnNumber);
+            return View("Slip", slip);
+        }
+
+        // GET: /Purchase/GRNSlip (friendly alias)
+        [HttpGet]
+        public IActionResult GRNSlip(string? grnNumber)
+        {
+            return RedirectToAction("Slip", new { grnNumber });
+        }
+
+        // GET: /Purchase/ReceiptDetails (friendly alias)
+        [HttpGet]
+        public IActionResult ReceiptDetails(string? grnNumber)
+        {
+            return RedirectToAction("Slip", new { grnNumber });
         }
 
         // POST: /Purchase/CreatePO
@@ -173,25 +256,133 @@ namespace ERP_System.Controllers
         [HttpGet]
         public IActionResult GetPODetails(string poNumber)
         {
-            var po = PurchaseDataStore.GetOrders().FirstOrDefault(p => p.PONumber.Equals(poNumber, StringComparison.OrdinalIgnoreCase))
-                     ?? new PurchaseOrderItem { PONumber = poNumber, VendorName = "TechInfra Solutions Ltd", ItemsCount = 3, TotalAmount = "₹ 3,96,480.00", OrderDate = DateTime.Now.ToString("dd MMM yyyy"), Status = "Confirmed", PaymentTerms = "Net 30" };
+            var po = PurchaseDataStore.GetOrderByNumber(poNumber)
+                     ?? PurchaseDataStore.GetOrders().FirstOrDefault()
+                     ?? new PurchaseOrderItem
+                     {
+                         PONumber = poNumber ?? "PO-2026-0891",
+                         VendorName = "TechInfra Solutions Ltd",
+                         ItemsCount = 3,
+                         TotalAmount = "₹ 4,20,000.00",
+                         OrderDate = DateTime.Now.ToString("dd MMM yyyy"),
+                         Status = "Confirmed",
+                         PaymentTerms = "Net 30"
+                     };
+
+            PurchaseDataStore.EnsurePOEnriched(po);
+
+            // Compute status timeline index
+            int stepIndex = 1;
+            if (string.Equals(po.Status, "Confirmed", StringComparison.OrdinalIgnoreCase)) stepIndex = 2;
+            else if (string.Equals(po.Status, "In Transit", StringComparison.OrdinalIgnoreCase)) stepIndex = 3;
+            else if (string.Equals(po.Status, "Delivered", StringComparison.OrdinalIgnoreCase)) stepIndex = 4;
+
             return Json(new
             {
                 success = true,
                 po = po,
-                gstin = "27AAACN8921K1Z2",
-                billingAddress = "Operafy Corporate HQ, 4th Floor, Tech Park Central, Bangalore - 560100",
-                shippingAddress = "Warehouse Bay 3, Operafy Central Depot, Nelamangala - 562123",
-                items = new[]
+                poNumber = po.PONumber,
+                vendorName = po.VendorName,
+                orderDate = po.OrderDate,
+                deliveryDate = po.DeliveryDate,
+                status = po.Status,
+                stepIndex = stepIndex,
+                paymentTerms = po.PaymentTerms,
+                gstin = po.VendorGstin,
+                pan = po.VendorPan,
+                vendorEmail = po.VendorEmail,
+                vendorPhone = po.VendorPhone,
+                vendorAddress = po.VendorAddress,
+                billingAddress = "Operafy Systems Corporate HQ, 4th Floor, Tech Park Central, Bangalore - 560100",
+                shippingAddress = po.ShippingAddress,
+                warehouse = po.Warehouse,
+                receivingGate = po.ReceivingGate,
+                carrier = po.Carrier,
+                trackingNumber = po.TrackingNumber,
+                department = po.Department ?? "Corporate Procurement",
+                requestedBy = po.RequestedBy ?? "Aftab Shaik",
+                items = po.Items.Select(i => new
                 {
-                    new { Item = "Dell UltraSharp 27\" Monitors (4K UHD)", Hsn = "8471", Qty = 5, UnitPrice = "₹ 24,000.00", Tax = "18% GST", Total = "₹ 1,20,000.00" },
-                    new { Item = "High-Speed Dual Band Managed Switches", Hsn = "8517", Qty = 4, UnitPrice = "₹ 45,000.00", Tax = "18% GST", Total = "₹ 1,80,000.00" },
-                    new { Item = "Category-6e Shielded Network Spools (305m)", Hsn = "8544", Qty = 3, UnitPrice = "₹ 12,000.00", Tax = "18% GST", Total = "₹ 36,000.00" }
-                },
-                subtotal = "₹ 3,36,000.00",
-                taxAmount = "₹ 60,480.00",
+                    item = i.Item,
+                    specification = i.Specification,
+                    hsn = i.Hsn,
+                    qty = i.Qty,
+                    unitPrice = i.UnitPrice,
+                    tax = i.Tax,
+                    total = i.Total
+                }).ToList(),
+                subtotal = po.Subtotal,
+                taxAmount = po.TaxAmount,
                 grandTotal = po.TotalAmount,
-                authorizedSignatory = "Aftab Shaik (Chief Procurement Officer)"
+                authorizedSignatory = po.AuthorizedSignatory
+            });
+        }
+
+        // POST: /Purchase/UpdatePOStatus
+        [HttpPost]
+        public IActionResult UpdatePOStatus(string poNumber, string status)
+        {
+            if (string.IsNullOrWhiteSpace(poNumber) || string.IsNullOrWhiteSpace(status))
+            {
+                return Json(new { success = false, message = "PO Number and Status are required." });
+            }
+
+            var updated = PurchaseDataStore.UpdateOrderStatus(poNumber, status);
+            if (updated == null)
+            {
+                return Json(new { success = false, message = $"Purchase Order {poNumber} not found." });
+            }
+
+            var allOrders = PurchaseDataStore.GetOrders();
+            int inTransitCount = allOrders.Count(p => p.Status == "In Transit");
+            int deliveredCount = allOrders.Count(p => p.Status == "Delivered");
+            int confirmedCount = allOrders.Count(p => p.Status == "Confirmed");
+
+            return Json(new
+            {
+                success = true,
+                poNumber = updated.PONumber,
+                status = updated.Status,
+                inTransitCount = inTransitCount,
+                deliveredCount = deliveredCount,
+                confirmedCount = confirmedCount,
+                message = $"Purchase Order {updated.PONumber} status updated to '{updated.Status}'."
+            });
+        }
+
+        // POST: /Purchase/QuickGenerateGRN
+        [HttpPost]
+        public IActionResult QuickGenerateGRN(string poNumber)
+        {
+            var po = PurchaseDataStore.GetOrderByNumber(poNumber);
+            if (po == null)
+            {
+                return Json(new { success = false, message = $"Purchase Order {poNumber} not found." });
+            }
+
+            var grnNumber = "GRN-2026-0" + new Random().Next(420, 999);
+            var grn = new GRNItem
+            {
+                GRNNumber = grnNumber,
+                PONumber = po.PONumber,
+                VendorName = po.VendorName,
+                ReceivedDate = DateTime.Now.ToString("dd MMM yyyy"),
+                Status = "Inspected & Accepted",
+                Warehouse = !string.IsNullOrWhiteSpace(po.Warehouse) ? po.Warehouse : "WH-Main Logistics Bay 3",
+                ItemsReceived = po.ItemsCount > 0 ? po.ItemsCount : 1,
+                InspectedBy = User.Identity?.Name ?? "Aftab Shaik"
+            };
+
+            PurchaseDataStore.AddReceipt(grn);
+            PurchaseDataStore.UpdateOrderStatus(po.PONumber, "Delivered");
+
+            return Json(new
+            {
+                success = true,
+                grnNumber = grn.GRNNumber,
+                poNumber = po.PONumber,
+                newStatus = "Delivered",
+                message = $"Goods Receipt Note {grn.GRNNumber} created successfully for {po.PONumber}. Order marked as Delivered & 3-Way Matched."
             });
         }
 
@@ -199,22 +390,91 @@ namespace ERP_System.Controllers
         [HttpGet]
         public IActionResult GetGRNDetails(string grnNumber)
         {
-            var grn = PurchaseDataStore.GetReceipts().FirstOrDefault(g => g.GRNNumber.Equals(grnNumber, StringComparison.OrdinalIgnoreCase))
-                      ?? new GRNItem { GRNNumber = grnNumber, Status = "Inspected & Accepted", PONumber = "PO-2026-0893", VendorName = "National Paper Mills", ReceivedDate = DateTime.Now.ToString("dd MMM yyyy"), Warehouse = "WH-Main Bay A", ItemsReceived = 50, InspectedBy = "Rajesh K." };
+            var slip = PurchaseDataStore.GetGRNSlipDetails(grnNumber);
             return Json(new
             {
                 success = true,
-                grn = grn,
-                inspectionDate = grn.ReceivedDate,
-                deliveryChallanNo = "DC-2026-" + new Random().Next(10000, 99999),
-                transporter = "BlueDart Express Freight (Vehicle: KA-01-EA-9821)",
-                items = new[]
+                slip = slip,
+                grn = new
                 {
-                    new { Item = "Heavy Corrugated Packaging Cartons (Grade A)", ExpectedQty = grn.ItemsReceived, ReceivedQty = grn.ItemsReceived, AcceptedQty = grn.ItemsReceived, RejectedQty = 0, Remarks = "Passed Tensile & Bursting Test" }
+                    grnNumber = slip.GRNNumber,
+                    poNumber = slip.PONumber,
+                    vendorName = slip.VendorName,
+                    receivedDate = slip.ReceivedDate,
+                    warehouse = slip.Warehouse,
+                    itemsReceived = slip.ItemsReceived,
+                    inspectedBy = slip.InspectedBy,
+                    status = slip.Status
                 },
-                threeWayMatchStatus = "100% Matched (PO, GRN & Invoice Aligned)",
-                variance = "0.00%",
-                inspectorRemarks = "Physical count and quality verification completed with zero defect tolerance."
+                grnNumber = slip.GRNNumber,
+                poNumber = slip.PONumber,
+                vendorName = slip.VendorName,
+                vendorGstin = slip.VendorGstin,
+                vendorAddress = slip.VendorAddress,
+                receivedDate = slip.ReceivedDate,
+                inspectionDate = slip.ReceivedDate,
+                warehouse = slip.Warehouse,
+                storageBin = slip.StorageBin,
+                receivingGate = slip.ReceivingGate,
+                itemsReceived = slip.ItemsReceived,
+                inspectedBy = slip.InspectedBy,
+                deliveryChallanNo = slip.DeliveryChallanNo,
+                challanDate = slip.ChallanDate,
+                transporter = slip.Carrier,
+                carrier = slip.Carrier,
+                vehicleNumber = slip.VehicleNumber,
+                threeWayMatchStatus = slip.ThreeWayMatchStatus,
+                variance = slip.Variance,
+                inspectorRemarks = slip.InspectorRemarks,
+                sapMovementType = slip.SapMovementType,
+                billOfLading = slip.BillOfLading,
+                items = slip.Items.Select(i => new
+                {
+                    item = i.Item,
+                    specification = i.Specification,
+                    hsn = i.Hsn,
+                    poQty = i.PoQty,
+                    expectedQty = i.PoQty,
+                    receivedQty = i.ReceivedQty,
+                    acceptedQty = i.AcceptedQty,
+                    quarantineQty = i.QuarantineQty,
+                    rejectedQty = i.RejectedQty,
+                    unit = i.Unit,
+                    verdict = i.Verdict,
+                    remarks = i.Remarks
+                }).ToList()
+            });
+        }
+
+        // POST: /Purchase/UpdateGRNStatus
+        [HttpPost]
+        public IActionResult UpdateGRNStatus(string grnNumber, string status, string? remarks)
+        {
+            if (string.IsNullOrWhiteSpace(grnNumber) || string.IsNullOrWhiteSpace(status))
+            {
+                return Json(new { success = false, message = "GRN Number and status are required." });
+            }
+
+            bool updated = PurchaseDataStore.UpdateGRNStatus(grnNumber, status, remarks);
+            if (!updated)
+            {
+                return Json(new { success = false, message = $"Goods Receipt Note {grnNumber} not found." });
+            }
+
+            var receipts = PurchaseDataStore.GetReceipts();
+            int quarantineCount = receipts.Count(g => g.Status == "Quality Quarantine");
+            int matchedCount = receipts.Count(g => g.Status == "3-Way Matched");
+            int acceptedCount = receipts.Count(g => g.Status == "Inspected & Accepted" || g.Status == "Completed & Stocked");
+
+            return Json(new
+            {
+                success = true,
+                grnNumber = grnNumber,
+                newStatus = status,
+                quarantineCount = quarantineCount,
+                matchedCount = matchedCount,
+                acceptedCount = acceptedCount,
+                message = $"Goods Receipt {grnNumber} successfully updated to '{status}'. Material moved to warehouse bin."
             });
         }
 
@@ -222,21 +482,95 @@ namespace ERP_System.Controllers
         [HttpGet]
         public IActionResult GetVendorAudit(string vendorName)
         {
-            var vendor = PurchaseDataStore.GetVendors().FirstOrDefault(v => v.Name.Equals(vendorName, StringComparison.OrdinalIgnoreCase))
-                         ?? new VendorScorecardItem { Name = vendorName, Rating = "4.8 / 5.0", Category = "Enterprise Partner", OnTimeDeliveryRate = "98%", QualityScore = "99%", SpendYTD = "₹ 24,50,000.00", Status = "Preferred Partner" };
+            var dossier = PurchaseDataStore.GetVendorAuditDossier(vendorName);
             return Json(new
             {
                 success = true,
-                vendor = vendor,
-                gstin = "27AAACN" + new Random().Next(1000, 9999) + "K1Z" + new Random().Next(1, 9),
-                pan = "AAACN" + new Random().Next(1000, 9999) + "K",
-                contactEmail = "procurement-support@" + vendor.Name.ToLower().Replace(" ", "").Replace(".", "") + ".com",
-                contactPhone = "+91 98450 " + new Random().Next(10000, 99999),
-                leadTimeDays = "4-7 Business Days",
-                rejectionRate = "0.3%",
-                certifications = new[] { "ISO 9001:2015 Certified", "RoHS Compliant", "Dun & Bradstreet 5A1", "CMMI Level 3" },
-                recentPOs = new[] { "PO-2026-0891 (₹ 4.20L - On-Time)", "PO-2026-0872 (₹ 2.80L - On-Time)", "PO-2026-0855 (₹ 6.10L - On-Time)" },
-                paymentTerms = "Net 30 Days (Direct NEFT / RTGS)"
+                dossier = dossier,
+                vendor = new
+                {
+                    name = dossier.VendorName,
+                    category = dossier.Category,
+                    rating = dossier.Rating,
+                    status = dossier.Status,
+                    spendYtd = dossier.SpendYTD,
+                    onTimeDeliveryRate = dossier.OnTimeDeliveryRate,
+                    qualityScore = dossier.QualityScore,
+                    defectRatio = dossier.DefectRatio,
+                    priceCompetitiveness = dossier.PriceCompetitiveness,
+                    riskGrade = dossier.RiskGrade
+                },
+                gstin = dossier.Gstin,
+                gstinStatus = dossier.GstinStatus,
+                pan = dossier.Pan,
+                udyamRegNo = dossier.UdyamRegNo,
+                cinNumber = dossier.CinNumber,
+                contactPerson = dossier.ContactPerson,
+                contactEmail = dossier.ContactEmail,
+                contactPhone = dossier.ContactPhone,
+                registeredAddress = dossier.RegisteredAddress,
+                plantLocation = dossier.PlantLocation,
+                bankName = dossier.BankName,
+                bankAccountMasked = dossier.BankAccountMasked,
+                ifscCode = dossier.IfscCode,
+                paymentTerms = dossier.PaymentTerms,
+                leadTimeDays = dossier.LeadTimeDays,
+                rejectionRate = dossier.DefectRatio,
+                certifications = dossier.Certifications,
+                recentOrders = dossier.RecentOrders,
+                recentPOs = dossier.RecentOrders.Select(p => $"{p.PONumber} ({p.TotalAmount} - {p.Status})").ToList(),
+                leadAuditor = dossier.LeadAuditor,
+                auditDate = dossier.AuditDate,
+                auditValidUntil = dossier.AuditValidUntil,
+                nextAuditDate = dossier.NextAuditDate,
+                auditorRemarks = dossier.AuditorRemarks,
+                auditHistory = dossier.AuditHistory
+            });
+        }
+
+        // POST: /Purchase/UpdateVendorAuditStatus
+        [HttpPost]
+        public IActionResult UpdateVendorAuditStatus(string vendorName, string status)
+        {
+            if (string.IsNullOrWhiteSpace(vendorName) || string.IsNullOrWhiteSpace(status))
+            {
+                return Json(new { success = false, message = "Vendor name and status are required." });
+            }
+
+            bool updated = PurchaseDataStore.UpdateVendorStatus(vendorName, status);
+            if (!updated)
+            {
+                return Json(new { success = false, message = $"Vendor '{vendorName}' not found." });
+            }
+
+            var vendors = PurchaseDataStore.GetVendors();
+            int activeCount = vendors.Count(v => v.Status != "Blacklisted" && v.Status != "Suspended");
+
+            return Json(new
+            {
+                success = true,
+                vendorName = vendorName,
+                newStatus = status,
+                activeVendorsCount = activeCount,
+                message = $"Vendor '{vendorName}' status updated to '{status}'."
+            });
+        }
+
+        // POST: /Purchase/SaveVendorAuditRemarks
+        [HttpPost]
+        public IActionResult SaveVendorAuditRemarks(string vendorName, string remarks, string nextAuditDate, string riskGrade)
+        {
+            if (string.IsNullOrWhiteSpace(vendorName))
+            {
+                return Json(new { success = false, message = "Vendor name is required." });
+            }
+
+            bool saved = PurchaseDataStore.SaveVendorAuditFinding(vendorName, remarks, nextAuditDate, riskGrade);
+            return Json(new
+            {
+                success = saved,
+                vendorName = vendorName,
+                message = saved ? "Audit findings & schedule recorded successfully." : "Vendor not found."
             });
         }
 
