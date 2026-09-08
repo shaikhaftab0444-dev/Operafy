@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using ERP_System.Data;
 using ERP_System.Models;
+using System.Security.Claims;
+
 
 namespace ERP_System.Controllers
 {
@@ -666,6 +668,301 @@ namespace ERP_System.Controllers
 
             TempData["SuccessMessage"] = $"Monthly depreciation run executed for {count} active assets! Total depreciation of ₹ {totalMonthly:N2} posted to General Ledger.";
             return RedirectToAction(nameof(FixedAssets));
+        }
+
+        // ==========================================
+        // TEAM ATTENDANCE & MANAGEMENT FOR FINANCE MANAGER
+        // ==========================================
+
+        // GET: /Finance/TeamAttendance
+        [HttpGet]
+        public async Task<IActionResult> TeamAttendance(DateTime? selectedDate, string? statusFilter, string? search)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.TryParse(userIdClaim, out int cid) ? cid : 1;
+            var currentManager = await _context.Users.Include(u => u.Role).Include(u => u.Department).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+            var date = selectedDate ?? DateTime.Today;
+
+            // Find employees reporting directly to this Finance Manager or in his department
+            var teamUsers = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Where(u => u.IsActive && u.UserId != currentUserId && (
+                    u.ReportingManagerId == currentUserId.ToString() ||
+                    (!string.IsNullOrEmpty(currentManager.FullName) && u.ReportingManagerName == currentManager.FullName) ||
+                    (currentManager.DepartmentId != null && u.DepartmentId == currentManager.DepartmentId)
+                ))
+                .OrderBy(u => u.FullName)
+                .ToListAsync();
+
+            if (!teamUsers.Any())
+            {
+                teamUsers = await _context.Users
+                    .Include(u => u.Role)
+                    .Include(u => u.Department)
+                    .Where(u => u.IsActive && u.UserId != currentUserId && u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin")
+                    .Take(10)
+                    .ToListAsync();
+            }
+
+            var teamUserIds = teamUsers.Select(u => u.UserId).ToList();
+
+            var attendanceLogs = await _context.HRAttendanceLogs
+                .Where(a => teamUserIds.Contains(a.UserId) && a.Date.Date == date.Date)
+                .ToListAsync();
+
+            var modelList = new List<FinanceTeamAttendanceItemViewModel>();
+
+            foreach (var user in teamUsers)
+            {
+                var log = attendanceLogs.FirstOrDefault(l => l.UserId == user.UserId);
+                string status = "Not Clocked In";
+                string clockIn = "-";
+                string clockOut = "-";
+                string workHours = "0h 0m";
+                string punchSource = "N/A";
+                string remarks = "";
+
+                if (log != null)
+                {
+                    status = log.Status;
+                    clockIn = log.CheckInTime.HasValue ? log.CheckInTime.Value.ToString("hh:mm tt") : "-";
+                    clockOut = log.CheckOutTime.HasValue ? log.CheckOutTime.Value.ToString("hh:mm tt") : "-";
+                    workHours = log.WorkHours;
+                    punchSource = log.PunchSource;
+                    remarks = log.Remarks ?? "";
+                }
+
+                modelList.Add(new FinanceTeamAttendanceItemViewModel
+                {
+                    UserId = user.UserId,
+                    EmployeeCode = user.UserCode,
+                    EmployeeName = user.FullName,
+                    Department = !string.IsNullOrWhiteSpace(user.DepartmentName) ? user.DepartmentName : (user.Department?.DepartmentName ?? "Finance"),
+                    Role = user.Role?.RoleName ?? "Team Member",
+                    Date = date,
+                    CheckInTime = clockIn,
+                    CheckOutTime = clockOut,
+                    WorkHours = workHours,
+                    PunchSource = punchSource,
+                    Status = status,
+                    Remarks = remarks
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(statusFilter) && statusFilter != "All")
+            {
+                modelList = modelList.Where(m => m.Status.Contains(statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.Trim().ToLower();
+                modelList = modelList.Where(m => m.EmployeeName.ToLower().Contains(q) || m.EmployeeCode.ToLower().Contains(q) || m.Role.ToLower().Contains(q)).ToList();
+            }
+
+            var vm = new FinanceTeamAttendanceViewModel
+            {
+                SelectedDate = date,
+                StatusFilter = statusFilter ?? "All",
+                SearchQuery = search ?? "",
+                TotalTeam = teamUsers.Count,
+                PresentCount = modelList.Count(m => m.Status.StartsWith("Present")),
+                LateCount = modelList.Count(m => m.Status.Contains("Late")),
+                OnLeaveCount = modelList.Count(m => m.Status.Contains("Leave")),
+                NotClockedInCount = modelList.Count(m => m.Status == "Not Clocked In" || m.Status.Contains("Absent")),
+                TeamAttendanceList = modelList
+            };
+
+            return View(vm);
+        }
+
+        // GET: /Finance/Tasks
+        [HttpGet]
+        public async Task<IActionResult> Tasks(string statusFilter = "All", string search = "")
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.TryParse(userIdClaim, out int cid) ? cid : 1;
+            var currentManager = await _context.Users.Include(u => u.Role).Include(u => u.Department).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+
+            var teamMembers = await _context.Users
+                .Where(u => u.IsActive && u.UserId != currentUserId && (
+                    u.ReportingManagerId == currentUserId.ToString() ||
+                    (!string.IsNullOrEmpty(currentManager.FullName) && u.ReportingManagerName == currentManager.FullName) ||
+                    (currentManager.DepartmentId != null && u.DepartmentId == currentManager.DepartmentId)
+                ))
+                .OrderBy(u => u.FullName)
+                .ToListAsync();
+
+            if (!teamMembers.Any())
+            {
+                teamMembers = await _context.Users
+                    .Where(u => u.IsActive && u.UserId != currentUserId && u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin")
+                    .Take(10)
+                    .ToListAsync();
+            }
+
+            var teamEmails = teamMembers.Select(m => m.Email.ToLower()).ToList();
+            var managerNames = new List<string> { currentManager?.FullName ?? "", currentManager?.UserName ?? "", "Finance Manager", "Manager" };
+
+            var query = _context.DepartmentTasks.AsQueryable();
+
+            query = query.Where(t => managerNames.Contains(t.AssignedBy) || teamEmails.Contains(t.AssignedToEmail.ToLower()));
+
+            if (!string.IsNullOrEmpty(statusFilter) && statusFilter != "All")
+            {
+                query = query.Where(t => t.Status == statusFilter);
+            }
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                search = search.Trim().ToLower();
+                query = query.Where(t => t.Title.ToLower().Contains(search) || t.AssignedToName.ToLower().Contains(search));
+            }
+
+            var tasks = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+
+            var viewModel = new TaskDelegationViewModel
+            {
+                Tasks = tasks,
+                TotalTasksCount = await _context.DepartmentTasks.CountAsync(t => managerNames.Contains(t.AssignedBy) || teamEmails.Contains(t.AssignedToEmail.ToLower())),
+                InProgressCount = await _context.DepartmentTasks.CountAsync(t => (managerNames.Contains(t.AssignedBy) || teamEmails.Contains(t.AssignedToEmail.ToLower())) && t.Status == "In Progress"),
+                InReviewCount = await _context.DepartmentTasks.CountAsync(t => (managerNames.Contains(t.AssignedBy) || teamEmails.Contains(t.AssignedToEmail.ToLower())) && (t.Status == "Review" || t.Status == "In Review")),
+                DelayedCount = await _context.DepartmentTasks.CountAsync(t => (managerNames.Contains(t.AssignedBy) || teamEmails.Contains(t.AssignedToEmail.ToLower())) && t.Status == "Delayed"),
+                CompletedCount = await _context.DepartmentTasks.CountAsync(t => (managerNames.Contains(t.AssignedBy) || teamEmails.Contains(t.AssignedToEmail.ToLower())) && t.Status == "Completed"),
+                TeamMembers = teamMembers.Select(u => new TeamMemberDropdownItem { Name = u.FullName ?? u.UserName, Email = u.Email }).ToList()
+            };
+
+            ViewBag.TeamMembers = teamMembers;
+            ViewBag.ActiveStatus = statusFilter;
+            ViewBag.SearchQuery = search;
+            return View(viewModel);
+        }
+
+        // POST: /Finance/AssignTask
+        [HttpPost]
+        public async Task<IActionResult> AssignTask([FromForm] CreateTaskInputModel input, [FromForm] string? assignedToUserId = null)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.TryParse(userIdClaim, out int cid) ? cid : 1;
+            var currentManager = await _context.Users.FindAsync(currentUserId);
+
+            if (string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.AssignedToEmail))
+            {
+                if (!string.IsNullOrEmpty(assignedToUserId) && int.TryParse(assignedToUserId, out int targetUid))
+                {
+                    var targetUser = await _context.Users.FindAsync(targetUid);
+                    if (targetUser != null)
+                    {
+                        input.AssignedToName = targetUser.FullName;
+                        input.AssignedToEmail = targetUser.Email;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.AssignedToEmail))
+            {
+                return Json(new { success = false, message = "Please provide task title and select a team member." });
+            }
+
+            if (string.IsNullOrWhiteSpace(input.AssignedToName))
+            {
+                var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == input.AssignedToEmail.ToLower());
+                input.AssignedToName = targetUser?.FullName ?? input.AssignedToEmail;
+            }
+
+            var newTask = new DepartmentTask
+            {
+                Title = input.Title,
+                Description = input.Description ?? "",
+                AssignedToName = input.AssignedToName,
+                AssignedToEmail = input.AssignedToEmail,
+                Priority = string.IsNullOrEmpty(input.Priority) ? "Medium" : input.Priority,
+                DueDate = input.DueDate == default ? DateTime.Today.AddDays(3) : input.DueDate,
+                ProgressPercentage = 0,
+                Status = "In Progress",
+                AssignedBy = currentManager?.FullName ?? User.Identity?.Name ?? "Finance Manager",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.DepartmentTasks.Add(newTask);
+            await _context.SaveChangesAsync();
+
+            // Synchronize to ESSTasks for the employee
+            var assignedUser = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == input.AssignedToEmail.ToLower());
+            if (assignedUser != null)
+            {
+                var essTask = new ESSTask
+                {
+                    UserId = assignedUser.UserId,
+                    TaskTitle = input.Title,
+                    Description = input.Description ?? "",
+                    DueDate = newTask.DueDate,
+                    Status = "In Progress",
+                    DepartmentTaskId = newTask.TaskId
+                };
+                _context.ESSTasks.Add(essTask);
+                await _context.SaveChangesAsync();
+            }
+
+            return Json(new
+            {
+                success = true,
+                message = "Task assigned to " + input.AssignedToName + " successfully.",
+                task = new
+                {
+                    taskId = newTask.TaskId,
+                    title = newTask.Title,
+                    description = newTask.Description,
+                    assignedToName = newTask.AssignedToName,
+                    assignedToEmail = newTask.AssignedToEmail,
+                    priority = newTask.Priority,
+                    dueDate = newTask.DueDate.ToString("dd MMM yyyy"),
+                    progressPercentage = newTask.ProgressPercentage,
+                    status = newTask.Status
+                }
+            });
+        }
+
+        // POST: /Finance/UpdateTaskProgress
+        [HttpPost]
+        public async Task<IActionResult> UpdateTaskProgress(int id, int progress, string status)
+        {
+            var task = await _context.DepartmentTasks.FindAsync(id);
+            if (task == null) return Json(new { success = false, message = "Task not found." });
+
+            task.ProgressPercentage = progress;
+            task.Status = progress == 100 ? "Completed" : status;
+            _context.DepartmentTasks.Update(task);
+
+            var essTask = await _context.ESSTasks.FirstOrDefaultAsync(t => t.DepartmentTaskId == id);
+            if (essTask != null)
+            {
+                essTask.Status = task.Status;
+                _context.ESSTasks.Update(essTask);
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Task progress updated successfully!" });
+        }
+
+        // POST: /Finance/DeleteTask
+        [HttpPost]
+        public async Task<IActionResult> DeleteTask(int id)
+        {
+            var task = await _context.DepartmentTasks.FindAsync(id);
+            if (task == null) return Json(new { success = false, message = "Task not found." });
+
+            _context.DepartmentTasks.Remove(task);
+
+            var essTask = await _context.ESSTasks.FirstOrDefaultAsync(t => t.DepartmentTaskId == id);
+            if (essTask != null)
+            {
+                _context.ESSTasks.Remove(essTask);
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Task removed successfully." });
         }
     }
 }

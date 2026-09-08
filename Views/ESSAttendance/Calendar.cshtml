@@ -5,8 +5,9 @@
     ViewData["Title"] = "My Monthly Attendance Calendar";
 
     var today = DateTime.Today;
-    var year = today.Year;
-    var month = today.Month;
+    var year = (ViewBag.TargetYear as int?) ?? today.Year;
+    var month = (ViewBag.TargetMonth as int?) ?? today.Month;
+    var joiningDate = (ViewBag.JoiningDate as DateTime?) ?? today;
 
     var firstDayOfMonth = new DateTime(year, month, 1);
     var daysInMonth = DateTime.DaysInMonth(year, month);
@@ -22,6 +23,7 @@
     var absentDays = 0;
     var weekendDays = 0;
     var upcomingDays = 0;
+    var preJoiningDays = 0;
 
     for (int d = 1; d <= daysInMonth; d++)
     {
@@ -31,7 +33,11 @@
             date.DayOfWeek == DayOfWeek.Saturday ||
             date.DayOfWeek == DayOfWeek.Sunday;
 
-        if (isWeekend)
+        if (date.Date < joiningDate.Date)
+        {
+            preJoiningDays++;
+        }
+        else if (isWeekend)
         {
             weekendDays++;
         }
@@ -64,8 +70,9 @@
     var totalGridSlots = startDayOfWeek + daysInMonth;
     var remainingSlots = (7 - (totalGridSlots % 7)) % 7;
 
-    var monthName = today.ToString("MMMM");
-    var shortMonth = today.ToString("MMM");
+    var targetDisplayDate = new DateTime(year, month, 1);
+    var monthName = targetDisplayDate.ToString("MMMM");
+    var shortMonth = targetDisplayDate.ToString("MMM");
 }
 
 <style>
@@ -458,6 +465,12 @@
         border-color: #e2e8f0;
     }
 
+    .status-notjoined {
+        color: #94a3b8;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+    }
+
     .status-present i {
         animation: pulseDot 1.8s infinite;
     }
@@ -536,6 +549,11 @@
 
     .dot-today {
         background: #3b82f6;
+    }
+
+    .dot-notjoined {
+        background: #cbd5e1;
+        border: 1px dashed #94a3b8;
     }
 
     /* Mobile */
@@ -878,7 +896,14 @@
 
                         <div class="status-container">
 
-                            @if (punch != null)
+                            @if (currentDate.Date < joiningDate.Date)
+                            {
+                                <span class="status-badge status-notjoined" title="Pre-Joining Date (Not Joined)">
+                                    <i class="fa-solid fa-minus"></i>
+                                    Pre-Joining
+                                </span>
+                            }
+                            else if (punch != null)
                             {
                                 <span class="status-badge status-present">
 
@@ -895,7 +920,7 @@
                                         <i class="fa-solid fa-arrow-right-to-bracket"></i>
 
                                         In:
-                                        @punch.CheckInTime.Value.ToString("HH:mm")
+                                        @punch.CheckInTime.Value.ToString("hh:mm tt")
 
                                     </div>
                                 }
@@ -979,6 +1004,15 @@
                     <span class="legend-dot dot-weekend"></span>
 
                     Weekend
+
+                </div>
+
+
+                <div class="legend-item">
+
+                    <span class="legend-dot dot-notjoined"></span>
+
+                    Pre-Joining (N/A)
 
                 </div>
 

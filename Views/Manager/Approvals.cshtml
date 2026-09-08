@@ -5,12 +5,7 @@
     var activeCategory = ViewBag.ActiveCategory ?? "All";
 }
 
-<!-- CDN References -->
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
 <style>
     :root {
@@ -892,11 +887,22 @@
             <div class="approval-breadcrumb">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item">
-                            <a href="/Manager" class="text-decoration-none">Manager Portal</a>
-                        </li>
-                        <li class="breadcrumb-item">Approvals</li>
-                        <li class="breadcrumb-item active" aria-current="page">Approval Center</li>
+                        @if (User.IsInRole("Finance Manager"))
+                        {
+                            <li class="breadcrumb-item">
+                                <a href="@Url.Action("Index", "Finance")" class="text-decoration-none">Finance Portal</a>
+                            </li>
+                            <li class="breadcrumb-item">Team Operations</li>
+                            <li class="breadcrumb-item active" aria-current="page">Team Approvals</li>
+                        }
+                        else
+                        {
+                            <li class="breadcrumb-item">
+                                <a href="@Url.Action("Index", "Manager")" class="text-decoration-none">Manager Portal</a>
+                            </li>
+                            <li class="breadcrumb-item">Approvals</li>
+                            <li class="breadcrumb-item active" aria-current="page">Approval Center</li>
+                        }
                     </ol>
                 </nav>
             </div>
@@ -1176,6 +1182,84 @@
             chk.checked = master.checked;
         });
     }
+
+    // =========================================================
+    // ROBUST SELF-CONTAINED APPROVAL HANDLER
+    // =========================================================
+    window.processApprovalAction = async function(id, type, decision, btnElement) {
+        if (!confirm(`Are you sure you want to mark this request as ${decision}?`)) return;
+
+        let originalHtml = "";
+        if (btnElement) {
+            btnElement.disabled = true;
+            originalHtml = btnElement.innerHTML;
+            btnElement.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+        }
+
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const params = new URLSearchParams();
+            params.append('id', id);
+            params.append('type', type);
+            params.append('decision', decision);
+
+            const response = await fetch('/Manager/ProcessSingleApproval', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: params.toString()
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                const row = (btnElement ? (btnElement.closest('tr') || btnElement.closest('.approval-data-row')) : null) || document.getElementById(`approval-tr-row-${id}`);
+                if (row) {
+                    row.classList.add("fade-out-row");
+                    setTimeout(() => {
+                        row.remove();
+                        checkEmptyTable();
+                    }, 400);
+                }
+
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(data.message || 'Status updated successfully!');
+                } else {
+                    alert(data.message || 'Status updated successfully!');
+                }
+
+                const badge = document.getElementById("pending-approvals-badge");
+                if (badge) {
+                    let count = parseInt(badge.innerText);
+                    if (!isNaN(count) && count > 0) {
+                        badge.innerText = count - 1;
+                    }
+                }
+            } else {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(data.message || 'Error occurred.');
+                } else {
+                    alert(data.message || 'Error occurred.');
+                }
+                if (btnElement) {
+                    btnElement.disabled = false;
+                    btnElement.innerHTML = originalHtml;
+                }
+            }
+        } catch (e) {
+            console.error("Action execution error:", e);
+            if (typeof toastr !== 'undefined') {
+                toastr.error("Operation failed. See console for details.");
+            } else {
+                alert("Operation failed. See console for details.");
+            }
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.innerHTML = originalHtml;
+            }
+        }
+    };
 
     // =========================================================
     // SINGLE APPROVAL ACTION

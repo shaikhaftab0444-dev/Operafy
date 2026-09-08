@@ -26,6 +26,13 @@ namespace ERP_System.Controllers
             return int.TryParse(userIdClaim, out int id) ? id : 1;
         }
 
+        // GET: /ESSLeave
+        [HttpGet]
+        public IActionResult Index()
+        {
+            return RedirectToAction(nameof(Apply));
+        }
+
         // GET: /ESSLeave/Apply
         [HttpGet]
         public IActionResult Apply()

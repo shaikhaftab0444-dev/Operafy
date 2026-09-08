@@ -53,12 +53,24 @@ namespace ERP_System.Controllers
                 .Take(5)
                 .ToListAsync() ?? new List<Payslip>();
 
+            var today = DateTime.Today;
+            var todayAttendance = await _context.HRAttendanceLogs
+                .FirstOrDefaultAsync(l => l.UserId == userId && l.Date.Date == today);
+
+            var recentAttendanceLogs = await _context.HRAttendanceLogs
+                .Where(l => l.UserId == userId)
+                .OrderByDescending(l => l.Date)
+                .Take(7)
+                .ToListAsync() ?? new List<HRAttendanceLog>();
+
             var viewModel = new EmployeeDashboardViewModel
             {
                 CurrentUser = currentUser,
                 RecentPayslips = myPayslips,
                 ActivityLogs = activityLogs,
-                Transactions = transactions
+                Transactions = transactions,
+                TodayAttendance = todayAttendance,
+                RecentAttendanceLogs = recentAttendanceLogs
             };
 
             return View(viewModel);

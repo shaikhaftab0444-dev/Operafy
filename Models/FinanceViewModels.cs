@@ -238,5 +238,39 @@ namespace ERP_System.Models
             : 0;
         public string Status { get; set; } = "Active"; // Active, Depreciated, Maintenance, Disposed
     }
+
+    // ==========================================
+    // TEAM ATTENDANCE FOR FINANCE MANAGER
+    // ==========================================
+    public class FinanceTeamAttendanceViewModel
+    {
+        public DateTime SelectedDate { get; set; } = DateTime.Today;
+        public string StatusFilter { get; set; } = "All";
+        public string SearchQuery { get; set; } = string.Empty;
+        public int TotalTeam { get; set; }
+        public int PresentCount { get; set; }
+        public int LateCount { get; set; }
+        public int OnLeaveCount { get; set; }
+        public int NotClockedInCount { get; set; }
+
+        public List<FinanceTeamAttendanceItemViewModel> TeamAttendanceList { get; set; } = new List<FinanceTeamAttendanceItemViewModel>();
+    }
+
+    public class FinanceTeamAttendanceItemViewModel
+    {
+        public int UserId { get; set; }
+        public string EmployeeCode { get; set; } = string.Empty;
+        public string EmployeeName { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public string CheckInTime { get; set; } = "-";
+        public string CheckOutTime { get; set; } = "-";
+        public string WorkHours { get; set; } = "0h 0m";
+        public string PunchSource { get; set; } = "Web Clock";
+        public string Status { get; set; } = "Not Clocked In";
+        public string Remarks { get; set; } = string.Empty;
+    }
 }
+
 

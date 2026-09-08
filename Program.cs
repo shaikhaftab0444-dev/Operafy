@@ -32,6 +32,89 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+
+        // Safe automatic raw SQL schema patch BEFORE any LINQ queries execute
+        string schemaPatchSql = @"
+            -- 1. Ensure ShiftId and JoiningDate exist on erp_Users in AITStudent schema
+            IF OBJECT_ID('AITStudent.erp_Users', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'ShiftId')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_Users ADD ShiftId INT NULL;
+                END
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'JoiningDate')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_Users ADD JoiningDate DATETIME NULL;
+                END
+            END
+            ELSE IF OBJECT_ID('erp_Users', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_Users') AND name = 'ShiftId')
+                BEGIN
+                    ALTER TABLE erp_Users ADD ShiftId INT NULL;
+                END
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_Users') AND name = 'JoiningDate')
+                BEGIN
+                    ALTER TABLE erp_Users ADD JoiningDate DATETIME NULL;
+                END
+            END
+
+            -- AspNetUsers fallback
+            IF OBJECT_ID('AspNetUsers', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AspNetUsers') AND name = 'ShiftId')
+                BEGIN
+                    ALTER TABLE AspNetUsers ADD ShiftId INT NULL;
+                END
+            END
+
+            -- Employees fallback
+            IF OBJECT_ID('Employees', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Employees') AND name = 'ShiftId')
+                BEGIN
+                    ALTER TABLE Employees ADD ShiftId INT NULL;
+                END
+            END
+
+            -- 2. Ensure erp_WorkShifts table exists
+            IF OBJECT_ID('AITStudent.erp_WorkShifts', 'U') IS NULL
+            BEGIN
+                CREATE TABLE AITStudent.erp_WorkShifts (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    ShiftName NVARCHAR(150) NOT NULL,
+                    StartTime TIME NOT NULL,
+                    EndTime TIME NOT NULL,
+                    GracePeriodMinutes INT NOT NULL DEFAULT 15
+                );
+
+                INSERT INTO AITStudent.erp_WorkShifts (ShiftName, StartTime, EndTime, GracePeriodMinutes)
+                VALUES 
+                ('Morning General (09:00 AM - 06:00 PM)', '09:00:00', '18:00:00', 15),
+                ('Early Shift (08:00 AM - 05:00 PM)', '08:00:00', '17:00:00', 15),
+                ('Evening Shift (02:00 PM - 11:00 PM)', '14:00:00', '23:00:00', 15),
+                ('Night Shift (10:00 PM - 07:00 AM)', '22:00:00', '07:00:00', 15);
+            END
+
+            IF OBJECT_ID('WorkShifts', 'U') IS NULL AND OBJECT_ID('AITStudent.erp_WorkShifts', 'U') IS NULL
+            BEGIN
+                CREATE TABLE WorkShifts (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    ShiftName NVARCHAR(150) NOT NULL,
+                    StartTime TIME NOT NULL,
+                    EndTime TIME NOT NULL,
+                    GracePeriodMinutes INT NOT NULL DEFAULT 15
+                );
+
+                INSERT INTO WorkShifts (ShiftName, StartTime, EndTime, GracePeriodMinutes)
+                VALUES 
+                ('General Day Shift (09:30 AM - 06:30 PM)', '09:30:00', '18:30:00', 15),
+                ('Morning Shift (07:00 AM - 04:00 PM)', '07:00:00', '16:00:00', 15),
+                ('Night Shift (08:00 PM - 05:00 AM)', '20:00:00', '05:00:00', 15);
+            END
+        ";
+        await context.Database.ExecuteSqlRawAsync(schemaPatchSql);
+
         await SeedData.InitializePermissionsAsync(context);
         await SeedData.InitializeSalesManagementTablesAsync(context);
         await SeedData.InitializeHRManagementTablesAsync(context);
