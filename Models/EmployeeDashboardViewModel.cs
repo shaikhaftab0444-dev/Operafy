@@ -8,5 +8,8 @@ namespace ERP_System.Models
         public List<Payslip> RecentPayslips { get; set; } = new List<Payslip>();
         public List<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
         public List<Transaction> Transactions { get; set; } = new List<Transaction>();
+        public HRAttendanceLog? TodayAttendance { get; set; }
+        public List<HRAttendanceLog> RecentAttendanceLogs { get; set; } = new List<HRAttendanceLog>();
     }
 }
+

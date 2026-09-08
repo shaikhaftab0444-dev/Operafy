@@ -78,6 +78,7 @@ namespace ERP_System.Data
         public DbSet<HRAttendanceRegularization> AttendanceRegularizations { get { return HRAttendanceRegularizations; } set { HRAttendanceRegularizations = value; } }
         public DbSet<ESSExpenseClaim> ExpenseClaims { get { return ESSExpenseClaims; } set { ESSExpenseClaims = value; } }
         public DbSet<DepartmentTask> DepartmentTasks { get; set; }
+        public DbSet<WorkShift> WorkShifts { get; set; }
 
         public DbSet<SalaryStructureMaster> SalaryStructureMasters { get; set; }
         public DbSet<EmployeeSalaryAssignment> EmployeeSalaryAssignments { get; set; }

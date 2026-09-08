@@ -53,6 +53,8 @@ namespace ERP_System.Models
 
         public bool IsEmailVerified { get; set; } = false;
 
+        public DateTime? JoiningDate { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
@@ -87,5 +89,10 @@ namespace ERP_System.Models
 
         [StringLength(150)]
         public string? BranchName { get; set; }
+
+        public int? ShiftId { get; set; }
+
+        [ForeignKey("ShiftId")]
+        public virtual WorkShift? Shift { get; set; }
     }
 }

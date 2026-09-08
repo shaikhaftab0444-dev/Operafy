@@ -1,0 +1,293 @@
+@model ERP_System.Models.FinanceTeamAttendanceViewModel
+
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Finance Team Attendance";
+}
+
+<style>
+    .finance-team-page {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .kpi-card {
+        border-radius: 14px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .table-card {
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .table th {
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        color: #64748b;
+        background-color: #f8fafc;
+    }
+
+    .table td {
+        vertical-align: middle;
+        font-size: 0.88rem;
+    }
+</style>
+
+<div class="container-fluid py-4 text-start finance-team-page">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-users-viewfinder text-primary me-2"></i>Finance Team Attendance Radar
+            </h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/Finance" class="text-decoration-none">Finance & Treasury</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Team Attendance</li>
+                </ol>
+            </nav>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <form method="get" action="/Finance/TeamAttendance" class="d-flex align-items-center gap-2">
+                <input type="date" name="selectedDate" class="form-control form-control-sm rounded-3 shadow-none border-secondary-subtle" 
+                       value="@Model.SelectedDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+                <button type="submit" class="btn btn-sm btn-primary rounded-3 px-3 shadow-sm">
+                    <i class="fa-solid fa-rotate me-1"></i> Refresh
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="card kpi-card border-0 shadow-sm p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Direct Subordinates</span>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@Model.TotalTeam</h3>
+                    </div>
+                    <div class="rounded-3 bg-primary-subtle text-primary p-3">
+                        <i class="fa-solid fa-user-group fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="card kpi-card border-0 shadow-sm p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Present Today</span>
+                        <h3 class="fw-bold text-success mb-0 mt-1">@Model.PresentCount</h3>
+                    </div>
+                    <div class="rounded-3 bg-success-subtle text-success p-3">
+                        <i class="fa-solid fa-user-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="card kpi-card border-0 shadow-sm p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Late Check-ins</span>
+                        <h3 class="fw-bold text-warning mb-0 mt-1">@Model.LateCount</h3>
+                    </div>
+                    <div class="rounded-3 bg-warning-subtle text-warning p-3">
+                        <i class="fa-solid fa-user-clock fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="card kpi-card border-0 shadow-sm p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Not Clocked / Absent</span>
+                        <h3 class="fw-bold text-danger mb-0 mt-1">@Model.NotClockedInCount</h3>
+                    </div>
+                    <div class="rounded-3 bg-danger-subtle text-danger p-3">
+                        <i class="fa-solid fa-user-xmark fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table Card -->
+    <div class="card table-card border-0 shadow-sm bg-white">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="fa-solid fa-calendar-day text-primary me-2"></i>Attendance Records for @Model.SelectedDate.ToString("dd MMMM yyyy")
+                </h6>
+                <span class="text-muted small">Live punch logs of your reporting staff</span>
+            </div>
+
+            <!-- Filters -->
+            <form method="get" action="/Finance/TeamAttendance" class="d-flex align-items-center gap-2 flex-wrap">
+                <input type="hidden" name="selectedDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+
+                <div class="input-group input-group-sm" style="width: 220px;">
+                    <span class="input-group-text bg-light border-secondary-subtle"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-secondary-subtle" placeholder="Search employee..." value="@Model.SearchQuery" />
+                </div>
+
+                <select name="statusFilter" class="form-select form-select-sm border-secondary-subtle" style="width: 160px;" onchange="this.form.submit()">
+                    <option value="All" selected="@(Model.StatusFilter == "All")">All Statuses</option>
+                    <option value="Present" selected="@(Model.StatusFilter == "Present")">Present</option>
+                    <option value="Late" selected="@(Model.StatusFilter == "Late")">Late Check-in</option>
+                    <option value="Leave" selected="@(Model.StatusFilter == "Leave")">On Leave</option>
+                    <option value="Not Clocked In" selected="@(Model.StatusFilter == "Not Clocked In")">Not Clocked In</option>
+                </select>
+
+                <button type="submit" class="btn btn-sm btn-outline-secondary rounded-3">
+                    Filter
+                </button>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Employee</th>
+                        <th>Department / Role</th>
+                        <th>Clock In</th>
+                        <th>Clock Out</th>
+                        <th>Duration</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th class="pe-4">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.TeamAttendanceList != null && Model.TeamAttendanceList.Any())
+                    {
+                        foreach (var item in Model.TeamAttendanceList)
+                        {
+                            var initials = !string.IsNullOrWhiteSpace(item.EmployeeName)
+                                ? string.Join("", item.EmployeeName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0])).ToUpper()
+                                : "EM";
+
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle bg-primary text-white shadow-sm">
+                                            @initials
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@item.EmployeeName</div>
+                                            <code class="text-muted small">@item.EmployeeCode</code>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-dark fw-semibold small">@item.Role</div>
+                                    <div class="text-muted small">@item.Department</div>
+                                </td>
+                                <td>
+                                    @if (item.CheckInTime != "-")
+                                    {
+                                        <span class="text-success fw-semibold">
+                                            <i class="fa-solid fa-right-to-bracket me-1 text-success small"></i>@item.CheckInTime
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.CheckOutTime != "-")
+                                    {
+                                        <span class="text-danger fw-semibold">
+                                            <i class="fa-solid fa-right-from-bracket me-1 text-danger small"></i>@item.CheckOutTime
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2 py-1 font-monospace">@item.WorkHours</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1">
+                                        <i class="fa-solid fa-tower-broadcast me-1 small"></i>@item.PunchSource
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (item.Status.StartsWith("Present"))
+                                    {
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1.5 fw-semibold">
+                                            <i class="fa-solid fa-circle-check me-1"></i>Present
+                                        </span>
+                                    }
+                                    else if (item.Status.Contains("Late"))
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning rounded-pill px-3 py-1.5 fw-semibold">
+                                            <i class="fa-solid fa-clock me-1"></i>Late Check-in
+                                        </span>
+                                    }
+                                    else if (item.Status.Contains("Leave"))
+                                    {
+                                        <span class="badge bg-info-subtle text-info rounded-pill px-3 py-1.5 fw-semibold">
+                                            <i class="fa-solid fa-umbrella-beach me-1"></i>On Leave
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-1.5 fw-semibold">
+                                            <i class="fa-solid fa-circle-xmark me-1"></i>Not Clocked In
+                                        </span>
+                                    }
+                                </td>
+                                <td class="pe-4 text-muted small">
+                                    @(string.IsNullOrWhiteSpace(item.Remarks) ? "Standard shift entry" : item.Remarks)
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-clipboard-user fs-2 text-secondary mb-3 d-block"></i>
+                                No subordinate attendance records found matching the current filter.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

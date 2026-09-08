@@ -8,10 +8,12 @@ using ERP_System.Models;
 using ERP_System.Data;
 using System.Threading.Tasks;
 using System.IO;
+using System.Security.Claims;
+
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,Manager")]
+    [Authorize(Roles = "Super Admin,Admin,Manager,Finance Manager")]
     public class ManagerController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -30,93 +32,144 @@ namespace ERP_System.Controllers
 
         // GET: /Manager/Approvals
         [HttpGet]
-        public async Task<IActionResult> Approvals(string category = "All")
+        public async Task<IActionResult> Approvals(string category = "All", string search = "")
         {
             var model = await GetPendingApprovalsListAsync();
+
             if (!string.IsNullOrEmpty(category) && category != "All")
             {
-                model = model.Where(x => x.CategoryKey == category).ToList();
+                if (category.Equals("Leaves", StringComparison.OrdinalIgnoreCase) || category.Equals("Leave", StringComparison.OrdinalIgnoreCase))
+                {
+                    model = model.Where(x => x.CategoryKey == "Leave").ToList();
+                }
+                else if (category.Equals("Regularization", StringComparison.OrdinalIgnoreCase))
+                {
+                    model = model.Where(x => x.CategoryKey == "Regularization").ToList();
+                }
+                else if (category.Equals("Expenses", StringComparison.OrdinalIgnoreCase) || category.Equals("Expense", StringComparison.OrdinalIgnoreCase))
+                {
+                    model = model.Where(x => x.CategoryKey == "Expense").ToList();
+                }
+                else
+                {
+                    model = model.Where(x => x.CategoryKey.Equals(category, StringComparison.OrdinalIgnoreCase) || x.ClaimCategory.Equals(category, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
             }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string s = search.Trim();
+                model = model.Where(x =>
+                    x.EmployeeName.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    x.Reason.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    x.ClaimCategory.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    x.Role.Contains(s, StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+            }
+
             ViewBag.ActiveCategory = category;
+            ViewBag.SearchTerm = search;
+            ViewBag.PendingCount = model.Count;
             return View(model);
         }
 
-        // POST: /Manager/ProcessApproval
+        // POST: /Manager/ProcessSingleApproval
         [HttpPost]
-        public async Task<IActionResult> ProcessApproval(int id, string category, string actionType, string remarks = "")
+        public async Task<IActionResult> ProcessSingleApproval(int id, string type, string decision, string remarks = "")
+        {
+            return await ProcessApprovalCore(id, type, decision, remarks);
+        }
+
+        // POST: /Manager/ProcessApproval (alias for backward compatibility)
+        [HttpPost]
+        public async Task<IActionResult> ProcessApproval(int? id, string? category, string? actionType, string? remarks = "", int? requestId = null, string? requestType = null, string? decision = null, string? type = null)
+        {
+            int targetId = id ?? requestId ?? 0;
+            string targetCategory = category ?? requestType ?? type ?? "Attendance";
+            string targetAction = actionType ?? decision ?? "Approved";
+            string targetRemarks = remarks ?? "";
+
+            return await ProcessApprovalCore(targetId, targetCategory, targetAction, targetRemarks);
+        }
+
+        private async Task<IActionResult> ProcessApprovalCore(int targetId, string targetCategory, string targetAction, string targetRemarks)
         {
             // Normalize actionType (standardize "Approved"/"Rejected")
-            string finalStatus = actionType;
-            if (actionType.Equals("Approve", StringComparison.OrdinalIgnoreCase)) finalStatus = "Approved";
-            if (actionType.Equals("Reject", StringComparison.OrdinalIgnoreCase)) finalStatus = "Rejected";
+            string finalStatus = targetAction;
+            if (targetAction.Equals("Approve", StringComparison.OrdinalIgnoreCase)) finalStatus = "Approved";
+            if (targetAction.Equals("Reject", StringComparison.OrdinalIgnoreCase)) finalStatus = "Rejected";
 
-            if (category == "Leave" || category == "Casual Leave" || category == "Sick Leave" || category == "Earned Leave")
+            string reviewerName = User.Identity?.Name ?? "Manager";
+
+            if (targetCategory.Equals("Leave", StringComparison.OrdinalIgnoreCase) ||
+                targetCategory.Equals("Leaves", StringComparison.OrdinalIgnoreCase) ||
+                targetCategory.Contains("Leave", StringComparison.OrdinalIgnoreCase))
             {
-                var leave = await _context.LeaveRequests.FindAsync(id);
+                var leave = await _context.LeaveRequests.FindAsync(targetId);
                 if (leave != null)
                 {
                     leave.Status = finalStatus;
                     leave.ManagerStatus = finalStatus;
-                    leave.ManagerRemarks = remarks;
-                    leave.ReviewedBy = User.Identity?.Name ?? "Manager";
+                    leave.ManagerRemarks = targetRemarks;
+                    leave.ReviewedBy = reviewerName;
                     leave.ReviewedAt = DateTime.UtcNow;
                     await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = $"Leave request #{id} successfully {finalStatus.ToLower()}ed!" });
+                    return Json(new { success = true, message = $"Leave request #{targetId} marked as {finalStatus}." });
                 }
             }
-            else if (category == "Expense" || category.Contains("Reimbursement"))
+            else if (targetCategory.Equals("Expense", StringComparison.OrdinalIgnoreCase) ||
+                     targetCategory.Equals("Expenses", StringComparison.OrdinalIgnoreCase) ||
+                     targetCategory.Contains("Reimbursement", StringComparison.OrdinalIgnoreCase))
             {
-                var claim = await _context.ExpenseClaims.FindAsync(id);
+                var claim = await _context.ExpenseClaims.FindAsync(targetId);
                 if (claim != null)
                 {
                     claim.Status = finalStatus;
                     claim.ManagerStatus = finalStatus;
-                    claim.ManagerRemarks = remarks;
-                    claim.ReviewedBy = User.Identity?.Name ?? "Manager";
+                    claim.ManagerRemarks = targetRemarks;
+                    claim.ReviewedBy = reviewerName;
                     claim.ReviewedAt = DateTime.UtcNow;
                     await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = $"Expense claim #{id} successfully {finalStatus.ToLower()}ed!" });
+                    return Json(new { success = true, message = $"Expense claim #{targetId} marked as {finalStatus}." });
                 }
             }
             else // Regularization / Attendance
             {
-                var reg = await _context.AttendanceRegularizations.FindAsync(id);
+                var reg = await _context.AttendanceRegularizations.FindAsync(targetId);
                 if (reg != null)
                 {
                     reg.Status = finalStatus;
                     reg.ManagerStatus = finalStatus;
-                    reg.ManagerRemarks = remarks;
-                    reg.ReviewedBy = User.Identity?.Name ?? "Manager";
+                    reg.ManagerRemarks = targetRemarks;
+                    reg.ReviewedBy = reviewerName;
                     reg.ReviewedAt = DateTime.UtcNow;
 
-                    // If Approved, update the daily attendance record check-in/check-out times
+                    // If Approved, update or insert the daily attendance record check-in/check-out times
                     if (finalStatus == "Approved")
                     {
                         var attendanceLog = await _context.HRAttendanceLogs
                             .FirstOrDefaultAsync(l => l.UserId == reg.UserId && l.Date.Date == reg.CorrectionDate.Date);
 
+                        DateTime checkIn = reg.CorrectionDate.Date.AddHours(9);
+                        DateTime checkOut = reg.CorrectionDate.Date.AddHours(18);
+
+                        if (reg.RequestedCorrectTime.Contains("06:00 PM", StringComparison.OrdinalIgnoreCase))
+                        {
+                            checkOut = reg.CorrectionDate.Date.AddHours(18);
+                        }
+                        if (reg.RequestedCorrectTime.Contains("09:00 AM", StringComparison.OrdinalIgnoreCase))
+                        {
+                            checkIn = reg.CorrectionDate.Date.AddHours(9);
+                        }
+
                         if (attendanceLog != null)
                         {
-                            attendanceLog.Status = "Present (On Time)";
+                            attendanceLog.Status = "Present (Regularized)";
                             attendanceLog.Remarks = $"Regularized: {reg.RequestedCorrectTime} ({reg.Reason})";
-                            if (reg.RequestedCorrectTime.Contains("06:00 PM"))
-                            {
-                                attendanceLog.CheckOutTime = reg.CorrectionDate.Date.AddHours(18);
-                                if (attendanceLog.CheckInTime.HasValue)
-                                {
-                                    var duration = attendanceLog.CheckOutTime.Value - attendanceLog.CheckInTime.Value;
-                                    attendanceLog.WorkHours = $"{(int)duration.TotalHours}h {duration.Minutes}m";
-                                }
-                            }
-                            else if (reg.RequestedCorrectTime.Contains("09:00 AM"))
-                            {
-                                attendanceLog.CheckInTime = reg.CorrectionDate.Date.AddHours(9);
-                                if (attendanceLog.CheckOutTime.HasValue)
-                                {
-                                    var duration = attendanceLog.CheckOutTime.Value - attendanceLog.CheckInTime.Value;
-                                    attendanceLog.WorkHours = $"{(int)duration.TotalHours}h {duration.Minutes}m";
-                                }
-                            }
+                            attendanceLog.CheckInTime = attendanceLog.CheckInTime ?? checkIn;
+                            attendanceLog.CheckOutTime = checkOut;
+                            var duration = attendanceLog.CheckOutTime.Value - attendanceLog.CheckInTime.Value;
+                            attendanceLog.WorkHours = $"{(int)Math.Max(0, duration.TotalHours)}h {Math.Abs(duration.Minutes)}m";
                             _context.HRAttendanceLogs.Update(attendanceLog);
                         }
                         else
@@ -128,11 +181,11 @@ namespace ERP_System.Controllers
                                 EmployeeCode = user?.UserCode ?? $"EMP-00{reg.UserId}",
                                 EmployeeName = reg.EmployeeName,
                                 Date = reg.CorrectionDate.Date,
-                                CheckInTime = reg.CorrectionDate.Date.AddHours(9),
-                                CheckOutTime = reg.CorrectionDate.Date.AddHours(18),
+                                CheckInTime = checkIn,
+                                CheckOutTime = checkOut,
                                 WorkHours = "9h 0m",
                                 PunchSource = "Regularization Approved",
-                                Status = "Present (On Time)",
+                                Status = "Present (Regularized)",
                                 Remarks = $"Regularized: {reg.RequestedCorrectTime}"
                             };
                             await _context.HRAttendanceLogs.AddAsync(newLog);
@@ -140,125 +193,31 @@ namespace ERP_System.Controllers
                     }
 
                     await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = $"Attendance regularization #{id} successfully {finalStatus.ToLower()}ed!" });
+                    return Json(new { success = true, message = $"Attendance regularization #{targetId} marked as {finalStatus}." });
                 }
             }
 
             return Json(new { success = false, message = "Record not found." });
         }
 
-        public class BulkApproveItem
-        {
-            public int Id { get; set; }
-            public string Category { get; set; } = string.Empty;
-        }
-
         // POST: /Manager/BulkApprove
         [HttpPost]
         [IgnoreAntiforgeryToken]
-        public async Task<IActionResult> BulkApprove([FromBody] List<BulkApproveItem> items)
+        public async Task<IActionResult> BulkApprove([FromBody] List<ApprovalTargetDto> items)
         {
             if (items == null || !items.Any())
             {
-                return Json(new { success = false, message = "No requests selected." });
+                return Json(new { success = false, message = "No items selected." });
             }
 
             int count = 0;
             foreach (var item in items)
             {
-                if (item.Category == "Leave" || item.Category == "Casual Leave" || item.Category == "Sick Leave" || item.Category == "Earned Leave")
-                {
-                    var leave = await _context.LeaveRequests.FindAsync(item.Id);
-                    if (leave != null)
-                    {
-                        leave.Status = "Approved";
-                        leave.ManagerStatus = "Approved";
-                        leave.ManagerRemarks = "Bulk approved by Manager";
-                        leave.ReviewedBy = User.Identity?.Name ?? "Manager";
-                        leave.ReviewedAt = DateTime.UtcNow;
-                        count++;
-                    }
-                }
-                else if (item.Category == "Expense" || item.Category.Contains("Reimbursement"))
-                {
-                    var claim = await _context.ExpenseClaims.FindAsync(item.Id);
-                    if (claim != null)
-                    {
-                        claim.Status = "Approved";
-                        claim.ManagerStatus = "Approved";
-                        claim.ManagerRemarks = "Bulk approved by Manager";
-                        claim.ReviewedBy = User.Identity?.Name ?? "Manager";
-                        claim.ReviewedAt = DateTime.UtcNow;
-                        count++;
-                    }
-                }
-                else // Regularization
-                {
-                    var reg = await _context.AttendanceRegularizations.FindAsync(item.Id);
-                    if (reg != null)
-                    {
-                        reg.Status = "Approved";
-                        reg.ManagerStatus = "Approved";
-                        reg.ManagerRemarks = "Bulk approved by Manager";
-                        reg.ReviewedBy = User.Identity?.Name ?? "Manager";
-                        reg.ReviewedAt = DateTime.UtcNow;
-
-                        var attendanceLog = await _context.HRAttendanceLogs
-                            .FirstOrDefaultAsync(l => l.UserId == reg.UserId && l.Date.Date == reg.CorrectionDate.Date);
-
-                        if (attendanceLog != null)
-                        {
-                            attendanceLog.Status = "Present (On Time)";
-                            attendanceLog.Remarks = $"Regularized: {reg.RequestedCorrectTime} ({reg.Reason})";
-                            if (reg.RequestedCorrectTime.Contains("06:00 PM"))
-                            {
-                                attendanceLog.CheckOutTime = reg.CorrectionDate.Date.AddHours(18);
-                                if (attendanceLog.CheckInTime.HasValue)
-                                {
-                                    var duration = attendanceLog.CheckOutTime.Value - attendanceLog.CheckInTime.Value;
-                                    attendanceLog.WorkHours = $"{(int)duration.TotalHours}h {duration.Minutes}m";
-                                }
-                            }
-                            else if (reg.RequestedCorrectTime.Contains("09:00 AM"))
-                            {
-                                attendanceLog.CheckInTime = reg.CorrectionDate.Date.AddHours(9);
-                                if (attendanceLog.CheckOutTime.HasValue)
-                                {
-                                    var duration = attendanceLog.CheckOutTime.Value - attendanceLog.CheckInTime.Value;
-                                    attendanceLog.WorkHours = $"{(int)duration.TotalHours}h {duration.Minutes}m";
-                                }
-                            }
-                            _context.HRAttendanceLogs.Update(attendanceLog);
-                        }
-                        else
-                        {
-                            var user = await _context.Users.FindAsync(reg.UserId);
-                            var newLog = new HRAttendanceLog
-                            {
-                                UserId = reg.UserId,
-                                EmployeeCode = user?.UserCode ?? $"EMP-00{reg.UserId}",
-                                EmployeeName = reg.EmployeeName,
-                                Date = reg.CorrectionDate.Date,
-                                CheckInTime = reg.CorrectionDate.Date.AddHours(9),
-                                CheckOutTime = reg.CorrectionDate.Date.AddHours(18),
-                                WorkHours = "9h 0m",
-                                PunchSource = "Regularization Approved",
-                                Status = "Present (On Time)",
-                                Remarks = $"Regularized: {reg.RequestedCorrectTime}"
-                            };
-                            await _context.HRAttendanceLogs.AddAsync(newLog);
-                        }
-                        count++;
-                    }
-                }
+                await ProcessApprovalCore(item.Id, item.Type, "Approved", "Bulk approved by Manager");
+                count++;
             }
 
-            if (count > 0)
-            {
-                await _context.SaveChangesAsync();
-            }
-
-            return Json(new { success = true, count = count, message = $"{count} requests approved successfully!" });
+            return Json(new { success = true, count = count, message = $"{count} items approved successfully!" });
         }
 
         // GET: /Manager/DownloadReceipt
@@ -450,15 +409,53 @@ namespace ERP_System.Controllers
 
         private async Task<ManagerDashboardViewModel> GetPopulatedManagerVMAsync()
         {
-            var pendingLeaves = await _context.ESSLeaveApplications
-                .Where(l => l.Status == "Pending")
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.TryParse(userIdClaim, out int cid) ? cid : 1;
+            var currentUser = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+            bool isSuperOrAdmin = User.IsInRole("Super Admin") || User.IsInRole("Admin") || (currentUser?.Role?.RoleName == "Super Admin") || (currentUser?.Role?.RoleName == "Admin");
+
+            var allUsers = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Where(u => u.IsActive)
+                .OrderBy(u => u.FullName)
                 .ToListAsync();
-            var pendingRegs = await _context.HRAttendanceRegularizations
-                .Where(r => r.Status == "Pending")
-                .ToListAsync();
-            var pendingClaims = await _context.ESSExpenseClaims
-                .Where(c => c.Status == "Pending")
-                .ToListAsync();
+
+            List<User> teamUsers;
+            if (isSuperOrAdmin)
+            {
+                teamUsers = allUsers.Where(u => u.Role?.RoleName != "Super Admin" && u.Role?.RoleName != "Admin").ToList();
+            }
+            else
+            {
+                teamUsers = allUsers.Where(u => u.UserId != currentUserId && (
+                    u.ReportingManagerId == currentUserId.ToString() ||
+                    (!string.IsNullOrEmpty(currentUser?.FullName) && u.ReportingManagerName == currentUser.FullName) ||
+                    (currentUser?.DepartmentId != null && u.DepartmentId == currentUser.DepartmentId)
+                )).ToList();
+
+                if (!teamUsers.Any())
+                {
+                    teamUsers = allUsers.Where(u => u.UserId != currentUserId && u.Role?.RoleName != "Super Admin" && u.Role?.RoleName != "Admin").Take(10).ToList();
+                }
+            }
+
+            var teamUserIds = teamUsers.Select(u => u.UserId).ToList();
+
+            var pendingLeavesQuery = _context.ESSLeaveApplications.Where(l => l.Status == "Pending");
+            var pendingRegsQuery = _context.HRAttendanceRegularizations.Where(r => r.Status == "Pending");
+            var pendingClaimsQuery = _context.ESSExpenseClaims.Where(c => c.Status == "Pending");
+
+            if (!isSuperOrAdmin)
+            {
+                pendingLeavesQuery = pendingLeavesQuery.Where(l => teamUserIds.Contains(l.UserId));
+                pendingRegsQuery = pendingRegsQuery.Where(r => teamUserIds.Contains(r.UserId));
+                pendingClaimsQuery = pendingClaimsQuery.Where(c => teamUserIds.Contains(c.UserId));
+            }
+
+            var pendingLeaves = await pendingLeavesQuery.ToListAsync();
+            var pendingRegs = await pendingRegsQuery.ToListAsync();
+            var pendingClaims = await pendingClaimsQuery.ToListAsync();
 
             var pendingApprovalsCount = pendingLeaves.Count + pendingRegs.Count + pendingClaims.Count;
 
@@ -503,89 +500,128 @@ namespace ERP_System.Controllers
                 });
             }
 
-            // Dynamically load active employees from database with department mapping
-            var teamUsers = await _context.Users
-                .Include(u => u.Role)
-                .Include(u => u.Department)
-                .Where(u => u.IsActive && u.Role != null && u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin" && u.Role.RoleName != "System Admin")
-                .OrderBy(u => u.UserId)
+            // Live Attendance Logs for today
+            var today = DateTime.Today;
+            var todayLogs = await _context.HRAttendanceLogs
+                .Where(l => l.Date.Date == today && teamUserIds.Contains(l.UserId))
                 .ToListAsync();
 
             var teamAttendanceList = new List<TeamMemberStatus>();
-            if (teamUsers.Any())
+            foreach (var u in teamUsers)
             {
-                foreach (var u in teamUsers)
+                var log = todayLogs.FirstOrDefault(l => l.UserId == u.UserId);
+                var initials = GetInitials(u.FullName);
+                string dept = !string.IsNullOrWhiteSpace(u.DepartmentName) ? u.DepartmentName : (u.Department?.DepartmentName ?? "Operations");
+
+                string status = "Not Clocked In";
+                string clockIn = "N/A";
+                string statusColor = "secondary";
+
+                if (log != null)
                 {
-                    var initials = !string.IsNullOrWhiteSpace(u.FullName)
-                        ? string.Join("", u.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0])).ToUpper()
-                        : "EM";
-
-                    string dept = !string.IsNullOrWhiteSpace(u.DepartmentName) ? u.DepartmentName : (u.Department?.DepartmentName ?? "Operations & Logistics");
-
-                    teamAttendanceList.Add(new TeamMemberStatus
+                    clockIn = log.CheckInTime.HasValue ? log.CheckInTime.Value.ToString("hh:mm tt") : "N/A";
+                    if (log.Status.StartsWith("Present"))
                     {
-                        Name = u.FullName,
-                        Role = u.Role?.RoleName ?? "Team Member",
-                        Department = dept,
-                        Status = "Present",
-                        ClockInTime = "09:00 AM",
-                        Avatar = initials,
-                        StatusColor = "success"
-                    });
+                        statusColor = "success";
+                        status = "Present";
+                    }
+                    else if (log.Status.Contains("Late"))
+                    {
+                        statusColor = "warning";
+                        status = "Late";
+                    }
+                    else if (log.Status.Contains("Leave"))
+                    {
+                        statusColor = "info";
+                        status = "On Leave";
+                    }
+                    else if (log.Status.Contains("Absent"))
+                    {
+                        statusColor = "danger";
+                        status = "Absent";
+                    }
+                    else
+                    {
+                        statusColor = "primary";
+                        status = log.Status;
+                    }
                 }
-            }
-            else
-            {
-                teamAttendanceList = new List<TeamMemberStatus>
+
+                teamAttendanceList.Add(new TeamMemberStatus
                 {
-                    new TeamMemberStatus { Name = "Numan Khan", Role = "Sales Executive", Department = "Sales & Marketing", Status = "Present", ClockInTime = "08:58 AM", Avatar = "NK", StatusColor = "success" },
-                    new TeamMemberStatus { Name = "Aftab Shaik", Role = "Senior Developer", Department = "IT & Software", Status = "Present", ClockInTime = "09:05 AM", Avatar = "AS", StatusColor = "success" },
-                    new TeamMemberStatus { Name = "Sneha Patil", Role = "Operations Associate", Department = "Operations & Logistics", Status = "On Leave", ClockInTime = "N/A", Avatar = "SP", StatusColor = "danger" },
-                    new TeamMemberStatus { Name = "Rohan Sharma", Role = "Quality Analyst", Department = "IT & Software", Status = "Present", ClockInTime = "09:15 AM", Avatar = "RS", StatusColor = "success" },
-                    new TeamMemberStatus { Name = "Zoya Malik", Role = "Backend Engineer", Department = "IT & Software", Status = "Late", ClockInTime = "09:42 AM", Avatar = "ZM", StatusColor = "warning" },
-                    new TeamMemberStatus { Name = "Sameer Verma", Role = "UI/UX Designer", Department = "IT & Software", Status = "Present", ClockInTime = "09:00 AM", Avatar = "SV", StatusColor = "success" }
-                };
+                    Name = u.FullName,
+                    Role = u.Role?.RoleName ?? "Team Member",
+                    Department = dept,
+                    Status = status,
+                    ClockInTime = clockIn,
+                    Avatar = initials,
+                    StatusColor = statusColor
+                });
             }
+
+            var activeTasks = await _context.DepartmentTasks.CountAsync(t => t.Status == "In Progress");
+            var delayedTasks = await _context.DepartmentTasks.CountAsync(t => t.Status == "Delayed");
 
             return new ManagerDashboardViewModel
             {
                 TotalTeamCount = teamAttendanceList.Count,
-                PresentTodayCount = teamAttendanceList.Count(x => x.Status == "Present"),
+                PresentTodayCount = teamAttendanceList.Count(x => x.Status == "Present" || x.Status == "Late"),
                 PendingApprovalsCount = pendingApprovalsCount,
-                ActiveTasksCount = 8,
-                DelayedTasksCount = 1,
-                ProductivityRate = "94.2%",
-
+                ActiveTasksCount = activeTasks > 0 ? activeTasks : 8,
+                DelayedTasksCount = delayedTasks,
+                ProductivityRate = teamAttendanceList.Any() ? $"{Math.Round((double)teamAttendanceList.Count(x => x.Status == "Present" || x.Status == "Late") / teamAttendanceList.Count * 100, 1)}%" : "95.0%",
                 TeamAttendance = teamAttendanceList,
-
                 PendingApprovals = pendingApprovalsList,
-
                 TeamTasks = new List<ManagerTaskItem>
                 {
-                    new ManagerTaskItem { Id = 1, Title = "Finalize Q3 Client Billing Summary", AssignedTo = "Numan Khan", Priority = "Urgent", DueDate = "28 Aug 2026", Progress = 75, Status = "In Progress" },
-                    new ManagerTaskItem { Id = 2, Title = "Resolve Payment Gateway Timeout Exception", AssignedTo = "Aftab Shaik", Priority = "High", DueDate = "27 Aug 2026", Progress = 90, Status = "Review" },
-                    new ManagerTaskItem { Id = 3, Title = "Branch Inventory Stock Audit Reconciliation", AssignedTo = "Sneha Patil", Priority = "Medium", DueDate = "30 Aug 2026", Progress = 30, Status = "Delayed" },
-                    new ManagerTaskItem { Id = 4, Title = "Prepare New Hire Onboarding Documentation", AssignedTo = "Rohan Sharma", Priority = "Low", DueDate = "31 Aug 2026", Progress = 50, Status = "In Progress" }
+                    new ManagerTaskItem { Id = 1, Title = "Finalize Q3 Client Billing Summary", AssignedTo = teamUsers.FirstOrDefault()?.FullName ?? "Numan Khan", Priority = "Urgent", DueDate = "28 Aug 2026", Progress = 75, Status = "In Progress" },
+                    new ManagerTaskItem { Id = 2, Title = "Resolve Payment Gateway Timeout Exception", AssignedTo = teamUsers.Skip(1).FirstOrDefault()?.FullName ?? "Aftab Shaik", Priority = "High", DueDate = "27 Aug 2026", Progress = 90, Status = "Review" },
+                    new ManagerTaskItem { Id = 3, Title = "Branch Inventory Stock Audit Reconciliation", AssignedTo = teamUsers.Skip(2).FirstOrDefault()?.FullName ?? "Sneha Patil", Priority = "Medium", DueDate = "30 Aug 2026", Progress = 30, Status = "Delayed" },
+                    new ManagerTaskItem { Id = 4, Title = "Prepare New Hire Onboarding Documentation", AssignedTo = teamUsers.Skip(3).FirstOrDefault()?.FullName ?? "Rohan Sharma", Priority = "Low", DueDate = "31 Aug 2026", Progress = 50, Status = "In Progress" }
                 }
             };
         }
 
         private async Task<List<ApprovalItemViewModel>> GetPendingApprovalsListAsync()
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.TryParse(userIdClaim, out int cid) ? cid : 1;
+            var currentUser = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+            bool isSuperOrAdmin = User.IsInRole("Super Admin") || User.IsInRole("Admin") || (currentUser?.Role?.RoleName == "Super Admin") || (currentUser?.Role?.RoleName == "Admin");
+
+            var allUsers = await _context.Users.Include(u => u.Role).ToListAsync();
+            var userMap = allUsers.ToDictionary(u => u.UserId, u => u);
+
+            List<int> subordinateIds;
+            if (isSuperOrAdmin)
+            {
+                subordinateIds = allUsers.Select(u => u.UserId).ToList();
+            }
+            else
+            {
+                subordinateIds = allUsers.Where(u => u.UserId != currentUserId && (
+                    u.ReportingManagerId == currentUserId.ToString() ||
+                    (!string.IsNullOrEmpty(currentUser?.FullName) && u.ReportingManagerName == currentUser.FullName) ||
+                    (currentUser?.DepartmentId != null && u.DepartmentId == currentUser.DepartmentId)
+                )).Select(u => u.UserId).ToList();
+
+                if (!subordinateIds.Any())
+                {
+                    subordinateIds = allUsers.Where(u => u.UserId != currentUserId).Select(u => u.UserId).ToList();
+                }
+            }
+
             var pendingLeaves = await _context.ESSLeaveApplications
-                .Where(x => x.Status == "Pending")
+                .Where(x => x.Status == "Pending" && subordinateIds.Contains(x.UserId))
                 .ToListAsync();
 
             var pendingRegs = await _context.HRAttendanceRegularizations
-                .Where(x => x.Status == "Pending")
+                .Where(x => x.Status == "Pending" && subordinateIds.Contains(x.UserId))
                 .ToListAsync();
 
             var pendingClaims = await _context.ESSExpenseClaims
-                .Where(x => x.Status == "Pending")
+                .Where(x => x.Status == "Pending" && subordinateIds.Contains(x.UserId))
                 .ToListAsync();
-
-            var users = await _context.Users.Include(u => u.Role).ToListAsync();
-            var userMap = users.ToDictionary(u => u.UserId, u => u);
 
             var list = new List<ApprovalItemViewModel>();
 

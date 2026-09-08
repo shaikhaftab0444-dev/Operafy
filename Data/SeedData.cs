@@ -2486,8 +2486,51 @@ namespace ERP_System.Data
                     BEGIN
                         ALTER TABLE AITStudent.erp_HRAttendanceRegularizations ADD ReviewedAt DATETIME NULL;
                     END
+                END
+
+                IF OBJECT_ID('AITStudent.erp_WorkShifts', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_WorkShifts (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        ShiftName NVARCHAR(100) NOT NULL,
+                        StartTime TIME NOT NULL,
+                        EndTime TIME NOT NULL,
+                        GracePeriodMinutes INT NOT NULL DEFAULT 15
+                    );
+                END
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'ShiftId')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_Users ADD ShiftId INT NULL;
                 END";
             await context.Database.ExecuteSqlRawAsync(alterHRAttendanceRegularizationsSql);
+
+            // Seed default work shifts if empty
+            if (!await context.WorkShifts.AnyAsync())
+            {
+                context.WorkShifts.AddRange(
+                    new WorkShift { ShiftName = "Morning General (09:00 AM - 06:00 PM)", StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(18, 0, 0), GracePeriodMinutes = 15 },
+                    new WorkShift { ShiftName = "Early Shift (08:00 AM - 05:00 PM)", StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(17, 0, 0), GracePeriodMinutes = 15 },
+                    new WorkShift { ShiftName = "Evening Shift (02:00 PM - 11:00 PM)", StartTime = new TimeSpan(14, 0, 0), EndTime = new TimeSpan(23, 0, 0), GracePeriodMinutes = 15 },
+                    new WorkShift { ShiftName = "Night Shift (10:00 PM - 07:00 AM)", StartTime = new TimeSpan(22, 0, 0), EndTime = new TimeSpan(7, 0, 0), GracePeriodMinutes = 15 }
+                );
+                await context.SaveChangesAsync();
+            }
+
+            // Assign default shift to users without shift assigned
+            var defaultShift = await context.WorkShifts.FirstOrDefaultAsync();
+            if (defaultShift != null)
+            {
+                var usersWithoutShift = await context.Users.Where(u => u.ShiftId == null).ToListAsync();
+                foreach (var u in usersWithoutShift)
+                {
+                    u.ShiftId = defaultShift.Id;
+                }
+                if (usersWithoutShift.Any())
+                {
+                    await context.SaveChangesAsync();
+                }
+            }
 
             // Seed initial attendance logs for users if empty
             if (!await context.HRAttendanceLogs.AnyAsync())

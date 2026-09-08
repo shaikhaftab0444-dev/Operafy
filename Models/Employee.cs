@@ -37,6 +37,10 @@ namespace ERP_System.Models
 
         public string? BranchName { get; set; }
 
+        public int? ShiftId { get; set; }
+
+        public string? ShiftName { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -74,6 +78,8 @@ namespace ERP_System.Models
         public string? ReportingManagerName { get; set; }
 
         public string? BranchName { get; set; }
+
+        public int? ShiftId { get; set; }
 
         public IFormFile? ProfilePhotoFile { get; set; }
     }

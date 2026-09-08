@@ -66,6 +66,7 @@ namespace ERP_System.Controllers
             var query = _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Department)
+                .Include(u => u.Shift)
                 .Where(u => u.Role != null && u.Role.RoleName != "Super Admin" && u.Role.RoleName != "Admin" && u.Role.RoleName != "System Admin");
 
             if (departmentId.HasValue && departmentId.Value > 0)
@@ -83,6 +84,8 @@ namespace ERP_System.Controllers
                 .Where(d => d.IsActive)
                 .OrderBy(d => d.DepartmentName)
                 .ToListAsync();
+
+            ViewBag.Shifts = await _context.WorkShifts.ToListAsync();
 
             // Populate active managers in the company
             var managers = await _context.Users
@@ -121,7 +124,8 @@ namespace ERP_System.Controllers
                     BranchId = 3,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
-                    RoleId = model.SelectedRoleId
+                    RoleId = model.SelectedRoleId,
+                    ShiftId = model.ShiftId
                 };
 
                 var hasher = new PasswordHasher<User>();
@@ -212,6 +216,7 @@ namespace ERP_System.Controllers
             ViewBag.Departments = await _context.Departments.Where(d => d.IsActive).OrderBy(d => d.DepartmentName).ToListAsync();
             ViewBag.Managers = await _context.Users.Include(u => u.Role).Where(u => u.IsActive && u.Role != null && u.Role.RoleName.Contains("Manager")).ToListAsync();
             ViewBag.Branches = await _context.Branches.Where(b => b.IsActive).ToListAsync();
+            ViewBag.Shifts = await _context.WorkShifts.ToListAsync();
 
             return View("Directory", employees);
         }
@@ -219,7 +224,7 @@ namespace ERP_System.Controllers
         // POST: /HREmployee/EditEmployee
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditEmployee(int UserId, string FullName, string UserName, string Email, string? MobileNumber, int SelectedRoleId, int? DepartmentId, string? DepartmentName, string? ReportingManagerId, string? ReportingManagerName, string? BranchName, IFormFile? NewProfilePhotoFile)
+        public async Task<IActionResult> EditEmployee(int UserId, string FullName, string UserName, string Email, string? MobileNumber, int SelectedRoleId, int? DepartmentId, string? DepartmentName, string? ReportingManagerId, string? ReportingManagerName, string? BranchName, int? ShiftId, IFormFile? NewProfilePhotoFile)
         {
             var emp = await _context.Users.FindAsync(UserId);
             if (emp != null)
@@ -229,6 +234,7 @@ namespace ERP_System.Controllers
                 emp.Email = Email;
                 emp.MobileNumber = MobileNumber;
                 emp.RoleId = SelectedRoleId;
+                emp.ShiftId = ShiftId;
                 emp.UpdatedAt = DateTime.Now;
 
                 // Department

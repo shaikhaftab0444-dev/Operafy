@@ -283,34 +283,84 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUserNotifications()
         {
-            var currentUser = await GetCurrentUserAsync();
-            await SyncWithActivityLogsAsync(currentUser.email);
-
-            List<NotificationItem> list;
-            lock (_lock)
+            try
             {
-                list = _notificationStore!.Where(n =>
-                    string.IsNullOrEmpty(n.TargetEmail) ||
-                    n.TargetEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase) ||
-                    (!string.IsNullOrEmpty(n.TargetRole) && n.TargetRole.Equals(currentUser.role, StringComparison.OrdinalIgnoreCase))
-                ).OrderByDescending(n => n.CreatedAt).ToList();
+                var currentUser = await GetCurrentUserAsync();
+                await SyncWithActivityLogsAsync(currentUser.email);
+
+                List<NotificationItem> list;
+                lock (_lock)
+                {
+                    list = (_notificationStore ?? new List<NotificationItem>()).Where(n =>
+                        string.IsNullOrEmpty(n.TargetEmail) ||
+                        n.TargetEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrEmpty(n.TargetRole) && n.TargetRole.Equals(currentUser.role, StringComparison.OrdinalIgnoreCase))
+                    ).OrderByDescending(n => n.CreatedAt).ToList();
+                }
+
+                var unreadCount = list.Count(n => !n.IsRead);
+                var recent = list.Take(5).Select(n => new {
+                    id = n.NotificationId,
+                    title = n.Title ?? "Alert",
+                    message = n.Description ?? "",
+                    description = n.Description ?? "",
+                    category = n.Category ?? "System",
+                    createdAt = n.CreatedAt.ToString("HH:mm"),
+                    timeAgo = GetTimeAgo(n.CreatedAt),
+                    isRead = n.IsRead,
+                    iconClass = n.IconClass ?? "fa-bell",
+                    colorClass = n.ColorClass ?? "text-primary",
+                    targetUrl = n.TargetUrl ?? "/Notifications"
+                }).ToList();
+
+                return Json(new { success = true, count = unreadCount, unreadCount, totalCount = list.Count, notifications = recent });
             }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, count = 0, unreadCount = 0, totalCount = 0, notifications = new List<object>(), error = ex.Message });
+            }
+        }
 
-            var unreadCount = list.Count(n => !n.IsRead);
-            var recent = list.Take(5).Select(n => new {
-                id = n.NotificationId,
-                title = n.Title,
-                description = n.Description,
-                category = n.Category,
-                createdAt = n.CreatedAt.ToString("HH:mm"),
-                timeAgo = GetTimeAgo(n.CreatedAt),
-                isRead = n.IsRead,
-                iconClass = n.IconClass,
-                colorClass = n.ColorClass,
-                targetUrl = n.TargetUrl
-            }).ToList();
+        // GET: /Notifications/_UserNotifications
+        [HttpGet]
+        public async Task<IActionResult> _UserNotifications()
+        {
+            try
+            {
+                var currentUser = await GetCurrentUserAsync();
+                await SyncWithActivityLogsAsync(currentUser.email);
 
-            return Json(new { unreadCount, totalCount = list.Count, notifications = recent });
+                List<NotificationItem> list;
+                lock (_lock)
+                {
+                    list = (_notificationStore ?? new List<NotificationItem>()).Where(n =>
+                        string.IsNullOrEmpty(n.TargetEmail) ||
+                        n.TargetEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrEmpty(n.TargetRole) && n.TargetRole.Equals(currentUser.role, StringComparison.OrdinalIgnoreCase))
+                    ).OrderByDescending(n => n.CreatedAt).ToList();
+                }
+
+                var unreadCount = list.Count(n => !n.IsRead);
+                var recent = list.Take(5).Select(n => new {
+                    id = n.NotificationId,
+                    title = n.Title ?? "Alert",
+                    message = n.Description ?? "",
+                    description = n.Description ?? "",
+                    category = n.Category ?? "System",
+                    createdAt = n.CreatedAt.ToString("HH:mm"),
+                    timeAgo = GetTimeAgo(n.CreatedAt),
+                    isRead = n.IsRead,
+                    iconClass = n.IconClass ?? "fa-bell",
+                    colorClass = n.ColorClass ?? "text-primary",
+                    targetUrl = n.TargetUrl ?? "/Notifications"
+                }).ToList();
+
+                return Json(new { success = true, count = unreadCount, unreadCount, totalCount = list.Count, notifications = recent });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, count = 0, unreadCount = 0, totalCount = 0, notifications = new List<object>(), error = ex.Message });
+            }
         }
 
         private static string GetTimeAgo(DateTime dt)
