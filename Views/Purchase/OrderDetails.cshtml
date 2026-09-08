@@ -1,0 +1,676 @@
+@model ERP_System.Models.PurchaseOrderItem
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = $"PO Voucher - {Model.PONumber} | {Model.VendorName}";
+}
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+    :root {
+        --pod-primary: #2563eb;
+        --pod-primary-dark: #1d4ed8;
+        --pod-primary-soft: #eff6ff;
+        --pod-success: #16a34a;
+        --pod-success-soft: #f0fdf4;
+        --pod-info: #0891b2;
+        --pod-info-soft: #ecfeff;
+        --pod-warning: #d97706;
+        --pod-warning-soft: #fffbeb;
+        --pod-border: #e2e8f0;
+        --pod-bg: #f8fafc;
+        --pod-card: #ffffff;
+        --pod-text: #0f172a;
+        --pod-muted: #64748b;
+        --pod-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .pod-page {
+        min-height: calc(100vh - 80px);
+        background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.05), transparent 30%),
+                    radial-gradient(circle at bottom left, rgba(8, 145, 178, 0.04), transparent 28%),
+                    var(--pod-bg);
+        padding-bottom: 60px;
+    }
+
+    .pod-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .pod-header-card {
+        background: #ffffff;
+        border: 1px solid var(--pod-border);
+        border-radius: 18px;
+        padding: 22px 26px;
+        box-shadow: var(--pod-shadow);
+        margin-bottom: 24px;
+    }
+
+    .pod-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        font-weight: 650;
+        color: var(--pod-muted);
+        margin-bottom: 12px;
+    }
+
+    .pod-breadcrumb a {
+        color: var(--pod-muted);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .pod-breadcrumb a:hover {
+        color: var(--pod-primary);
+    }
+
+    .pod-voucher-card {
+        background: #ffffff;
+        border: 1px solid var(--pod-border);
+        border-radius: 18px;
+        padding: 32px;
+        box-shadow: var(--pod-shadow);
+        margin-bottom: 24px;
+    }
+
+    /* Stepper Styling */
+    .pod-stepper-container {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 18px 24px 14px 24px;
+        margin-bottom: 22px;
+    }
+
+    .pod-stepper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+    }
+
+    .pod-stepper::before {
+        content: "";
+        position: absolute;
+        top: 17px;
+        left: 50px;
+        right: 50px;
+        height: 3px;
+        background: #e2e8f0;
+        z-index: 1;
+    }
+
+    .pod-step {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        flex: 1;
+    }
+
+    .pod-step-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #cbd5e1;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        transition: all .25s ease;
+    }
+
+    .pod-step.completed .pod-step-circle {
+        background: #10b981;
+        border-color: #10b981;
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, .25);
+    }
+
+    .pod-step.active .pod-step-circle {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #fff;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, .2);
+    }
+
+    .pod-step-title {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #64748b;
+        line-height: 1.2;
+    }
+
+    .pod-step-sub {
+        font-size: 9.5px;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
+
+    .pod-step.completed .pod-step-title {
+        color: #059669;
+    }
+
+    .pod-step.active .pod-step-title {
+        color: #2563eb;
+    }
+
+    .pod-action-bar {
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 18px;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .pod-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+
+    .pod-table thead th {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.74rem;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 12px 14px;
+        border-bottom: 2px solid #e2e8f0;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .pod-table tbody td {
+        padding: 13px 14px;
+        font-size: 0.84rem;
+        color: #1e293b;
+        border-bottom: 1px solid #edf2f7;
+        vertical-align: middle;
+    }
+
+    .pod-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 30px;
+        font-size: 0.78rem;
+        font-weight: 750;
+    }
+
+    .status-confirmed {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+
+    .status-transit {
+        background: #ecfeff;
+        color: #0e7490;
+        border: 1px solid #a5f3fc;
+    }
+
+    .status-delivered {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    .pod-toast-box {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        min-width: 340px;
+        display: none;
+    }
+
+    @@media print {
+        header, .sidebar, #sidebar, .pod-breadcrumb, .pod-action-bar, .no-print, .btn, .footer {
+            display: none !important;
+        }
+        .main-inner, .wrapper, body, .pod-page {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
+        }
+        .pod-voucher-card {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+        .pod-table thead th {
+            background-color: #f1f5f9 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>
+
+<div class="pod-page pt-3">
+    <div class="pod-container">
+
+        <!-- Top Header Card -->
+        <div class="pod-header-card no-print">
+            <div class="pod-breadcrumb">
+                <a href="@Url.Action("Index", "Purchase")"><i class="fa fa-layer-group me-1"></i> Control Hub</a>
+                <span>/</span>
+                <a href="@Url.Action("Orders", "Purchase")">Purchase Orders Registry</a>
+                <span>/</span>
+                <span class="text-dark">@Model.PONumber</span>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 bg-primary-subtle text-primary rounded-4 shadow-sm fs-3">
+                        <i class="fa fa-file-invoice"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-primary-subtle text-primary fw-bold extra-small px-2 py-1">SAP MM / NETSUITE VOUCHER</span>
+                            <span class="pod-status-badge @(Model.Status == "In Transit" ? "status-transit" : (Model.Status == "Delivered" ? "status-delivered" : "status-confirmed"))" id="headerStatusBadge">
+                                <i class="fa @(Model.Status == "In Transit" ? "fa-truck-fast" : (Model.Status == "Delivered" ? "fa-circle-check" : "fa-clock"))"></i>
+                                @Model.Status
+                            </span>
+                        </div>
+                        <h2 class="fw-extrabold text-dark mb-0">Purchase Order: @Model.PONumber</h2>
+                        <span class="text-muted small">Vendor: <strong>@Model.VendorName</strong> &bull; Ordered on @Model.OrderDate</span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <a href="@Url.Action("Orders", "Purchase")" class="btn btn-outline-secondary rounded-pill px-3.5 shadow-sm fw-semibold">
+                        <i class="fa fa-arrow-left me-1"></i> Back to Orders
+                    </a>
+                    <button type="button" class="btn btn-primary rounded-pill px-3.5 shadow-sm fw-semibold" onclick="window.print()">
+                        <i class="fa fa-print me-1"></i> Print PO Slip
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Voucher Card -->
+        <div class="pod-voucher-card" id="printablePOArea">
+
+            <!-- Fulfillment Lifecycle Stepper -->
+            <div class="pod-stepper-container no-print">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.05em;">
+                        <i class="fa fa-timeline me-1 text-primary"></i> NetSuite Real-Time Procurement Lifecycle
+                    </span>
+                    <span class="badge bg-info-subtle text-info fw-bold" id="stepperCurrentStatus">
+                        @Model.Status - Active Fulfillment
+                    </span>
+                </div>
+                <div class="pod-stepper">
+                    <div class="pod-step completed">
+                        <div class="pod-step-circle"><i class="fa fa-check"></i></div>
+                        <div class="pod-step-title">Requisition Approved</div>
+                        <div class="pod-step-sub">PR Verified &amp; Released</div>
+                    </div>
+                    <div class="pod-step @(Model.Status == "Confirmed" ? "active" : "completed")" id="stepPoConfirmed">
+                        <div class="pod-step-circle">2</div>
+                        <div class="pod-step-title">PO Confirmed</div>
+                        <div class="pod-step-sub">@Model.OrderDate</div>
+                    </div>
+                    <div class="pod-step @(Model.Status == "In Transit" ? "active" : (Model.Status == "Delivered" ? "completed" : ""))" id="stepInTransit">
+                        <div class="pod-step-circle">3</div>
+                        <div class="pod-step-title">In Transit</div>
+                        <div class="pod-step-sub">@(Model.Carrier ?? "Courier Telemetry")</div>
+                    </div>
+                    <div class="pod-step @(Model.Status == "Delivered" ? "completed" : "")" id="stepDelivered">
+                        <div class="pod-step-circle">4</div>
+                        <div class="pod-step-title">Delivered &amp; Matched</div>
+                        <div class="pod-step-sub">3-Way Match &amp; GRN</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Bar -->
+            <div class="pod-action-bar no-print">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-white text-dark border px-2.5 py-1.5 fw-bold extra-small">
+                        <i class="fa fa-bolt text-warning me-1"></i> Quick Workflow Actions:
+                    </span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary" id="btnMarkTransit" onclick="triggerStatusUpdate('In Transit')">
+                            <i class="fa fa-truck-fast me-1"></i> Mark In Transit
+                        </button>
+                        <button type="button" class="btn btn-outline-success" id="btnMarkDelivered" onclick="triggerStatusUpdate('Delivered')">
+                            <i class="fa fa-circle-check me-1"></i> Confirm Inward Delivery
+                        </button>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-dark" onclick="triggerQuickGRN()" title="Create Goods Receipt Note in Receipts Registry">
+                        <i class="fa fa-dolly text-primary me-1"></i> Generate Inward GRN
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sendCopyEmail()">
+                        <i class="fa fa-paper-plane me-1"></i> Email to Vendor
+                    </button>
+                    <a href="@Url.Action("Receipts", "Purchase")" class="btn btn-sm btn-outline-info" title="Go to GRN Receipts">
+                        <i class="fa fa-receipt me-1"></i> Open Receipts Registry
+                    </a>
+                </div>
+            </div>
+
+            <!-- Official Printable PO Voucher -->
+            <div class="p-4 border rounded-3 bg-white mb-3 shadow-sm">
+                <!-- Voucher Header -->
+                <div class="row align-items-center mb-4 pb-3 border-bottom g-3">
+                    <div class="col-sm-7">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fa-solid fa-layer-group fs-3 text-primary"></i>
+                            <h3 class="fw-extrabold text-dark mb-0">Operafy ERP Systems Ltd</h3>
+                        </div>
+                        <div class="text-muted small fw-semibold">Central Corporate Procurement &amp; Supply Chain Division</div>
+                        <div class="text-muted extra-small mt-0.5" style="font-size: 0.75rem;">
+                            Operafy Tower, Sector 4, Silicon Boulevard, Bangalore - 560100 | GSTIN: 29AAACE9912K1Z9 | CIN: U72200KA2024PLC189210
+                        </div>
+                    </div>
+                    <div class="col-sm-5 text-sm-end">
+                        <div class="badge bg-dark text-white text-uppercase px-3 py-1.5 fw-bold mb-1" style="letter-spacing: 0.08em; font-size: 0.78rem;">
+                            OFFICIAL PURCHASE ORDER
+                        </div>
+                        <div class="fw-extrabold fs-4 text-primary font-monospace">@Model.PONumber</div>
+                        <div class="text-muted small">
+                            Issue Date: <span class="fw-bold text-dark">@Model.OrderDate</span>
+                        </div>
+                        <div class="text-muted small">
+                            Expected Delivery: <span class="fw-bold text-dark">@(Model.DeliveryDate ?? "7 Days from Order")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vendor & Shipping Details Grid -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3 h-100 border">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="text-muted text-uppercase fw-bold extra-small">Vendor / Supplier (Payee):</span>
+                                <span class="badge bg-primary-subtle text-primary fw-bold" id="cardPoStatus">@Model.Status</span>
+                            </div>
+                            <h5 class="fw-bold text-dark mb-1">@Model.VendorName</h5>
+                            <div class="extra-small text-muted mb-2">
+                                <span class="d-block"><strong>GSTIN:</strong> @(Model.VendorGstin ?? "29AAACE9912K1Z9") &bull; <strong>PAN:</strong> @(Model.VendorPan ?? "AAACE9912K")</span>
+                                <span class="d-block mt-0.5"><i class="fa fa-location-dot me-1"></i> @(Model.VendorAddress ?? "Commercial Hub, Electronic City, Bangalore - 560100")</span>
+                            </div>
+                            <div class="d-flex gap-3 text-muted extra-small">
+                                <span><i class="fa fa-envelope me-1 text-secondary"></i> @(Model.VendorEmail ?? "procurement-support@supplier.com")</span>
+                                <span><i class="fa fa-phone me-1 text-secondary"></i> @(Model.VendorPhone ?? "+91 80 4122 8900")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3 h-100 border">
+                            <span class="text-muted text-uppercase fw-bold extra-small d-block mb-1">Shipping &amp; Inward Consignee:</span>
+                            <h6 class="fw-bold text-dark mb-1">@(Model.Warehouse ?? "WH-Main Logistics Bay 3")</h6>
+                            <div class="extra-small text-muted mb-2">
+                                <span class="d-block"><strong>Receiving Intake:</strong> @(Model.ReceivingGate ?? "Commercial Inward Intake Gate #2")</span>
+                                <span class="d-block mt-0.5"><i class="fa fa-truck-ramp-box me-1"></i> @(Model.ShippingAddress ?? "Operafy Depot, Nelamangala Logistics Park, Bangalore - 562123")</span>
+                            </div>
+                            <div class="d-flex flex-wrap gap-3 text-muted extra-small">
+                                <span><strong>Carrier:</strong> @(Model.Carrier ?? "BlueDart Express Freight")</span>
+                                <span><strong>Tracking Ref:</strong> <span class="font-monospace text-primary fw-bold">@(Model.TrackingNumber ?? ("TRK-" + Model.PONumber + "-IN"))</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commercial Metadata Bar -->
+                <div class="row g-2 p-2.5 bg-light rounded-3 mb-4 text-center border">
+                    <div class="col-3">
+                        <span class="extra-small text-muted d-block">Payment Terms</span>
+                        <span class="fw-bold text-dark small"><i class="fa fa-credit-card me-1 text-primary"></i> @Model.PaymentTerms</span>
+                    </div>
+                    <div class="col-3">
+                        <span class="extra-small text-muted d-block">Procuring Department</span>
+                        <span class="fw-bold text-dark small"><i class="fa fa-building me-1 text-primary"></i> @(Model.Department ?? "Corporate Procurement")</span>
+                    </div>
+                    <div class="col-3">
+                        <span class="extra-small text-muted d-block">Requested By</span>
+                        <span class="fw-bold text-dark small"><i class="fa fa-user-check me-1 text-primary"></i> @(Model.RequestedBy ?? "Aftab Shaik")</span>
+                    </div>
+                    <div class="col-3">
+                        <span class="extra-small text-muted d-block">Billing Currency</span>
+                        <span class="fw-bold text-dark small"><i class="fa fa-indian-rupee-sign me-1 text-primary"></i> INR (Indian Rupee)</span>
+                    </div>
+                </div>
+
+                <!-- Verified Line Items Schedule -->
+                <h6 class="fw-bold text-dark mb-2">
+                    <i class="fa fa-list-check text-primary me-1.5"></i> Verified Itemized Procurement Schedule
+                </h6>
+
+                <div class="table-responsive">
+                    <table class="pod-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 45%;">Item Description &amp; Technical Specifications</th>
+                                <th style="width: 12%;">HSN/SAC</th>
+                                <th style="width: 10%;">Ordered Qty</th>
+                                <th style="width: 13%;">Unit Rate</th>
+                                <th style="width: 10%;">GST Slab</th>
+                                <th style="width: 10%;" class="text-end">Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Items != null && Model.Items.Any())
+                            {
+                                foreach (var item in Model.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="fw-bold text-dark d-block">@item.Item</span>
+                                            <span class="text-muted extra-small">@item.Specification</span>
+                                        </td>
+                                        <td class="font-monospace fw-semibold">@item.Hsn</td>
+                                        <td class="fw-bold fs-6">@item.Qty <span class="extra-small text-muted fw-normal">Nos</span></td>
+                                        <td class="fw-semibold text-dark">@item.UnitPrice</td>
+                                        <td><span class="badge bg-light text-dark border extra-small">@item.Tax</span></td>
+                                        <td class="text-end fw-bold text-primary">@item.Total</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="fw-bold text-dark d-block">Dell UltraSharp 27" 4K UHD Monitors (U2723QE)</span>
+                                        <span class="text-muted extra-small">Model U2723QE, USB-C Hub 90W PD, IPS Black Technology 2000:1 Contrast</span>
+                                    </td>
+                                    <td class="font-monospace fw-semibold">8471</td>
+                                    <td class="fw-bold fs-6">@(Model.ItemsCount > 0 ? Model.ItemsCount : 3) <span class="extra-small text-muted fw-normal">Nos</span></td>
+                                    <td class="fw-semibold text-dark">@Model.TotalAmount</td>
+                                    <td><span class="badge bg-light text-dark border extra-small">18% IGST</span></td>
+                                    <td class="text-end fw-bold text-primary">@Model.TotalAmount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Financial Calculation Breakdown -->
+                <div class="row justify-content-end mb-4">
+                    <div class="col-md-6 col-lg-5">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="d-flex justify-content-between text-muted small mb-2">
+                                <span>Taxable Subtotal:</span>
+                                <span class="fw-semibold text-dark" id="dispSubtotal">@(Model.Subtotal ?? "₹ 0.00")</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted small mb-2">
+                                <span>Applicable Taxes (18% IGST):</span>
+                                <span class="fw-semibold text-dark" id="dispTaxAmount">@(Model.TaxAmount ?? "₹ 0.00")</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted small mb-2">
+                                <span>Freight &amp; Transit Insurance:</span>
+                                <span class="badge bg-success-subtle text-success">Included (DDP Terms)</span>
+                            </div>
+                            <hr class="my-2 border-secondary-subtle">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold text-dark d-block">Net PO Grand Total:</span>
+                                    <span class="extra-small text-muted">Inclusive of All GST &amp; Freight</span>
+                                </div>
+                                <span class="fw-extrabold fs-4 text-primary" id="dispGrandTotal">@Model.TotalAmount</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signatory & Terms -->
+                <div class="row pt-3 border-top g-3 align-items-end">
+                    <div class="col-sm-7">
+                        <span class="extra-small text-muted fw-bold text-uppercase d-block mb-1">Procurement Terms &amp; Conditions:</span>
+                        <p class="text-muted extra-small mb-0" style="line-height: 1.5;">
+                            1. Goods must conform rigorously to specified technical standards and pass inward quality inspection upon arrival.<br>
+                            2. 3-Way matching (PO vs Delivery Challan vs Vendor Tax Invoice) is required for AP clearance under NetSuite terms.<br>
+                            3. Penalty of 0.5% per week applies for delayed deliveries beyond the agreed delivery date.
+                        </p>
+                    </div>
+                    <div class="col-sm-5 text-sm-end">
+                        <div class="d-inline-block text-center">
+                            <div class="fw-bold text-dark font-monospace mb-1" style="border-bottom: 2px dashed #cbd5e1; padding-bottom: 8px;">
+                                <i class="fa fa-stamp text-success me-1"></i> @(Model.AuthorizedSignatory ?? "Aftab Shaik (Chief Procurement Officer)")
+                            </div>
+                            <span class="extra-small text-muted d-block">Authorized Corporate Signatory &bull; Operafy ERP</span>
+                            <span class="extra-small text-success fw-semibold"><i class="fa fa-certificate me-1"></i> NetSuite Cryptographically Verified</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Real-time Toast Notifications -->
+<div class="pod-toast-box" id="podToastBox">
+    <div class="card border-0 shadow-lg" style="border-radius: 12px; background: #1e293b; color: #fff;">
+        <div class="card-body p-3 d-flex align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2.5">
+                <i class="fa fa-circle-check text-success fs-5" id="podToastIcon"></i>
+                <span class="small fw-semibold" id="podToastMessage">Notification message</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white btn-sm" onclick="hideToast()"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var currentPoNumber = "@Model.PONumber";
+
+        function showToast(message, isSuccess) {
+            var box = document.getElementById("podToastBox");
+            var msgEl = document.getElementById("podToastMessage");
+            var iconEl = document.getElementById("podToastIcon");
+            if (!box || !msgEl) return;
+
+            msgEl.textContent = message;
+            if (iconEl) {
+                iconEl.className = (isSuccess !== false)
+                    ? "fa fa-circle-check text-success fs-5"
+                    : "fa fa-triangle-exclamation text-warning fs-5";
+            }
+            box.style.display = "block";
+            clearTimeout(window._podToastTimeout);
+            window._podToastTimeout = setTimeout(hideToast, 4500);
+        }
+
+        function hideToast() {
+            var box = document.getElementById("podToastBox");
+            if (box) box.style.display = "none";
+        }
+
+        function triggerStatusUpdate(newStatus) {
+            var fd = new FormData();
+            fd.append("poNumber", currentPoNumber);
+            fd.append("status", newStatus);
+
+            fetch('@Url.Action("UpdatePOStatus", "Purchase")', {
+                method: "POST",
+                body: fd
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(res) {
+                if (res && res.success) {
+                    showToast("Status updated to '" + newStatus + "' successfully.", true);
+
+                    // Update UI Badges
+                    var badge = document.getElementById("headerStatusBadge");
+                    var cardBadge = document.getElementById("cardPoStatus");
+                    var stepperBadge = document.getElementById("stepperCurrentStatus");
+
+                    if (badge) {
+                        badge.className = "pod-status-badge " + (newStatus === "In Transit" ? "status-transit" : (newStatus === "Delivered" ? "status-delivered" : "status-confirmed"));
+                        badge.innerHTML = '<i class="fa ' + (newStatus === "In Transit" ? "fa-truck-fast" : (newStatus === "Delivered" ? "fa-circle-check" : "fa-clock")) + '"></i> ' + newStatus;
+                    }
+                    if (cardBadge) cardBadge.textContent = newStatus;
+                    if (stepperBadge) stepperBadge.textContent = newStatus + " - Active Fulfillment";
+
+                    // Update stepper classes
+                    var s2 = document.getElementById("stepPoConfirmed");
+                    var s3 = document.getElementById("stepInTransit");
+                    var s4 = document.getElementById("stepDelivered");
+
+                    if (newStatus === "In Transit") {
+                        if (s2) s2.className = "pod-step completed";
+                        if (s3) s3.className = "pod-step active";
+                    } else if (newStatus === "Delivered") {
+                        if (s2) s2.className = "pod-step completed";
+                        if (s3) s3.className = "pod-step completed";
+                        if (s4) s4.className = "pod-step completed";
+                    }
+                } else {
+                    showToast("Could not update status: " + (res.message || "Error"), false);
+                }
+            })
+            .catch(function() {
+                showToast("Network error updating status.", false);
+            });
+        }
+
+        function triggerQuickGRN() {
+            var fd = new FormData();
+            fd.append("poNumber", currentPoNumber);
+
+            fetch('@Url.Action("QuickGenerateGRN", "Purchase")', {
+                method: "POST",
+                body: fd
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(res) {
+                if (res && res.success) {
+                    showToast(res.message || "GRN Created successfully!", true);
+                    triggerStatusUpdate("Delivered");
+                } else {
+                    showToast("Error creating GRN: " + (res.message || "Failed"), false);
+                }
+            })
+            .catch(function() {
+                showToast("Network error creating GRN.", false);
+            });
+        }
+
+        function sendCopyEmail() {
+            showToast("Official PO voucher (" + currentPoNumber + ") emailed to vendor partner.", true);
+        }
+    </script>
+}

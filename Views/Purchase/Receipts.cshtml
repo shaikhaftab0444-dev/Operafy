@@ -552,6 +552,16 @@
         font-size: 0.76rem;
     }
 
+    .grn-slip-link {
+        cursor: pointer;
+        transition: all 0.18s ease;
+    }
+
+        .grn-slip-link:hover {
+            color: #1d4ed8 !important;
+            text-decoration: underline !important;
+        }
+
     .grn-po {
         color: #2563eb;
         font-weight: 800;
@@ -1056,7 +1066,7 @@
                             Total GRNs
                         </div>
 
-                        <div class="grn-kpi-value">
+                        <div class="grn-kpi-value" id="kpiTotalGRNs">
                             @Model.Count
                         </div>
 
@@ -1083,7 +1093,7 @@
                             3-Way Matched
                         </div>
 
-                        <div class="grn-kpi-value">
+                        <div class="grn-kpi-value" id="kpiMatchedCount">
                             @Model.Count(g => g.Status == "3-Way Matched")
                         </div>
 
@@ -1110,7 +1120,7 @@
                             Quality Quarantine
                         </div>
 
-                        <div class="grn-kpi-value">
+                        <div class="grn-kpi-value" id="kpiQuarantineCount">
                             @Model.Count(g => g.Status == "Quality Quarantine")
                         </div>
 
@@ -1137,7 +1147,7 @@
                             Units Received
                         </div>
 
-                        <div class="grn-kpi-value">
+                        <div class="grn-kpi-value" id="kpiUnitsReceived">
                             @Model.Sum(g => g.ItemsReceived).ToString("N0")
                         </div>
 
@@ -1331,142 +1341,115 @@
 
                         @foreach (var g in Model)
                         {
-                            <tr class="grn-data-row">
+                            <tr class="grn-data-row" id="row-@g.GRNNumber" data-grn="@g.GRNNumber">
 
                                 <!-- GRN -->
                                 <td>
-
-                                    <span class="grn-number">
-                                        @g.GRNNumber
-                                    </span>
-
+                                    <a href="@Url.Action("Slip", "Purchase", new { grnNumber = g.GRNNumber })"
+                                       class="grn-number grn-slip-link text-decoration-none d-inline-flex align-items-center gap-1.5"
+                                       title="View Official GRN Inward Slip for @g.GRNNumber">
+                                        <i class="fa fa-receipt text-primary" style="font-size: 0.72rem;"></i>
+                                        <span>@g.GRNNumber</span>
+                                    </a>
                                 </td>
 
 
                                 <!-- PO -->
                                 <td>
-
                                     <span class="grn-po">
                                         @g.PONumber
                                     </span>
-
                                 </td>
 
 
                                 <!-- Vendor -->
                                 <td>
-
                                     <span class="grn-vendor">
                                         @g.VendorName
                                     </span>
-
                                 </td>
 
 
                                 <!-- Date -->
                                 <td>
-
                                     <span class="grn-date">
                                         <i class="fa fa-calendar-day me-1"></i>
                                         @g.ReceivedDate
                                     </span>
-
                                 </td>
 
 
                                 <!-- Warehouse -->
                                 <td>
-
                                     <span class="grn-warehouse">
-
                                         <i class="fa fa-warehouse"></i>
-
                                         @g.Warehouse
-
                                     </span>
-
                                 </td>
 
 
                                 <!-- Units -->
                                 <td>
-
                                     <span class="grn-units">
                                         @g.ItemsReceived
                                     </span>
-
-                                    <span class="text-muted ms-1"
-                                          style="font-size:0.63rem;">
+                                    <span class="text-muted ms-1" style="font-size:0.63rem;">
                                         Units
                                     </span>
-
                                 </td>
 
 
                                 <!-- Inspector -->
                                 <td>
-
                                     <span class="grn-inspector">
-
                                         <i class="fa fa-user-check"></i>
-
                                         @g.InspectedBy
-
                                     </span>
-
                                 </td>
 
 
                                 <!-- Status -->
-                                <td>
-
+                                <td id="status-cell-@g.GRNNumber">
                                     @if (g.Status == "Quality Quarantine")
                                     {
                                         <span class="grn-status grn-status-quarantine">
-
                                             <i class="fa fa-triangle-exclamation"></i>
-
                                             Quarantine
-
                                         </span>
                                     }
                                     else if (g.Status == "3-Way Matched")
                                     {
                                         <span class="grn-status grn-status-matched">
-
                                             <i class="fa fa-handshake-angle"></i>
-
                                             3-Way Matched
-
+                                        </span>
+                                    }
+                                    else if (g.Status == "Completed & Stocked")
+                                    {
+                                        <span class="grn-status" style="background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe;">
+                                            <i class="fa fa-boxes-stacked"></i>
+                                            Completed & Stocked
                                         </span>
                                     }
                                     else
                                     {
                                         <span class="grn-status grn-status-default">
-
                                             <i class="fa fa-circle-check"></i>
-
                                             @g.Status
-
                                         </span>
                                     }
-
                                 </td>
 
 
                                 <!-- Actions -->
                                 <td class="text-end">
-
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-secondary grn-slip-btn"
-                                            onclick="openGRNSlipModal('@g.GRNNumber', '@g.PONumber', '@g.VendorName', '@g.ReceivedDate', '@g.Warehouse', '@g.ItemsReceived', '@g.InspectedBy', '@g.Status');">
-
-                                        <i class="fa fa-receipt"></i>
-
+                                    <a href="@Url.Action("Slip", "Purchase", new { grnNumber = g.GRNNumber })"
+                                       class="btn btn-sm btn-outline-primary grn-slip-btn shadow-sm"
+                                       data-grn="@g.GRNNumber"
+                                       title="View official GRN inward slip for @g.GRNNumber">
+                                        <i class="fa fa-receipt me-1"></i>
                                         Slip
-
-                                    </button>
-
+                                    </a>
                                 </td>
 
                             </tr>
@@ -1543,139 +1526,240 @@
 <!-- ==========================================================================
      MODAL: GOODS RECEIPT NOTE (GRN) OFFICIAL SLIP
      ========================================================================== -->
-<div class="modal fade" id="grnSlipModal" tabindex="-1" aria-labelledby="grnSlipModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+<div class="modal fade" id="grnSlipModal" tabindex="-1" aria-labelledby="grnSlipModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
             <div class="modal-header bg-light border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1">SAP MM MIGO</span>
-                    <h5 class="modal-title fw-bold text-dark mb-0" id="grnSlipModalLabel">
+                    <span class="badge bg-primary text-white fw-bold px-2.5 py-1" style="letter-spacing: 0.5px;">SAP MM MIGO</span>
+                    <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1">Movement 101</span>
+                    <h5 class="modal-title fw-bold text-dark mb-0 ms-1" id="grnSlipModalLabel">
                         <i class="fa fa-receipt text-primary me-2"></i> Goods Receipt Note (GRN) Inward Slip
                     </h5>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="printGRNSlip()">
-                        <i class="fa fa-print me-1"></i> Print Slip
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-semibold" onclick="printGRNSlip()">
+                        <i class="fa fa-print me-1.5"></i> Print Slip
                     </button>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>
 
-            <div class="modal-body p-4" id="printableGRNSlipArea">
-                <!-- Slip Header -->
-                <div class="p-3 border rounded-3 bg-white mb-3 shadow-sm">
-                    <div class="row align-items-center mb-3 pb-3 border-bottom g-2">
-                        <div class="col-sm-7">
-                            <h4 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2">
-                                <i class="fa-solid fa-cubes text-primary"></i> ERP System Solutions Ltd
-                            </h4>
-                            <div class="text-muted small">Central Logistics Bay & Warehouse Intake Facility</div>
-                            <div class="text-muted extra-small" style="font-size: 0.72rem;">Plot 42, Tech Logistics Zone, Bangalore - 560100 | GSTIN: 29AAACE1234F1Z8</div>
-                        </div>
-                        <div class="col-sm-5 text-sm-end">
-                            <div class="badge bg-dark text-white text-uppercase px-3 py-1.5 fw-bold mb-1" style="letter-spacing: 0.08em; font-size: 0.76rem;">
-                                OFFICIAL GRN INWARD SLIP
+            <div class="modal-body p-4 bg-light" id="printableGRNSlipArea">
+                <!-- Slip Certificate Sheet -->
+                <div class="p-4 border rounded-3 bg-white shadow-sm" style="border-color: #e2e8f0 !important;">
+                    <!-- Company Header & Barcode Grid -->
+                    <div class="row align-items-center mb-4 pb-3 border-bottom g-3">
+                        <div class="col-12 col-md-7">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-3 p-2" style="width:38px; height:38px;">
+                                    <i class="fa-solid fa-cubes fs-5"></i>
+                                </span>
+                                <div>
+                                    <h4 class="fw-extrabold text-dark mb-0 letter-spacing-tight">Operafy Systems Ltd</h4>
+                                    <div class="text-muted small fw-semibold">Central Logistics Bay & Consignment Inward Depot</div>
+                                </div>
                             </div>
-                            <div class="fw-bold fs-5 text-primary" id="slipGrnNumber">GRN-2026-0411</div>
-                            <div class="text-muted small">Date: <span id="slipReceivedDate" class="fw-semibold text-dark">02 Sep 2026</span></div>
+                            <div class="text-muted extra-small mt-1" style="font-size: 0.73rem; line-height: 1.4;">
+                                Plot 42, Nelamangala Logistics Corridor, Bangalore - 562123 | <strong>GSTIN:</strong> 29AAACE1234F1Z8 | <strong>CIN:</strong> U72200KA2020PTC099182
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-5 text-md-end">
+                            <div class="badge bg-dark text-white text-uppercase px-3 py-1.5 fw-bold mb-1.5" style="letter-spacing: 0.08em; font-size: 0.72rem;">
+                                OFFICIAL MATERIAL INWARD NOTE
+                            </div>
+                            <div class="fw-extrabold fs-4 text-primary font-monospace" id="slipGrnNumber">GRN-2026-0411</div>
+                            <div class="d-flex flex-wrap justify-content-md-end gap-2 text-muted small mt-1">
+                                <span>Inward Date: <strong id="slipReceivedDate" class="text-dark">02 Sep 2026</strong></span>
+                                <span class="text-muted">|</span>
+                                <span class="badge bg-info-subtle text-info fw-bold" id="slipMovementType">SAP MVT: 101</span>
+                            </div>
+                            <!-- Consignment Barcode visual -->
+                            <div class="mt-2 text-md-end">
+                                <div class="font-monospace text-dark d-inline-block" style="font-size: 1.35rem; letter-spacing: 4px; line-height: 0.8; opacity: 0.85;">
+                                    ▌▌█▌▌█▌█▌▌█▌▌▌█▌█▌▌█▌
+                                </div>
+                                <div class="extra-small text-muted font-monospace" style="font-size: 0.65rem;" id="slipBarcodeText">GRN-2026-0411</div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Metadata Grid -->
+                    <!-- Metadata 4-Box Grid -->
                     <div class="row g-3 small mb-3">
-                        <div class="col-6 col-md-3">
-                            <span class="text-muted d-block extra-small text-uppercase fw-bold">Purchase Order Ref</span>
-                            <span class="fw-bold text-primary fs-6" id="slipPoNumber">PO-2026-0893</span>
+                        <div class="col-6 col-lg-3">
+                            <div class="p-2.5 rounded-3 bg-light border h-100">
+                                <span class="text-muted d-block extra-small text-uppercase fw-bold">Purchase Order Ref</span>
+                                <div class="fw-bold text-primary fs-6 font-monospace mt-0.5" id="slipPoNumber">PO-2026-0893</div>
+                                <span class="text-muted extra-small d-block" id="slipDepartment">Corporate Procurement</span>
+                            </div>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <span class="text-muted d-block extra-small text-uppercase fw-bold">Vendor Partner</span>
-                            <span class="fw-bold text-dark" id="slipVendorName">National Paper Mills</span>
-                            <span class="text-muted extra-small d-block">GSTIN: 27AAACN1234F1Z5</span>
+                        <div class="col-6 col-lg-3">
+                            <div class="p-2.5 rounded-3 bg-light border h-100">
+                                <span class="text-muted d-block extra-small text-uppercase fw-bold">Vendor Consignor</span>
+                                <div class="fw-bold text-dark text-truncate mt-0.5" id="slipVendorName">National Paper Mills</div>
+                                <span class="text-muted extra-small d-block font-monospace" id="slipVendorGstin">GSTIN: 33AABCN1234P1Z3</span>
+                                <div class="text-muted extra-small text-truncate" id="slipVendorAddress" style="max-width: 220px;">Chennai - 600011</div>
+                            </div>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <span class="text-muted d-block extra-small text-uppercase fw-bold">Destination Bay</span>
-                            <span class="badge bg-light text-dark border fw-bold" id="slipWarehouse">WH-Main Bay A</span>
+                        <div class="col-6 col-lg-3">
+                            <div class="p-2.5 rounded-3 bg-light border h-100">
+                                <span class="text-muted d-block extra-small text-uppercase fw-bold">Intake Bay & Bin</span>
+                                <div class="fw-bold text-dark mt-0.5">
+                                    <i class="fa fa-warehouse text-primary me-1"></i> <span id="slipWarehouse">WH-Main Bay A</span>
+                                </div>
+                                <div class="mt-1">
+                                    <span class="badge bg-white text-secondary border extra-small" id="slipStorageBin">Storage Bin: BAY-A-RACK-04</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <span class="text-muted d-block extra-small text-uppercase fw-bold">QA Inspector</span>
-                            <span class="fw-bold text-dark" id="slipInspector">Rajesh K.</span>
-                            <span class="badge bg-success-subtle text-success extra-small d-block mt-0.5" id="slipStatus">Inspected & Accepted</span>
+                        <div class="col-6 col-lg-3">
+                            <div class="p-2.5 rounded-3 bg-light border h-100">
+                                <span class="text-muted d-block extra-small text-uppercase fw-bold">QA Lead Inspector</span>
+                                <div class="fw-bold text-dark mt-0.5">
+                                    <i class="fa fa-user-check text-success me-1"></i> <span id="slipInspector">Rajesh K.</span>
+                                </div>
+                                <div class="mt-1">
+                                    <span class="badge bg-success-subtle text-success extra-small fw-bold" id="slipStatusBadge">Inspected & Accepted</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Transport & Inward Challan Info -->
-                    <div class="p-2.5 bg-light rounded-2 small mb-3 d-flex flex-wrap justify-content-between gap-2 border">
-                        <div><strong>Delivery Challan:</strong> <span id="slipChallan">DC-2026-88219</span></div>
-                        <div><strong>Carrier / Freight:</strong> <span>BlueDart Express (Vehicle: KA-01-EA-9821)</span></div>
-                        <div><strong>Inspection Gate:</strong> <span>North Terminal Gate 2</span></div>
+                    <!-- Transport & Inward Challan Info Strip -->
+                    <div class="p-3 bg-light rounded-3 small mb-3 border">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-md-4">
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <i class="fa fa-file-invoice text-secondary"></i>
+                                    <strong>Delivery Challan:</strong>
+                                    <span class="font-monospace fw-bold text-dark" id="slipChallan">DC-2026-88219</span>
+                                    <span class="text-muted extra-small" id="slipChallanDate">(02 Sep 2026)</span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-5">
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <i class="fa fa-truck text-secondary"></i>
+                                    <strong>Carrier:</strong>
+                                    <span class="text-dark" id="slipCarrier">BlueDart Express</span>
+                                    <span class="badge bg-white text-dark border font-monospace ms-1" id="slipVehicle">KA-01-EA-9821</span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3 text-md-end">
+                                <div class="d-flex align-items-center justify-content-md-end gap-1.5">
+                                    <i class="fa fa-door-open text-secondary"></i>
+                                    <strong>Intake Gate:</strong>
+                                    <span class="text-muted" id="slipGate">Gate #2</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Items Table -->
-                    <div class="table-responsive mb-3">
-                        <table class="table table-bordered table-sm align-middle text-center small mb-0">
-                            <thead class="table-light text-uppercase" style="font-size: 0.72rem; color: #475569;">
+                    <div class="table-responsive mb-3 border rounded-3 overflow-hidden">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.74rem;">
+                            <thead class="table-light text-uppercase fw-bold text-muted border-bottom" style="font-size: 0.68rem; letter-spacing: 0.4px;">
                                 <tr>
-                                    <th class="text-start">Item Description & Spec</th>
-                                    <th>PO Qty</th>
-                                    <th>Received</th>
-                                    <th>Accepted</th>
-                                    <th>Rejected</th>
-                                    <th>Verdict</th>
+                                    <th class="text-center" style="width: 38px;">#</th>
+                                    <th class="text-start">Item Description & Specifications</th>
+                                    <th class="text-center">HSN</th>
+                                    <th class="text-center">PO Qty</th>
+                                    <th class="text-center">Received</th>
+                                    <th class="text-center">Accepted</th>
+                                    <th class="text-center">Quarantine</th>
+                                    <th class="text-center">Verdict</th>
+                                    <th class="text-start">Inspection Remarks</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="slipItemsTableBody">
                                 <tr>
+                                    <td class="text-center text-muted fw-bold">1</td>
                                     <td class="text-start">
-                                        <span class="fw-bold text-dark d-block" id="slipItemDesc">Procurement Batch Intake Items</span>
+                                        <span class="fw-bold text-dark d-block">Procurement Batch Intake Items</span>
                                         <span class="text-muted extra-small">Material Grade A, Batch verified against PO spec</span>
                                     </td>
-                                    <td class="fw-semibold" id="slipPoQty">50 Units</td>
-                                    <td class="fw-bold text-primary" id="slipReceivedQty">50 Units</td>
-                                    <td class="fw-bold text-success" id="slipAcceptedQty">50 Units</td>
-                                    <td class="fw-semibold text-muted">0 Units</td>
-                                    <td>
-                                        <span class="badge bg-success text-white fw-bold px-2 py-0.5 rounded-pill" style="font-size: 0.7rem;">PASSED QC</span>
+                                    <td class="text-center font-monospace">4802</td>
+                                    <td class="text-center fw-semibold">50 Units</td>
+                                    <td class="text-center fw-bold text-primary">50 Units</td>
+                                    <td class="text-center fw-bold text-success">50 Units</td>
+                                    <td class="text-center fw-bold text-muted">0 Units</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success text-white fw-bold px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">PASSED QC</span>
                                     </td>
+                                    <td class="text-start extra-small text-muted">Full quantity verified and counted.</td>
                                 </tr>
                             </tbody>
+                            <tfoot class="table-light border-top fw-bold text-dark" id="slipTableFooter">
+                                <tr>
+                                    <td colspan="3" class="text-end text-uppercase" style="font-size: 0.7rem;">Consignment Totals:</td>
+                                    <td class="text-center" id="footPoQty">50 Units</td>
+                                    <td class="text-center text-primary" id="footReceivedQty">50 Units</td>
+                                    <td class="text-center text-success" id="footAcceptedQty">50 Units</td>
+                                    <td class="text-center text-warning" id="footQuarantineQty">0 Units</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
 
-                    <!-- 3-Way Match Verification Banner -->
-                    <div class="p-3 bg-success-subtle rounded-3 border border-success-subtle d-flex align-items-center justify-content-between mb-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="fa fa-shield-check fs-4 text-success"></i>
+                    <!-- 3-Way Match & Quality Verification Banner -->
+                    <div id="slipMatchBannerContainer" class="mb-3">
+                        <div class="p-3 bg-success-subtle rounded-3 border border-success-subtle d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <i class="fa fa-shield-check fs-4 text-success"></i>
+                                <div>
+                                    <span class="fw-bold text-success d-block small" id="slipMatchHeading">3-Way Match Protocol Passed</span>
+                                    <span class="text-muted extra-small" id="slipMatchSubheading">Purchase Order, Physical Goods Receipt, and Vendor Commercial Invoice matched with 0.00% variance.</span>
+                                </div>
+                            </div>
+                            <span class="badge bg-success text-white px-2.5 py-1 fw-bold" id="slipMatchBadge" style="font-size: 0.7rem;">AUDIT PASSED</span>
+                        </div>
+                    </div>
+
+                    <!-- Quality Auditor Assessment -->
+                    <div class="p-2.5 bg-light rounded-3 small mb-3 border" id="slipRemarksContainer">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="fa fa-clipboard-check text-primary mt-0.5"></i>
                             <div>
-                                <span class="fw-bold text-success d-block small">3-Way Match Protocol Passed</span>
-                                <span class="text-muted extra-small" style="font-size: 0.73rem;">Purchase Order, Physical Goods Receipt, and Vendor Commercial Invoice matched with 0.00% variance.</span>
+                                <span class="fw-bold text-dark extra-small text-uppercase">Quality Auditor Assessment:</span>
+                                <div class="text-muted extra-small mt-0.5" id="slipInspectorRemarks">
+                                    Physical count and quality verification completed with zero defect tolerance. Package seals intact upon arrival.
+                                </div>
                             </div>
                         </div>
-                        <span class="badge bg-success text-white px-2.5 py-1 fw-bold" style="font-size: 0.7rem;">AUDIT PASSED</span>
                     </div>
 
                     <!-- Signatures -->
                     <div class="row pt-3 text-center small text-muted border-top g-2">
                         <div class="col-4">
                             <div class="fw-bold text-dark mb-1">Carrier Driver</div>
-                            <div class="text-muted extra-small">Signature on File</div>
+                            <div class="text-muted extra-small">Signature on File (Biometric Intake)</div>
                         </div>
                         <div class="col-4">
-                            <div class="fw-bold text-dark mb-1">Warehouse Receiver</div>
+                            <div class="fw-bold text-dark mb-1">Warehouse Inward Officer</div>
                             <div class="text-muted extra-small">Operafy Receiving Dock 3</div>
                         </div>
                         <div class="col-4">
-                            <div class="fw-bold text-success mb-1"><i class="fa fa-stamp me-1"></i> Quality Auditor</div>
+                            <div class="fw-bold text-success mb-1"><i class="fa fa-stamp me-1"></i> Quality Assurance Lead</div>
                             <div class="text-dark fw-semibold extra-small" id="slipSignatureInspector">Rajesh K. (Lead Inspector)</div>
+                            <span class="badge bg-success-subtle text-success extra-small border border-success-subtle mt-1 py-0.5">
+                                <i class="fa fa-check-circle me-1"></i> VERIFIED & SIGNED
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="modal-footer bg-light border-top px-4 py-2.5">
-                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary rounded-pill px-3" onclick="printGRNSlip()">
-                    <i class="fa fa-print me-1"></i> Print / Save Slip
-                </button>
+            <div class="modal-footer bg-light border-top px-4 py-2.5 d-flex justify-content-between align-items-center">
+                <div id="slipFooterQuarantineAction">
+                    <!-- Dynamic release button injected if in quarantine -->
+                </div>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3.5" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="printGRNSlip()">
+                        <i class="fa fa-print me-1.5"></i> Print / Save Slip
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1775,51 +1859,457 @@
 @section Scripts {
 
     <script>
+        var currentActiveGRN = null;
+        var currentSlipData = null;
 
-        function showGRNToast(msg, isSuccess = true) {
+        function showGRNToast(msg, isSuccess) {
+            if (isSuccess === undefined) isSuccess = true;
             var el = document.getElementById('grnLiveToast');
             var txt = document.getElementById('grnToastMessage');
             var icon = document.getElementById('grnToastIcon');
             if (!el) return;
             txt.innerText = msg;
             el.className = 'toast align-items-center text-white border-0 shadow-lg ' + (isSuccess ? 'bg-success' : 'bg-danger');
-            icon.className = isSuccess ? 'fa fa-circle-check fs-5' : 'fa fa-circle-xmark fs-5';
-            var toast = new bootstrap.Toast(el, { delay: 4000 });
-            toast.show();
+            if (icon) icon.className = isSuccess ? 'fa fa-circle-check fs-5' : 'fa fa-circle-xmark fs-5';
+            try {
+                var toast = bootstrap.Toast.getOrCreateInstance ? bootstrap.Toast.getOrCreateInstance(el, { delay: 4500 }) : new bootstrap.Toast(el, { delay: 4500 });
+                toast.show();
+            } catch (e) {
+                console.log(msg);
+            }
+        }
+
+        function showGRNSlipModalDirect(modalEl) {
+            if (!modalEl) modalEl = document.getElementById('grnSlipModal');
+            if (!modalEl) return;
+
+            // Move modal to body if not already there, avoiding stacking context / overflow issues
+            if (modalEl.parentNode !== document.body) {
+                document.body.appendChild(modalEl);
+            }
+
+            // Clean up any stale stacked backdrops to prevent page lockup
+            var oldBackdrops = document.querySelectorAll('.modal-backdrop');
+            if (oldBackdrops.length > 0) {
+                oldBackdrops.forEach(function (bd) {
+                    if (!document.querySelector('.modal.show')) {
+                        bd.remove();
+                    }
+                });
+            }
+
+            try {
+                if (window.bootstrap && bootstrap.Modal) {
+                    var inst = bootstrap.Modal.getOrCreateInstance 
+                        ? bootstrap.Modal.getOrCreateInstance(modalEl)
+                        : (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl));
+                    inst.show();
+                    return;
+                }
+            } catch (err) {
+                console.warn('Bootstrap modal instance error:', err);
+            }
+
+            if (window.$ && $.fn && $.fn.modal) {
+                $(modalEl).modal('show');
+                return;
+            }
+
+            // Fallback native display
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+            document.body.classList.add('modal-open');
         }
 
         function openGRNSlipModal(grnNo, poNo, vendor, date, warehouse, units, inspector, status) {
-            document.getElementById('slipGrnNumber').innerText = grnNo || 'GRN-2026-0411';
-            document.getElementById('slipPoNumber').innerText = poNo || 'PO-2026-0893';
-            document.getElementById('slipVendorName').innerText = vendor || 'Vendor Partner';
-            document.getElementById('slipReceivedDate').innerText = date || '02 Sep 2026';
-            document.getElementById('slipWarehouse').innerText = warehouse || 'WH-Main Bay A';
-            document.getElementById('slipInspector').innerText = inspector || 'Rajesh K.';
-            document.getElementById('slipSignatureInspector').innerText = (inspector || 'Rajesh K.') + ' (Lead QA Inspector)';
-            document.getElementById('slipStatus').innerText = status || 'Inspected & Accepted';
-            document.getElementById('slipPoQty').innerText = (units || '50') + ' Units';
-            document.getElementById('slipReceivedQty').innerText = (units || '50') + ' Units';
-            document.getElementById('slipAcceptedQty').innerText = (units || '50') + ' Units';
-            document.getElementById('slipChallan').innerText = 'DC-2026-' + Math.floor(10000 + Math.random() * 90000);
+            currentActiveGRN = grnNo || 'GRN-2026-0411';
+            currentSlipData = null;
 
-            var modal = new bootstrap.Modal(document.getElementById('grnSlipModal'));
-            modal.show();
+            // 1. Instantaneous baseline render (0ms response time)
+            if (document.getElementById('slipGrnNumber')) document.getElementById('slipGrnNumber').innerText = currentActiveGRN;
+            if (document.getElementById('slipBarcodeText')) document.getElementById('slipBarcodeText').innerText = currentActiveGRN;
+            if (document.getElementById('slipPoNumber')) document.getElementById('slipPoNumber').innerText = poNo || 'PO-2026-0893';
+            if (document.getElementById('slipVendorName')) document.getElementById('slipVendorName').innerText = vendor || 'Vendor Partner';
+            if (document.getElementById('slipReceivedDate')) document.getElementById('slipReceivedDate').innerText = date || '02 Sep 2026';
+            if (document.getElementById('slipWarehouse')) document.getElementById('slipWarehouse').innerText = warehouse || 'WH-Main Bay A';
+            if (document.getElementById('slipInspector')) document.getElementById('slipInspector').innerText = inspector || 'Rajesh K.';
+            if (document.getElementById('slipSignatureInspector')) document.getElementById('slipSignatureInspector').innerText = (inspector || 'Rajesh K.') + ' (Lead Inspector)';
+
+            var parsedUnits = parseInt(units) || 50;
+            if (document.getElementById('footPoQty')) document.getElementById('footPoQty').innerText = parsedUnits + ' Units';
+            if (document.getElementById('footReceivedQty')) document.getElementById('footReceivedQty').innerText = parsedUnits + ' Units';
+
+            var isQuarantine = (status || '').toLowerCase().includes('quarantine');
+            updateModalStatusBadge(status || 'Inspected & Accepted');
+
+            // Set initial items placeholder while AJAX loads authentic order items
+            var tbody = document.getElementById('slipItemsTableBody');
+            if (tbody) {
+                var acceptedInit = isQuarantine ? 0 : parsedUnits;
+                var quarInit = isQuarantine ? parsedUnits : 0;
+                var verdictInit = isQuarantine ? 'QUARANTINE HOLD' : 'PASSED QC';
+                var verdictBadgeClass = isQuarantine ? 'bg-warning text-dark' : 'bg-success text-white';
+
+                tbody.innerHTML = `
+                    <tr>
+                        <td class="text-center text-muted fw-bold">1</td>
+                        <td class="text-start">
+                            <span class="fw-bold text-dark d-block" id="slipItemDesc">${vendor ? vendor + ' Procurement Consignment Items' : 'Procurement Batch Intake Items'}</span>
+                            <span class="text-muted extra-small">Technical specifications matching Purchase Order ${poNo || ''}</span>
+                        </td>
+                        <td class="text-center font-monospace">8471</td>
+                        <td class="text-center fw-semibold">${parsedUnits} Units</td>
+                        <td class="text-center fw-bold text-primary">${parsedUnits} Units</td>
+                        <td class="text-center fw-bold text-success">${acceptedInit} Units</td>
+                        <td class="text-center fw-bold ${quarInit > 0 ? 'text-warning' : 'text-muted'}">${quarInit} Units</td>
+                        <td class="text-center">
+                            <span class="badge ${verdictBadgeClass} fw-bold px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">${verdictInit}</span>
+                        </td>
+                        <td class="text-start extra-small text-muted">${isQuarantine ? 'Laboratory calibration testing in progress' : 'Inspected and verified against PO'}</td>
+                    </tr>
+                `;
+            }
+
+            // Immediately launch modal with zero delay
+            showGRNSlipModalDirect(document.getElementById('grnSlipModal'));
+
+            // 2. Asynchronously hydrate complete order-specific line items and logistics telemetry from server
+            $.ajax({
+                url: '@Url.Action("GetGRNDetails", "Purchase")',
+                type: 'GET',
+                data: { grnNumber: currentActiveGRN },
+                success: function (res) {
+                    if (res && res.success) {
+                        hydrateGRNSlipDetails(res);
+                    }
+                },
+                error: function (err) {
+                    console.warn('GetGRNDetails background hydration warning:', err);
+                }
+            });
+        }
+
+        function updateModalStatusBadge(status) {
+            var badge = document.getElementById('slipStatusBadge');
+            if (!badge) return;
+
+            var st = (status || '').toLowerCase();
+            if (st.includes('quarantine')) {
+                badge.className = 'badge bg-warning-subtle text-warning-emphasis extra-small fw-bold border border-warning';
+                badge.innerHTML = '<i class="fa fa-triangle-exclamation me-1"></i> Quality Quarantine';
+            } else if (st.includes('matched')) {
+                badge.className = 'badge bg-success-subtle text-success extra-small fw-bold border border-success-subtle';
+                badge.innerHTML = '<i class="fa fa-handshake-angle me-1"></i> 3-Way Matched';
+            } else if (st.includes('stocked') || st.includes('completed')) {
+                badge.className = 'badge bg-purple-subtle text-purple extra-small fw-bold border' ;
+                badge.style.cssText = 'background:#f5f3ff; color:#7c3aed; border-color:#ddd6fe;';
+                badge.innerHTML = '<i class="fa fa-boxes-stacked me-1"></i> Completed & Stocked';
+            } else {
+                badge.className = 'badge bg-success-subtle text-success extra-small fw-bold border border-success-subtle';
+                badge.innerHTML = '<i class="fa fa-circle-check me-1"></i> ' + (status || 'Inspected & Accepted');
+            }
+        }
+
+        function hydrateGRNSlipDetails(data) {
+            currentSlipData = data;
+
+            // Statutory & Vendor
+            if (data.vendorGstin && document.getElementById('slipVendorGstin')) {
+                document.getElementById('slipVendorGstin').innerText = 'GSTIN: ' + data.vendorGstin;
+            }
+            if (data.vendorAddress && document.getElementById('slipVendorAddress')) {
+                document.getElementById('slipVendorAddress').innerText = data.vendorAddress;
+                document.getElementById('slipVendorAddress').title = data.vendorAddress;
+            }
+            if (data.storageBin && document.getElementById('slipStorageBin')) {
+                document.getElementById('slipStorageBin').innerText = 'Storage Bin: ' + data.storageBin;
+            }
+
+            // Transport & Challan
+            if (data.deliveryChallanNo && document.getElementById('slipChallan')) {
+                document.getElementById('slipChallan').innerText = data.deliveryChallanNo;
+            }
+            if (data.challanDate && document.getElementById('slipChallanDate')) {
+                document.getElementById('slipChallanDate').innerText = '(' + data.challanDate + ')';
+            }
+            if (data.carrier && document.getElementById('slipCarrier')) {
+                document.getElementById('slipCarrier').innerText = data.carrier;
+            }
+            if (data.vehicleNumber && document.getElementById('slipVehicle')) {
+                document.getElementById('slipVehicle').innerText = data.vehicleNumber;
+            }
+            if (data.receivingGate && document.getElementById('slipGate')) {
+                document.getElementById('slipGate').innerText = data.receivingGate;
+            }
+
+            // QA Remarks
+            if (data.inspectorRemarks && document.getElementById('slipInspectorRemarks')) {
+                document.getElementById('slipInspectorRemarks').innerText = data.inspectorRemarks;
+            }
+
+            // Quality status
+            updateModalStatusBadge(data.status);
+
+            // 3-Way Match Banner & Interactive Quarantine Actions
+            var bannerContainer = document.getElementById('slipMatchBannerContainer');
+            var footerAction = document.getElementById('slipFooterQuarantineAction');
+            var isQuarantine = (data.status || '').toLowerCase().includes('quarantine');
+
+            if (isQuarantine) {
+                if (bannerContainer) {
+                    bannerContainer.innerHTML = `
+                        <div class="p-3 bg-warning-subtle rounded-3 border border-warning-subtle d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <i class="fa fa-triangle-exclamation fs-3 text-warning"></i>
+                                <div>
+                                    <span class="fw-bold text-dark d-block small">Quality Quarantine Protocol Active</span>
+                                    <span class="text-muted extra-small">Automated 3-Way Match & AP payment disbursement held pending final metallurgical / tolerance verification.</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold" id="btnQuarantineReleaseBanner" onclick="releaseFromQuarantine()">
+                                    <i class="fa fa-circle-check me-1.5"></i> Pass Quality & Release to Stock
+                                </button>
+                                <span class="badge bg-warning text-dark px-2.5 py-1 fw-bold" style="font-size: 0.7rem;">QC HOLD</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (footerAction) {
+                    footerAction.innerHTML = `
+                        <button type="button" class="btn btn-success rounded-pill px-3 shadow-sm fw-bold" id="btnQuarantineReleaseFooter" onclick="releaseFromQuarantine()">
+                            <i class="fa fa-circle-check me-1.5"></i> Pass Quality & Release to Stock
+                        </button>
+                    `;
+                }
+            } else {
+                if (bannerContainer) {
+                    bannerContainer.innerHTML = `
+                        <div class="p-3 bg-success-subtle rounded-3 border border-success-subtle d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <i class="fa fa-shield-check fs-4 text-success"></i>
+                                <div>
+                                    <span class="fw-bold text-success d-block small">${data.threeWayMatchStatus || '3-Way Match Protocol Passed'}</span>
+                                    <span class="text-muted extra-small">Purchase Order, Physical Goods Receipt, and Vendor Commercial Invoice matched with 0.00% variance.</span>
+                                </div>
+                            </div>
+                            <span class="badge bg-success text-white px-2.5 py-1 fw-bold" style="font-size: 0.7rem;">AUDIT PASSED</span>
+                        </div>
+                    `;
+                }
+
+                if (footerAction) {
+                    footerAction.innerHTML = '';
+                }
+            }
+
+            // Render authentic order items
+            if (data.items && data.items.length > 0) {
+                var tbody = document.getElementById('slipItemsTableBody');
+                var totalPo = 0;
+                var totalRec = 0;
+                var totalAcc = 0;
+                var totalQuar = 0;
+
+                var html = '';
+                data.items.forEach(function (item, idx) {
+                    totalPo += item.poQty || 0;
+                    totalRec += item.receivedQty || 0;
+                    totalAcc += item.acceptedQty || 0;
+                    totalQuar += item.quarantineQty || 0;
+
+                    var verdictClass = 'bg-success text-white';
+                    var verd = (item.verdict || '').toLowerCase();
+                    if (verd.includes('quarantine') || verd.includes('hold')) {
+                        verdictClass = 'bg-warning text-dark';
+                    } else if (verd.includes('stock')) {
+                        verdictClass = 'bg-primary text-white';
+                    } else if (verd.includes('reject')) {
+                        verdictClass = 'bg-danger text-white';
+                    }
+
+                    html += `
+                        <tr>
+                            <td class="text-center text-muted fw-bold">${idx + 1}</td>
+                            <td class="text-start">
+                                <span class="fw-bold text-dark d-block">${item.item}</span>
+                                <span class="text-muted extra-small">${item.specification}</span>
+                            </td>
+                            <td class="text-center font-monospace">${item.hsn || '-'}</td>
+                            <td class="text-center fw-semibold">${item.poQty} ${item.unit || ''}</td>
+                            <td class="text-center fw-bold text-primary">${item.receivedQty} ${item.unit || ''}</td>
+                            <td class="text-center fw-bold text-success">${item.acceptedQty} ${item.unit || ''}</td>
+                            <td class="text-center fw-bold ${item.quarantineQty > 0 ? 'text-warning' : 'text-muted'}">${item.quarantineQty} ${item.unit || ''}</td>
+                            <td class="text-center">
+                                <span class="badge ${verdictClass} fw-bold px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">${item.verdict}</span>
+                            </td>
+                            <td class="text-start extra-small text-muted">${item.remarks || '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                if (tbody) tbody.innerHTML = html;
+
+                // Update footer totals
+                if (document.getElementById('footPoQty')) document.getElementById('footPoQty').innerText = totalPo + ' Units';
+                if (document.getElementById('footReceivedQty')) document.getElementById('footReceivedQty').innerText = totalRec + ' Units';
+                if (document.getElementById('footAcceptedQty')) document.getElementById('footAcceptedQty').innerText = totalAcc + ' Units';
+                if (document.getElementById('footQuarantineQty')) document.getElementById('footQuarantineQty').innerText = totalQuar + ' Units';
+            }
+        }
+
+        function releaseFromQuarantine() {
+            if (!currentActiveGRN) return;
+
+            var btnBanner = document.getElementById('btnQuarantineReleaseBanner');
+            var btnFooter = document.getElementById('btnQuarantineReleaseFooter');
+            var loadingHtml = '<i class="fa fa-spinner fa-spin me-1.5"></i> Releasing to Stock...';
+
+            if (btnBanner) { btnBanner.disabled = true; btnBanner.innerHTML = loadingHtml; }
+            if (btnFooter) { btnFooter.disabled = true; btnFooter.innerHTML = loadingHtml; }
+
+            $.ajax({
+                url: '@Url.Action("UpdateGRNStatus", "Purchase")',
+                type: 'POST',
+                data: {
+                    grnNumber: currentActiveGRN,
+                    status: 'Inspected & Accepted',
+                    remarks: 'Quarantine inspection completed. Secondary metallurgical calibration verified within allowable 0.05% tolerance. Goods cleared and released to warehouse bin.'
+                },
+                success: function (res) {
+                    if (res && res.success) {
+                        showGRNToast(res.message, true);
+
+                        // 1. Update modal UI to accepted state
+                        updateModalStatusBadge('Inspected & Accepted');
+
+                        var bannerContainer = document.getElementById('slipMatchBannerContainer');
+                        if (bannerContainer) {
+                            bannerContainer.innerHTML = `
+                                <div class="p-3 bg-success-subtle rounded-3 border border-success-subtle d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                    <div class="d-flex align-items-center gap-2.5">
+                                        <i class="fa fa-shield-check fs-4 text-success"></i>
+                                        <div>
+                                            <span class="fw-bold text-success d-block small">3-Way Match Protocol Passed (Released from Quarantine)</span>
+                                            <span class="text-muted extra-small">Consignment released by Quality Auditor. 0.00% variance verified. Automated AP Voucher cleared for disbursement.</span>
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-success text-white px-2.5 py-1 fw-bold" style="font-size: 0.7rem;">AUDIT PASSED</span>
+                                </div>
+                            `;
+                        }
+
+                        var footerAction = document.getElementById('slipFooterQuarantineAction');
+                        if (footerAction) footerAction.innerHTML = '';
+
+                        if (document.getElementById('slipInspectorRemarks')) {
+                            document.getElementById('slipInspectorRemarks').innerText = 'Quarantine inspection completed. Secondary metallurgical calibration verified within allowable 0.05% tolerance. Goods cleared and released to warehouse bin.';
+                        }
+
+                        // Update table rows in modal items to accepted
+                        var rows = document.querySelectorAll('#slipItemsTableBody tr');
+                        rows.forEach(function (r) {
+                            var recCell = r.children[4];
+                            var accCell = r.children[5];
+                            var quarCell = r.children[6];
+                            var verdBadge = r.children[7].querySelector('.badge');
+                            var remCell = r.children[8];
+
+                            if (recCell && accCell && quarCell) {
+                                accCell.innerText = recCell.innerText;
+                                quarCell.innerText = '0 Units';
+                                quarCell.className = 'text-center fw-bold text-muted';
+                            }
+                            if (verdBadge) {
+                                verdBadge.className = 'badge bg-success text-white fw-bold px-2 py-0.5 rounded-pill';
+                                verdBadge.innerText = 'PASSED QC';
+                            }
+                            if (remCell) {
+                                remCell.innerText = 'Quality cleared following secondary calibration sign-off.';
+                            }
+                        });
+
+                        var footAcc = document.getElementById('footAcceptedQty');
+                        var footRec = document.getElementById('footReceivedQty');
+                        var footQuar = document.getElementById('footQuarantineQty');
+                        if (footAcc && footRec) footAcc.innerText = footRec.innerText;
+                        if (footQuar) footQuar.innerText = '0 Units';
+
+                        // 2. Update Ledger table row live
+                        var statusCell = document.getElementById('status-cell-' + currentActiveGRN);
+                        if (statusCell) {
+                            statusCell.innerHTML = `
+                                <span class="grn-status grn-status-default">
+                                    <i class="fa fa-circle-check"></i>
+                                    Inspected & Accepted
+                                </span>
+                            `;
+                        }
+
+                        // Update data attributes on row
+                        var rowEl = document.getElementById('row-' + currentActiveGRN);
+                        if (rowEl) {
+                            rowEl.querySelectorAll('.grn-slip-btn, .grn-slip-link').forEach(function (el) {
+                                el.setAttribute('data-status', 'Inspected & Accepted');
+                            });
+                        }
+
+                        // 3. Update KPI Card counts
+                        var kpiQuar = document.getElementById('kpiQuarantineCount');
+                        if (kpiQuar && res.quarantineCount !== undefined) {
+                            kpiQuar.innerText = res.quarantineCount;
+                        }
+                    } else {
+                        showGRNToast(res.message || 'Failed to update quarantine status.', false);
+                        if (btnBanner) { btnBanner.disabled = false; btnBanner.innerHTML = '<i class="fa fa-circle-check me-1.5"></i> Pass Quality & Release to Stock'; }
+                        if (btnFooter) { btnFooter.disabled = false; btnFooter.innerHTML = '<i class="fa fa-circle-check me-1.5"></i> Pass Quality & Release to Stock'; }
+                    }
+                },
+                error: function () {
+                    showGRNToast('Communication error during quarantine release.', false);
+                    if (btnBanner) { btnBanner.disabled = false; btnBanner.innerHTML = '<i class="fa fa-circle-check me-1.5"></i> Pass Quality & Release to Stock'; }
+                    if (btnFooter) { btnFooter.disabled = false; btnFooter.innerHTML = '<i class="fa fa-circle-check me-1.5"></i> Pass Quality & Release to Stock'; }
+                }
+            });
         }
 
         function printGRNSlip() {
-            var printContents = document.getElementById('printableGRNSlipArea').innerHTML;
-            var originalContents = document.body.innerHTML;
-            var win = window.open('', '', 'height=750,width=900');
-            win.document.write('<html><head><title>Goods Receipt Note - ' + document.getElementById('slipGrnNumber').innerText + '</title>');
+            var printContents = document.getElementById('printableGRNSlipArea');
+            if (!printContents) return;
+
+            var grnNo = document.getElementById('slipGrnNumber') ? document.getElementById('slipGrnNumber').innerText : 'GRN-Slip';
+            var win = window.open('', '', 'height=850,width=1050');
+            win.document.write('<!DOCTYPE html><html><head><title>Official Goods Receipt Note - ' + grnNo + '</title>');
             win.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">');
             win.document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
-            win.document.write('<style>body{padding:20px;font-family:sans-serif;} .badge{border:1px solid #ccc;}</style>');
-            win.document.write('</head><body>');
-            win.document.write(printContents);
-            win.document.write('</body></html>');
+            win.document.write(`
+                <style>
+                    body {
+                        padding: 30px;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                        color: #1e293b;
+                        background: #fff;
+                    }
+                    .badge { border: 1px solid #cbd5e1; }
+                    .table { border: 1px solid #cbd5e1; }
+                    .table th, .table td { border-color: #e2e8f0; }
+                    @@media print {
+                        body { padding: 0; }
+                        button { display: none !important; }
+                        @@page { margin: 1.5cm; }
+                    }
+                <\/style>
+            `);
+            win.document.write('<\/head><body>');
+            win.document.write(printContents.innerHTML);
+            win.document.write('<\/body><\/html>');
             win.document.close();
             win.focus();
-            setTimeout(function () { win.print(); win.close(); }, 500);
+            setTimeout(function () {
+                win.print();
+                win.close();
+            }, 600);
         }
 
         function onScanPOSelected() {
@@ -1834,7 +2324,7 @@
         $('#inwardScanForm').on('submit', function (e) {
             e.preventDefault();
             var btn = $('#btnSubmitScan');
-            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Registering Intake...');
+            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1.5"></i> Registering Intake...');
 
             var payload = {
                 PONumber: $('#scanPoSelect').val(),
@@ -1859,27 +2349,62 @@
                         var newGrn = res.grnNumber || 'GRN-2026-NEW';
                         var today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
+                        var isQuar = (payload.Status || '').includes('Quarantine');
+                        var isMatch = (payload.Status || '').includes('Matched');
+                        var statusBadgeHtml = isQuar
+                            ? '<span class="grn-status grn-status-quarantine"><i class="fa fa-triangle-exclamation"></i> Quarantine</span>'
+                            : (isMatch 
+                                ? '<span class="grn-status grn-status-matched"><i class="fa fa-handshake-angle"></i> 3-Way Matched</span>'
+                                : `<span class="grn-status grn-status-default"><i class="fa fa-circle-check"></i> ${payload.Status}</span>`);
+
                         var newRow = `
-                            <tr style="background: rgba(16, 185, 129, 0.08); transition: all 0.4s ease;">
-                                <td class="fw-bold text-dark">${newGrn}</td>
-                                <td class="fw-semibold text-primary">${payload.PONumber}</td>
-                                <td><span class="fw-semibold text-dark">${payload.VendorName}</span></td>
-                                <td class="text-muted small">${today}</td>
-                                <td><span class="badge bg-light text-dark border"><i class="fa fa-warehouse me-1"></i>${payload.Warehouse}</span></td>
-                                <td><span class="fw-bold text-dark">${payload.ItemsReceived} Units</span></td>
-                                <td class="small text-muted"><i class="fa fa-user-check me-1"></i>${payload.InspectedBy}</td>
-                                <td><span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill fw-bold"><i class="fa fa-circle-check me-1"></i>${payload.Status}</span></td>
+                            <tr class="grn-data-row" id="row-${newGrn}" data-grn="${newGrn}" style="background: rgba(16, 185, 129, 0.08); transition: all 0.4s ease;">
+                                <td>
+                                    <a href="/Purchase/Slip?grnNumber=${newGrn}"
+                                       class="grn-number grn-slip-link text-decoration-none d-inline-flex align-items-center gap-1.5"
+                                       title="View Official GRN Inward Slip for ${newGrn}">
+                                        <i class="fa fa-receipt text-primary" style="font-size: 0.72rem;"></i>
+                                        <span>${newGrn}</span>
+                                    </a>
+                                </td>
+                                <td><span class="grn-po">${payload.PONumber}</span></td>
+                                <td><span class="grn-vendor">${payload.VendorName}</span></td>
+                                <td><span class="grn-date"><i class="fa fa-calendar-day me-1"></i>${today}</span></td>
+                                <td><span class="grn-warehouse"><i class="fa fa-warehouse"></i>${payload.Warehouse}</span></td>
+                                <td><span class="grn-units">${payload.ItemsReceived}</span><span class="text-muted ms-1" style="font-size:0.63rem;">Units</span></td>
+                                <td><span class="grn-inspector"><i class="fa fa-user-check"></i>${payload.InspectedBy}</span></td>
+                                <td id="status-cell-${newGrn}">${statusBadgeHtml}</td>
                                 <td class="text-end">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary grn-slip-btn"
-                                            onclick="openGRNSlipModal('${newGrn}', '${payload.PONumber}', '${payload.VendorName}', '${today}', '${payload.Warehouse}', '${payload.ItemsReceived}', '${payload.InspectedBy}', '${payload.Status}');">
-                                        <i class="fa fa-receipt"></i> Slip
-                                    </button>
+                                    <a href="/Purchase/Slip?grnNumber=${newGrn}" class="btn btn-sm btn-outline-primary grn-slip-btn shadow-sm"
+                                       data-grn="${newGrn}" title="View official GRN inward slip">
+                                        <i class="fa fa-receipt me-1"></i> Slip
+                                    </a>
                                 </td>
                             </tr>
                         `;
 
                         $('#grnDataTable tbody').prepend(newRow);
                         $('#inwardScanForm')[0].reset();
+
+                        // Live KPI updates
+                        var totalKpi = document.getElementById('kpiTotalGRNs');
+                        if (totalKpi) totalKpi.innerText = parseInt(totalKpi.innerText || '0') + 1;
+
+                        var unitsKpi = document.getElementById('kpiUnitsReceived');
+                        if (unitsKpi) {
+                            var currentVal = parseInt((unitsKpi.innerText || '0').replace(/,/g, '')) || 0;
+                            unitsKpi.innerText = (currentVal + payload.ItemsReceived).toLocaleString('en-IN');
+                        }
+
+                        if (isQuar) {
+                            var quarKpi = document.getElementById('kpiQuarantineCount');
+                            if (quarKpi) quarKpi.innerText = parseInt(quarKpi.innerText || '0') + 1;
+                        } else if (isMatch) {
+                            var matchKpi = document.getElementById('kpiMatchedCount');
+                            if (matchKpi) matchKpi.innerText = parseInt(matchKpi.innerText || '0') + 1;
+                        }
+
+                        filterGRNTable();
                     } else {
                         showGRNToast('Failed to create Goods Receipt Note.', false);
                     }
@@ -1892,73 +2417,37 @@
         });
 
         function filterGRNTable() {
+            var input = document.getElementById("grnSearch");
+            var filter = input ? input.value.toUpperCase() : "";
+            var table = document.getElementById("grnDataTable");
+            if (!table) return;
 
-            var input =
-                document.getElementById("grnSearch");
-
-            var filter =
-                input.value.toUpperCase();
-
-            var table =
-                document.getElementById("grnDataTable");
-
-            var rows =
-                table.getElementsByTagName("tr");
-
+            var rows = table.getElementsByTagName("tr");
             var visibleCount = 0;
 
             for (var i = 1; i < rows.length; i++) {
-
                 var row = rows[i];
-
-                var text =
-                    row.textContent ||
-                    row.innerText;
-
+                var text = row.textContent || row.innerText;
                 if (text.toUpperCase().indexOf(filter) > -1) {
-
                     row.style.display = "";
-
                     visibleCount++;
-
                 } else {
-
                     row.style.display = "none";
-
                 }
             }
 
-            var countElement =
-                document.getElementById("grnVisibleCount");
+            var countElement = document.getElementById("grnVisibleCount");
+            if (countElement) countElement.textContent = visibleCount;
 
-            if (countElement) {
-
-                countElement.textContent =
-                    visibleCount;
-
-            }
-
-            var emptyState =
-                document.getElementById("grnEmptyState");
-
-            if (emptyState) {
-
-                emptyState.style.display =
-                    visibleCount === 0
-                        ? "block"
-                        : "none";
-
-            }
-
+            var emptyState = document.getElementById("grnEmptyState");
+            if (emptyState) emptyState.style.display = visibleCount === 0 ? "block" : "none";
         }
 
+        // Note: .grn-slip-btn and .grn-slip-link are anchor tags linking directly to /Purchase/Slip
 
         document.addEventListener("DOMContentLoaded", function () {
-
             filterGRNTable();
-
         });
-
     </script>
 
 }

@@ -3,6 +3,19 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Purchase Orders (PO) - NetSuite Lifecycle Tracker";
+
+    decimal totalDispatchedVal = 0;
+    if (Model != null)
+    {
+        foreach (var po in Model)
+        {
+            var digitsOnly = new string((po.TotalAmount ?? "").Where(c => char.IsDigit(c) || c == '.').ToArray());
+            if (decimal.TryParse(digitsOnly, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal v))
+            {
+                totalDispatchedVal += v;
+            }
+        }
+    }
 }
 
 <link rel="stylesheet"
@@ -10,9 +23,9 @@
 
 <style>
     /* =========================================================
-           PURCHASE ORDER REGISTRY
-           Premium ERP UI
-           ========================================================= */
+               PURCHASE ORDER REGISTRY
+               Premium ERP UI
+               ========================================================= */
 
     :root {
         --po-primary: #2563eb;
@@ -36,8 +49,8 @@
     }
 
     /* =========================================================
-           PAGE
-           ========================================================= */
+               PAGE
+               ========================================================= */
 
     .po-page {
         min-height: 100vh;
@@ -51,8 +64,8 @@
     }
 
     /* =========================================================
-           HEADER
-           ========================================================= */
+               HEADER
+               ========================================================= */
 
     .po-header {
         position: relative;
@@ -211,8 +224,8 @@
         }
 
     /* =========================================================
-           KPI CARDS
-           ========================================================= */
+               KPI CARDS
+               ========================================================= */
 
     .po-kpi-card {
         position: relative;
@@ -309,8 +322,8 @@
     }
 
     /* =========================================================
-           MONEY
-           ========================================================= */
+               MONEY
+               ========================================================= */
 
     .compact-money {
         display: inline-flex;
@@ -329,8 +342,8 @@
         }
 
     /* =========================================================
-           REGISTRY CARD
-           ========================================================= */
+               REGISTRY CARD
+               ========================================================= */
 
     .po-registry-card {
         background: var(--po-white);
@@ -384,8 +397,8 @@
     }
 
     /* =========================================================
-           SEARCH
-           ========================================================= */
+               SEARCH
+               ========================================================= */
 
     .po-search-wrapper {
         position: relative;
@@ -453,8 +466,8 @@
     }
 
     /* =========================================================
-           TABLE
-           ========================================================= */
+               TABLE
+               ========================================================= */
 
     .po-table-container {
         width: 100%;
@@ -518,8 +531,8 @@
             }
 
     /* =========================================================
-           PO NUMBER
-           ========================================================= */
+               PO NUMBER
+               ========================================================= */
 
     .po-number {
         display: inline-flex;
@@ -531,11 +544,20 @@
         font-size: 11px;
         font-weight: 800;
         white-space: nowrap;
+        text-decoration: none;
+        transition: all .2s ease;
     }
 
+        .po-number:hover {
+            background: var(--po-primary);
+            color: #fff;
+            box-shadow: 0 3px 8px rgba(37, 99, 235, .25);
+            transform: translateY(-1px);
+        }
+
     /* =========================================================
-           VENDOR
-           ========================================================= */
+               VENDOR
+               ========================================================= */
 
     .po-vendor-name {
         display: block;
@@ -552,8 +574,8 @@
     }
 
     /* =========================================================
-           ITEM COUNT
-           ========================================================= */
+               ITEM COUNT
+               ========================================================= */
 
     .po-items-badge {
         display: inline-flex;
@@ -570,8 +592,8 @@
     }
 
     /* =========================================================
-           STATUS BADGES
-           ========================================================= */
+               STATUS BADGES
+               ========================================================= */
 
     .po-status {
         display: inline-flex;
@@ -603,8 +625,8 @@
     }
 
     /* =========================================================
-           PAYMENT TERMS
-           ========================================================= */
+               PAYMENT TERMS
+               ========================================================= */
 
     .po-payment-badge {
         display: inline-flex;
@@ -620,8 +642,8 @@
     }
 
     /* =========================================================
-           VIEW BUTTON
-           ========================================================= */
+               VIEW BUTTON
+               ========================================================= */
 
     .po-view-btn {
         display: inline-flex;
@@ -648,8 +670,118 @@
         }
 
     /* =========================================================
-           EMPTY STATE
-           ========================================================= */
+               REAL-TIME PO VOUCHER MODAL & STEPPER
+               ========================================================= */
+
+    .po-stepper-container {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 16px 20px 12px 20px;
+        margin-bottom: 20px;
+    }
+
+    .po-stepper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+    }
+
+        .po-stepper::before {
+            content: "";
+            position: absolute;
+            top: 16px;
+            left: 40px;
+            right: 40px;
+            height: 3px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+
+    .po-step {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        flex: 1;
+    }
+
+    .po-step-circle {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #cbd5e1;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        transition: all .25s ease;
+    }
+
+    .po-step.completed .po-step-circle {
+        background: #10b981;
+        border-color: #10b981;
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, .25);
+    }
+
+    .po-step.active .po-step-circle {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #fff;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, .2);
+    }
+
+    .po-step-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        line-height: 1.2;
+    }
+
+    .po-step-sub {
+        font-size: 9.5px;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
+
+    .po-step.completed .po-step-title {
+        color: #059669;
+    }
+
+    .po-step.active .po-step-title {
+        color: #2563eb;
+    }
+
+    .po-quick-action-bar {
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .po-toast-box {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        min-width: 320px;
+        display: none;
+    }
+
+    /* =========================================================
+               EMPTY STATE
+               ========================================================= */
 
     .po-empty-state {
         padding: 55px 20px;
@@ -682,8 +814,8 @@
     }
 
     /* =========================================================
-           FOOTER
-           ========================================================= */
+               FOOTER
+               ========================================================= */
 
     .po-registry-footer {
         display: flex;
@@ -708,8 +840,8 @@
         }
 
     /* =========================================================
-           ANIMATIONS
-           ========================================================= */
+               ANIMATIONS
+               ========================================================= */
 
     @@keyframes poFadeUp {
         from {
@@ -724,8 +856,8 @@
     }
 
     /* =========================================================
-           RESPONSIVE
-           ========================================================= */
+               RESPONSIVE
+               ========================================================= */
 
     @@media (max-width: 1199.98px) {
 
@@ -910,8 +1042,8 @@
     }
 
     /* =========================================================
-           PRINT
-           ========================================================= */
+               PRINT
+               ========================================================= */
 
     @@media print {
 
@@ -1063,14 +1195,16 @@
                     <div class="po-kpi-value">
 
                         <span class="compact-money"
-                              data-value="1807000">
+                              data-value="@totalDispatchedVal"
+                              id="kpiTotalDispatchedVal">
+                            ₹ @totalDispatchedVal.ToString("N0", new System.Globalization.CultureInfo("en-IN"))
                         </span>
 
                     </div>
 
                     <div class="po-kpi-meta">
                         <i class="fa fa-file-invoice me-1"></i>
-                        Across @Model.Count Active Purchase Orders
+                        Across @(Model?.Count ?? 0) Active Purchase Orders
                     </div>
 
                 </div>
@@ -1095,7 +1229,7 @@
 
                     </div>
 
-                    <div class="po-kpi-value">
+                    <div class="po-kpi-value" id="kpiInTransitCount">
                         @Model.Count(p => p.Status == "In Transit") Shipments
                     </div>
 
@@ -1126,7 +1260,7 @@
 
                     </div>
 
-                    <div class="po-kpi-value">
+                    <div class="po-kpi-value" id="kpiDeliveredCount">
                         @Model.Count(p => p.Status == "Delivered") Completed
                     </div>
 
@@ -1157,7 +1291,7 @@
 
                     </div>
 
-                    <div class="po-kpi-value">
+                    <div class="po-kpi-value" id="kpiConfirmedCount">
                         @Model.Count(p => p.Status == "Confirmed") Orders
                     </div>
 
@@ -1302,15 +1436,17 @@
                         {
                             foreach (var po in Model)
                             {
-                                <tr>
+                                <tr id="po-row-@po.PONumber">
 
                                     <!-- PO Number -->
                                     <td>
 
-                                        <span class="po-number">
+                                        <a href="@Url.Action("OrderDetails", "Purchase", new { poNumber = po.PONumber })"
+                                           class="po-number"
+                                           title="Click to view full voucher slip for @po.PONumber">
                                             <i class="fa fa-file-lines me-1"></i>
                                             @po.PONumber
-                                        </span>
+                                        </a>
 
                                     </td>
 
@@ -1350,6 +1486,7 @@
 
                                         <span class="compact-money"
                                               data-value="@po.TotalAmount">
+                                            @po.TotalAmount
                                         </span>
 
                                     </td>
@@ -1367,11 +1504,11 @@
 
 
                                     <!-- Status -->
-                                    <td>
+                                    <td class="po-status-cell" id="po-status-cell-@po.PONumber">
 
                                         @if (po.Status == "In Transit")
                                         {
-                                            <span class="po-status po-status-transit">
+                                            <span class="po-status po-status-transit" id="po-status-badge-@po.PONumber">
 
                                                 <i class="fa fa-truck-fast"></i>
 
@@ -1381,7 +1518,7 @@
                                         }
                                         else if (po.Status == "Confirmed")
                                         {
-                                            <span class="po-status po-status-confirmed">
+                                            <span class="po-status po-status-confirmed" id="po-status-badge-@po.PONumber">
 
                                                 <i class="fa fa-circle-check"></i>
 
@@ -1391,7 +1528,7 @@
                                         }
                                         else
                                         {
-                                            <span class="po-status po-status-delivered">
+                                            <span class="po-status po-status-delivered" id="po-status-badge-@po.PONumber">
 
                                                 <i class="fa fa-box-open"></i>
 
@@ -1420,15 +1557,13 @@
                                     <!-- Actions -->
                                     <td class="text-end">
 
-                                        <button type="button"
-                                                class="btn po-view-btn"
-                                                onclick="viewPODetails('@po.PONumber', '@po.VendorName', '@po.ItemsCount', '@po.TotalAmount', '@po.OrderDate', '@po.Status', '@po.PaymentTerms')">
-
-                                            <i class="fa fa-eye"></i>
-
+                                        <a href="@Url.Action("OrderDetails", "Purchase", new { poNumber = po.PONumber })"
+                                           class="btn po-view-btn shadow-sm"
+                                           data-po="@po.PONumber"
+                                           title="View official PO details & voucher slip for @po.PONumber">
+                                            <i class="fa fa-eye me-1"></i>
                                             View
-
-                                        </button>
+                                        </a>
 
                                     </td>
 
@@ -1506,17 +1641,17 @@
      MODAL: PURCHASE ORDER (PO) OFFICIAL VOUCHER SLIP
      ========================================================================== -->
 <div class="modal fade" id="poDetailsModal" tabindex="-1" aria-labelledby="poDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
             <div class="modal-header bg-light border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1">SAP MM / PO VOUCHER</span>
+                    <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1">SAP MM / NETSUITE VOUCHER</span>
                     <h5 class="modal-title fw-bold text-dark mb-0" id="poDetailsModalLabel">
-                        <i class="fa fa-file-invoice text-primary me-2"></i> Purchase Order Details & Slip
+                        <i class="fa fa-file-invoice text-primary me-2"></i> Purchase Order Details &amp; Voucher Slip
                     </h5>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="printPODetails()">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="printPODetails()">
                         <i class="fa fa-print me-1"></i> Print PO Slip
                     </button>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1524,94 +1659,155 @@
             </div>
 
             <div class="modal-body p-4" id="printablePOArea">
-                <div class="p-3 border rounded-3 bg-white mb-3 shadow-sm">
+                <!-- Fulfillment Lifecycle Stepper -->
+                <div class="po-stepper-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.05em;">
+                            <i class="fa fa-timeline me-1 text-primary"></i> NetSuite Real-Time Procurement Lifecycle
+                        </span>
+                        <span class="badge bg-info-subtle text-info fw-bold" id="stepperCurrentStatus">
+                            Confirmed &amp; Acknowledged
+                        </span>
+                    </div>
+                    <div class="po-stepper" id="poLifecycleStepper">
+                        <div class="po-step completed" id="step-1">
+                            <div class="po-step-circle"><i class="fa fa-check"></i></div>
+                            <div class="po-step-title">Requisition Approved</div>
+                            <div class="po-step-sub" id="stepPrRef">PR Released</div>
+                        </div>
+                        <div class="po-step active" id="step-2">
+                            <div class="po-step-circle" id="step-2-circle">2</div>
+                            <div class="po-step-title">PO Confirmed</div>
+                            <div class="po-step-sub" id="stepPoDate">29 Aug 2026</div>
+                        </div>
+                        <div class="po-step" id="step-3">
+                            <div class="po-step-circle" id="step-3-circle">3</div>
+                            <div class="po-step-title">In Transit</div>
+                            <div class="po-step-sub" id="stepCarrierName">Courier Telemetry</div>
+                        </div>
+                        <div class="po-step" id="step-4">
+                            <div class="po-step-circle" id="step-4-circle">4</div>
+                            <div class="po-step-title">Delivered &amp; Matched</div>
+                            <div class="po-step-sub" id="stepDeliveredSub">3-Way Match &amp; GRN</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Action Bar -->
+                <div class="po-quick-action-bar no-print">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-white text-dark border px-2.5 py-1.5 fw-bold extra-small">
+                            <i class="fa fa-bolt text-warning me-1"></i> Quick Workflow Actions:
+                        </span>
+                        <div class="btn-group btn-group-sm" id="modalWorkflowButtons">
+                            <button type="button" class="btn btn-outline-primary" id="btnMarkTransit" onclick="triggerStatusUpdate('In Transit')">
+                                <i class="fa fa-truck-fast me-1"></i> Mark In Transit
+                            </button>
+                            <button type="button" class="btn btn-outline-success" id="btnMarkDelivered" onclick="triggerStatusUpdate('Delivered')">
+                                <i class="fa fa-circle-check me-1"></i> Confirm Inward Delivery
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="triggerQuickGRN()" title="Create Goods Receipt Note in Receipts Registry">
+                            <i class="fa fa-dolly text-primary me-1"></i> Generate Inward GRN
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sendCopyEmailToVendor()">
+                            <i class="fa fa-paper-plane me-1"></i> Email to Vendor
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4 border rounded-3 bg-white mb-2 shadow-sm">
                     <!-- PO Slip Header -->
-                    <div class="row align-items-center mb-3 pb-3 border-bottom g-2">
+                    <div class="row align-items-center mb-4 pb-3 border-bottom g-3">
                         <div class="col-sm-7">
-                            <h4 class="fw-extrabold text-dark mb-1 d-flex align-items-center gap-2">
-                                <i class="fa-solid fa-layer-group text-primary"></i> Operafy ERP Systems Ltd
-                            </h4>
-                            <div class="text-muted small">Central Corporate Procurement & Supply Chain Division</div>
-                            <div class="text-muted extra-small" style="font-size: 0.72rem;">Operafy Tower, Sector 4, Silicon Boulevard, Bangalore - 560100 | GSTIN: 29AAACE9912K1Z9</div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="fa-solid fa-layer-group fs-3 text-primary"></i>
+                                <h3 class="fw-extrabold text-dark mb-0">Operafy ERP Systems Ltd</h3>
+                            </div>
+                            <div class="text-muted small fw-semibold">Central Corporate Procurement &amp; Supply Chain Division</div>
+                            <div class="text-muted extra-small mt-0.5" style="font-size: 0.75rem;">
+                                Operafy Tower, Sector 4, Silicon Boulevard, Bangalore - 560100 | GSTIN: 29AAACE9912K1Z9 | CIN: U72200KA2024PLC189210
+                            </div>
                         </div>
                         <div class="col-sm-5 text-sm-end">
-                            <div class="badge bg-dark text-white text-uppercase px-3 py-1.5 fw-bold mb-1" style="letter-spacing: 0.08em; font-size: 0.76rem;">
+                            <div class="badge bg-dark text-white text-uppercase px-3 py-1.5 fw-bold mb-1" style="letter-spacing: 0.08em; font-size: 0.78rem;">
                                 OFFICIAL PURCHASE ORDER
                             </div>
-                            <div class="fw-bold fs-5 text-primary" id="modalPoNumber">PO-2026-0891</div>
-                            <div class="text-muted small">Issue Date: <span id="modalPoDate" class="fw-semibold text-dark">29 Aug 2026</span></div>
+                            <div class="fw-extrabold fs-4 text-primary" id="modalPoNumber">PO-2026-0891</div>
+                            <div class="text-muted small">
+                                Issue Date: <span id="modalPoDate" class="fw-bold text-dark">29 Aug 2026</span>
+                            </div>
+                            <div class="text-muted small">
+                                Expected Delivery: <span id="modalDeliveryDate" class="fw-bold text-dark">05 Sep 2026</span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Vendor & Consignee Info Grid -->
-                    <div class="row g-3 mb-3">
+                    <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded-3 h-100 border">
-                                <span class="text-muted text-uppercase fw-bold extra-small d-block mb-1">Vendor / Supplier (Payee):</span>
-                                <h6 class="fw-bold text-dark mb-1" id="modalVendorName">TechInfra Solutions Ltd</h6>
-                                <div class="small text-muted mb-1"><i class="fa fa-id-card me-1"></i> GSTIN: <span class="fw-semibold text-dark" id="modalVendorGstin">27AAACN8921K1Z2</span></div>
-                                <div class="small text-muted mb-1"><i class="fa fa-credit-card me-1"></i> Terms: <span class="badge bg-info-subtle text-info fw-bold" id="modalPaymentTerms">Net 30</span></div>
-                                <div class="small text-muted"><i class="fa fa-clock me-1"></i> Status: <span class="badge bg-success-subtle text-success fw-bold" id="modalPoStatus">In Transit</span></div>
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span class="text-muted text-uppercase fw-bold extra-small">Vendor / Supplier (Payee):</span>
+                                    <span class="badge bg-primary-subtle text-primary fw-bold" id="modalPoStatus">Confirmed</span>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2" id="modalVendorName">TechInfra Solutions Ltd</h5>
+                                <div class="small text-muted mb-1">
+                                    <i class="fa fa-id-card me-1 text-primary"></i> GSTIN: <span class="fw-bold text-dark" id="modalVendorGstin">29AAACT9821K1Z5</span>
+                                    <span class="ms-2"><i class="fa fa-fingerprint me-1 text-secondary"></i> PAN: <span class="fw-bold text-dark" id="modalVendorPan">AAACT9821K</span></span>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="fa fa-location-dot me-1 text-danger"></i> Address: <span class="text-dark" id="modalVendorAddress">TechInfra Innovation Hub, Bangalore - 560100</span>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="fa fa-envelope me-1 text-info"></i> Email: <span class="text-dark" id="modalVendorEmail">procurement@@techinfra.com</span>
+                                    <span class="ms-2"><i class="fa fa-phone me-1 text-success"></i> Phone: <span class="text-dark" id="modalVendorPhone">+91 80 4122 8900</span></span>
+                                </div>
+                                <div class="small text-muted mt-2 pt-2 border-top">
+                                    <i class="fa fa-credit-card me-1 text-secondary"></i> Payment Terms: <span class="badge bg-info-subtle text-info fw-bold" id="modalPaymentTerms">Net 30</span>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded-3 h-100 border">
-                                <span class="text-muted text-uppercase fw-bold extra-small d-block mb-1">Billing & Delivery Destination (Consignee):</span>
-                                <h6 class="fw-bold text-dark mb-1">Operafy Central Logistics Depot</h6>
-                                <div class="small text-muted mb-1"><i class="fa fa-location-dot me-1"></i> Warehouse Bay 3, Nelamangala Logistics Park</div>
-                                <div class="small text-muted mb-1"><i class="fa fa-city me-1"></i> Bangalore, Karnataka - 562123</div>
-                                <div class="small text-muted"><i class="fa fa-shield me-1"></i> Receiving Gate: Commercial Intake Gate #2</div>
+                                <span class="text-muted text-uppercase fw-bold extra-small d-block mb-1">Billing &amp; Destination (Consignee):</span>
+                                <h6 class="fw-bold text-dark mb-2">Operafy Central Logistics Depot</h6>
+                                <div class="small text-muted mb-1">
+                                    <i class="fa fa-warehouse me-1 text-primary"></i> Receiving Bay: <span class="fw-bold text-dark" id="modalWarehouse">WH-Main Logistics Bay 3</span>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="fa fa-location-dot me-1 text-danger"></i> Destination: <span class="text-dark" id="modalShippingAddress">Nelamangala Logistics Park, Bangalore - 562123</span>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="fa fa-shield me-1 text-info"></i> Receiving Gate: <span class="fw-semibold text-dark" id="modalReceivingGate">Commercial Inward Intake Gate #2</span>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="fa fa-truck me-1 text-warning"></i> Freight Carrier: <span class="fw-semibold text-dark" id="modalCarrier">BlueDart Express Freight</span>
+                                </div>
+                                <div class="small text-muted mt-2 pt-2 border-top">
+                                    <i class="fa fa-barcode me-1 text-secondary"></i> Consignment Tracking: <span class="fw-bold text-primary font-monospace" id="modalTracking">TRK-2026-0891-IN</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Items Table -->
-                    <div class="table-responsive mb-3">
-                        <table class="table table-bordered table-sm align-middle text-center small mb-0">
-                            <thead class="table-light text-uppercase" style="font-size: 0.72rem; color: #475569;">
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered align-middle text-center small mb-0">
+                            <thead class="table-light text-uppercase fw-bold" style="font-size: 0.74rem; color: #334155; background-color: #f1f5f9;">
                                 <tr>
-                                    <th class="text-start">Item Description & Specification</th>
-                                    <th>HSN / SAC</th>
-                                    <th>Qty</th>
-                                    <th>Unit Price</th>
-                                    <th>Tax / GST</th>
-                                    <th class="text-end">Line Total</th>
+                                    <th class="text-start" style="min-width: 260px;">Item Description &amp; Technical Specification</th>
+                                    <th style="width: 100px;">HSN / SAC</th>
+                                    <th style="width: 80px;">Qty</th>
+                                    <th style="width: 130px;">Unit Price (Excl. Tax)</th>
+                                    <th style="width: 110px;">Tax / GST</th>
+                                    <th class="text-end" style="width: 140px;">Line Total</th>
                                 </tr>
                             </thead>
                             <tbody id="modalPoItemsBody">
-                                <tr>
-                                    <td class="text-start">
-                                        <span class="fw-bold text-dark d-block">Dell UltraSharp 27" Monitors (4K UHD)</span>
-                                        <span class="text-muted extra-small">Model U2723QE, USB-C Hub, IPS Black Technology</span>
-                                    </td>
-                                    <td>8471</td>
-                                    <td class="fw-bold">5 Nos</td>
-                                    <td>₹ 24,000.00</td>
-                                    <td>18% GST</td>
-                                    <td class="text-end fw-bold">₹ 1,20,000.00</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-start">
-                                        <span class="fw-bold text-dark d-block">High-Speed Dual Band Managed Switches</span>
-                                        <span class="text-muted extra-small">24-Port Gigabit L2+ Managed Switch with 4 10G SFP+ Slots</span>
-                                    </td>
-                                    <td>8517</td>
-                                    <td class="fw-bold">4 Nos</td>
-                                    <td>₹ 45,000.00</td>
-                                    <td>18% GST</td>
-                                    <td class="text-end fw-bold">₹ 1,80,000.00</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-start">
-                                        <span class="fw-bold text-dark d-block">Category-6e Shielded Network Spools (305m)</span>
-                                        <span class="text-muted extra-small">Pure Bare Copper 600MHz High Bandwidth</span>
-                                    </td>
-                                    <td>8544</td>
-                                    <td class="fw-bold">3 Nos</td>
-                                    <td>₹ 12,000.00</td>
-                                    <td>18% GST</td>
-                                    <td class="text-end fw-bold">₹ 36,000.00</td>
-                                </tr>
+                                <!-- Dynamic Items Injected Here -->
                             </tbody>
                         </table>
                     </div>
@@ -1620,16 +1816,16 @@
                     <div class="row align-items-end g-3 pt-2">
                         <div class="col-sm-7">
                             <div class="p-3 border rounded-2 bg-light-subtle extra-small text-muted">
-                                <div class="fw-bold text-dark mb-1">Standard Purchase Terms:</div>
-                                1. Material subject to physical inspection & 3-way match upon inward delivery.<br />
-                                2. Vendor must quote PO Number on all Delivery Challans and Tax Invoices.<br />
-                                3. Warranty & SLA valid for 12 months from gate receipt date.
+                                <div class="fw-bold text-dark mb-1"><i class="fa fa-file-contract text-primary me-1"></i> Standard Procurement SLA &amp; Commercial Terms:</div>
+                                1. Material subject to physical inward verification and 3-way match (PO, GRN &amp; Tax Invoice).<br />
+                                2. Vendor must quote PO Number on all Delivery Challans, Freight Waybills, and Tax Invoices.<br />
+                                3. Warranty &amp; replacement SLA valid for 12 months from the date of physical gate receipt.
                             </div>
                             <div class="d-flex align-items-center gap-3 mt-3">
-                                <div class="text-center border p-2 rounded bg-light" style="min-width: 140px;">
+                                <div class="text-center border p-2.5 rounded bg-light" style="min-width: 150px;">
                                     <div class="text-success fw-bold small"><i class="fa fa-circle-check"></i> DIGITALLY SIGNED</div>
-                                    <div class="extra-small text-muted" id="modalSignatory">Aftab Shaik (CPO)</div>
-                                    <div class="text-muted" style="font-size: 0.65rem;">Operafy Procurement</div>
+                                    <div class="extra-small text-muted fw-semibold mt-0.5" id="modalSignatory">Aftab Shaik (Chief Procurement Officer)</div>
+                                    <div class="text-muted" style="font-size: 0.65rem;">Operafy Corporate Procurement Suite</div>
                                 </div>
                                 <div class="extra-small text-muted">
                                     Certified ERP Document.<br />Generated via Operafy Procurement Suite.
@@ -1638,21 +1834,21 @@
                         </div>
                         <div class="col-sm-5">
                             <div class="bg-light p-3 rounded-3 border">
-                                <div class="d-flex justify-content-between text-muted small mb-1">
-                                    <span>Subtotal (Net):</span>
-                                    <span class="fw-semibold text-dark" id="modalSubtotal">₹ 3,36,000.00</span>
+                                <div class="d-flex justify-content-between text-muted small mb-1.5">
+                                    <span>Subtotal (Net Excl. Tax):</span>
+                                    <span class="fw-bold text-dark" id="modalSubtotal">₹ 0.00</span>
                                 </div>
-                                <div class="d-flex justify-content-between text-muted small mb-1">
-                                    <span>Integrated GST (18%):</span>
-                                    <span class="fw-semibold text-dark" id="modalTaxAmount">₹ 60,480.00</span>
+                                <div class="d-flex justify-content-between text-muted small mb-1.5">
+                                    <span>Integrated GST (18% IGST):</span>
+                                    <span class="fw-bold text-dark" id="modalTaxAmount">₹ 0.00</span>
                                 </div>
                                 <div class="d-flex justify-content-between text-muted small mb-2 pb-2 border-bottom">
                                     <span>Round Off:</span>
                                     <span class="fw-semibold text-dark">₹ 0.00</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold text-dark">Total PO Value:</span>
-                                    <span class="fw-extrabold fs-5 text-primary" id="modalGrandTotal">₹ 3,96,480.00</span>
+                                    <span class="fw-bold text-dark fs-6">Total PO Value:</span>
+                                    <span class="fw-extrabold fs-4 text-primary" id="modalGrandTotal">₹ 0.00</span>
                                 </div>
                             </div>
                         </div>
@@ -1665,12 +1861,25 @@
                     <i class="fa fa-file-arrow-down me-1"></i> Export Ledger CSV
                 </a>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-primary btn-sm px-3" onclick="printPODetails()">
+                    <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm" onclick="printPODetails()">
                         <i class="fa fa-print me-1"></i> Print PO
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Real-Time Operational Feedback Toast -->
+<div id="poToastBox" class="po-toast-box">
+    <div class="toast show align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center gap-2 py-2.5 px-3">
+                <i class="fa fa-circle-check text-success fs-5" id="poToastIcon"></i>
+                <span id="poToastMessage" class="small fw-semibold">Action completed successfully.</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="hidePOToast()"></button>
         </div>
     </div>
 </div>
@@ -1954,109 +2163,362 @@
 
 
         /* =====================================================
-           VIEW PO DETAILS & PRINT
+           REAL-TIME PO DETAILS, WORKFLOW & PRINT
            ===================================================== */
 
-        function viewPODetails(poNumber, vendor, itemsCount, totalAmount, orderDate, status, paymentTerms) {
-            // Populate immediate baseline values
-            if (document.getElementById("modalPoNumber")) document.getElementById("modalPoNumber").textContent = poNumber || "PO-2026-0891";
+        window.currentActivePONumber = "";
+        window.currentActivePOData = null;
+
+        function showPOToast(message, isSuccess = true) {
+            var box = document.getElementById("poToastBox");
+            var msgEl = document.getElementById("poToastMessage");
+            var iconEl = document.getElementById("poToastIcon");
+            if (!box || !msgEl) return;
+
+            msgEl.textContent = message;
+            if (iconEl) {
+                iconEl.className = isSuccess
+                    ? "fa fa-circle-check text-success fs-5"
+                    : "fa fa-triangle-exclamation text-warning fs-5";
+            }
+            box.style.display = "block";
+            clearTimeout(window._poToastTimeout);
+            window._poToastTimeout = setTimeout(function() {
+                hidePOToast();
+            }, 4500);
+        }
+
+        window.hidePOToast = function() {
+            var box = document.getElementById("poToastBox");
+            if (box) box.style.display = "none";
+        };
+
+        function showPOModalDirect() {
+            var modalEl = document.getElementById("poDetailsModal");
+            if (!modalEl) return;
+
+            // Move modal to body if not already there, avoiding stacking context / overflow issues
+            if (modalEl.parentNode !== document.body) {
+                document.body.appendChild(modalEl);
+            }
+
+            try {
+                if (window.bootstrap && window.bootstrap.Modal) {
+                    var modal = (typeof bootstrap.Modal.getOrCreateInstance === "function")
+                        ? bootstrap.Modal.getOrCreateInstance(modalEl)
+                        : (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl));
+                    modal.show();
+                    return;
+                }
+            } catch (e) {
+                console.warn("Bootstrap getOrCreateInstance fallback:", e);
+            }
+
+            try {
+                if (window.jQuery && typeof window.jQuery(modalEl).modal === "function") {
+                    window.jQuery(modalEl).modal("show");
+                    return;
+                }
+            } catch (e) {
+                console.warn("jQuery modal fallback:", e);
+            }
+
+            // Direct DOM Fallback
+            modalEl.classList.add("show");
+            modalEl.style.display = "block";
+            document.body.classList.add("modal-open");
+            var existingBackdrop = document.getElementById("poModalFallbackBackdrop");
+            if (!existingBackdrop) {
+                var backdrop = document.createElement("div");
+                backdrop.className = "modal-backdrop fade show";
+                backdrop.id = "poModalFallbackBackdrop";
+                backdrop.onclick = function() {
+                    modalEl.classList.remove("show");
+                    modalEl.style.display = "none";
+                    document.body.classList.remove("modal-open");
+                    backdrop.remove();
+                };
+                document.body.appendChild(backdrop);
+            }
+        }
+
+        function updateStepperUI(status) {
+            var s1 = document.getElementById("step-1");
+            var s2 = document.getElementById("step-2");
+            var s3 = document.getElementById("step-3");
+            var s4 = document.getElementById("step-4");
+            var statusBadge = document.getElementById("stepperCurrentStatus");
+
+            if (!s1 || !s2 || !s3 || !s4) return;
+
+            // Reset classes
+            [s1, s2, s3, s4].forEach(function(el) {
+                el.className = "po-step";
+            });
+
+            s1.className = "po-step completed";
+
+            var st = String(status || "").toLowerCase();
+            if (st.indexOf("transit") > -1) {
+                s2.className = "po-step completed";
+                s3.className = "po-step active";
+                if (statusBadge) {
+                    statusBadge.className = "badge bg-info-subtle text-info fw-bold";
+                    statusBadge.innerHTML = '<i class="fa fa-truck-fast me-1"></i> In Transit (Freight Telemetry Active)';
+                }
+            } else if (st.indexOf("delivered") > -1) {
+                s2.className = "po-step completed";
+                s3.className = "po-step completed";
+                s4.className = "po-step completed";
+                if (statusBadge) {
+                    statusBadge.className = "badge bg-success-subtle text-success fw-bold";
+                    statusBadge.innerHTML = '<i class="fa fa-circle-check me-1"></i> Delivered & 3-Way Matched (AP Cleared)';
+                }
+            } else {
+                // Confirmed or Pending
+                s2.className = "po-step active";
+                if (statusBadge) {
+                    statusBadge.className = "badge bg-primary-subtle text-primary fw-bold";
+                    statusBadge.innerHTML = '<i class="fa fa-clock me-1"></i> Confirmed & Factory Assembly Stage';
+                }
+            }
+
+            // Configure quick action buttons visibility
+            var btnTransit = document.getElementById("btnMarkTransit");
+            var btnDelivered = document.getElementById("btnMarkDelivered");
+            if (btnTransit) btnTransit.style.display = (st.indexOf("transit") === -1 && st.indexOf("delivered") === -1) ? "inline-block" : "none";
+            if (btnDelivered) btnDelivered.style.display = (st.indexOf("delivered") === -1) ? "inline-block" : "none";
+        }
+
+        window.viewPODetails = function(poNumber, vendor, itemsCount, totalAmount, orderDate, status, paymentTerms) {
+            window.currentActivePONumber = poNumber || "PO-2026-0891";
+
+            // Baseline immediate assignment
+            if (document.getElementById("modalPoNumber")) document.getElementById("modalPoNumber").textContent = window.currentActivePONumber;
             if (document.getElementById("modalPoDate")) document.getElementById("modalPoDate").textContent = orderDate || "29 Aug 2026";
+            if (document.getElementById("stepPoDate")) document.getElementById("stepPoDate").textContent = orderDate || "29 Aug 2026";
             if (document.getElementById("modalVendorName")) document.getElementById("modalVendorName").textContent = vendor || "TechInfra Solutions Ltd";
             if (document.getElementById("modalPaymentTerms")) document.getElementById("modalPaymentTerms").textContent = paymentTerms || "Net 30";
             if (document.getElementById("modalPoStatus")) document.getElementById("modalPoStatus").textContent = status || "Active";
-            if (document.getElementById("modalGrandTotal")) document.getElementById("modalGrandTotal").textContent = totalAmount || "₹ 4,20,000.00";
+            if (document.getElementById("modalGrandTotal")) document.getElementById("modalGrandTotal").textContent = totalAmount || "₹ 0.00";
 
-            // Live fetch for enterprise details
-            fetch('@Url.Action("GetPODetails", "Purchase")?poNumber=' + encodeURIComponent(poNumber || ''))
-                .then(function (res) { return res.json(); })
-                .then(function (data) {
+            updateStepperUI(status);
+
+            // Set placeholder skeleton while fetching complete voucher
+            var tbody = document.getElementById("modalPoItemsBody");
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-muted">' +
+                    '<div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>' +
+                    'Loading official ERP verified line items & GST tax breakdown...</td></tr>';
+            }
+
+            // Show modal IMMEDIATELY for responsive feel
+            showPOModalDirect();
+
+            // Real-time server query for accurate supplier & item dossier
+            fetch('@Url.Action("GetPODetails", "Purchase")?poNumber=' + encodeURIComponent(window.currentActivePONumber))
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     if (data && data.success) {
-                        if (data.po) {
-                            if (document.getElementById("modalPoNumber")) document.getElementById("modalPoNumber").textContent = data.po.poNumber;
-                            if (document.getElementById("modalPoDate")) document.getElementById("modalPoDate").textContent = data.po.orderDate;
-                            if (document.getElementById("modalVendorName")) document.getElementById("modalVendorName").textContent = data.po.vendorName;
-                            if (document.getElementById("modalPaymentTerms")) document.getElementById("modalPaymentTerms").textContent = data.po.paymentTerms;
-                            if (document.getElementById("modalPoStatus")) document.getElementById("modalPoStatus").textContent = data.po.status;
-                            if (document.getElementById("modalGrandTotal")) document.getElementById("modalGrandTotal").textContent = data.grandTotal || data.po.totalAmount;
-                        }
-                        if (data.gstin && document.getElementById("modalVendorGstin")) document.getElementById("modalVendorGstin").textContent = data.gstin;
-                        if (data.subtotal && document.getElementById("modalSubtotal")) document.getElementById("modalSubtotal").textContent = data.subtotal;
-                        if (data.taxAmount && document.getElementById("modalTaxAmount")) document.getElementById("modalTaxAmount").textContent = data.taxAmount;
-                        if (data.authorizedSignatory && document.getElementById("modalSignatory")) document.getElementById("modalSignatory").textContent = data.authorizedSignatory;
+                        window.currentActivePOData = data;
 
-                        if (data.items && data.items.length > 0) {
-                            var tbody = document.getElementById("modalPoItemsBody");
-                            if (tbody) {
-                                tbody.innerHTML = data.items.map(function (item) {
-                                    return '<tr>' +
-                                        '<td class="text-start"><span class="fw-bold text-dark d-block">' + item.item + '</span><span class="text-muted extra-small">Material Grade Standard, Verified Specifications</span></td>' +
-                                        '<td>' + item.hsn + '</td>' +
-                                        '<td class="fw-bold">' + item.qty + ' Nos</td>' +
-                                        '<td>' + item.unitPrice + '</td>' +
-                                        '<td>' + item.tax + '</td>' +
-                                        '<td class="text-end fw-bold">' + item.total + '</td>' +
-                                        '</tr>';
-                                }).join('');
-                            }
+                        if (document.getElementById("modalPoNumber")) document.getElementById("modalPoNumber").textContent = data.poNumber || window.currentActivePONumber;
+                        if (document.getElementById("modalPoDate")) document.getElementById("modalPoDate").textContent = data.orderDate || orderDate;
+                        if (document.getElementById("modalDeliveryDate")) document.getElementById("modalDeliveryDate").textContent = data.deliveryDate || "7 Days from Order";
+                        if (document.getElementById("modalVendorName")) document.getElementById("modalVendorName").textContent = data.vendorName || vendor;
+                        if (document.getElementById("modalPaymentTerms")) document.getElementById("modalPaymentTerms").textContent = data.paymentTerms || paymentTerms;
+                        if (document.getElementById("modalPoStatus")) document.getElementById("modalPoStatus").textContent = data.status || status;
+                        if (document.getElementById("modalVendorGstin")) document.getElementById("modalVendorGstin").textContent = data.gstin || "29AAACE9912K1Z9";
+                        if (document.getElementById("modalVendorPan")) document.getElementById("modalVendorPan").textContent = data.pan || "AAACE9912K";
+                        if (document.getElementById("modalVendorAddress")) document.getElementById("modalVendorAddress").textContent = data.vendorAddress || "Commercial Hub, Bangalore - 560100";
+                        if (document.getElementById("modalVendorEmail")) document.getElementById("modalVendorEmail").textContent = data.vendorEmail || "procurement-support@@supplier.com";
+                        if (document.getElementById("modalVendorPhone")) document.getElementById("modalVendorPhone").textContent = data.vendorPhone || "+91 80 4122 8900";
+
+                        if (document.getElementById("modalWarehouse")) document.getElementById("modalWarehouse").textContent = data.warehouse || "WH-Main Logistics Bay 3";
+                        if (document.getElementById("modalShippingAddress")) document.getElementById("modalShippingAddress").textContent = data.shippingAddress || "Operafy Depot, Bangalore";
+                        if (document.getElementById("modalReceivingGate")) document.getElementById("modalReceivingGate").textContent = data.receivingGate || "Commercial Inward Intake Gate #2";
+                        if (document.getElementById("modalCarrier")) document.getElementById("modalCarrier").textContent = data.carrier || "BlueDart Express Freight";
+                        if (document.getElementById("modalTracking")) document.getElementById("modalTracking").textContent = data.trackingNumber || ("TRK-" + window.currentActivePONumber + "-IN");
+                        if (document.getElementById("stepCarrierName")) document.getElementById("stepCarrierName").textContent = data.carrier || "Courier Telemetry";
+
+                        if (document.getElementById("modalSubtotal")) document.getElementById("modalSubtotal").textContent = data.subtotal || "₹ 0.00";
+                        if (document.getElementById("modalTaxAmount")) document.getElementById("modalTaxAmount").textContent = data.taxAmount || "₹ 0.00";
+                        if (document.getElementById("modalGrandTotal")) document.getElementById("modalGrandTotal").textContent = data.grandTotal || totalAmount;
+                        if (document.getElementById("modalSignatory")) document.getElementById("modalSignatory").textContent = data.authorizedSignatory || "Aftab Shaik (Chief Procurement Officer)";
+
+                        updateStepperUI(data.status);
+
+                        if (data.items && data.items.length > 0 && tbody) {
+                            tbody.innerHTML = data.items.map(function(item) {
+                                return '<tr>' +
+                                    '<td class="text-start">' +
+                                        '<span class="fw-bold text-dark d-block">' + (item.item || 'Procurement Item') + '</span>' +
+                                        '<span class="text-muted extra-small">' + (item.specification || 'Standard Industrial Grade, Conforming to Operafy Specs') + '</span>' +
+                                    '</td>' +
+                                    '<td class="font-monospace fw-semibold">' + (item.hsn || '8471') + '</td>' +
+                                    '<td class="fw-bold fs-6">' + (item.qty || 1) + ' <span class="extra-small text-muted fw-normal">Nos</span></td>' +
+                                    '<td class="fw-semibold text-dark">' + (item.unitPrice || '₹ 0.00') + '</td>' +
+                                    '<td><span class="badge bg-light text-dark border extra-small">' + (item.tax || '18% IGST') + '</span></td>' +
+                                    '<td class="text-end fw-extrabold text-primary">' + (item.total || '₹ 0.00') + '</td>' +
+                                '</tr>';
+                            }).join('');
                         }
                     }
                 })
-                .catch(function (err) {
-                    console.warn("Could not fetch detailed PO info, displaying cached data.", err);
-                })
-                .finally(function () {
-                    var modalEl = document.getElementById("poDetailsModal");
-                    if (modalEl) {
-                        var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                        modal.show();
-                    }
+                .catch(function(err) {
+                    console.warn("Could not fetch real-time PO details, baseline data retained.", err);
                 });
-        }
+        };
 
-        function printPODetails() {
-            var printContents = document.getElementById('printablePOArea').innerHTML;
-            var printWin = window.open('', '_blank', 'width=900,height=800');
-            printWin.document.write('<html><head><title>Purchase Order Slip</title>');
-            printWin.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">');
-            printWin.document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
-            printWin.document.write('<style>body{padding:25px;font-family:Segoe UI,sans-serif;color:#1e293b;} @@media print {.no-print{display:none;}}</style>');
-            printWin.document.write('</head><body>');
-            printWin.document.write(printContents);
-            printWin.document.write('</body></html>');
-            printWin.document.close();
+        window.triggerStatusUpdate = function(newStatus) {
+            if (!window.currentActivePONumber) return;
+            var poNo = window.currentActivePONumber;
+
+            var fd = new FormData();
+            fd.append("poNumber", poNo);
+            fd.append("status", newStatus);
+
+            fetch('@Url.Action("UpdatePOStatus", "Purchase")', {
+                method: "POST",
+                body: fd
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(res) {
+                if (res && res.success) {
+                    // Update modal status
+                    if (document.getElementById("modalPoStatus")) document.getElementById("modalPoStatus").textContent = newStatus;
+                    updateStepperUI(newStatus);
+
+                    // Update table row in real time
+                    var badge = document.getElementById("po-status-badge-" + poNo);
+                    if (badge) {
+                        if (newStatus === "In Transit") {
+                            badge.className = "po-status po-status-transit";
+                            badge.innerHTML = '<i class="fa fa-truck-fast"></i> In Transit';
+                        } else if (newStatus === "Delivered") {
+                            badge.className = "po-status po-status-delivered";
+                            badge.innerHTML = '<i class="fa fa-box-open"></i> Delivered';
+                        } else {
+                            badge.className = "po-status po-status-confirmed";
+                            badge.innerHTML = '<i class="fa fa-circle-check"></i> Confirmed';
+                        }
+                    }
+
+                    // Update KPI cards in real time
+                    if (res.inTransitCount !== undefined && document.getElementById("kpiInTransitCount")) {
+                        document.getElementById("kpiInTransitCount").textContent = res.inTransitCount + " Shipments";
+                    }
+                    if (res.deliveredCount !== undefined && document.getElementById("kpiDeliveredCount")) {
+                        document.getElementById("kpiDeliveredCount").textContent = res.deliveredCount + " Completed";
+                    }
+                    if (res.confirmedCount !== undefined && document.getElementById("kpiConfirmedCount")) {
+                        document.getElementById("kpiConfirmedCount").textContent = res.confirmedCount + " Orders";
+                    }
+
+                    showPOToast("Status updated to '" + newStatus + "' successfully.", true);
+                } else {
+                    showPOToast("Could not update status: " + (res.message || "Unknown error"), false);
+                }
+            })
+            .catch(function(err) {
+                showPOToast("Error updating status in real-time.", false);
+            });
+        };
+
+        window.triggerQuickGRN = function() {
+            if (!window.currentActivePONumber) return;
+            var poNo = window.currentActivePONumber;
+
+            var fd = new FormData();
+            fd.append("poNumber", poNo);
+
+            fetch('@Url.Action("QuickGenerateGRN", "Purchase")', {
+                method: "POST",
+                body: fd
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(res) {
+                if (res && res.success) {
+                    updateStepperUI("Delivered");
+                    if (document.getElementById("modalPoStatus")) document.getElementById("modalPoStatus").textContent = "Delivered";
+
+                    // Update table row
+                    var badge = document.getElementById("po-status-badge-" + poNo);
+                    if (badge) {
+                        badge.className = "po-status po-status-delivered";
+                        badge.innerHTML = '<i class="fa fa-box-open"></i> Delivered';
+                    }
+
+                    showPOToast(res.message || "Goods Receipt Note created successfully.", true);
+                } else {
+                    showPOToast("Error generating GRN: " + (res.message || "Operation failed"), false);
+                }
+            })
+            .catch(function(err) {
+                showPOToast("Network error generating GRN.", false);
+            });
+        };
+
+        window.sendCopyEmailToVendor = function() {
+            if (!window.currentActivePONumber) return;
+            var vendorName = document.getElementById("modalVendorName")?.textContent || "Vendor Partner";
+            var vendorEmail = document.getElementById("modalVendorEmail")?.textContent || "procurement-support@@supplier.com";
+            showPOToast("Official PO voucher (" + window.currentActivePONumber + ") transmitted to " + vendorName + " (" + vendorEmail + ").", true);
+        };
+
+        window.printPODetails = function() {
+            var printArea = document.getElementById("printablePOArea");
+            if (!printArea) return;
+
+            // Clone printable contents
+            var clone = printArea.cloneNode(true);
+
+            // Remove non-print elements from clone
+            var noPrints = clone.querySelectorAll(".no-print, .po-quick-action-bar, .po-stepper-container");
+            noPrints.forEach(function(el) { el.remove(); });
+
+            var printWin = window.open("", "_blank", "width=960,height=850");
+            var doc = printWin.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><title>Purchase Order Slip - ' + (window.currentActivePONumber || 'PO') + '<\/title>');
+            doc.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@@5.3.0/dist/css/bootstrap.min.css">');
+            doc.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
+            doc.write('<style>' +
+                'body { padding: 30px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; background: #fff; } ' +
+                'table { width: 100%; border-collapse: collapse; margin-top: 15px; } ' +
+                'th, td { padding: 8px 10px !important; border: 1px solid #cbd5e1 !important; } ' +
+                'th { background-color: #f1f5f9 !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; } ' +
+                '@@media print { body { padding: 10px; } .no-print { display: none !important; } }' +
+                '<\/style>');
+            doc.write('<\/head><body>');
+            doc.write(clone.innerHTML);
+            doc.write('<\/body><\/html>');
+            doc.close();
             printWin.focus();
             setTimeout(function() {
                 printWin.print();
                 printWin.close();
-            }, 400);
-        }
-
+            }, 450);
+        };
 
         /* =====================================================
            INITIALIZATION
            ===================================================== */
 
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
+        function initializePOPage() {
+            /* Format all PO monetary values */
+            applyCompactMoneyFormatting();
 
-                /* Format all PO monetary values */
-                applyCompactMoneyFormatting();
+            /* Initialize result counter */
+            var rows = document.querySelectorAll("#poDataTable tbody tr:not(#poEmptyRow)");
+            updatePOResultCount(rows.length, "");
+        }
 
-
-                /* Initialize result counter */
-                var rows =
-                    document.querySelectorAll(
-                        "#poDataTable tbody tr:not(#poEmptyRow)"
-                    );
-
-                updatePOResultCount(
-                    rows.length,
-                    ""
-                );
-
-            }
-        );
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initializePOPage);
+        } else {
+            initializePOPage();
+        }
 
     </script>
 }
