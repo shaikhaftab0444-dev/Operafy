@@ -176,6 +176,7 @@ namespace ERP_System.Data
             modelBuilder.Entity<KeyResult>().ToTable("erp_KeyResults");
             modelBuilder.Entity<KpiItem>().ToTable("erp_Kpis");
             modelBuilder.Entity<AppraisalCycle>().ToTable("erp_AppraisalCycles");
+            modelBuilder.Entity<EmployeeAppraisal>().ToTable("erp_EmployeeAppraisals");
             modelBuilder.Entity<Lead>(entity =>
             {
                 entity.ToTable("erp_Leads");

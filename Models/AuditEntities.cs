@@ -4,11 +4,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ERP_System.Models
 {
-    // Alias / wrapper for ApplicationUser pointing to the system's User model
-    public class ApplicationUser : User
-    {
-    }
-
     [Table("SystemAuditTrails")]
     public class SystemAuditTrail
     {
