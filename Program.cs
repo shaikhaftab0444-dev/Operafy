@@ -112,6 +112,37 @@ using (var scope = app.Services.CreateScope())
                 ('Morning Shift (07:00 AM - 04:00 PM)', '07:00:00', '16:00:00', 15),
                 ('Night Shift (08:00 PM - 05:00 AM)', '20:00:00', '05:00:00', 15);
             END
+
+            -- 3. Ensure SystemAuditTrails and AuditFlaggedItems exist
+            IF OBJECT_ID('AITStudent.SystemAuditTrails', 'U') IS NULL AND OBJECT_ID('SystemAuditTrails', 'U') IS NULL
+            BEGIN
+                CREATE TABLE SystemAuditTrails (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    EntityName NVARCHAR(100) NOT NULL,
+                    RecordId NVARCHAR(100) NOT NULL,
+                    ActionType NVARCHAR(50) NOT NULL,
+                    PerformedByUserId NVARCHAR(100) NULL,
+                    PerformedByUserUserId INT NULL,
+                    ChangesSummary NVARCHAR(500) NOT NULL,
+                    IpAddress NVARCHAR(50) NULL DEFAULT '127.0.0.1',
+                    Timestamp DATETIME NOT NULL DEFAULT GETUTCDATE()
+                );
+            END
+
+            IF OBJECT_ID('AITStudent.AuditFlaggedItems', 'U') IS NULL AND OBJECT_ID('AuditFlaggedItems', 'U') IS NULL
+            BEGIN
+                CREATE TABLE AuditFlaggedItems (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    Module NVARCHAR(100) NOT NULL,
+                    ReferenceNumber NVARCHAR(100) NOT NULL,
+                    Description NVARCHAR(500) NOT NULL,
+                    DiscrepancyAmount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    Severity NVARCHAR(50) NOT NULL DEFAULT 'Medium',
+                    Status NVARCHAR(50) NOT NULL DEFAULT 'Pending Review',
+                    FlaggedByUserId NVARCHAR(100) NULL,
+                    FlaggedOn DATETIME NOT NULL DEFAULT GETUTCDATE()
+                );
+            END
         ";
         await context.Database.ExecuteSqlRawAsync(schemaPatchSql);
 
@@ -133,6 +164,7 @@ using (var scope = app.Services.CreateScope())
         await SeedData.InitializeHRAttendanceTablesAsync(context);
         await SeedData.InitializeLeaveApplicationsAsync(context);
         await SeedData.InitializePayrollRunsAndPayslipsAsync(context);
+        await SeedData.InitializeAuditorDataAsync(context);
     }
     catch (Exception ex)
     {

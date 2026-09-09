@@ -1,0 +1,152 @@
+@model List<ERP_System.Models.AuditFlaggedItem>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Financial Voucher Verification";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="@Url.Action("Index", "Auditor")" class="text-decoration-none">Auditor Center</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Financial Vouchers</li>
+            </ol>
+        </nav>
+        <h4 class="fw-bold mb-0 text-dark">
+            <i class="fa fa-file-invoice-dollar text-success me-2"></i>Financial Voucher Verification & Discrepancies
+        </h4>
+        <p class="text-muted small mb-0">Finance module ledger reconciliations, invoice cap checks, and payment release approvals.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Index", "Auditor")" class="btn btn-outline-secondary btn-sm px-3">
+            <i class="fa fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0 text-dark">
+            <i class="fa fa-receipt text-primary me-2"></i>Pending Finance Audit Discrepancies
+        </h6>
+        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1">
+            @Model.Count Total Vouchers
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Flag ID</th>
+                        <th>Voucher / Ref #</th>
+                        <th>Variance Description</th>
+                        <th>Discrepancy (₹)</th>
+                        <th>Risk Level</th>
+                        <th>Status</th>
+                        <th>Logged On</th>
+                        <th class="text-end">Verification Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="text-muted fw-bold">#@item.Id</td>
+                                <td class="fw-bold text-dark text-nowrap">@item.ReferenceNumber</td>
+                                <td class="text-muted" style="max-width: 250px;">
+                                    @item.Description
+                                </td>
+                                <td class="fw-bold text-danger text-nowrap">
+                                    ₹@item.DiscrepancyAmount.ToString("N2", inCulture)
+                                </td>
+                                <td>
+                                    @if (item.Severity == "High")
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger px-2.5 py-1">High Risk</span>
+                                    }
+                                    else if (item.Severity == "Medium")
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning px-2.5 py-1">Medium Risk</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info-subtle text-info px-2.5 py-1">Low Risk</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.Status == "Cleared")
+                                    {
+                                        <span class="badge bg-success-subtle text-success px-2.5 py-1">Cleared</span>
+                                    }
+                                    else if (item.Status == "Escalated")
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger px-2.5 py-1">Escalated</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning px-2.5 py-1">Pending Review</span>
+                                    }
+                                </td>
+                                <td class="text-muted small text-nowrap">
+                                    @item.FlaggedOn.ToString("dd MMM yyyy, HH:mm")
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    @if (item.Status == "Pending Review")
+                                    {
+                                        <button type="button" class="btn btn-sm btn-success px-2.5 py-1 me-1" onclick="resolveVoucher(@item.Id, 'Cleared')">
+                                            <i class="fa fa-check me-1"></i> Pass Voucher
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger px-2.5 py-1" onclick="resolveVoucher(@item.Id, 'Escalated')">
+                                            <i class="fa fa-arrow-up-right-from-square me-1"></i> Escalate
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted border px-2 py-1">Audit Completed</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fa fa-circle-check fs-2 text-success mb-2 d-block"></i>
+                                No financial discrepancies flagged. All financial vouchers match General Ledger entries.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+async function resolveVoucher(id, status) {
+    if (!confirm(`Mark voucher #${id} as "${status}"?`)) return;
+
+    try {
+        const res = await fetch('/Auditor/ResolveAuditFlag', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ flagId: id, newStatus: status, auditNote: 'Financial Voucher verification completed' })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message || "Failed to update voucher status.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Server error occurred while updating voucher.");
+    }
+}
+</script>

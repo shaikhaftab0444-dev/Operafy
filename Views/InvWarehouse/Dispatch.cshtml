@@ -3,53 +3,441 @@
     ViewData["Title"] = "Material Dispatch (Outward)";
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-truck-ramp-box text-primary me-2"></i>Material Dispatch (Outward)</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/InventoryDashboard" class="text-decoration-none">Inventory Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Material Dispatch</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+<style>
+    .dispatch-page {
+        background: #f7f9fc;
+        min-height: calc(100vh - 70px);
+        padding: 28px 0;
+    }
 
-    <!-- Dispatch Listing -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Outward Dispatch Transactions</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Dispatch Slip No</th>
-                        <th>Destination Party</th>
-                        <th>Carrier Name</th>
-                        <th>Tracking Number</th>
-                        <th>Dispatch Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">DSP-2026-9041</td>
-                        <td>Rahul Enterprises</td>
-                        <td>BlueDart Logistics</td>
-                        <td><code>BD-6042189</code></td>
-                        <td class="text-muted">18 Aug 2026</td>
-                        <td><span class="badge bg-success-subtle text-success">Dispatched</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">DSP-2026-9042</td>
-                        <td>Mehta Logistics</td>
-                        <td>DHL Express</td>
-                        <td><code>DHL-8041920</code></td>
-                        <td class="text-muted">20 Aug 2026</td>
-                        <td><span class="badge bg-info-subtle text-info">Packing</span></td>
-                    </tr>
-                </tbody>
-            </table>
+    .dispatch-header-card,
+    .dispatch-summary-card,
+    .dispatch-content-card {
+        background: #ffffff;
+        border: 1px solid #e9eef5;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(30, 55, 90, 0.05);
+    }
+
+    .dispatch-header-card {
+        padding: 26px 28px;
+    }
+
+    .dispatch-icon-box {
+        width: 52px;
+        height: 52px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #eaf2ff;
+        color: #2563eb;
+        font-size: 22px;
+    }
+
+    .dispatch-page-title {
+        color: #172b4d;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .dispatch-page-subtitle {
+        color: #7b8798;
+        font-size: 0.88rem;
+        margin-bottom: 0;
+    }
+
+    .dispatch-breadcrumb {
+        margin-bottom: 0;
+        padding: 0;
+        background: transparent;
+    }
+
+        .dispatch-breadcrumb .breadcrumb-item {
+            color: #8a94a6;
+            font-size: 0.78rem;
+        }
+
+            .dispatch-breadcrumb .breadcrumb-item a {
+                color: #2563eb;
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+    .dispatch-summary-card {
+        height: 100%;
+        padding: 20px;
+    }
+
+    .dispatch-summary-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 17px;
+    }
+
+        .dispatch-summary-icon.blue {
+            background: #eaf2ff;
+            color: #2563eb;
+        }
+
+        .dispatch-summary-icon.green {
+            background: #e9f8ef;
+            color: #16a34a;
+        }
+
+        .dispatch-summary-icon.orange {
+            background: #fff4df;
+            color: #d97706;
+        }
+
+    .dispatch-summary-label {
+        color: #8a94a6;
+        font-size: 0.78rem;
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+
+    .dispatch-summary-value {
+        color: #172b4d;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .dispatch-content-card {
+        padding: 24px;
+    }
+
+    .dispatch-section-title {
+        color: #172b4d;
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .dispatch-section-subtitle {
+        color: #8a94a6;
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+
+    .dispatch-table-wrapper {
+        border: 1px solid #edf0f5;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .dispatch-table {
+        min-width: 900px;
+        margin-bottom: 0;
+    }
+
+        .dispatch-table thead th {
+            background: #f8fafc;
+            color: #667085;
+            border-bottom: 1px solid #e8edf3;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            padding: 15px 16px;
+            white-space: nowrap;
+        }
+
+        .dispatch-table tbody td {
+            color: #475467;
+            border-bottom: 1px solid #f0f2f6;
+            font-size: 0.82rem;
+            padding: 16px;
+            vertical-align: middle;
+        }
+
+        .dispatch-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .dispatch-table tbody tr:hover {
+            background: #fbfdff;
+        }
+
+    .dispatch-number {
+        color: #172b4d;
+        font-weight: 700;
+    }
+
+    .dispatch-code {
+        display: inline-block;
+        padding: 5px 8px;
+        border-radius: 7px;
+        background: #f1f5f9;
+        color: #475467;
+        font-size: 0.76rem;
+        font-weight: 600;
+    }
+
+    .dispatch-muted {
+        color: #8a94a6 !important;
+    }
+
+    .dispatch-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 30px;
+        padding: 6px 10px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .dispatch-status::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dispatch-status.dispatched {
+            background: #eaf8ef;
+            color: #16803c;
+        }
+
+            .dispatch-status.dispatched::before {
+                background: #22c55e;
+            }
+
+        .dispatch-status.packing {
+            background: #eaf2ff;
+            color: #2563eb;
+        }
+
+            .dispatch-status.packing::before {
+                background: #3b82f6;
+            }
+
+    .dispatch-record-count {
+        background: #f1f5f9;
+        color: #667085;
+        border-radius: 30px;
+        padding: 7px 12px;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    @@media (max-width: 767.98px) {
+        .dispatch-page
+
+    {
+        padding: 18px 0;
+    }
+
+    .dispatch-header-card {
+        padding: 20px;
+    }
+
+    .dispatch-content-card {
+        padding: 16px;
+    }
+
+    .dispatch-page-title {
+        font-size: 1.2rem;
+    }
+
+    .dispatch-summary-card {
+        padding: 16px;
+    }
+
+    }
+</style>
+
+<div class="container-fluid dispatch-page text-start">
+    <div class="container-fluid px-0">
+
+        <!-- Page Header -->
+        <div class="dispatch-header-card mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center">
+                        <div class="dispatch-icon-box me-3">
+                            <i class="fa-solid fa-truck-ramp-box"></i>
+                        </div>
+
+                        <div>
+                            <h4 class="dispatch-page-title">
+                                Material Dispatch (Outward)
+                            </h4>
+
+                            <p class="dispatch-page-subtitle">
+                                Monitor outgoing material dispatches and delivery information.
+                            </p>
+
+                            <nav aria-label="breadcrumb" class="mt-2">
+                                <ol class="breadcrumb dispatch-breadcrumb">
+                                    <li class="breadcrumb-item">
+                                        <a href="/InventoryDashboard">Inventory Dashboard</a>
+                                    </li>
+                                    <li class="breadcrumb-item active" aria-current="page">
+                                        Material Dispatch
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Summary Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-xl-4 col-md-4">
+                <div class="dispatch-summary-card">
+                    <div class="d-flex align-items-center">
+                        <div class="dispatch-summary-icon blue me-3">
+                            <i class="fa-solid fa-truck"></i>
+                        </div>
+
+                        <div>
+                            <p class="dispatch-summary-label">Total Dispatches</p>
+                            <h5 class="dispatch-summary-value">2</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4">
+                <div class="dispatch-summary-card">
+                    <div class="d-flex align-items-center">
+                        <div class="dispatch-summary-icon green me-3">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+
+                        <div>
+                            <p class="dispatch-summary-label">Dispatched</p>
+                            <h5 class="dispatch-summary-value">1</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4">
+                <div class="dispatch-summary-card">
+                    <div class="d-flex align-items-center">
+                        <div class="dispatch-summary-icon orange me-3">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+
+                        <div>
+                            <p class="dispatch-summary-label">In Packing</p>
+                            <h5 class="dispatch-summary-value">1</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dispatch Listing -->
+        <div class="dispatch-content-card">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+                <div>
+                    <h5 class="dispatch-section-title">
+                        Outward Dispatch Transactions
+                    </h5>
+
+                    <p class="dispatch-section-subtitle">
+                        View dispatch slips, destination parties, carriers, and delivery status.
+                    </p>
+                </div>
+
+                <div class="mt-3 mt-md-0">
+                    <span class="dispatch-record-count">
+                        <i class="fa-solid fa-list-check me-1"></i>
+                        2 Records
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive dispatch-table-wrapper">
+                <table class="table dispatch-table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Dispatch Slip No</th>
+                            <th>Destination Party</th>
+                            <th>Carrier Name</th>
+                            <th>Tracking Number</th>
+                            <th>Dispatch Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr>
+                            <td>
+                                <span class="dispatch-number">
+                                    DSP-2026-9041
+                                </span>
+                            </td>
+
+                            <td>
+                                Rahul Enterprises
+                            </td>
+
+                            <td>
+                                BlueDart Logistics
+                            </td>
+
+                            <td>
+                                <code class="dispatch-code">BD-6042189</code>
+                            </td>
+
+                            <td class="dispatch-muted">
+                                18 Aug 2026
+                            </td>
+
+                            <td>
+                                <span class="dispatch-status dispatched">
+                                    Dispatched
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>
+                                <span class="dispatch-number">
+                                    DSP-2026-9042
+                                </span>
+                            </td>
+
+                            <td>
+                                Mehta Logistics
+                            </td>
+
+                            <td>
+                                DHL Express
+                            </td>
+
+                            <td>
+                                <code class="dispatch-code">DHL-8041920</code>
+                            </td>
+
+                            <td class="dispatch-muted">
+                                20 Aug 2026
+                            </td>
+
+                            <td>
+                                <span class="dispatch-status packing">
+                                    Packing
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
