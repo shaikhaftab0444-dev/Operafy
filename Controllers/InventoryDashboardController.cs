@@ -97,5 +97,90 @@ namespace ERP_System.Controllers
 
             return View(viewModel);
         }
+
+        // POST: /InventoryDashboard/QuickRestock
+        [HttpPost]
+        public async Task<IActionResult> QuickRestock([FromBody] RestockPayload payload)
+        {
+            if (payload == null || payload.Quantity <= 0)
+                return Json(new { success = false, message = "Invalid restock parameters. Quantity must be greater than zero." });
+
+            if (string.IsNullOrWhiteSpace(payload.ProductName))
+                return Json(new { success = false, message = "Product name is required." });
+
+            var item = await _context.Products
+                .FirstOrDefaultAsync(i => i.ProductName == payload.ProductName || i.ProductName.ToLower() == payload.ProductName.ToLower());
+
+            if (item == null)
+                return Json(new { success = false, message = "Product record not found in database." });
+
+            int prevQty = item.StockQty;
+            item.StockQty += payload.Quantity;
+
+            if (item.StockQty > 20)
+                item.Status = "In Stock";
+            else if (item.StockQty > 0)
+                item.Status = "Low Stock";
+            else
+                item.Status = "Out of Stock";
+
+            _context.StockAdjustments.Add(new StockAdjustment
+            {
+                ProductId = item.ProductId,
+                ProductName = item.ProductName,
+                AdjustmentType = "Restock",
+                PreviousQty = prevQty,
+                QuantityChange = payload.Quantity,
+                NewQty = item.StockQty,
+                Reason = payload.Reason ?? "Manual Quick Restock",
+                PerformedBy = User.Identity?.Name ?? "Inventory Manager",
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = $"Successfully added {payload.Quantity} units to {item.ProductName}." });
+        }
+
+        // GET: /InventoryDashboard/Warehouses
+        [HttpGet]
+        public IActionResult Warehouses()
+        {
+            return RedirectToAction("Locations", "InvWarehouse");
+        }
+
+        // GET: /InventoryDashboard/BinLocations
+        [HttpGet]
+        public IActionResult BinLocations()
+        {
+            return RedirectToAction("Bins", "InvWarehouse");
+        }
+
+        // GET: /InventoryDashboard/Dispatch
+        [HttpGet]
+        public IActionResult Dispatch()
+        {
+            return RedirectToAction("Dispatch", "InvWarehouse");
+        }
+
+        // GET: /InventoryDashboard/StockDirectory
+        [HttpGet]
+        public IActionResult StockDirectory()
+        {
+            return RedirectToAction("LiveStock", "InvTracking");
+        }
+
+        // GET: /InventoryDashboard/LowStockReport
+        [HttpGet]
+        public IActionResult LowStockReport()
+        {
+            return RedirectToAction("Alerts", "InvTracking");
+        }
+    }
+
+    public class RestockPayload
+    {
+        public string ProductName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public string? Reason { get; set; }
     }
 }

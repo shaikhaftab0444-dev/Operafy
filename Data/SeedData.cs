@@ -2869,7 +2869,164 @@ namespace ERP_System.Data
             }
         }
 
+        public static async Task InitializeAuditorDataAsync(ApplicationDbContext context)
+        {
+            try
+            {
+                if (!await context.AuditFlaggedItems.AnyAsync())
+                {
+                    var sampleFlags = new List<AuditFlaggedItem>
+                    {
+                        new AuditFlaggedItem
+                        {
+                            Module = "Finance",
+                            ReferenceNumber = "INV-2026-081",
+                            Description = "Unmatched GL invoice voucher exceeding vendor credit cap",
+                            DiscrepancyAmount = 45000.00m,
+                            Severity = "High",
+                            Status = "Pending Review",
+                            FlaggedByUserId = "1",
+                            FlaggedOn = DateTime.UtcNow.AddHours(-3)
+                        },
+                        new AuditFlaggedItem
+                        {
+                            Module = "Procurement",
+                            ReferenceNumber = "PO-9021",
+                            Description = "Purchase Order amount variance between PO line and Supplier Bill",
+                            DiscrepancyAmount = 18500.00m,
+                            Severity = "Medium",
+                            Status = "Pending Review",
+                            FlaggedByUserId = "1",
+                            FlaggedOn = DateTime.UtcNow.AddHours(-5)
+                        },
+                        new AuditFlaggedItem
+                        {
+                            Module = "Inventory",
+                            ReferenceNumber = "ADJ-2026-04",
+                            Description = "Physical stock count negative discrepancy during quarterly audit",
+                            DiscrepancyAmount = 12400.00m,
+                            Severity = "Medium",
+                            Status = "Pending Review",
+                            FlaggedByUserId = "1",
+                            FlaggedOn = DateTime.UtcNow.AddHours(-9)
+                        },
+                        new AuditFlaggedItem
+                        {
+                            Module = "HR",
+                            ReferenceNumber = "PAY-2026-02",
+                            Description = "Overtime hour calculation variance for warehouse logistics shift",
+                            DiscrepancyAmount = 6200.00m,
+                            Severity = "Low",
+                            Status = "Pending Review",
+                            FlaggedByUserId = "1",
+                            FlaggedOn = DateTime.UtcNow.AddHours(-14)
+                        },
+                        new AuditFlaggedItem
+                        {
+                            Module = "Finance",
+                            ReferenceNumber = "VND-2026-9083",
+                            Description = "Vendor payment processed without complete 3-way GRN match",
+                            DiscrepancyAmount = 64000.00m,
+                            Severity = "High",
+                            Status = "Pending Review",
+                            FlaggedByUserId = "1",
+                            FlaggedOn = DateTime.UtcNow.AddDays(-1)
+                        },
+                        new AuditFlaggedItem
+                        {
+                            Module = "Finance",
+                            ReferenceNumber = "INV-2026-052",
+                            Description = "Duplicate invoice submitted by consulting contractor",
+                            DiscrepancyAmount = 35000.00m,
+                            Severity = "High",
+                            Status = "Cleared",
+                            FlaggedByUserId = "1",
+                            FlaggedOn = DateTime.UtcNow.AddDays(-3)
+                        }
+                    };
+                    await context.AuditFlaggedItems.AddRangeAsync(sampleFlags);
+                    await context.SaveChangesAsync();
+                }
 
-        
+                if (!await context.SystemAuditTrails.AnyAsync())
+                {
+                    var sampleLogs = new List<SystemAuditTrail>
+                    {
+                        new SystemAuditTrail
+                        {
+                            EntityName = "GeneralLedger",
+                            RecordId = "JV-2026-014",
+                            ActionType = "UPDATE",
+                            PerformedByUserId = "1",
+                            PerformedByUserUserId = 1,
+                            ChangesSummary = "Adjustment entry amount updated from ₹50,000 to ₹75,000",
+                            IpAddress = "192.168.1.105",
+                            Timestamp = DateTime.UtcNow.AddHours(-2)
+                        },
+                        new SystemAuditTrail
+                        {
+                            EntityName = "PurchaseOrder",
+                            RecordId = "PO-9021",
+                            ActionType = "APPROVAL",
+                            PerformedByUserId = "1",
+                            PerformedByUserUserId = 1,
+                            ChangesSummary = "PO-9021 approved under exceptional procurement variance threshold",
+                            IpAddress = "192.168.1.112",
+                            Timestamp = DateTime.UtcNow.AddHours(-4)
+                        },
+                        new SystemAuditTrail
+                        {
+                            EntityName = "Employee",
+                            RecordId = "EMP-004",
+                            ActionType = "UPDATE",
+                            PerformedByUserId = "1",
+                            PerformedByUserUserId = 1,
+                            ChangesSummary = "Designation altered to Senior Inventory Analyst by HR Admin",
+                            IpAddress = "192.168.1.140",
+                            Timestamp = DateTime.UtcNow.AddHours(-7)
+                        },
+                        new SystemAuditTrail
+                        {
+                            EntityName = "StockAdjustment",
+                            RecordId = "STK-ADJ-09",
+                            ActionType = "CREATE",
+                            PerformedByUserId = "1",
+                            PerformedByUserUserId = 1,
+                            ChangesSummary = "Manual stock restock recorded for Wireless Mouse (+50 units)",
+                            IpAddress = "192.168.1.108",
+                            Timestamp = DateTime.UtcNow.AddHours(-11)
+                        },
+                        new SystemAuditTrail
+                        {
+                            EntityName = "SalesInvoice",
+                            RecordId = "INV-2026-081",
+                            ActionType = "UPDATE",
+                            PerformedByUserId = "1",
+                            PerformedByUserUserId = 1,
+                            ChangesSummary = "Payment terms adjusted from Net 15 to Net 45",
+                            IpAddress = "192.168.1.102",
+                            Timestamp = DateTime.UtcNow.AddDays(-1)
+                        },
+                        new SystemAuditTrail
+                        {
+                            EntityName = "VendorMaster",
+                            RecordId = "VND-9082",
+                            ActionType = "APPROVAL",
+                            PerformedByUserId = "1",
+                            PerformedByUserUserId = 1,
+                            ChangesSummary = "Vendor KYC documentation approved by Compliance Lead",
+                            IpAddress = "192.168.1.115",
+                            Timestamp = DateTime.UtcNow.AddDays(-1)
+                        }
+                    };
+                    await context.SystemAuditTrails.AddRangeAsync(sampleLogs);
+                    await context.SaveChangesAsync();
+                }
+            }
+            catch (Exception)
+            {
+                // Fallback in case table is not ready or already initialized
+            }
+        }
     }
 }

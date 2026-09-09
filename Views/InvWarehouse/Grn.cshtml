@@ -4,94 +4,626 @@
     ViewData["Title"] = "Goods Receipt Note (GRN)";
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-receipt text-primary me-2"></i>Goods Receipt Note (GRN - Inward)</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/InventoryDashboard" class="text-decoration-none">Inventory Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">GRN Inwards</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#grnModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Log GRN Entry
-        </button>
-    </div>
+<style>
+    .grn-page {
+        background: #f7f9fc;
+        min-height: calc(100vh - 70px);
+        padding: 28px 0;
+    }
 
-    <!-- GRN List -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Inward Transactions</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>GRN Number</th>
-                        <th>Supplier</th>
-                        <th>Received Date</th>
-                        <th>Received By</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var g in Model)
+    .grn-header-card,
+    .grn-content-card,
+    .grn-summary-card {
+        background: #ffffff;
+        border: 1px solid #e9eef5;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(30, 55, 90, 0.05);
+    }
+
+    .grn-header-card {
+        padding: 26px 28px;
+    }
+
+    .grn-icon-box {
+        width: 52px;
+        height: 52px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #eaf2ff;
+        color: #2563eb;
+        font-size: 22px;
+    }
+
+    .grn-page-title {
+        color: #172b4d;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .grn-page-subtitle {
+        color: #7b8798;
+        font-size: 0.88rem;
+        margin-bottom: 0;
+    }
+
+    .grn-breadcrumb {
+        margin-bottom: 0;
+        padding: 0;
+        background: transparent;
+    }
+
+        .grn-breadcrumb .breadcrumb-item {
+            font-size: 0.78rem;
+            color: #8a94a6;
+        }
+
+            .grn-breadcrumb .breadcrumb-item a {
+                color: #2563eb;
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+            .grn-breadcrumb .breadcrumb-item.active {
+                color: #8a94a6;
+            }
+
+    .grn-primary-btn {
+        border: none;
+        background: #2563eb;
+        color: #ffffff;
+        border-radius: 10px;
+        padding: 11px 18px;
+        font-size: 0.84rem;
+        font-weight: 600;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+        transition: all 0.2s ease;
+    }
+
+        .grn-primary-btn:hover {
+            background: #1d4ed8;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+    .grn-summary-card {
+        padding: 20px;
+        height: 100%;
+    }
+
+    .grn-summary-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 17px;
+    }
+
+        .grn-summary-icon.blue {
+            background: #eaf2ff;
+            color: #2563eb;
+        }
+
+        .grn-summary-icon.green {
+            background: #e9f8ef;
+            color: #16a34a;
+        }
+
+        .grn-summary-icon.orange {
+            background: #fff4df;
+            color: #d97706;
+        }
+
+    .grn-summary-label {
+        color: #8a94a6;
+        font-size: 0.78rem;
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+
+    .grn-summary-value {
+        color: #172b4d;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .grn-content-card {
+        padding: 24px;
+    }
+
+    .grn-section-title {
+        color: #172b4d;
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .grn-section-subtitle {
+        color: #8a94a6;
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+
+    .grn-table-wrapper {
+        border: 1px solid #edf0f5;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .grn-table {
+        margin-bottom: 0;
+        min-width: 720px;
+    }
+
+        .grn-table thead th {
+            background: #f8fafc;
+            color: #667085;
+            border-bottom: 1px solid #e8edf3;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            padding: 15px 16px;
+            white-space: nowrap;
+        }
+
+        .grn-table tbody td {
+            color: #475467;
+            border-bottom: 1px solid #f0f2f6;
+            font-size: 0.82rem;
+            padding: 16px;
+            vertical-align: middle;
+        }
+
+        .grn-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .grn-table tbody tr:hover {
+            background: #fbfdff;
+        }
+
+    .grn-number {
+        color: #172b4d;
+        font-weight: 700;
+    }
+
+    .grn-muted {
+        color: #8a94a6 !important;
+    }
+
+    .grn-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 30px;
+        padding: 6px 10px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .grn-status::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .grn-status.completed {
+            background: #eaf8ef;
+            color: #16803c;
+        }
+
+            .grn-status.completed::before {
+                background: #22c55e;
+            }
+
+        .grn-status.pending {
+            background: #fff4df;
+            color: #b76b00;
+        }
+
+            .grn-status.pending::before {
+                background: #f59e0b;
+            }
+
+    .grn-empty-state {
+        padding: 46px 20px !important;
+        text-align: center;
+        color: #8a94a6 !important;
+    }
+
+    .grn-empty-icon {
+        width: 48px;
+        height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 20px;
+        margin-bottom: 12px;
+    }
+
+    .grn-modal .modal-content {
+        border: none;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 18px 55px rgba(15, 23, 42, 0.16);
+    }
+
+    .grn-modal .modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #edf0f5;
+        background: #ffffff;
+    }
+
+    .grn-modal .modal-title {
+        color: #172b4d;
+        font-size: 1.05rem;
+    }
+
+    .grn-modal .modal-body {
+        padding: 24px;
+        background: #ffffff;
+    }
+
+    .grn-modal .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid #edf0f5;
+        background: #fbfcfe;
+    }
+
+    .grn-modal .form-label {
+        color: #344054;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .grn-modal .form-control {
+        border: 1px solid #dfe5ec;
+        border-radius: 10px;
+        color: #344054;
+        font-size: 0.84rem;
+        padding: 11px 13px;
+        box-shadow: none;
+    }
+
+        .grn-modal .form-control:focus {
+            border-color: #93b4f8;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+        }
+
+    .grn-secondary-btn {
+        border: 1px solid #dfe5ec;
+        background: #ffffff;
+        color: #667085;
+        border-radius: 10px;
+        padding: 10px 17px;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+
+        .grn-secondary-btn:hover {
+            background: #f8fafc;
+            color: #344054;
+            border-color: #cbd5e1;
+        }
+
+    @@media (max-width: 767.98px) {
+        .grn-page
+
+    {
+        padding: 18px 0;
+    }
+
+    .grn-header-card {
+        padding: 20px;
+    }
+
+    .grn-header-actions {
+        width: 100%;
+        margin-top: 18px;
+    }
+
+        .grn-header-actions .grn-primary-btn {
+            width: 100%;
+        }
+
+    .grn-content-card {
+        padding: 16px;
+    }
+
+    .grn-page-title {
+        font-size: 1.2rem;
+    }
+
+    .grn-summary-card {
+        padding: 16px;
+    }
+
+    }
+</style>
+
+<div class="container-fluid grn-page text-start">
+    <div class="container-fluid px-0">
+
+        <!-- Page Header -->
+        <div class="grn-header-card mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center">
+                        <div class="grn-icon-box me-3">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+
+                        <div>
+                            <h4 class="grn-page-title">
+                                Goods Receipt Note (GRN - Inward)
+                            </h4>
+
+                            <p class="grn-page-subtitle">
+                                Record and monitor incoming goods received from suppliers.
+                            </p>
+
+                            <nav aria-label="breadcrumb" class="mt-2">
+                                <ol class="breadcrumb grn-breadcrumb">
+                                    <li class="breadcrumb-item">
+                                        <a href="/InventoryDashboard">Inventory Dashboard</a>
+                                    </li>
+                                    <li class="breadcrumb-item active" aria-current="page">
+                                        GRN Inwards
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="d-flex justify-content-lg-end grn-header-actions">
+                        <button type="button"
+                                class="btn grn-primary-btn"
+                                data-bs-toggle="modal"
+                                data-bs-target="#grnModal">
+                            <i class="fa-solid fa-plus me-2"></i>
+                            Log GRN Entry
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        @{
+            var totalGrns = Model != null ? Model.Count() : 0;
+            var completedGrns = Model != null
+            ? Model.Count(g => g.Status == "Completed")
+            : 0;
+            var pendingGrns = Model != null
+            ? Model.Count(g => g.Status != "Completed")
+            : 0;
+        }
+
+        <div class="row g-4 mb-4">
+            <div class="col-xl-4 col-md-4">
+                <div class="grn-summary-card">
+                    <div class="d-flex align-items-center">
+                        <div class="grn-summary-icon blue me-3">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </div>
+
+                        <div>
+                            <p class="grn-summary-label">Total GRN Entries</p>
+                            <h5 class="grn-summary-value">@totalGrns</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4">
+                <div class="grn-summary-card">
+                    <div class="d-flex align-items-center">
+                        <div class="grn-summary-icon green me-3">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+
+                        <div>
+                            <p class="grn-summary-label">Completed GRNs</p>
+                            <h5 class="grn-summary-value">@completedGrns</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4">
+                <div class="grn-summary-card">
+                    <div class="d-flex align-items-center">
+                        <div class="grn-summary-icon orange me-3">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+
+                        <div>
+                            <p class="grn-summary-label">Pending Verification</p>
+                            <h5 class="grn-summary-value">@pendingGrns</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRN List -->
+        <div class="grn-content-card">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+                <div>
+                    <h5 class="grn-section-title">Inward Transactions</h5>
+                    <p class="grn-section-subtitle">
+                        View all goods receipt notes recorded in the inventory system.
+                    </p>
+                </div>
+
+                <div class="mt-3 mt-md-0">
+                    <span class="badge rounded-pill bg-light text-secondary px-3 py-2">
+                        <i class="fa-solid fa-list-check me-1"></i>
+                        @totalGrns Records
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive grn-table-wrapper">
+                <table class="table grn-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>GRN Number</th>
+                            <th>Supplier</th>
+                            <th>Received Date</th>
+                            <th>Received By</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var g in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="grn-number">
+                                            @g.GrnNo
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        @g.SupplierName
+                                    </td>
+
+                                    <td class="grn-muted">
+                                        @g.ReceivedDate.ToString("dd MMM yyyy")
+                                    </td>
+
+                                    <td>
+                                        @g.ReceivedBy
+                                    </td>
+
+                                    <td>
+                                        @if (g.Status == "Completed")
+                                        {
+                                            <span class="grn-status completed">
+                                                Completed
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="grn-status pending">
+                                                Pending verification
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@g.GrnNo</td>
-                                <td>@g.SupplierName</td>
-                                <td class="text-muted">@g.ReceivedDate.ToString("dd MMM yyyy")</td>
-                                <td>@g.ReceivedBy</td>
-                                <td>
-                                    @if (g.Status == "Completed")
-                                    {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Completed</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Pending verification</span>
-                                    }
+                                <td colspan="5" class="grn-empty-state">
+                                    <div class="grn-empty-icon">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </div>
+
+                                    <div class="fw-semibold text-dark mb-1">
+                                        No GRN transactions found
+                                    </div>
+
+                                    <div class="small">
+                                        No goods receipt notes have been logged yet.
+                                    </div>
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">No GRN transactions logged.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- GRN Modal -->
-<div class="modal fade text-start" id="grnModal" tabindex="-1" aria-labelledby="grnModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade grn-modal text-start"
+     id="grnModal"
+     tabindex="-1"
+     aria-labelledby="grnModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form action="/InvWarehouse/CreateGrn" method="post">
                 @Html.AntiForgeryToken()
+
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="grnModalLabel">Log Goods Receipt (GRN)</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-1" id="grnModalLabel">
+                            <i class="fa-solid fa-receipt text-primary me-2"></i>
+                            Log Goods Receipt (GRN)
+                        </h5>
+
+                        <small class="text-muted">
+                            Enter the supplier and receiving staff details.
+                        </small>
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                 </div>
+
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Supplier Name</label>
-                        <input type="text" name="SupplierName" class="form-control" placeholder="e.g. Global Electronics Ltd" required />
+                        <label class="form-label">
+                            Supplier Name
+                        </label>
+
+                        <input type="text"
+                               name="SupplierName"
+                               class="form-control"
+                               placeholder="e.g. Global Electronics Ltd"
+                               required />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Received By (Auditor / Staff)</label>
-                        <input type="text" name="ReceivedBy" class="form-control" placeholder="e.g. Numan Sales Man" required />
+
+                    <div class="mb-0">
+                        <label class="form-label">
+                            Received By (Auditor / Staff)
+                        </label>
+
+                        <input type="text"
+                               name="ReceivedBy"
+                               class="form-control"
+                               placeholder="e.g. Numan Sales Man"
+                               required />
                     </div>
                 </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Receive Goods</button>
+                    <button type="button"
+                            class="btn grn-secondary-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn grn-primary-btn">
+                        <i class="fa-solid fa-check me-2"></i>
+                        Receive Goods
+                    </button>
                 </div>
             </form>
         </div>

@@ -104,6 +104,10 @@ namespace ERP_System.Data
         public DbSet<AppraisalCycle> AppraisalCycles { get; set; }
         public DbSet<EmployeeAppraisal> EmployeeAppraisals { get; set; }
 
+        // Auditor Command Center DbSets
+        public DbSet<SystemAuditTrail> SystemAuditTrails { get; set; }
+        public DbSet<AuditFlaggedItem> AuditFlaggedItems { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
