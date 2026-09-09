@@ -13,7 +13,7 @@ using System.Security.Claims;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,Manager,Finance Manager")]
+    [Authorize(Roles = "Manager,Finance Manager,Sales Manager,Inventory Manager,Admin,Super Admin")]
     public class ManagerController : Controller
     {
         private readonly ApplicationDbContext _context;
