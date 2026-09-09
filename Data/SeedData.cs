@@ -127,18 +127,39 @@ namespace ERP_System.Data
 
         public static async Task InitializeSalesManagementTablesAsync(ApplicationDbContext context)
         {
-            // Ensure erp_Leads table exists
+            // Ensure erp_Leads table exists & has all columns
             string createLeadsSql = @"
                 IF OBJECT_ID('AITStudent.erp_Leads', 'U') IS NULL
                 BEGIN
                     CREATE TABLE AITStudent.erp_Leads (
-                        LeadId INT IDENTITY(1,1) PRIMARY KEY,
-                        ContactName NVARCHAR(100) NOT NULL,
-                        Company NVARCHAR(100) NOT NULL,
-                        Source NVARCHAR(100) NOT NULL,
-                        CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
-                        Status NVARCHAR(50) NOT NULL DEFAULT 'New'
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        ClientName NVARCHAR(100) NOT NULL DEFAULT '',
+                        CompanyName NVARCHAR(100) NOT NULL DEFAULT '',
+                        Email NVARCHAR(100) NULL,
+                        Phone NVARCHAR(50) NULL,
+                        Source NVARCHAR(100) NOT NULL DEFAULT 'Inbound',
+                        EstimatedValue DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Stage NVARCHAR(50) NOT NULL DEFAULT 'New',
+                        AssignedExecutiveId NVARCHAR(50) NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
                     );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Leads') AND name = 'ClientName')
+                        ALTER TABLE AITStudent.erp_Leads ADD ClientName NVARCHAR(100) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Leads') AND name = 'CompanyName')
+                        ALTER TABLE AITStudent.erp_Leads ADD CompanyName NVARCHAR(100) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Leads') AND name = 'Email')
+                        ALTER TABLE AITStudent.erp_Leads ADD Email NVARCHAR(100) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Leads') AND name = 'Phone')
+                        ALTER TABLE AITStudent.erp_Leads ADD Phone NVARCHAR(50) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Leads') AND name = 'EstimatedValue')
+                        ALTER TABLE AITStudent.erp_Leads ADD EstimatedValue DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Leads') AND name = 'Stage')
+                        ALTER TABLE AITStudent.erp_Leads ADD Stage NVARCHAR(50) NOT NULL DEFAULT 'New';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Leads') AND name = 'AssignedExecutiveId')
+                        ALTER TABLE AITStudent.erp_Leads ADD AssignedExecutiveId NVARCHAR(50) NULL;
                 END";
 
             // Ensure erp_Quotations table exists
@@ -155,17 +176,46 @@ namespace ERP_System.Data
                     );
                 END";
 
-            // Ensure erp_SalesOrders table exists
+            // Ensure erp_SalesOrders table exists & has all columns
             string createOrdersSql = @"
                 IF OBJECT_ID('AITStudent.erp_SalesOrders', 'U') IS NULL
                 BEGIN
                     CREATE TABLE AITStudent.erp_SalesOrders (
-                        SalesOrderId INT IDENTITY(1,1) PRIMARY KEY,
-                        OrderNo NVARCHAR(50) NOT NULL,
-                        CustomerName NVARCHAR(100) NOT NULL,
-                        OrderDate DATETIME NOT NULL,
-                        OrderTotal DECIMAL(18,2) NOT NULL,
-                        DeliveryStatus NVARCHAR(50) NOT NULL DEFAULT 'Processing'
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        OrderNumber NVARCHAR(50) NOT NULL DEFAULT '',
+                        CustomerName NVARCHAR(100) NOT NULL DEFAULT '',
+                        TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Confirmed',
+                        CreatedByUserId NVARCHAR(50) NULL,
+                        OrderDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        PaymentTerms NVARCHAR(50) NOT NULL DEFAULT 'Net 30'
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesOrders') AND name = 'OrderNumber')
+                        ALTER TABLE AITStudent.erp_SalesOrders ADD OrderNumber NVARCHAR(50) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesOrders') AND name = 'TotalAmount')
+                        ALTER TABLE AITStudent.erp_SalesOrders ADD TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesOrders') AND name = 'Status')
+                        ALTER TABLE AITStudent.erp_SalesOrders ADD Status NVARCHAR(50) NOT NULL DEFAULT 'Confirmed';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesOrders') AND name = 'CreatedByUserId')
+                        ALTER TABLE AITStudent.erp_SalesOrders ADD CreatedByUserId NVARCHAR(50) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesOrders') AND name = 'PaymentTerms')
+                        ALTER TABLE AITStudent.erp_SalesOrders ADD PaymentTerms NVARCHAR(50) NOT NULL DEFAULT 'Net 30';
+                END";
+
+            // Ensure erp_SalesTargets table exists
+            string createTargetsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesTargets', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesTargets (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        ExecutiveUserId NVARCHAR(50) NULL,
+                        Month INT NOT NULL DEFAULT 9,
+                        Year INT NOT NULL DEFAULT 2026,
+                        TargetAmount DECIMAL(18,2) NOT NULL DEFAULT 500000,
+                        AchievedAmount DECIMAL(18,2) NOT NULL DEFAULT 0
                     );
                 END";
 
@@ -203,6 +253,7 @@ namespace ERP_System.Data
             await context.Database.ExecuteSqlRawAsync(createLeadsSql);
             await context.Database.ExecuteSqlRawAsync(createQuotationsSql);
             await context.Database.ExecuteSqlRawAsync(createOrdersSql);
+            await context.Database.ExecuteSqlRawAsync(createTargetsSql);
             await context.Database.ExecuteSqlRawAsync(createReturnsSql);
             await context.Database.ExecuteSqlRawAsync(createReceiptsSql);
 
@@ -211,20 +262,11 @@ namespace ERP_System.Data
             {
                 await context.Leads.AddRangeAsync(new List<Lead>
                 {
-                    new Lead { ContactName = "Rajesh Kumar", Company = "Rajesh Corp Ltd", Source = "Website Referral", CreatedAt = DateTime.Parse("2026-08-20"), Status = "New" },
-                    new Lead { ContactName = "Sarah Jenkins", Company = "Jenkins Q2 Auditing", Source = "Cold Email", CreatedAt = DateTime.Parse("2026-08-19"), Status = "Contacted" },
-                    new Lead { ContactName = "Sunil Mehta", Company = "Mehta Logistics", Source = "Direct Call", CreatedAt = DateTime.Parse("2026-08-18"), Status = "Qualified" },
-                    new Lead { ContactName = "Vikram Singh", Company = "Singh & Sons", Source = "LinkedIn", CreatedAt = DateTime.Parse("2026-08-15"), Status = "Lost" }
-                });
-            }
-
-            if (!await context.Quotations.AnyAsync())
-            {
-                await context.Quotations.AddRangeAsync(new List<Quotation>
-                {
-                    new Quotation { QuoteNo = "QTN-5011", CustomerName = "Rajesh Corp Ltd", ExpiryDate = DateTime.Parse("2026-08-30"), EstimatedAmount = 150000, Status = "Approved" },
-                    new Quotation { QuoteNo = "QTN-5012", CustomerName = "Mehta Logistics", ExpiryDate = DateTime.Parse("2026-09-15"), EstimatedAmount = 320000, Status = "Sent" },
-                    new Quotation { QuoteNo = "QTN-5013", CustomerName = "Global Agencies Ltd", ExpiryDate = DateTime.Parse("2026-08-25"), EstimatedAmount = 75000, Status = "Draft" }
+                    new Lead { ClientName = "Rajesh Kumar", CompanyName = "Rajesh Corp Ltd", Email = "rajesh@corp.in", Phone = "+91 98765 43210", EstimatedValue = 450000m, Stage = "Proposal", Source = "Website Referral", CreatedAt = DateTime.UtcNow.AddDays(-2) },
+                    new Lead { ClientName = "Sarah Jenkins", CompanyName = "Jenkins Auditing", Email = "sarah@jenkins.com", Phone = "+91 98234 56789", EstimatedValue = 280000m, Stage = "Negotiation", Source = "Cold Email", CreatedAt = DateTime.UtcNow.AddDays(-5) },
+                    new Lead { ClientName = "Sunil Mehta", CompanyName = "Mehta Logistics", Email = "sunil@mehtalogistics.in", Phone = "+91 94567 89012", EstimatedValue = 850000m, Stage = "Won", Source = "Direct Call", CreatedAt = DateTime.UtcNow.AddDays(-8) },
+                    new Lead { ClientName = "Vikram Singh", CompanyName = "Singh & Sons Industries", Email = "vikram@singhsons.com", Phone = "+91 91234 56780", EstimatedValue = 320000m, Stage = "Contacted", Source = "LinkedIn", CreatedAt = DateTime.UtcNow.AddDays(-10) },
+                    new Lead { ClientName = "Amitabh Sharma", CompanyName = "Sharma Global Trade", Email = "asharma@sharmatrade.com", Phone = "+91 98901 23456", EstimatedValue = 600000m, Stage = "New", Source = "Trade Expo", CreatedAt = DateTime.UtcNow.AddDays(-1) }
                 });
             }
 
@@ -232,26 +274,10 @@ namespace ERP_System.Data
             {
                 await context.SalesOrders.AddRangeAsync(new List<SalesOrder>
                 {
-                    new SalesOrder { OrderNo = "SO-9041", CustomerName = "Rahul Enterprises", OrderDate = DateTime.Parse("2026-08-18"), OrderTotal = 180000, DeliveryStatus = "Dispatched" },
-                    new SalesOrder { OrderNo = "SO-9042", CustomerName = "Sunil Mehta", OrderDate = DateTime.Parse("2026-08-19"), OrderTotal = 425000, DeliveryStatus = "Processing" }
-                });
-            }
-
-            if (!await context.SalesReturns.AnyAsync())
-            {
-                await context.SalesReturns.AddRangeAsync(new List<SalesReturn>
-                {
-                    new SalesReturn { ReturnNo = "SR-7001", OriginalInvoiceNo = "INV-10022", CustomerName = "Rahul Enterprises", ReturnDate = DateTime.Parse("2026-08-15"), RefundValue = 12500, Status = "Refunded" },
-                    new SalesReturn { ReturnNo = "SR-7002", OriginalInvoiceNo = "INV-10034", CustomerName = "Mehta Logistics", ReturnDate = DateTime.Parse("2026-08-18"), RefundValue = 25000, Status = "Inspecting" }
-                });
-            }
-
-            if (!await context.PaymentReceipts.AnyAsync())
-            {
-                await context.PaymentReceipts.AddRangeAsync(new List<PaymentReceipt>
-                {
-                    new PaymentReceipt { InvoiceNo = "INV-10041", CustomerName = "Rajesh Corp Ltd", InvoiceDate = DateTime.Parse("2026-08-10"), DueDate = DateTime.Parse("2026-08-25"), PendingBalance = 75000, Status = "Pending" },
-                    new PaymentReceipt { InvoiceNo = "INV-10042", CustomerName = "Mehta Logistics", InvoiceDate = DateTime.Parse("2026-08-05"), DueDate = DateTime.Parse("2026-08-20"), PendingBalance = 55250, Status = "Overdue" }
+                    new SalesOrder { OrderNumber = "SO-2026-0412", CustomerName = "Rahul Enterprises", TotalAmount = 380000m, Status = "Confirmed", OrderDate = DateTime.Today.AddDays(-2), PaymentTerms = "Net 30" },
+                    new SalesOrder { OrderNumber = "SO-2026-0411", CustomerName = "Mehta Logistics", TotalAmount = 425000m, Status = "Invoiced", OrderDate = DateTime.Today.AddDays(-5), PaymentTerms = "Immediate" },
+                    new SalesOrder { OrderNumber = "SO-2026-0410", CustomerName = "Apex Industrial Supply", TotalAmount = 215000m, Status = "Confirmed", OrderDate = DateTime.Today.AddDays(-8), PaymentTerms = "Net 30" },
+                    new SalesOrder { OrderNumber = "SO-2026-0409", CustomerName = "TechCorp Solutions", TotalAmount = 540000m, Status = "Invoiced", OrderDate = DateTime.Today.AddDays(-12), PaymentTerms = "Net 60" }
                 });
             }
 
@@ -541,6 +567,78 @@ namespace ERP_System.Data
                     END
                 END";
             await context.Database.ExecuteSqlRawAsync(alterESSTasksSql);
+
+            // Ensure Sales Manager Suite tables exist
+            string createSalesTablesSql = @"
+                IF OBJECT_ID('AITStudent.erp_Leads', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_Leads (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        ClientName NVARCHAR(250) NOT NULL,
+                        CompanyName NVARCHAR(250) NOT NULL,
+                        Email NVARCHAR(150) NOT NULL,
+                        Phone NVARCHAR(50) NOT NULL,
+                        Source NVARCHAR(100) NOT NULL DEFAULT 'Inbound',
+                        EstimatedValue DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                        Stage NVARCHAR(50) NOT NULL DEFAULT 'New',
+                        AssignedExecutiveId INT NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_SalesOrders', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesOrders (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        OrderNumber NVARCHAR(100) NOT NULL,
+                        CustomerName NVARCHAR(250) NOT NULL,
+                        TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Confirmed',
+                        CreatedByUserId INT NULL,
+                        OrderDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        PaymentTerms NVARCHAR(100) NOT NULL DEFAULT 'Net 30'
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_SalesTargets', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesTargets (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        ExecutiveUserId INT NULL,
+                        Month INT NOT NULL,
+                        Year INT NOT NULL,
+                        TargetAmount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                        AchievedAmount DECIMAL(18,2) NOT NULL DEFAULT 0.00
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.erp_HierarchicalTasks', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_HierarchicalTasks (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        Title NVARCHAR(250) NOT NULL,
+                        Description NVARCHAR(MAX) NOT NULL,
+                        DepartmentId INT NULL,
+                        TaskType NVARCHAR(100) NOT NULL DEFAULT 'MANAGER_TO_EMPLOYEE',
+                        AssignedByUserId NVARCHAR(150) NULL,
+                        AssignedToUserId NVARCHAR(150) NULL,
+                        Priority NVARCHAR(50) NOT NULL DEFAULT 'Medium',
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending',
+                        ProgressPercentage INT NOT NULL DEFAULT 0,
+                        DueDate DATETIME NOT NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'DepartmentId')
+                        ALTER TABLE AITStudent.erp_HierarchicalTasks ADD DepartmentId INT NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'TaskType')
+                        ALTER TABLE AITStudent.erp_HierarchicalTasks ADD TaskType NVARCHAR(100) NOT NULL DEFAULT 'MANAGER_TO_EMPLOYEE';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'ProgressPercentage')
+                        ALTER TABLE AITStudent.erp_HierarchicalTasks ADD ProgressPercentage INT NOT NULL DEFAULT 0;
+                END";
+            await context.Database.ExecuteSqlRawAsync(createSalesTablesSql);
 
             // Seed initial records if empty
             if (!await context.ESSPunches.AnyAsync())

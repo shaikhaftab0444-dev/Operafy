@@ -77,6 +77,9 @@ namespace ERP_System.Data
         public DbSet<ESSLeaveApplication> LeaveRequests { get { return ESSLeaveApplications; } set { ESSLeaveApplications = value; } }
         public DbSet<HRAttendanceRegularization> AttendanceRegularizations { get { return HRAttendanceRegularizations; } set { HRAttendanceRegularizations = value; } }
         public DbSet<ESSExpenseClaim> ExpenseClaims { get { return ESSExpenseClaims; } set { ESSExpenseClaims = value; } }
+        public DbSet<HRAttendanceLog> AttendanceLogs { get { return HRAttendanceLogs; } set { HRAttendanceLogs = value; } }
+        public DbSet<SalesTarget> SalesTargets { get; set; }
+        public DbSet<HierarchicalTask> HierarchicalTasks { get; set; }
         public DbSet<DepartmentTask> DepartmentTasks { get; set; }
         public DbSet<WorkShift> WorkShifts { get; set; }
 
@@ -173,7 +176,22 @@ namespace ERP_System.Data
             modelBuilder.Entity<KeyResult>().ToTable("erp_KeyResults");
             modelBuilder.Entity<KpiItem>().ToTable("erp_Kpis");
             modelBuilder.Entity<AppraisalCycle>().ToTable("erp_AppraisalCycles");
-            modelBuilder.Entity<EmployeeAppraisal>().ToTable("erp_EmployeeAppraisals");
+            modelBuilder.Entity<Lead>(entity =>
+            {
+                entity.ToTable("erp_Leads");
+                entity.HasKey(e => e.LeadId);
+                entity.Property(e => e.LeadId).HasColumnName("LeadId");
+            });
+
+            modelBuilder.Entity<SalesOrder>(entity =>
+            {
+                entity.ToTable("erp_SalesOrders");
+                entity.HasKey(e => e.SalesOrderId);
+                entity.Property(e => e.SalesOrderId).HasColumnName("SalesOrderId");
+            });
+
+            modelBuilder.Entity<SalesTarget>().ToTable("erp_SalesTargets");
+            modelBuilder.Entity<HierarchicalTask>().ToTable("erp_HierarchicalTasks");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

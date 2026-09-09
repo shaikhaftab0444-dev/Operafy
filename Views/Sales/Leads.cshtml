@@ -1,0 +1,239 @@
+@model List<ERP_System.Models.Lead>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "CRM & Opportunity Pipeline";
+    var executives = ViewBag.Executives as List<ERP_System.Models.User> ?? new List<ERP_System.Models.User>();
+}
+
+<style>
+    .sales-table-card {
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid var(--border-warm, #e2e8f0);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+    }
+    .stage-pill {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.35rem 0.65rem;
+        border-radius: 20px;
+    }
+    .stage-New { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+    .stage-Contacted { background: rgba(6, 182, 212, 0.12); color: #0891b2; }
+    .stage-Proposal { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
+    .stage-Negotiation { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+    .stage-Won { background: rgba(16, 185, 129, 0.12); color: #059669; }
+    .stage-Lost { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+</style>
+
+<div class="container-fluid py-3 px-3 px-md-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <div class="text-muted small mb-1">
+                <a href="@Url.Action("Index", "Sales")" class="text-decoration-none text-muted">Sales Command</a> / <span>CRM & Pipeline</span>
+            </div>
+            <h4 class="fw-bold mb-0 text-dark">
+                <i class="fa-solid fa-funnel-dollar text-primary me-2"></i>CRM & Opportunity Pipeline
+            </h4>
+        </div>
+        <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+            <i class="fa-solid fa-plus me-1.5"></i> Register New Lead
+        </button>
+    </div>
+
+    <div class="sales-table-card">
+        <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3 bg-light-subtle">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-filter text-muted"></i>
+                <span class="fw-bold small text-secondary">Total Deals in Funnel:</span>
+                <span class="badge bg-primary rounded-pill">@Model.Count</span>
+            </div>
+            <div>
+                <input type="text" id="leadSearchInput" class="form-control form-control-sm" placeholder="Search client, company..." onkeyup="filterLeads()" style="min-width: 250px;" />
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="leadsTable">
+                <thead class="table-light">
+                    <tr class="small text-uppercase text-muted">
+                        <th>Client / Contact</th>
+                        <th>Company</th>
+                        <th>Contact Info</th>
+                        <th>Estimated Value</th>
+                        <th>Stage</th>
+                        <th>Assigned Executive</th>
+                        <th>Created</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fa-regular fa-folder-open fs-2 d-block mb-2"></i>
+                                No leads currently in pipeline.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var lead in Model)
+                        {
+                            <tr class="lead-row">
+                                <td>
+                                    <div class="fw-bold text-dark lead-name">@lead.ClientName</div>
+                                    <span class="text-muted extra-small">Lead ID: #@lead.Id</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-secondary lead-company">@lead.CompanyName</span>
+                                </td>
+                                <td>
+                                    <div class="small"><i class="fa-regular fa-envelope me-1 text-muted"></i>@(string.IsNullOrEmpty(lead.Email) ? "N/A" : lead.Email)</div>
+                                    <div class="small text-muted"><i class="fa-solid fa-phone me-1 text-muted"></i>@(string.IsNullOrEmpty(lead.Phone) ? "N/A" : lead.Phone)</div>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-dark">₹ @lead.EstimatedValue.ToString("N2")</span>
+                                </td>
+                                <td>
+                                    <span class="stage-pill stage-@lead.Stage">@lead.Stage</span>
+                                </td>
+                                <td>
+                                    <span class="small text-dark">
+                                        <i class="fa-regular fa-user me-1 text-primary"></i>@(lead.AssignedExecutive?.FullName ?? "Unassigned")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-muted small">@lead.CreatedAt.ToString("dd MMM yyyy")</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light border-0" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                            <li><h6 class="dropdown-header">Update Stage</h6></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="updateStage(@lead.Id, 'Contacted')">Contacted</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="updateStage(@lead.Id, 'Proposal')">Proposal</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="updateStage(@lead.Id, 'Negotiation')">Negotiation</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-success fw-bold" href="javascript:void(0);" onclick="updateStage(@lead.Id, 'Won')"><i class="fa-solid fa-check me-1"></i> Won</a></li>
+                                            <li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="updateStage(@lead.Id, 'Lost')"><i class="fa-solid fa-xmark me-1"></i> Lost</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ADD NEW LEAD -->
+<div class="modal fade" id="newLeadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-dark text-white px-4 py-3">
+                <h6 class="modal-title fw-bold">Register New Pipeline Opportunity</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="@Url.Action("CreateLead", "Sales")" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Client Name <span class="text-danger">*</span></label>
+                            <input type="text" name="ClientName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Company Name <span class="text-danger">*</span></label>
+                            <input type="text" name="CompanyName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Email</label>
+                            <input type="email" name="Email" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Phone</label>
+                            <input type="text" name="Phone" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Estimated Deal Value (₹) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="EstimatedValue" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Stage</label>
+                            <select name="Stage" class="form-select">
+                                <option value="New">New</option>
+                                <option value="Contacted">Contacted</option>
+                                <option value="Proposal">Proposal</option>
+                                <option value="Negotiation">Negotiation</option>
+                                <option value="Won">Won</option>
+                                <option value="Lost">Lost</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold">Assign Executive</label>
+                            <select name="AssignedExecutiveId" class="form-select">
+                                <option value="">-- Unassigned --</option>
+                                @foreach (var exec in executives)
+                                {
+                                    <option value="@exec.UserId">@exec.FullName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-2.5">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold">Save Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterLeads() {
+        const query = document.getElementById("leadSearchInput").value.toLowerCase();
+        document.querySelectorAll(".lead-row").forEach(row => {
+            const name = row.querySelector(".lead-name").innerText.toLowerCase();
+            const company = row.querySelector(".lead-company").innerText.toLowerCase();
+            row.style.display = (name.includes(query) || company.includes(query)) ? "" : "none";
+        });
+    }
+
+    async function updateStage(leadId, stageName) {
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const params = new URLSearchParams();
+            params.append('id', leadId);
+            params.append('stage', stageName);
+
+            const res = await fetch('/Sales/UpdateLeadStage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: params.toString()
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                if (typeof toastr !== 'undefined') toastr.success(data.message);
+                setTimeout(() => location.reload(), 500);
+            } else {
+                alert(data.message);
+            }
+        } catch (e) {
+            alert("Error updating stage.");
+        }
+    }
+</script>

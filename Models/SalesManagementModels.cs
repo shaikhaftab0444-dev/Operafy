@@ -4,30 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ERP_System.Models
 {
-    [Table("erp_Leads")]
-    public class Lead
-    {
-        [Key]
-        public int LeadId { get; set; }
 
-        [Required]
-        [StringLength(100)]
-        public string ContactName { get; set; } = string.Empty;
-
-        [Required]
-        [StringLength(100)]
-        public string Company { get; set; } = string.Empty;
-
-        [Required]
-        [StringLength(100)]
-        public string Source { get; set; } = string.Empty;
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        [Required]
-        [StringLength(50)]
-        public string Status { get; set; } = "New"; // New, Contacted, Qualified, Lost
-    }
 
     [Table("erp_Quotations")]
     public class Quotation
@@ -51,30 +28,6 @@ namespace ERP_System.Models
         [Required]
         [StringLength(50)]
         public string Status { get; set; } = "Draft"; // Draft, Sent, Approved
-    }
-
-    [Table("erp_SalesOrders")]
-    public class SalesOrder
-    {
-        [Key]
-        public int SalesOrderId { get; set; }
-
-        [Required]
-        [StringLength(50)]
-        public string OrderNo { get; set; } = string.Empty;
-
-        [Required]
-        [StringLength(100)]
-        public string CustomerName { get; set; } = string.Empty;
-
-        public DateTime OrderDate { get; set; }
-
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal OrderTotal { get; set; }
-
-        [Required]
-        [StringLength(50)]
-        public string DeliveryStatus { get; set; } = "Processing"; // Processing, Dispatched, Delivered
     }
 
     [Table("erp_SalesReturns")]
