@@ -1,152 +1,1185 @@
 @model List<ERP_System.Models.AuditFlaggedItem>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Financial Voucher Verification";
+
     var inCulture = new System.Globalization.CultureInfo("en-IN");
+
+    var totalVouchers = Model?.Count ?? 0;
+    var pendingVouchers = Model?.Count(x => x.Status == "Pending Review") ?? 0;
+    var clearedVouchers = Model?.Count(x => x.Status == "Cleared") ?? 0;
+    var escalatedVouchers = Model?.Count(x => x.Status == "Escalated") ?? 0;
 }
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-    <div>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-1 small">
-                <li class="breadcrumb-item"><a href="@Url.Action("Index", "Auditor")" class="text-decoration-none">Auditor Center</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Financial Vouchers</li>
-            </ol>
-        </nav>
-        <h4 class="fw-bold mb-0 text-dark">
-            <i class="fa fa-file-invoice-dollar text-success me-2"></i>Financial Voucher Verification & Discrepancies
-        </h4>
-        <p class="text-muted small mb-0">Finance module ledger reconciliations, invoice cap checks, and payment release approvals.</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="@Url.Action("Index", "Auditor")" class="btn btn-outline-secondary btn-sm px-3">
-            <i class="fa fa-arrow-left me-1"></i> Back to Dashboard
-        </a>
+<style>
+    .voucher-page {
+        background: #f7f9fc;
+        min-height: calc(100vh - 70px);
+        padding: 28px 0;
+    }
+
+    .voucher-header-card,
+    .voucher-summary-card,
+    .voucher-filter-card,
+    .voucher-content-card {
+        background: #ffffff;
+        border: 1px solid #e9eef5;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(30, 55, 90, 0.05);
+    }
+
+    /* ================================
+           PAGE HEADER
+           ================================ */
+
+    .voucher-header-card {
+        padding: 26px 28px;
+    }
+
+    .voucher-icon-box {
+        width: 52px;
+        height: 52px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #eaf8ef;
+        color: #16a34a;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .voucher-page-title {
+        color: #172b4d;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .voucher-page-subtitle {
+        color: #7b8798;
+        font-size: 0.88rem;
+        margin-bottom: 0;
+        line-height: 1.5;
+    }
+
+    .voucher-breadcrumb {
+        margin-bottom: 0;
+        padding: 0;
+        background: transparent;
+    }
+
+        .voucher-breadcrumb .breadcrumb-item {
+            color: #8a94a6;
+            font-size: 0.78rem;
+        }
+
+            .voucher-breadcrumb .breadcrumb-item a {
+                color: #2563eb;
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+            .voucher-breadcrumb .breadcrumb-item.active {
+                color: #8a94a6;
+            }
+
+    .voucher-back-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid #dfe5ec;
+        background: #ffffff;
+        color: #667085;
+        border-radius: 10px;
+        padding: 11px 17px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+        .voucher-back-btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #344054;
+            transform: translateY(-1px);
+        }
+
+    /* ================================
+           SUMMARY CARDS
+           ================================ */
+
+    .voucher-summary-card {
+        height: 100%;
+        padding: 20px;
+        transition: all 0.2s ease;
+    }
+
+        .voucher-summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(30, 55, 90, 0.07);
+        }
+
+    .voucher-summary-icon {
+        width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+        .voucher-summary-icon.blue {
+            background: #eaf2ff;
+            color: #2563eb;
+        }
+
+        .voucher-summary-icon.orange {
+            background: #fff4df;
+            color: #d97706;
+        }
+
+        .voucher-summary-icon.green {
+            background: #e9f8ef;
+            color: #16a34a;
+        }
+
+        .voucher-summary-icon.red {
+            background: #ffeded;
+            color: #dc2626;
+        }
+
+    .voucher-summary-label {
+        color: #8a94a6;
+        font-size: 0.78rem;
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+
+    .voucher-summary-value {
+        color: #172b4d;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .voucher-summary-description {
+        color: #98a2b3;
+        font-size: 0.76rem;
+        margin-top: 14px;
+        margin-bottom: 0;
+    }
+
+    /* ================================
+           FILTER / INFO CARD
+           ================================ */
+
+    .voucher-filter-card {
+        padding: 20px;
+    }
+
+    .voucher-filter-title {
+        color: #172b4d;
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .voucher-filter-subtitle {
+        color: #8a94a6;
+        font-size: 0.76rem;
+        margin-bottom: 0;
+        line-height: 1.5;
+    }
+
+    .voucher-audit-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #f8fafc;
+        border: 1px solid #e6ebf1;
+        border-radius: 10px;
+        padding: 9px 13px;
+        color: #667085;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+        .voucher-audit-note i {
+            color: #2563eb;
+        }
+
+    /* ================================
+           MAIN CONTENT CARD
+           ================================ */
+
+    .voucher-content-card {
+        overflow: hidden;
+    }
+
+    .voucher-card-header {
+        padding: 24px 28px;
+        border-bottom: 1px solid #edf0f5;
+    }
+
+    .voucher-section-title {
+        color: #172b4d;
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .voucher-section-subtitle {
+        color: #8a94a6;
+        font-size: 0.8rem;
+        margin-bottom: 0;
+        line-height: 1.5;
+    }
+
+    .voucher-record-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #eaf2ff;
+        color: #2563eb;
+        border-radius: 30px;
+        padding: 8px 13px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    /* ================================
+           TABLE
+           ================================ */
+
+    .voucher-table-wrapper {
+        border: 1px solid #edf0f5;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .voucher-table {
+        min-width: 1250px;
+        margin-bottom: 0;
+    }
+
+        .voucher-table thead th {
+            background: #f8fafc;
+            color: #667085;
+            border-bottom: 1px solid #e8edf3;
+            font-size: 0.73rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            padding: 15px 16px;
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
+        .voucher-table tbody td {
+            color: #475467;
+            border-bottom: 1px solid #f0f2f6;
+            font-size: 0.8rem;
+            padding: 16px;
+            vertical-align: middle;
+        }
+
+        .voucher-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .voucher-table tbody tr:hover {
+            background: #fbfdff;
+        }
+
+    .voucher-flag-id {
+        color: #8a94a6;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .voucher-reference {
+        color: #172b4d;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .voucher-description {
+        color: #667085;
+        line-height: 1.5;
+        max-width: 250px;
+    }
+
+    .voucher-amount {
+        color: #dc2626;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .voucher-date {
+        color: #8a94a6;
+        font-size: 0.76rem;
+        white-space: nowrap;
+    }
+
+    /* ================================
+           RISK BADGES
+           ================================ */
+
+    .voucher-risk,
+    .voucher-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 30px;
+        padding: 7px 11px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .voucher-risk::before,
+        .voucher-status::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .voucher-risk.high {
+            background: #ffeded;
+            color: #c62828;
+        }
+
+            .voucher-risk.high::before {
+                background: #ef4444;
+            }
+
+        .voucher-risk.medium {
+            background: #fff4df;
+            color: #b76b00;
+        }
+
+            .voucher-risk.medium::before {
+                background: #f59e0b;
+            }
+
+        .voucher-risk.low {
+            background: #eaf2ff;
+            color: #2563eb;
+        }
+
+            .voucher-risk.low::before {
+                background: #3b82f6;
+            }
+
+        /* ================================
+           STATUS BADGES
+           ================================ */
+
+        .voucher-status.cleared {
+            background: #e9f8ef;
+            color: #16803c;
+        }
+
+            .voucher-status.cleared::before {
+                background: #22c55e;
+            }
+
+        .voucher-status.escalated {
+            background: #ffeded;
+            color: #c62828;
+        }
+
+            .voucher-status.escalated::before {
+                background: #ef4444;
+            }
+
+        .voucher-status.pending {
+            background: #fff4df;
+            color: #b76b00;
+        }
+
+            .voucher-status.pending::before {
+                background: #f59e0b;
+            }
+
+    /* ================================
+           ACTION BUTTONS
+           ================================ */
+
+    .voucher-action-btn {
+        border-radius: 9px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 7px 11px;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+
+    .voucher-pass-btn {
+        background: #16a34a;
+        border: 1px solid #16a34a;
+        color: #ffffff;
+    }
+
+        .voucher-pass-btn:hover {
+            background: #15803d;
+            border-color: #15803d;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+    .voucher-escalate-btn {
+        background: #ffffff;
+        border: 1px solid #efb2b2;
+        color: #dc2626;
+    }
+
+        .voucher-escalate-btn:hover {
+            background: #fff5f5;
+            border-color: #dc2626;
+            color: #b91c1c;
+            transform: translateY(-1px);
+        }
+
+    .voucher-completed-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f8fafc;
+        color: #98a2b3;
+        border: 1px solid #e5e7eb;
+        border-radius: 30px;
+        padding: 7px 11px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    /* ================================
+           EMPTY STATE
+           ================================ */
+
+    .voucher-empty-state {
+        padding: 55px 20px !important;
+        text-align: center;
+    }
+
+    .voucher-empty-icon {
+        width: 70px;
+        height: 70px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #e9f8ef;
+        color: #16a34a;
+        font-size: 28px;
+        margin-bottom: 16px;
+    }
+
+    .voucher-empty-title {
+        color: #172b4d;
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 7px;
+    }
+
+    .voucher-empty-description {
+        color: #8a94a6;
+        font-size: 0.82rem;
+        margin-bottom: 0;
+    }
+
+    /* ================================
+           FOOTER
+           ================================ */
+
+    .voucher-card-footer {
+        padding: 16px 28px;
+        border-top: 1px solid #edf0f5;
+        background: #ffffff;
+    }
+
+    .voucher-footer-text {
+        color: #98a2b3;
+        font-size: 0.76rem;
+    }
+
+    /* ================================
+           RESPONSIVE
+           ================================ */
+
+    @@media (max-width: 991.98px) {
+        .voucher-header-actions
+
+    {
+        width: 100%;
+    }
+
+    .voucher-back-btn {
+        width: 100%;
+    }
+
+    .voucher-audit-note {
+        width: 100%;
+        justify-content: center;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .voucher-page
+
+    {
+        padding: 18px 0;
+    }
+
+    .voucher-header-card {
+        padding: 20px;
+    }
+
+    .voucher-card-header {
+        padding: 20px;
+    }
+
+    .voucher-card-footer {
+        padding: 15px 20px;
+    }
+
+    .voucher-page-title {
+        font-size: 1.2rem;
+    }
+
+    .voucher-summary-card {
+        padding: 16px;
+    }
+
+    .voucher-filter-card {
+        padding: 16px;
+    }
+
+    .voucher-table-wrapper {
+        border-radius: 12px;
+    }
+
+    }
+</style>
+
+<div class="container-fluid voucher-page text-start">
+    <div class="container-fluid px-0">
+
+        <!-- =========================================
+             PAGE HEADER
+             ========================================= -->
+        <div class="voucher-header-card mb-4">
+
+            <div class="row align-items-center g-3">
+
+                <div class="col-lg-8">
+
+                    <div class="d-flex align-items-center">
+
+                        <div class="voucher-icon-box me-3">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                        </div>
+
+                        <div>
+
+                            <h3 class="voucher-page-title">
+                                Financial Voucher Verification
+                            </h3>
+
+                            <p class="voucher-page-subtitle">
+                                Finance module ledger reconciliations, invoice cap checks, and payment release approvals.
+                            </p>
+
+                            <nav aria-label="breadcrumb" class="mt-2">
+
+                                <ol class="breadcrumb voucher-breadcrumb">
+
+                                    <li class="breadcrumb-item">
+                                        <a href="@Url.Action("Index", "Auditor")">
+                                            Auditor Center
+                                        </a>
+                                    </li>
+
+                                    <li class="breadcrumb-item active" aria-current="page">
+                                        Financial Vouchers
+                                    </li>
+
+                                </ol>
+
+                            </nav>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-lg-4">
+
+                    <div class="d-flex justify-content-lg-end voucher-header-actions">
+
+                        <a href="@Url.Action("Index", "Auditor")"
+                           class="voucher-back-btn">
+
+                            <i class="fa-solid fa-arrow-left"></i>
+
+                            Back to Dashboard
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             SUMMARY CARDS
+             ========================================= -->
+        <div class="row g-4 mb-4">
+
+            <!-- Total Vouchers -->
+            <div class="col-12 col-sm-6 col-xl-3">
+
+                <div class="voucher-summary-card">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <div>
+
+                            <p class="voucher-summary-label">
+                                Total Vouchers
+                            </p>
+
+                            <h4 class="voucher-summary-value">
+                                @totalVouchers
+                            </h4>
+
+                        </div>
+
+                        <div class="voucher-summary-icon blue">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+
+                    </div>
+
+                    <p class="voucher-summary-description">
+                        Financial vouchers under audit
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Pending Review -->
+            <div class="col-12 col-sm-6 col-xl-3">
+
+                <div class="voucher-summary-card">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <div>
+
+                            <p class="voucher-summary-label">
+                                Pending Review
+                            </p>
+
+                            <h4 class="voucher-summary-value">
+                                @pendingVouchers
+                            </h4>
+
+                        </div>
+
+                        <div class="voucher-summary-icon orange">
+                            <i class="fa-solid fa-hourglass-half"></i>
+                        </div>
+
+                    </div>
+
+                    <p class="voucher-summary-description">
+                        Vouchers requiring verification
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Cleared -->
+            <div class="col-12 col-sm-6 col-xl-3">
+
+                <div class="voucher-summary-card">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <div>
+
+                            <p class="voucher-summary-label">
+                                Cleared
+                            </p>
+
+                            <h4 class="voucher-summary-value">
+                                @clearedVouchers
+                            </h4>
+
+                        </div>
+
+                        <div class="voucher-summary-icon green">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+
+                    </div>
+
+                    <p class="voucher-summary-description">
+                        Successfully verified vouchers
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Escalated -->
+            <div class="col-12 col-sm-6 col-xl-3">
+
+                <div class="voucher-summary-card">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <div>
+
+                            <p class="voucher-summary-label">
+                                Escalated
+                            </p>
+
+                            <h4 class="voucher-summary-value">
+                                @escalatedVouchers
+                            </h4>
+
+                        </div>
+
+                        <div class="voucher-summary-icon red">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </div>
+
+                    </div>
+
+                    <p class="voucher-summary-description">
+                        Vouchers requiring escalation
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             INFORMATION CARD
+             ========================================= -->
+        <div class="voucher-filter-card mb-4">
+
+            <div class="row align-items-center g-3">
+
+                <div class="col-lg-8">
+
+                    <h5 class="voucher-filter-title">
+                        <i class="fa-solid fa-shield-halved text-primary me-2"></i>
+                        Financial Audit Verification
+                    </h5>
+
+                    <p class="voucher-filter-subtitle">
+                        Review flagged financial discrepancies and take the appropriate verification action before payment or ledger approval.
+                    </p>
+
+                </div>
+
+                <div class="col-lg-4">
+
+                    <div class="d-flex justify-content-lg-end">
+
+                        <span class="voucher-audit-note">
+                            <i class="fa-solid fa-lock"></i>
+                            Controlled auditor verification workflow
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             MAIN VOUCHER CONTENT
+             ========================================= -->
+        <div class="voucher-content-card">
+
+            <!-- Card Header -->
+            <div class="voucher-card-header">
+
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+
+                    <div>
+
+                        <h5 class="voucher-section-title">
+                            <i class="fa-solid fa-list-check text-primary me-2"></i>
+                            Pending Finance Audit Discrepancies
+                        </h5>
+
+                        <p class="voucher-section-subtitle">
+                            Review voucher variances, risk levels, status, and available verification actions.
+                        </p>
+
+                    </div>
+
+                    <div>
+
+                        <span class="voucher-record-badge">
+                            <i class="fa-solid fa-database"></i>
+                            @totalVouchers Total Vouchers
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Table Content -->
+            <div class="p-3 p-md-4">
+
+                @if (Model != null && Model.Any())
+                {
+
+                    <div class="table-responsive voucher-table-wrapper">
+
+                        <table class="table table-hover align-middle voucher-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Flag ID
+                                    </th>
+
+                                    <th>
+                                        Voucher / Ref #
+                                    </th>
+
+                                    <th>
+                                        Variance Description
+                                    </th>
+
+                                    <th>
+                                        Discrepancy (₹)
+                                    </th>
+
+                                    <th>
+                                        Risk Level
+                                    </th>
+
+                                    <th>
+                                        Status
+                                    </th>
+
+                                    <th>
+                                        Logged On
+                                    </th>
+
+                                    <th class="text-end">
+                                        Verification Action
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                @foreach (var item in Model)
+                                {
+
+                                    <tr>
+
+                                        <!-- Flag ID -->
+                                        <td>
+
+                                            <span class="voucher-flag-id">
+                                                #@item.Id
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- Reference Number -->
+                                        <td>
+
+                                            <span class="voucher-reference">
+                                                @item.ReferenceNumber
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- Description -->
+                                        <td>
+
+                                            <div class="voucher-description">
+                                                @item.Description
+                                            </div>
+
+                                        </td>
+
+
+                                        <!-- Discrepancy Amount -->
+                                        <td>
+
+                                            <span class="voucher-amount">
+                                                ₹@item.DiscrepancyAmount.ToString("N2", inCulture)
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- Risk Level -->
+                                        <td>
+
+                                            @if (item.Severity == "High")
+                                            {
+
+                                                <span class="voucher-risk high">
+                                                    High Risk
+                                                </span>
+
+                                            }
+                                            else if (item.Severity == "Medium")
+                                            {
+
+                                                <span class="voucher-risk medium">
+                                                    Medium Risk
+                                                </span>
+
+                                            }
+                                            else
+                                            {
+
+                                                <span class="voucher-risk low">
+                                                    Low Risk
+                                                </span>
+
+                                            }
+
+                                        </td>
+
+
+                                        <!-- Status -->
+                                        <td>
+
+                                            @if (item.Status == "Cleared")
+                                            {
+
+                                                <span class="voucher-status cleared">
+                                                    Cleared
+                                                </span>
+
+                                            }
+                                            else if (item.Status == "Escalated")
+                                            {
+
+                                                <span class="voucher-status escalated">
+                                                    Escalated
+                                                </span>
+
+                                            }
+                                            else
+                                            {
+
+                                                <span class="voucher-status pending">
+                                                    Pending Review
+                                                </span>
+
+                                            }
+
+                                        </td>
+
+
+                                        <!-- Logged On -->
+                                        <td>
+
+                                            <span class="voucher-date">
+                                                @item.FlaggedOn.ToString("dd MMM yyyy, HH:mm")
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- Verification Actions -->
+                                        <td class="text-end">
+
+                                            @if (item.Status == "Pending Review")
+                                            {
+
+                                                <button type="button"
+                                                        class="btn voucher-action-btn voucher-pass-btn me-1"
+                                                        onclick="resolveVoucher(@item.Id, 'Cleared')">
+
+                                                    <i class="fa-solid fa-check me-1"></i>
+                                                    Pass Voucher
+
+                                                </button>
+
+                                                <button type="button"
+                                                        class="btn voucher-action-btn voucher-escalate-btn"
+                                                        onclick="resolveVoucher(@item.Id, 'Escalated')">
+
+                                                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>
+                                                    Escalate
+
+                                                </button>
+
+                                            }
+                                            else
+                                            {
+
+                                                <span class="voucher-completed-badge">
+                                                    <i class="fa-solid fa-check-double"></i>
+                                                    Audit Completed
+                                                </span>
+
+                                            }
+
+                                        </td>
+
+                                    </tr>
+
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                }
+                else
+                {
+
+                    <!-- Empty State -->
+
+                    <div class="voucher-empty-state">
+
+                        <div class="voucher-empty-icon">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+
+                        <h5 class="voucher-empty-title">
+                            No Financial Discrepancies Found
+                        </h5>
+
+                        <p class="voucher-empty-description">
+                            No financial discrepancies are currently flagged. All financial vouchers match General Ledger entries.
+                        </p>
+
+                    </div>
+
+                }
+
+            </div>
+
+
+            <!-- Card Footer -->
+            <div class="voucher-card-footer">
+
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+
+                    <span class="voucher-footer-text">
+                        Showing @totalVouchers financial voucher records
+                    </span>
+
+                    <span class="voucher-footer-text">
+                        <i class="fa-solid fa-shield-halved me-1"></i>
+                        Financial audit verification records
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 </div>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold mb-0 text-dark">
-            <i class="fa fa-receipt text-primary me-2"></i>Pending Finance Audit Discrepancies
-        </h6>
-        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1">
-            @Model.Count Total Vouchers
-        </span>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Flag ID</th>
-                        <th>Voucher / Ref #</th>
-                        <th>Variance Description</th>
-                        <th>Discrepancy (₹)</th>
-                        <th>Risk Level</th>
-                        <th>Status</th>
-                        <th>Logged On</th>
-                        <th class="text-end">Verification Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td class="text-muted fw-bold">#@item.Id</td>
-                                <td class="fw-bold text-dark text-nowrap">@item.ReferenceNumber</td>
-                                <td class="text-muted" style="max-width: 250px;">
-                                    @item.Description
-                                </td>
-                                <td class="fw-bold text-danger text-nowrap">
-                                    ₹@item.DiscrepancyAmount.ToString("N2", inCulture)
-                                </td>
-                                <td>
-                                    @if (item.Severity == "High")
-                                    {
-                                        <span class="badge bg-danger-subtle text-danger px-2.5 py-1">High Risk</span>
-                                    }
-                                    else if (item.Severity == "Medium")
-                                    {
-                                        <span class="badge bg-warning-subtle text-warning px-2.5 py-1">Medium Risk</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-info-subtle text-info px-2.5 py-1">Low Risk</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (item.Status == "Cleared")
-                                    {
-                                        <span class="badge bg-success-subtle text-success px-2.5 py-1">Cleared</span>
-                                    }
-                                    else if (item.Status == "Escalated")
-                                    {
-                                        <span class="badge bg-danger-subtle text-danger px-2.5 py-1">Escalated</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning-subtle text-warning px-2.5 py-1">Pending Review</span>
-                                    }
-                                </td>
-                                <td class="text-muted small text-nowrap">
-                                    @item.FlaggedOn.ToString("dd MMM yyyy, HH:mm")
-                                </td>
-                                <td class="text-end text-nowrap">
-                                    @if (item.Status == "Pending Review")
-                                    {
-                                        <button type="button" class="btn btn-sm btn-success px-2.5 py-1 me-1" onclick="resolveVoucher(@item.Id, 'Cleared')">
-                                            <i class="fa fa-check me-1"></i> Pass Voucher
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger px-2.5 py-1" onclick="resolveVoucher(@item.Id, 'Escalated')">
-                                            <i class="fa fa-arrow-up-right-from-square me-1"></i> Escalate
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-light text-muted border px-2 py-1">Audit Completed</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="fa fa-circle-check fs-2 text-success mb-2 d-block"></i>
-                                No financial discrepancies flagged. All financial vouchers match General Ledger entries.
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+
+<!-- =========================================
+     EXISTING VOUCHER RESOLUTION FUNCTIONALITY
+     ========================================= -->
 
 <script>
-async function resolveVoucher(id, status) {
-    if (!confirm(`Mark voucher #${id} as "${status}"?`)) return;
+    async function resolveVoucher(id, status) {
 
-    try {
-        const res = await fetch('/Auditor/ResolveAuditFlag', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ flagId: id, newStatus: status, auditNote: 'Financial Voucher verification completed' })
-        });
-        const data = await res.json();
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert(data.message || "Failed to update voucher status.");
+        if (!confirm(`Mark voucher #${id} as "${status}"?`)) return;
+
+        try {
+
+            const res = await fetch('/Auditor/ResolveAuditFlag', {
+
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+                    flagId: id,
+                    newStatus: status,
+                    auditNote: 'Financial Voucher verification completed'
+                })
+
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+
+                alert(data.message);
+
+                location.reload();
+
+            } else {
+
+                alert(data.message || "Failed to update voucher status.");
+
+            }
+
+        } catch (e) {
+
+            console.error(e);
+
+            alert("Server error occurred while updating voucher.");
+
         }
-    } catch (e) {
-        console.error(e);
-        alert("Server error occurred while updating voucher.");
+
     }
-}
 </script>
