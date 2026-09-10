@@ -1,12 +1,12 @@
 @model List<ERP_System.Models.HierarchicalTask>
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Target Delegation & Tasks";
+    ViewData["Title"] = "Warehouse Tasks & Operations";
     var teamMembers = ViewBag.TeamMembers as List<ERP_System.Models.User> ?? new List<ERP_System.Models.User>();
 }
 
 <style>
-    .sales-table-card {
+    .inv-table-card {
         background: #ffffff;
         border-radius: 14px;
         border: 1px solid var(--border-warm, #e2e8f0);
@@ -18,14 +18,14 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <div class="text-muted small mb-1">
-                <a href="@Url.Action("Index", "Sales")" class="text-decoration-none text-muted">Sales Command</a> / <span>Team Management</span>
+                <a href="@Url.Action("Index", "InventoryDashboard")" class="text-decoration-none text-muted">Inventory Portal</a> / <span>Team Operations</span>
             </div>
             <h4 class="fw-bold mb-0 text-dark">
-                <i class="fa-solid fa-tasks text-primary me-2"></i>Target & Task Delegation
+                <i class="fa-solid fa-tasks text-primary me-2"></i>Warehouse & Inventory Task Delegation
             </h4>
         </div>
         <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
-            <i class="fa-solid fa-plus me-1.5"></i> Assign New Task
+            <i class="fa-solid fa-plus me-1.5"></i> Assign Warehouse Task
         </button>
     </div>
 
@@ -36,8 +36,15 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+            <i class="fa-solid fa-circle-exclamation me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
-    <div class="sales-table-card">
+    <div class="inv-table-card">
         <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3 bg-light-subtle">
             <div class="d-flex align-items-center gap-2">
                 <span class="fw-bold small text-secondary">Active Assigned Tasks:</span>
@@ -50,7 +57,7 @@
                 <thead class="table-light">
                     <tr class="small text-uppercase text-muted">
                         <th>Task Title</th>
-                        <th>Assigned Executive</th>
+                        <th>Assigned Staff Member</th>
                         <th>Priority</th>
                         <th>Due Date</th>
                         <th>Created</th>
@@ -63,7 +70,7 @@
                         <tr>
                             <td colspan="6" class="text-center py-5 text-muted">
                                 <i class="fa-solid fa-list-check fs-2 d-block mb-2"></i>
-                                No operational tasks assigned yet.
+                                No warehouse tasks assigned yet.
                             </td>
                         </tr>
                     }
@@ -72,7 +79,7 @@
                         @foreach (var task in Model)
                         {
                             var exec = teamMembers.FirstOrDefault(t => t.UserId.ToString() == task.AssignedToUserId);
-                            var execName = exec?.FullName ?? (!string.IsNullOrEmpty(task.AssignedToUserId) ? task.AssignedToUserId : "All Team");
+                            var execName = exec?.FullName ?? (!string.IsNullOrEmpty(task.AssignedToUserId) ? task.AssignedToUserId : "All Inventory Staff");
                             var priorityClass = task.Priority == "High" ? "bg-danger-subtle text-danger" : (task.Priority == "Medium" ? "bg-warning-subtle text-warning" : "bg-info-subtle text-info");
                             var statusClass = task.Status == "Completed" ? "bg-success-subtle text-success" : "bg-primary-subtle text-primary";
 
@@ -114,25 +121,25 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
             <div class="modal-header bg-dark text-white px-4 py-3">
-                <h6 class="modal-title fw-bold">Assign Operational Task / Quota</h6>
+                <h6 class="modal-title fw-bold">Assign Warehouse / Inventory Task</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="@Url.Action("AssignTask", "Sales")" method="post">
+            <form action="@Url.Action("AssignTask", "InventoryDashboard")" method="post">
                 @Html.AntiForgeryToken()
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-12">
-                            <label class="form-label small fw-bold">Task / Target Title <span class="text-danger">*</span></label>
-                            <input type="text" name="Title" class="form-control" required placeholder="e.g. Follow up on Mumbai Region Q3 Deals" />
+                            <label class="form-label small fw-bold">Task Title <span class="text-danger">*</span></label>
+                            <input type="text" name="Title" class="form-control" required placeholder="e.g. Conduct Physical Stock Audit for Bin A-12" />
                         </div>
                         <div class="col-md-12">
-                            <label class="form-label small fw-bold">Description / Action Plan</label>
-                            <textarea name="Description" class="form-control" rows="2" placeholder="Contact key decision makers and submit quotation update..."></textarea>
+                            <label class="form-label small fw-bold">Description / Instructions</label>
+                            <textarea name="Description" class="form-control" rows="2" placeholder="Verify batch barcodes and update scrap count..."></textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Assign To Executive</label>
+                            <label class="form-label small fw-bold">Assign To Staff Member</label>
                             <select name="AssignedToUserId" class="form-select">
-                                <option value="">-- All Sales Executives --</option>
+                                <option value="">-- All Warehouse Staff --</option>
                                 @foreach (var m in teamMembers)
                                 {
                                     <option value="@m.UserId">@m.FullName</option>

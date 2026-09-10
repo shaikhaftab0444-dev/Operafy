@@ -78,22 +78,24 @@ namespace ERP_System.Controllers
 
             // 3. Sales Metrics
             var currentMonthOrders = await _context.SalesOrders
-                .Where(o => o.OrderDate.Month == today.Month && o.OrderDate.Year == today.Year && o.Status != "Cancelled")
+                .AsNoTracking()
+                .Where(o => o.OrderDate.HasValue && o.OrderDate.Value.Month == today.Month && o.OrderDate.Value.Year == today.Year && o.Status != "Cancelled")
                 .ToListAsync();
 
-            var mtdRevenue = currentMonthOrders.Sum(o => o.TotalAmount);
+            var mtdRevenue = currentMonthOrders.Sum(o => o.TotalAmount ?? 0m);
             if (mtdRevenue == 0)
             {
-                mtdRevenue = await _context.SalesOrders.Where(o => o.Status != "Cancelled").SumAsync(o => o.TotalAmount);
+                mtdRevenue = await _context.SalesOrders.AsNoTracking().Where(o => o.Status != "Cancelled").SumAsync(o => (decimal?)(o.TotalAmount) ?? 0m);
             }
 
             var allLeads = await _context.Leads
+                .AsNoTracking()
                 .Include(l => l.AssignedExecutive)
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync();
 
             var openLeads = allLeads.Where(l => l.Stage != "Won" && l.Stage != "Lost").ToList();
-            var pipelineVal = openLeads.Sum(l => l.EstimatedValue);
+            var pipelineVal = openLeads.Sum(l => l.EstimatedValue ?? 0m);
 
             var wonCount = allLeads.Count(l => l.Stage == "Won");
             var totalClosed = allLeads.Count(l => l.Stage == "Won" || l.Stage == "Lost");
@@ -101,6 +103,7 @@ namespace ERP_System.Controllers
 
             // 4. Team Targets
             var targets = await _context.SalesTargets
+                .AsNoTracking()
                 .Include(t => t.ExecutiveUser)
                 .Where(t => t.Month == today.Month && t.Year == today.Year)
                 .ToListAsync();
@@ -111,8 +114,8 @@ namespace ERP_System.Controllers
                 targetList = targets.Select(t => new SalesTargetItemVM
                 {
                     ExecutiveName = t.ExecutiveUser?.FullName ?? "Sales Executive",
-                    Target = t.TargetAmount,
-                    Achieved = t.AchievedAmount
+                    Target = t.TargetAmount ?? 0m,
+                    Achieved = t.AchievedAmount ?? 0m
                 }).ToList();
             }
             else
@@ -161,6 +164,7 @@ namespace ERP_System.Controllers
         public async Task<IActionResult> Leads()
         {
             var leads = await _context.Leads
+                .AsNoTracking()
                 .Include(l => l.AssignedExecutive)
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync();
@@ -175,6 +179,7 @@ namespace ERP_System.Controllers
         public async Task<IActionResult> Orders()
         {
             var orders = await _context.SalesOrders
+                .AsNoTracking()
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
@@ -254,8 +259,13 @@ namespace ERP_System.Controllers
             try
             {
                 input.CreatedAt = DateTime.UtcNow;
+                if (string.IsNullOrWhiteSpace(input.ClientName)) input.ClientName = string.Empty;
+                if (string.IsNullOrWhiteSpace(input.CompanyName)) input.CompanyName = string.Empty;
+                if (string.IsNullOrWhiteSpace(input.Email)) input.Email = string.Empty;
+                if (string.IsNullOrWhiteSpace(input.Phone)) input.Phone = string.Empty;
                 if (string.IsNullOrWhiteSpace(input.Stage)) input.Stage = "New";
                 if (string.IsNullOrWhiteSpace(input.Source)) input.Source = "Inbound";
+                if (!input.EstimatedValue.HasValue) input.EstimatedValue = 0m;
 
                 _context.Leads.Add(input);
                 await _context.SaveChangesAsync();
@@ -291,8 +301,11 @@ namespace ERP_System.Controllers
                     var count = await _context.SalesOrders.CountAsync() + 1;
                     input.OrderNumber = $"SO-{DateTime.Today.Year}-{count:D4}";
                 }
-                if (input.OrderDate == default) input.OrderDate = DateTime.Today;
+                if (!input.OrderDate.HasValue || input.OrderDate == default) input.OrderDate = DateTime.Today;
+                if (string.IsNullOrWhiteSpace(input.CustomerName)) input.CustomerName = string.Empty;
+                if (string.IsNullOrWhiteSpace(input.PaymentTerms)) input.PaymentTerms = "Net 30";
                 if (string.IsNullOrWhiteSpace(input.Status)) input.Status = "Confirmed";
+                if (!input.TotalAmount.HasValue) input.TotalAmount = 0m;
 
                 var currentUser = await GetCurrentUserAsync();
                 input.CreatedByUserId = currentUser.UserId;
