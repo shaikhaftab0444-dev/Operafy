@@ -111,6 +111,9 @@ namespace ERP_System.Data
         public DbSet<SystemAuditTrail> SystemAuditTrails { get; set; }
         public DbSet<AuditFlaggedItem> AuditFlaggedItems { get; set; }
 
+        // Company Bank Master
+        public DbSet<CompanyBankAccount> CompanyBankAccounts { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

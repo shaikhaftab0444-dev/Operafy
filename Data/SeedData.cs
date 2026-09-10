@@ -39,26 +39,32 @@ namespace ERP_System.Data
                 // Fallback in case table doesn't exist yet (will be seeded below)
             }
 
-            // If permissions are already set up, do not seed again
-            if (await context.RolePermissions.AnyAsync())
-            {
-                return;
-            }
-
             var roles = await context.Roles.ToListAsync();
-            var modules = new[]
+            var allModules = new[]
             {
                 "UserManagement", "Company", "BranchManagement", "EmployeeManagement", "CustomerManagement",
                 "SupplierManagement", "ProductManagement", "InventoryManagement", "PurchaseManagement", "SalesManagement",
-                "ExpenseManagement", "Accounting", "HRManagement", "Reports", "Settings"
+                "ExpenseManagement", "Accounting", "HRManagement", "Reports", "Settings",
+                "HRManagement_DailyAttendance", "HRManagement_EmployeeDirectory", "HRManagement_LeaveRequests", "HRManagement_MonthlyPayroll",
+                "SupplyChain_InventoryStock", "SupplyChain_PurchaseOrders", "SupplyChain_GoodsReceipt",
+                "SalesCRM_CustomerDirectory", "SalesCRM_QuotationsEstimates", "SalesCRM_OrdersInvoicing",
+                "FinanceAccounts_GeneralLedger", "FinanceAccounts_ReportsTax",
+                "TeamManagement_AttendanceRadar", "TeamManagement_TaskDelegation", "TeamManagement_Approvals",
+                "ESS_ClockInOut"
             };
 
+            var existingPermissions = await context.RolePermissions.ToListAsync();
             var permissionsToSeed = new List<RolePermission>();
 
             foreach (var role in roles)
             {
-                foreach (var mod in modules)
+                foreach (var mod in allModules)
                 {
+                    if (existingPermissions.Any(p => p.RoleId == role.RoleId && p.ModuleName == mod))
+                    {
+                        continue;
+                    }
+
                     bool isAllowed = false;
 
                     // Super Admin and Admin have access to everything by default
@@ -66,9 +72,22 @@ namespace ERP_System.Data
                     {
                         isAllowed = true;
                     }
+                    else if (mod == "ESS_ClockInOut")
+                    {
+                        isAllowed = true;
+                    }
+                    else if (mod.StartsWith("TeamManagement_"))
+                    {
+                        isAllowed = (role.RoleName == "Manager" || 
+                                     role.RoleName == "Finance Manager" || 
+                                     role.RoleName == "Sales Manager" || 
+                                     role.RoleName == "Inventory Manager" || 
+                                     role.RoleName == "Purchase Manager" ||
+                                     role.RoleName == "HR");
+                    }
                     else if (role.RoleName == "HR")
                     {
-                        isAllowed = (mod == "Company" || mod == "EmployeeManagement" || mod == "HRManagement" || mod == "Reports");
+                        isAllowed = (mod == "Company" || mod == "EmployeeManagement" || mod == "HRManagement" || mod == "Reports" || mod.StartsWith("HRManagement_"));
                     }
                     else if (role.RoleName == "Manager")
                     {
@@ -80,49 +99,53 @@ namespace ERP_System.Data
                     }
                     else if (role.RoleName == "Accountant")
                     {
-                        isAllowed = (mod == "SalesManagement" || mod == "ExpenseManagement" || mod == "Accounting" || mod == "Reports");
+                        isAllowed = (mod == "SalesManagement" || mod == "ExpenseManagement" || mod == "Accounting" || mod == "Reports" || mod.StartsWith("FinanceAccounts_"));
                     }
                     else if (role.RoleName == "Finance Manager")
                     {
-                        isAllowed = (mod == "PurchaseManagement" || mod == "SalesManagement" || mod == "ExpenseManagement" || mod == "Accounting" || mod == "Reports");
+                        isAllowed = (mod == "PurchaseManagement" || mod == "SalesManagement" || mod == "ExpenseManagement" || mod == "Accounting" || mod == "Reports" || mod.StartsWith("FinanceAccounts_"));
                     }
                     else if (role.RoleName == "Inventory Manager")
                     {
-                        isAllowed = (mod == "SupplierManagement" || mod == "ProductManagement" || mod == "InventoryManagement");
+                        isAllowed = (mod == "SupplierManagement" || mod == "ProductManagement" || mod == "InventoryManagement" || mod.StartsWith("SupplyChain_"));
                     }
                     else if (role.RoleName == "Purchase Manager")
                     {
-                        isAllowed = (mod == "SupplierManagement" || mod == "InventoryManagement" || mod == "PurchaseManagement");
+                        isAllowed = (mod == "SupplierManagement" || mod == "InventoryManagement" || mod == "PurchaseManagement" || mod.StartsWith("SupplyChain_"));
                     }
                     else if (role.RoleName == "Sales Executive")
                     {
-                        isAllowed = (mod == "CustomerManagement" || mod == "ProductManagement" || mod == "SalesManagement");
+                        isAllowed = (mod == "CustomerManagement" || mod == "ProductManagement" || mod == "SalesManagement" || mod.StartsWith("SalesCRM_"));
                     }
                     else if (role.RoleName == "Sales Manager")
                     {
-                        isAllowed = (mod == "CustomerManagement" || mod == "ProductManagement" || mod == "SalesManagement" || mod == "Reports");
+                        isAllowed = (mod == "CustomerManagement" || mod == "ProductManagement" || mod == "SalesManagement" || mod == "Reports" || mod.StartsWith("SalesCRM_"));
                     }
                     else if (role.RoleName == "Auditor")
                     {
-                        isAllowed = (mod == "Accounting" || mod == "Reports" || mod == "Settings");
+                        isAllowed = (mod == "Accounting" || mod == "Reports" || mod == "Settings" || mod.StartsWith("FinanceAccounts_"));
                     }
 
+                    bool isAuditor = role.RoleName == "Auditor";
                     permissionsToSeed.Add(new RolePermission
                     {
                         RoleId = role.RoleId,
                         ModuleName = mod,
                         IsAllowed = isAllowed,
                         CanView = isAllowed,
-                        CanCreate = isAllowed,
-                        CanEdit = isAllowed,
-                        CanDelete = isAllowed,
-                        CanApprove = isAllowed
+                        CanCreate = isAuditor ? false : isAllowed,
+                        CanEdit = isAuditor ? false : isAllowed,
+                        CanDelete = isAuditor ? false : isAllowed,
+                        CanApprove = isAuditor ? false : isAllowed
                     });
                 }
             }
 
-            await context.RolePermissions.AddRangeAsync(permissionsToSeed);
-            await context.SaveChangesAsync();
+            if (permissionsToSeed.Any())
+            {
+                await context.RolePermissions.AddRangeAsync(permissionsToSeed);
+                await context.SaveChangesAsync();
+            }
         }
 
         public static async Task InitializeSalesManagementTablesAsync(ApplicationDbContext context)
@@ -1300,6 +1323,74 @@ namespace ERP_System.Data
                     new SuperAdminPriceOverride { ProductId = 1, VendorName = "Global Supplies Ltd", CustomPrice = 42000.00m, ApprovedBy = "Super Admin" },
                     new SuperAdminPriceOverride { ProductId = 4, VendorName = "Reliable Spares Inc", CustomPrice = 750.00m, ApprovedBy = "Super Admin" }
                 });
+            }
+
+            // Ensure CompanyBankAccounts table exists
+            string createBankAccountsSql = @"
+                IF OBJECT_ID('AITStudent.CompanyBankAccounts', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.CompanyBankAccounts (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        BankName NVARCHAR(150) NOT NULL,
+                        AccountNumber NVARCHAR(100) NOT NULL,
+                        IFSCCode NVARCHAR(50) NOT NULL,
+                        BranchName NVARCHAR(150) NULL,
+                        AccountType NVARCHAR(50) NOT NULL DEFAULT 'Current',
+                        OpeningBalance DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        CurrentBalance DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        IsPrimaryAccount BIT NOT NULL DEFAULT 0,
+                        IsActive BIT NOT NULL DEFAULT 1,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END";
+
+            await context.Database.ExecuteSqlRawAsync(createBankAccountsSql);
+
+            if (!await context.CompanyBankAccounts.AnyAsync())
+            {
+                await context.CompanyBankAccounts.AddRangeAsync(new List<CompanyBankAccount>
+                {
+                    new CompanyBankAccount
+                    {
+                        BankName = "HDFC Bank Ltd",
+                        AccountNumber = "50200012345678",
+                        IFSCCode = "HDFC0000123",
+                        BranchName = "BKC Complex, Mumbai",
+                        AccountType = "Current",
+                        OpeningBalance = 35000000.00m,
+                        CurrentBalance = 45250000.00m,
+                        IsPrimaryAccount = true,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddMonths(-12)
+                    },
+                    new CompanyBankAccount
+                    {
+                        BankName = "State Bank of India",
+                        AccountNumber = "33445566778",
+                        IFSCCode = "SBIN0004567",
+                        BranchName = "Corporate Center, Nariman Point",
+                        AccountType = "Current",
+                        OpeningBalance = 15000000.00m,
+                        CurrentBalance = 18520000.00m,
+                        IsPrimaryAccount = false,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddMonths(-8)
+                    },
+                    new CompanyBankAccount
+                    {
+                        BankName = "ICICI Bank",
+                        AccountNumber = "001105009876",
+                        IFSCCode = "ICIC0000987",
+                        BranchName = "Connaught Place, New Delhi",
+                        AccountType = "Overdraft",
+                        OpeningBalance = 10000000.00m,
+                        CurrentBalance = 9540000.00m,
+                        IsPrimaryAccount = false,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddMonths(-4)
+                    }
+                });
+                await context.SaveChangesAsync();
             }
 
             // Ensure erp_Currencies table exists

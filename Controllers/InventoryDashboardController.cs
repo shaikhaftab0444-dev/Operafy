@@ -175,6 +175,113 @@ namespace ERP_System.Controllers
         {
             return RedirectToAction("Alerts", "InvTracking");
         }
+
+        // GET: /InventoryDashboard/TeamAttendance
+        [HttpGet]
+        [Authorize(Roles = "Inventory Manager,Super Admin,Admin")]
+        public async Task<IActionResult> TeamAttendance(DateTime? selectedDate)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int currentUserId = int.TryParse(userIdClaim, out int cid) ? cid : 1;
+            var currentUser = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .FirstOrDefaultAsync(u => u.UserId == currentUserId);
+
+            var today = selectedDate ?? DateTime.Today;
+
+            var subordinates = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Where(u => u.IsActive && u.UserId != currentUserId && (
+                    u.ReportingManagerId == currentUserId.ToString() ||
+                    (currentUser != null && !string.IsNullOrEmpty(currentUser.FullName) && u.ReportingManagerName == currentUser.FullName) ||
+                    (currentUser != null && currentUser.DepartmentId != null && u.DepartmentId == currentUser.DepartmentId) ||
+                    (u.Role != null && (u.Role.RoleName.Contains("Inventory") || u.Role.RoleName.Contains("Warehouse") || u.Role.RoleName.Contains("Logistics")))
+                ))
+                .ToListAsync();
+
+            if (!subordinates.Any())
+            {
+                subordinates = await _context.Users
+                    .Include(u => u.Role)
+                    .Include(u => u.Department)
+                    .Where(u => u.IsActive && u.UserId != currentUserId && u.Role != null && u.Role.RoleName != "Super Admin")
+                    .Take(8)
+                    .ToListAsync();
+            }
+
+            var subIds = subordinates.Select(s => s.UserId).ToList();
+
+            var logs = await _context.HRAttendanceLogs
+                .Where(a => subIds.Contains(a.UserId) && a.Date.Date == today.Date)
+                .ToListAsync();
+
+            ViewBag.Executives = subordinates;
+            ViewBag.SelectedDate = today;
+            return View(logs);
+        }
+
+        // GET: /InventoryDashboard/Tasks
+        [HttpGet]
+        [Authorize(Roles = "Inventory Manager,Super Admin,Admin")]
+        public async Task<IActionResult> Tasks()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int currentUserId = int.TryParse(userIdClaim, out int cid) ? cid : 1;
+            var currentUser = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .FirstOrDefaultAsync(u => u.UserId == currentUserId);
+
+            var teamMembers = await _context.Users
+                .Where(u => u.IsActive && u.UserId != currentUserId && (
+                    u.ReportingManagerId == currentUserId.ToString() ||
+                    (currentUser != null && !string.IsNullOrEmpty(currentUser.FullName) && u.ReportingManagerName == currentUser.FullName) ||
+                    (currentUser != null && currentUser.DepartmentId != null && u.DepartmentId == currentUser.DepartmentId)
+                ))
+                .ToListAsync();
+
+            if (!teamMembers.Any())
+            {
+                teamMembers = await _context.Users.Where(u => u.IsActive && u.UserId != currentUserId).Take(8).ToListAsync();
+            }
+
+            var currentUserName = currentUser?.UserName ?? "inventorymanager";
+            var tasks = await _context.HierarchicalTasks
+                .Where(t => t.AssignedByUserId == currentUserId.ToString() || t.AssignedByUserId == currentUserName)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            ViewBag.TeamMembers = teamMembers;
+            return View(tasks);
+        }
+
+        // POST: /InventoryDashboard/AssignTask
+        [HttpPost]
+        [Authorize(Roles = "Inventory Manager,Super Admin,Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignTask(HierarchicalTask input)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                input.AssignedByUserId = userIdClaim ?? "1";
+                input.CreatedAt = DateTime.UtcNow;
+                if (string.IsNullOrWhiteSpace(input.Status)) input.Status = "Pending";
+
+                _context.HierarchicalTasks.Add(input);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Task '{input.Title}' assigned successfully.";
+                return RedirectToAction(nameof(Tasks));
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error assigning task: " + ex.Message;
+                return RedirectToAction(nameof(Tasks));
+            }
+        }
     }
 
     public class RestockPayload
