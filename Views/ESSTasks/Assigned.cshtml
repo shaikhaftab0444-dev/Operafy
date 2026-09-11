@@ -1,69 +1,1183 @@
 @model IEnumerable<ERP_System.Models.ESSTask>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Assigned Tasks";
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-list-check text-primary me-2"></i>Assigned Tasks</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Assigned Tasks</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+<style>
+    /* =========================================================
+           ASSIGNED TASKS - PREMIUM ERP UI
+           ========================================================= */
 
-    <!-- Task List -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Tasks Listing</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Task Title</th>
-                        <th>Description</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var t in Model)
+    .ess-task-page {
+        --task-primary: #2563eb;
+        --task-primary-dark: #1d4ed8;
+        --task-text: #172033;
+        --task-muted: #718096;
+        --task-border: #e7ebf2;
+        --task-bg: #f5f7fb;
+        --task-card: #ffffff;
+        --task-success: #16a34a;
+        --task-info: #0891b2;
+        --task-warning: #d97706;
+        min-height: calc(100vh - 80px);
+        padding: 28px 0 40px;
+        background: radial-gradient(circle at 10% 0%, rgba(37, 99, 235, 0.055), transparent 28%), radial-gradient(circle at 90% 15%, rgba(14, 165, 233, 0.045), transparent 25%), var(--task-bg);
+        color: var(--task-text);
+    }
+
+    /* Page Container */
+
+    .task-shell {
+        width: min(100% - 36px, 1480px);
+        margin: 0 auto;
+    }
+
+    /* =========================================================
+           HEADER
+           ========================================================= */
+
+    .task-page-header {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 24px 26px;
+        margin-bottom: 22px;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 12px 35px rgba(15, 23, 42, 0.055);
+        animation: taskHeaderIn .55s ease both;
+    }
+
+        .task-page-header::before {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            top: -150px;
+            right: -50px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.08);
+            pointer-events: none;
+        }
+
+        .task-page-header::after {
+            content: "";
+            position: absolute;
+            width: 7px;
+            height: 75%;
+            left: 0;
+            top: 12.5%;
+            border-radius: 0 8px 8px 0;
+            background: linear-gradient(180deg, #2563eb, #60a5fa);
+        }
+
+    .task-title-area {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .task-title-row {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 7px;
+    }
+
+    .task-title-icon {
+        width: 45px;
+        height: 45px;
+        flex: 0 0 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        color: var(--task-primary);
+        font-size: 19px;
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+    }
+
+    .task-page-title {
+        margin: 0;
+        font-size: 1.42rem;
+        font-weight: 800;
+        letter-spacing: -0.35px;
+        color: #162033;
+    }
+
+    .task-page-subtitle {
+        margin: 0;
+        color: var(--task-muted);
+        font-size: .86rem;
+        line-height: 1.5;
+    }
+
+    .task-breadcrumb {
+        position: relative;
+        z-index: 1;
+        margin: 10px 0 0;
+    }
+
+        .task-breadcrumb .breadcrumb {
+            margin: 0;
+            padding: 0;
+        }
+
+        .task-breadcrumb .breadcrumb-item {
+            font-size: .76rem;
+            color: #94a3b8;
+        }
+
+            .task-breadcrumb .breadcrumb-item a {
+                color: #64748b;
+                text-decoration: none;
+                transition: color .2s ease;
+            }
+
+                .task-breadcrumb .breadcrumb-item a:hover {
+                    color: var(--task-primary);
+                }
+
+            .task-breadcrumb .breadcrumb-item.active {
+                color: #334155;
+                font-weight: 600;
+            }
+
+    .task-header-badge {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: .76rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+        .task-header-badge i {
+            color: var(--task-primary);
+            font-size: .72rem;
+        }
+
+    /* =========================================================
+           SUMMARY
+           ========================================================= */
+
+    .task-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .task-summary-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 104px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 19px;
+        border: 1px solid var(--task-border);
+        border-radius: 16px;
+        background: var(--task-card);
+        box-shadow: 0 9px 26px rgba(15, 23, 42, 0.045);
+        transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+        animation: taskCardIn .55s ease both;
+    }
+
+        .task-summary-card:nth-child(2) {
+            animation-delay: .07s;
+        }
+
+        .task-summary-card:nth-child(3) {
+            animation-delay: .14s;
+        }
+
+        .task-summary-card:hover {
+            transform: translateY(-3px);
+            border-color: #d6deeb;
+            box-shadow: 0 15px 34px rgba(15, 23, 42, 0.075);
+        }
+
+        .task-summary-card::after {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            right: -35px;
+            bottom: -42px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.045);
+        }
+
+    .task-summary-icon {
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 17px;
+    }
+
+    .task-summary-card:nth-child(2) .task-summary-icon {
+        background: #ecfeff;
+        color: #0891b2;
+    }
+
+    .task-summary-card:nth-child(3) .task-summary-icon {
+        background: #fff7ed;
+        color: #d97706;
+    }
+
+    .task-summary-label {
+        margin: 0 0 3px;
+        color: #94a3b8;
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .65px;
+    }
+
+    .task-summary-value {
+        margin: 0;
+        color: #182235;
+        font-size: 1.22rem;
+        line-height: 1.1;
+        font-weight: 800;
+    }
+
+    .task-summary-note {
+        margin-top: 4px;
+        color: #94a3b8;
+        font-size: .7rem;
+    }
+
+    /* =========================================================
+           MAIN CARD
+           ========================================================= */
+
+    .task-list-card {
+        overflow: hidden;
+        border: 1px solid var(--task-border);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 35px rgba(15, 23, 42, 0.055);
+        animation: taskCardIn .65s ease both;
+        animation-delay: .12s;
+    }
+
+    .task-list-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 20px 22px;
+        border-bottom: 1px solid #edf0f5;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    }
+
+    .task-list-heading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .task-list-heading-icon {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 15px;
+    }
+
+    .task-list-title {
+        margin: 0;
+        font-size: .98rem;
+        font-weight: 800;
+        color: #1e293b;
+    }
+
+    .task-list-caption {
+        margin: 3px 0 0;
+        color: #94a3b8;
+        font-size: .73rem;
+    }
+
+    .task-record-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        font-size: .7rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+           TABLE
+           ========================================================= */
+
+    .task-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+
+    .task-table {
+        width: 100%;
+        min-width: 760px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .task-table thead th {
+            padding: 13px 18px;
+            border-bottom: 1px solid #e8edf3;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: .69rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            white-space: nowrap;
+        }
+
+            .task-table thead th:first-child {
+                padding-left: 22px;
+            }
+
+        .task-table tbody td {
+            padding: 17px 18px;
+            border-bottom: 1px solid #edf1f5;
+            background: #fff;
+            vertical-align: middle;
+            color: #475569;
+            font-size: .81rem;
+            transition: background .2s ease;
+        }
+
+        .task-table tbody tr {
+            animation: taskRowIn .45s ease both;
+        }
+
+            .task-table tbody tr:hover td {
+                background: #f9fbff;
+            }
+
+            .task-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+        .task-table tbody td:first-child {
+            padding-left: 22px;
+        }
+
+    /* Task title */
+
+    .task-name {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 185px;
+    }
+
+    .task-name-icon {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 12px;
+        transition: transform .25s ease, background .25s ease;
+    }
+
+    .task-table tbody tr:hover .task-name-icon {
+        transform: scale(1.08) rotate(-3deg);
+        background: #dbeafe;
+    }
+
+    .task-name-text {
+        min-width: 0;
+    }
+
+    .task-name-title {
+        margin: 0;
+        color: #1e293b;
+        font-weight: 750;
+        font-size: .82rem;
+        line-height: 1.4;
+    }
+
+    .task-name-label {
+        display: block;
+        margin-top: 3px;
+        color: #a0aec0;
+        font-size: .65rem;
+    }
+
+    /* Description */
+
+    .task-description {
+        display: block;
+        max-width: 390px;
+        color: #64748b;
+        line-height: 1.55;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    /* Due date */
+
+    .task-due-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #475569;
+        white-space: nowrap;
+        font-weight: 600;
+    }
+
+        .task-due-date i {
+            color: #94a3b8;
+            font-size: .76rem;
+        }
+
+    /* =========================================================
+           STATUS BADGES
+           ========================================================= */
+
+    .task-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 105px;
+        justify-content: center;
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: .68rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+        border: 1px solid transparent;
+    }
+
+    .task-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.08);
+    }
+
+    .task-status-completed {
+        color: #15803d;
+        background: #f0fdf4;
+        border-color: #dcfce7;
+    }
+
+        .task-status-completed .task-status-dot {
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, .10);
+        }
+
+    .task-status-progress {
+        color: #0e7490;
+        background: #ecfeff;
+        border-color: #cffafe;
+    }
+
+        .task-status-progress .task-status-dot {
+            animation: statusPulse 1.8s ease-in-out infinite;
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, .10);
+        }
+
+    .task-status-pending {
+        color: #b45309;
+        background: #fffbeb;
+        border-color: #fef3c7;
+    }
+
+        .task-status-pending .task-status-dot {
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, .10);
+        }
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .task-empty {
+        padding: 64px 24px;
+        text-align: center;
+    }
+
+    .task-empty-icon {
+        width: 66px;
+        height: 66px;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 25px;
+        animation: emptyFloat 3s ease-in-out infinite;
+    }
+
+    .task-empty-title {
+        margin: 0 0 6px;
+        color: #334155;
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .task-empty-text {
+        max-width: 390px;
+        margin: 0 auto;
+        color: #94a3b8;
+        font-size: .78rem;
+        line-height: 1.6;
+    }
+
+    /* =========================================================
+           FOOTER
+           ========================================================= */
+
+    .task-list-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 13px 22px;
+        border-top: 1px solid #edf1f5;
+        background: #fbfcfe;
+        color: #94a3b8;
+        font-size: .68rem;
+    }
+
+    .task-footer-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+        .task-footer-info i {
+            color: #94a3b8;
+        }
+
+    /* =========================================================
+           ANIMATIONS
+           ========================================================= */
+
+    @@keyframes taskHeaderIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes taskCardIn {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes taskRowIn {
+        from {
+            opacity: 0;
+            transform: translateX(-7px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes statusPulse {
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: .55;
+            transform: scale(.78);
+        }
+    }
+
+    @@keyframes emptyFloat {
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 992px) {
+        .task-shell {
+            width: min(100% - 28px, 1480px);
+        }
+
+        .task-page-header {
+            padding: 21px;
+        }
+
+        .task-summary {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .task-summary-card {
+            padding: 16px;
+        }
+
+        .task-summary-icon {
+            width: 41px;
+            height: 41px;
+            flex-basis: 41px;
+        }
+
+        .task-summary-value {
+            font-size: 1.05rem;
+        }
+
+        .task-description {
+            max-width: 300px;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .ess-task-page {
+            padding-top: 18px;
+        }
+
+        .task-shell {
+            width: min(100% - 22px, 1480px);
+        }
+
+        .task-page-header {
+            display: block;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .task-title-row {
+            gap: 10px;
+        }
+
+        .task-title-icon {
+            width: 41px;
+            height: 41px;
+            flex-basis: 41px;
+        }
+
+        .task-page-title {
+            font-size: 1.2rem;
+        }
+
+        .task-page-subtitle {
+            font-size: .78rem;
+        }
+
+        .task-header-badge {
+            margin-top: 15px;
+        }
+
+        .task-summary {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .task-summary-card {
+            min-height: 82px;
+        }
+
+        .task-list-card {
+            border-radius: 15px;
+        }
+
+        .task-list-header {
+            padding: 17px;
+        }
+
+        .task-list-caption {
+            display: none;
+        }
+
+        .task-record-count {
+            padding: 6px 9px;
+        }
+
+        .task-table thead th {
+            padding: 12px 14px;
+        }
+
+        .task-table tbody td {
+            padding: 15px 14px;
+        }
+
+            .task-table tbody td:first-child,
+            .task-table thead th:first-child {
+                padding-left: 17px;
+            }
+
+        .task-list-footer {
+            padding: 12px 17px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .task-shell {
+            width: calc(100% - 16px);
+        }
+
+        .task-page-header {
+            padding: 17px;
+        }
+
+        .task-title-icon {
+            width: 38px;
+            height: 38px;
+            flex-basis: 38px;
+            border-radius: 10px;
+        }
+
+        .task-page-title {
+            font-size: 1.08rem;
+        }
+
+        .task-page-subtitle {
+            font-size: .74rem;
+        }
+
+        .task-breadcrumb {
+            margin-top: 8px;
+        }
+
+        .task-summary-card {
+            padding: 14px;
+            border-radius: 13px;
+        }
+
+        .task-summary-icon {
+            width: 38px;
+            height: 38px;
+            flex-basis: 38px;
+            border-radius: 10px;
+        }
+
+        .task-summary-label {
+            font-size: .65rem;
+        }
+
+        .task-summary-value {
+            font-size: 1rem;
+        }
+
+        .task-list-header {
+            padding: 15px;
+        }
+
+        .task-list-heading-icon {
+            width: 34px;
+            height: 34px;
+        }
+
+        .task-list-title {
+            font-size: .88rem;
+        }
+
+        .task-record-count {
+            font-size: .63rem;
+        }
+
+        .task-table {
+            min-width: 700px;
+        }
+
+        .task-list-footer {
+            font-size: .62rem;
+        }
+
+        .task-empty {
+            padding: 50px 18px;
+        }
+    }
+
+    /* =========================================================
+           REDUCED MOTION
+           ========================================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .task-page-header,
+        .task-summary-card,
+        .task-list-card,
+        .task-table tbody tr {
+            animation: none !important;
+        }
+
+        .task-summary-card,
+        .task-name-icon {
+            transition: none !important;
+        }
+
+        .task-empty-icon,
+        .task-status-progress .task-status-dot {
+            animation: none !important;
+        }
+    }
+</style>
+
+<div class="ess-task-page">
+    <div class="task-shell">
+
+        <!-- =====================================================
+             PAGE HEADER
+             ===================================================== -->
+        <div class="task-page-header">
+
+            <div class="task-title-area">
+
+                <div class="task-title-row">
+                    <div class="task-title-icon">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+
+                    <div>
+                        <h1 class="task-page-title">Assigned Tasks</h1>
+
+                        <p class="task-page-subtitle">
+                            Review and monitor tasks assigned to you.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="task-breadcrumb">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="/EmployeeDashboard">
+                                    <i class="fa-solid fa-house me-1"></i>
+                                    ESS
+                                </a>
+                            </li>
+
+                            <li class="breadcrumb-item active" aria-current="page">
+                                Assigned Tasks
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+
+            </div>
+
+            <div class="task-header-badge">
+                <i class="fa-solid fa-shield-halved"></i>
+                Employee Task Center
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SUMMARY CARDS
+             ===================================================== -->
+        @{
+            var totalTasks = Model?.Count() ?? 0;
+            var completedTasks = Model?.Count(x => x.Status == "Completed") ?? 0;
+            var pendingTasks = Model?.Count(x => x.Status != "Completed" && x.Status != "In Progress") ?? 0;
+        }
+
+        <div class="task-summary">
+
+            <div class="task-summary-card">
+
+                <div class="task-summary-icon">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+
+                <div>
+                    <p class="task-summary-label">Total Tasks</p>
+                    <p class="task-summary-value">@totalTasks</p>
+                    <div class="task-summary-note">Assigned to you</div>
+                </div>
+
+            </div>
+
+
+            <div class="task-summary-card">
+
+                <div class="task-summary-icon">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+
+                <div>
+                    <p class="task-summary-label">Completed</p>
+                    <p class="task-summary-value">@completedTasks</p>
+                    <div class="task-summary-note">Successfully completed</div>
+                </div>
+
+            </div>
+
+
+            <div class="task-summary-card">
+
+                <div class="task-summary-icon">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+
+                <div>
+                    <p class="task-summary-label">Pending</p>
+                    <p class="task-summary-value">@pendingTasks</p>
+                    <div class="task-summary-note">Awaiting completion</div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             TASK LIST CARD
+             ===================================================== -->
+
+        <div class="task-list-card">
+
+            <div class="task-list-header">
+
+                <div class="task-list-heading">
+
+                    <div class="task-list-heading-icon">
+                        <i class="fa-solid fa-table-list"></i>
+                    </div>
+
+                    <div>
+                        <h2 class="task-list-title">
+                            Tasks Listing
+                        </h2>
+
+                        <p class="task-list-caption">
+                            Your currently assigned work items
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="task-record-count">
+                    <i class="fa-solid fa-list"></i>
+                    @totalTasks Records
+                </div>
+
+            </div>
+
+
+            <div class="task-table-wrap">
+
+                <table class="task-table">
+
+                    <thead>
+                        <tr>
+                            <th>
+                                Task Title
+                            </th>
+
+                            <th>
+                                Description
+                            </th>
+
+                            <th>
+                                Due Date
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model != null && Model.Any())
+                        {
+                            var rowIndex = 0;
+
+                            @foreach (var t in Model)
+                            {
+                                <tr style="animation-delay: @(rowIndex * 0.045)s;">
+                                    <td>
+
+                                        <div class="task-name">
+
+                                            <div class="task-name-icon">
+                                                <i class="fa-solid fa-clipboard-check"></i>
+                                            </div>
+
+                                            <div class="task-name-text">
+
+                                                <p class="task-name-title">
+                                                    @t.TaskTitle
+                                                </p>
+
+                                                <span class="task-name-label">
+                                                    Assigned Task
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="task-description">
+                                            @t.Description
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="task-due-date">
+                                            <i class="fa-regular fa-calendar"></i>
+                                            @t.DueDate.ToString("dd MMM yyyy")
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        @if (t.Status == "Completed")
+                                        {
+                                            <span class="task-status task-status-completed">
+                                                <span class="task-status-dot"></span>
+                                                Completed
+                                            </span>
+                                        }
+                                        else if (t.Status == "In Progress")
+                                        {
+                                            <span class="task-status task-status-progress">
+                                                <span class="task-status-dot"></span>
+                                                In Progress
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="task-status task-status-pending">
+                                                <span class="task-status-dot"></span>
+                                                Pending
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+
+                                rowIndex++;
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@t.TaskTitle</td>
-                                <td class="text-muted" style="max-width: 350px;">@t.Description</td>
-                                <td class="text-muted">@t.DueDate.ToString("dd MMM yyyy")</td>
-                                <td>
-                                    @if (t.Status == "Completed")
-                                    {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Completed</span>
-                                    }
-                                    else if (t.Status == "In Progress")
-                                    {
-                                        <span class="badge bg-info-subtle text-info rounded-pill px-2.5 py-1">In Progress</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Pending</span>
-                                    }
+                                <td colspan="4">
+
+                                    <div class="task-empty">
+
+                                        <div class="task-empty-icon">
+                                            <i class="fa-regular fa-clipboard"></i>
+                                        </div>
+
+                                        <h3 class="task-empty-title">
+                                            No Tasks Assigned
+                                        </h3>
+
+                                        <p class="task-empty-text">
+                                            There are currently no tasks assigned to you.
+                                            New work items will appear here when they are assigned.
+                                        </p>
+
+                                    </div>
+
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No tasks assigned.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <div class="task-list-footer">
+
+                <div class="task-footer-info">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Task information is updated through the ERP system.
+                </div>
+
+                <div>
+                    ESS Task Management
+                </div>
+
+            </div>
+
         </div>
+
     </div>
 </div>

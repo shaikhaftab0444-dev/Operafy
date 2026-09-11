@@ -1,0 +1,248 @@
+@model IEnumerable<ERP_System.Models.PurchaseRequisition>
+
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "My PR History";
+}
+
+<style>
+    .pr-history-page {
+        animation: prHistoryFadeIn 0.55s ease both;
+    }
+
+    @@keyframes prHistoryFadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pr-header {
+        background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
+        border: 1px solid #e7ecf3;
+        border-radius: 18px;
+        padding: 22px 26px;
+        margin-bottom: 22px;
+        box-shadow: 0 8px 28px rgba(15, 23, 42, 0.045);
+    }
+
+    .header-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #eef5ff;
+        color: #2563eb;
+        font-size: 1.25rem;
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.1);
+    }
+
+    .pr-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+        overflow: hidden;
+    }
+</style>
+
+<div class="container-fluid px-0 pr-history-page">
+    <!-- Header -->
+    <div class="pr-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="header-icon">
+                <i class="fa-solid fa-clipboard-list"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h4 class="fw-bold mb-0 text-dark">My Purchase Requisitions</h4>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-bold rounded-pill">Personal Queue</span>
+                </div>
+                <p class="text-muted small mb-0">Track real-time approval states or withdraw pending material requests.</p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="@Url.Action("Create", "ESSPurchase")" class="btn btn-primary btn-sm px-3 rounded-pill fw-semibold shadow-sm">
+                <i class="fa-solid fa-plus me-1"></i> Request New Material
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                <div class="fw-semibold">@TempData["SuccessMessage"]</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="pr-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase small text-muted">
+                    <tr>
+                        <th class="ps-4">PR #</th>
+                        <th>Department</th>
+                        <th>Material Description</th>
+                        <th>Estimated Cost</th>
+                        <th>Urgency Level</th>
+                        <th>Submitted Date</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr id="pr-row-@item.Id">
+                                <td class="ps-4 fw-bold text-primary">#@item.Id</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        @(item.Department?.DepartmentName ?? "N/A")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">
+                                        @(item.CatalogItem?.ItemName ?? "Material Request")
+                                        <span class="text-muted fw-normal small">(Qty: @item.Quantity @(item.CatalogItem?.UnitOfMeasure ?? "Unit"))</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(item.BusinessJustification))
+                                    {
+                                        <div class="text-muted small text-truncate" style="max-width: 300px;" title="@item.BusinessJustification">
+                                            @item.BusinessJustification
+                                        </div>
+                                    }
+                                </td>
+                                <td class="fw-bold text-dark fs-6">
+                                    ₹ @string.Format("{0:N2}", item.EstimatedTotalCost)
+                                </td>
+                                <td>
+                                    @if (item.UrgencyLevel.Contains("Urgent"))
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1"><i class="fa-solid fa-bolt me-1"></i> @item.UrgencyLevel</span>
+                                    }
+                                    else if (item.UrgencyLevel.Contains("High"))
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1"><i class="fa-solid fa-clock me-1"></i> @item.UrgencyLevel</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">@item.UrgencyLevel</span>
+                                    }
+                                </td>
+                                <td class="text-muted small">@item.CreatedAt.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    @if (item.Status == "Approved")
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fw-bold">
+                                            <i class="fa-solid fa-circle-check me-1"></i> Approved
+                                        </span>
+                                    }
+                                    else if (item.Status == "Rejected")
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 fw-bold">
+                                            <i class="fa-solid fa-circle-xmark me-1"></i> Rejected
+                                        </span>
+                                    }
+                                    else if (item.Status == "Cancelled")
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1.5 fw-bold">
+                                            <i class="fa-solid fa-ban me-1"></i> Cancelled
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1.5 fw-bold">
+                                            <i class="fa-solid fa-clock me-1"></i> Pending Review
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    @if (item.Status == "Pending")
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger px-2.5 rounded-pill" onclick="withdrawPR(@item.Id)">
+                                            <i class="fa-solid fa-ban me-1"></i> Withdraw
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Locked</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-clipboard-question fs-2 text-muted mb-2"></i>
+                                <div>You have not submitted any purchase requisitions yet.</div>
+                                <a href="@Url.Action("Create", "ESSPurchase")" class="btn btn-sm btn-primary mt-2 rounded-pill">
+                                    <i class="fa-solid fa-plus me-1"></i> Submit New Material Requisition
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        function withdrawPR(prId) {
+            if (!confirm("Are you sure you want to withdraw and cancel Requisition #" + prId + "?")) {
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            fetch('@Url.Action("CancelPR", "ESSPurchase")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: new URLSearchParams({ 
+                    prId: prId,
+                    __RequestVerificationToken: token
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.success) {
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success(data.message || 'Requisition withdrawn successfully.');
+                    } else {
+                        alert(data.message || 'Requisition withdrawn successfully.');
+                    }
+                    setTimeout(() => location.reload(), 600);
+                } else {
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(data.message || 'Failed to withdraw requisition.');
+                    } else {
+                        alert(data.message || 'Failed to withdraw requisition.');
+                    }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Network request failed.');
+                } else {
+                    alert('Network request failed.');
+                }
+            });
+        }
+    </script>
+}

@@ -28,6 +28,83 @@ namespace ERP_System.Controllers
             return View(model);
         }
 
+        // POST: /Purchase/UpdatePRStatus
+        [HttpPost]
+        [Authorize(Roles = "Purchase Manager,Super Admin,Admin")]
+        public async Task<IActionResult> UpdatePRStatus(int prId, string status)
+        {
+            var approverName = User.Identity?.Name ?? "Chief Procurement Officer";
+            var result = status.Equals("Approved", StringComparison.OrdinalIgnoreCase)
+                ? PurchaseDataStore.ApproveRequisition(prId, approverName)
+                : PurchaseDataStore.RejectRequisition(prId, approverName);
+
+            if (result == null)
+            {
+                return Json(new { success = false, message = "Requisition not found." });
+            }
+
+            return Json(new { success = true, message = $"Purchase Requisition #{prId} has been marked as {status}." });
+        }
+
+        // POST: /Purchase/ApproveRequisition (backwards compatibility)
+        [HttpPost]
+        [Authorize(Roles = "Purchase Manager,Super Admin,Admin")]
+        public IActionResult ApproveRequisition(int id, string actionType)
+        {
+            var approverName = User.Identity?.Name ?? "Chief Procurement Officer";
+            var result = (actionType == "Approved")
+                ? PurchaseDataStore.ApproveRequisition(id, approverName)
+                : PurchaseDataStore.RejectRequisition(id, approverName);
+
+            if (result == null)
+            {
+                return Json(new { success = false, message = "Requisition not found." });
+            }
+
+            return Json(new { success = true, id = id, action = actionType, message = $"Requisition #{id} marked as {actionType}." });
+        }
+
+        // GET: /Purchase/CreatePOFromPR
+        [HttpGet]
+        [Authorize(Roles = "Purchase Manager,Super Admin,Admin")]
+        public IActionResult CreatePOFromPR(int prId)
+        {
+            var req = PurchaseDataStore.GetRequisitions().FirstOrDefault(r => r.Id == prId);
+            if (req != null)
+            {
+                if (req.Status != "Approved")
+                {
+                    PurchaseDataStore.ApproveRequisition(prId, User.Identity?.Name ?? "Purchase Manager");
+                }
+                TempData["SuccessMessage"] = $"PR #{prId} ({req.ItemSummary}) successfully converted to Purchase Order.";
+            }
+            return RedirectToAction("Orders");
+        }
+
+        // POST: /Purchase/SubmitPR
+        [HttpPost]
+        public IActionResult SubmitPR(RequisitionItem item)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.ItemSummary))
+            {
+                return Json(new { success = false, message = "Invalid requisition details." });
+            }
+
+            if (string.IsNullOrWhiteSpace(item.RequestedOn))
+            {
+                item.RequestedOn = DateTime.Now.ToString("dd MMM yyyy");
+            }
+            item.Status = "Pending";
+
+            var created = PurchaseDataStore.AddRequisition(item);
+            return Json(new
+            {
+                success = true,
+                id = created.Id,
+                message = $"Purchase Requisition #{created.Id} submitted successfully."
+            });
+        }
+
         // GET: /Purchase/Orders
         [HttpGet]
         public IActionResult Orders()
@@ -148,55 +225,6 @@ namespace ERP_System.Controllers
                 deliveryDate = !string.IsNullOrWhiteSpace(input?.DeliveryDate) ? input.DeliveryDate : DateTime.Now.AddDays(7).ToString("dd MMM yyyy"),
                 paymentTerms = po.PaymentTerms,
                 message = $"Purchase Order {po.PONumber} created and dispatched to vendor {po.VendorName}." 
-            });
-        }
-
-        // POST: /Purchase/ApproveRequisition
-        [HttpPost]
-        public IActionResult ApproveRequisition(int id, string actionType)
-        {
-            var userName = User.Identity?.Name ?? "Chief Procurement Officer";
-            if (string.Equals(actionType, "Approved", StringComparison.OrdinalIgnoreCase))
-            {
-                var req = PurchaseDataStore.ApproveRequisition(id, userName);
-                if (req == null)
-                    return Json(new { success = false, message = $"Requisition #{id} not found." });
-
-                return Json(new 
-                { 
-                    success = true, 
-                    id = id, 
-                    status = "Approved",
-                    message = $"Requisition #{id} approved and released. Official PO generated in Purchase Orders registry." 
-                });
-            }
-            else
-            {
-                var req = PurchaseDataStore.RejectRequisition(id, userName);
-                if (req == null)
-                    return Json(new { success = false, message = $"Requisition #{id} not found." });
-
-                return Json(new 
-                { 
-                    success = true, 
-                    id = id, 
-                    status = "Rejected",
-                    message = $"Requisition #{id} has been formally rejected." 
-                });
-            }
-        }
-
-        // POST: /Purchase/SubmitPR
-        [HttpPost]
-        public IActionResult SubmitPR(RequisitionItem input)
-        {
-            var req = PurchaseDataStore.AddRequisition(input);
-            return Json(new
-            {
-                success = true,
-                id = req.Id,
-                data = req,
-                message = $"Purchase Requisition #{req.Id} submitted successfully to approval queue."
             });
         }
 

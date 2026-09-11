@@ -1026,14 +1026,6 @@
                             Dashboard
                         </a>
 
-                        <button type="button"
-                                class="btn pr-btn pr-btn-primary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#submitPRModal">
-                            <i class="fa fa-plus"></i>
-                            Submit New PR
-                        </button>
-
                     </div>
 
                 </div>
@@ -1404,45 +1396,25 @@
 
                                     <!-- Actions -->
                                     <td class="text-end" id="pr-action-cell-@item.Id">
-
-                                        @if (item.Status == "Approved")
+                                        @if (item.Status == "Pending" || string.IsNullOrEmpty(item.Status))
                                         {
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" style="border-radius: 8px;">
-                                                <i class="fa fa-circle-check text-success"></i> Approved &amp; Released
-                                            </span>
+                                            <button type="button" class="btn btn-sm btn-success px-2 me-1 shadow-sm" onclick="handlePrDecision(@item.Id, 'Approved')">
+                                                <i class="fa fa-check me-1"></i> Approve
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger px-2 me-1 shadow-sm" onclick="handlePrDecision(@item.Id, 'Rejected')">
+                                                <i class="fa fa-times me-1"></i> Reject
+                                            </button>
                                         }
-                                        else if (item.Status == "Rejected")
+                                        else if (item.Status == "Approved")
                                         {
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" style="border-radius: 8px;">
-                                                <i class="fa fa-circle-xmark text-danger"></i> Rejected
-                                            </span>
+                                            <a href="@Url.Action("CreatePOFromPR", "Purchase", new { prId = item.Id })" class="btn btn-sm btn-primary px-2 shadow-sm">
+                                                <i class="fa fa-file-invoice me-1"></i> Convert to PO
+                                            </a>
                                         }
                                         else
                                         {
-                                            <div class="pr-action-group">
-
-                                                <button type="button"
-                                                        class="btn pr-action-btn pr-approve-btn"
-                                                        title="Approve & Release"
-                                                        onclick="prAction(@item.Id, 'Approved')">
-
-                                                    <i class="fa fa-check"></i>
-                                                    <span>Approve</span>
-
-                                                </button>
-
-                                                <button type="button"
-                                                        class="btn pr-action-btn pr-reject-btn"
-                                                        title="Reject Requisition"
-                                                        onclick="prAction(@item.Id, 'Rejected')">
-
-                                                    <i class="fa fa-xmark"></i>
-
-                                                </button>
-
-                                            </div>
+                                            <span class="badge bg-secondary px-2.5 py-1.5">@item.Status</span>
                                         }
-
                                     </td>
 
                                 </tr>
@@ -1513,98 +1485,6 @@
 <div id="prToast" class="pr-toast">
     <i class="fa fa-circle-check"></i>
     <span id="prToastMessage"></span>
-</div>
-
-<!-- ==========================================================================
-     MODAL: SUBMIT NEW PURCHASE REQUISITION (PR)
-     ========================================================================== -->
-<div class="modal fade" id="submitPRModal" tabindex="-1" aria-labelledby="submitPRModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
-            <div class="modal-header bg-light border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1">SAP MM ME51N</span>
-                    <h5 class="modal-title fw-bold text-dark mb-0" id="submitPRModalLabel">
-                        <i class="fa fa-clipboard-check text-primary me-2"></i> Submit New Purchase Requisition
-                    </h5>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            <form id="submitPRForm">
-                <div class="modal-body p-4">
-                    <p class="text-muted small mb-3">
-                        Initiate a formal procurement requisition for budget allocation and managerial approval.
-                    </p>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark">Requesting Department *</label>
-                            <select class="form-select" name="Department" id="prDepartment" required>
-                                <option value="Information Technology">Information Technology</option>
-                                <option value="Operations & Logistics">Operations & Logistics</option>
-                                <option value="Administration">Administration & Facilities</option>
-                                <option value="Human Resources">Human Resources</option>
-                                <option value="Quality Assurance">Quality Assurance & Lab</option>
-                                <option value="Research & Development">Research & Development</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark">Requested By (Employee / Head) *</label>
-                            <input type="text" class="form-control" name="RequestedBy" id="prRequestedBy" placeholder="e.g. Aftab Shaik" required />
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label small fw-bold text-dark">Item Summary & Procurement Scope *</label>
-                            <input type="text" class="form-control" name="ItemSummary" id="prItemSummary" placeholder="e.g. 5x Dell UltraSharp 27'' Monitors with USB-C Hub" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-dark">Estimated Cost (INR ₹) *</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light fw-bold">₹</span>
-                                <input type="text" class="form-control" name="EstimatedCost" id="prEstimatedCost" placeholder="1,45,000" required />
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-dark">Urgency Level *</label>
-                            <select class="form-select" name="Urgency" id="prUrgency" required>
-                                <option value="Medium">Medium Priority</option>
-                                <option value="High">High Priority</option>
-                                <option value="Urgent">Urgent (Same-day)</option>
-                                <option value="Normal">Normal</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-dark">Cost Center / Budget Code</label>
-                            <input type="text" class="form-control" name="BudgetCode" id="prBudgetCode" placeholder="CC-IT-2026-08" />
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label small fw-bold text-dark">Business Purpose & Justification</label>
-                            <textarea class="form-control" rows="2" name="Justification" id="prJustification" placeholder="Required for engineering team workstation upgrade to support Q4 development sprint..."></textarea>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="prComplianceCheck" checked required />
-                                <label class="form-check-label small text-muted" for="prComplianceCheck">
-                                    I certify that this procurement complies with current fiscal budget provisions and approved vendor sourcing policies.
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitPR">
-                        <i class="fa fa-paper-plane me-1"></i> Submit Purchase Requisition
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
 @section Scripts {
@@ -1716,7 +1596,7 @@
 
 
         /* =====================================================
-           SEARCH
+           SEARCH & FILTERS
            ===================================================== */
 
         function filterPRTable() {
@@ -1832,7 +1712,16 @@
 
         var prToastTimer = null;
 
-        function showPRToast(message) {
+        function showPRToast(message, isError) {
+
+            if (typeof toastr !== "undefined") {
+                if (isError) {
+                    toastr.error(message);
+                } else {
+                    toastr.success(message);
+                }
+                return;
+            }
 
             var toast =
                 document.getElementById("prToast");
@@ -1860,96 +1749,70 @@
 
 
         /* =====================================================
-           REQUISITION ACTION (APPROVE / REJECT)
+           REQUISITION ACTION DECISION (APPROVE / REJECT)
            ===================================================== */
 
-        function prAction(id, action) {
+        function handlePrDecision(prId, decision) {
 
-            var actionText =
-                action === "Approved"
-                    ? "approve and release"
-                    : "reject";
+            var actionText = decision === "Approved" ? "approve and release" : "reject";
 
-            if (!confirm(
-                "Confirm " +
-                actionText +
-                " for Requisition #" +
-                id +
-                "?"
-            )) {
+            if (!confirm("Are you sure you want to " + actionText + " Requisition #" + prId + "?")) {
                 return;
             }
 
+            $.post('@Url.Action("UpdatePRStatus", "Purchase")', {
+                prId: prId,
+                status: decision
+            }, function (res) {
+                if (res && res.success) {
+                    var row = document.getElementById("pr-row-" + prId);
+                    var cell = document.getElementById("pr-action-cell-" + prId);
 
-            $.post(
-                '@Url.Action("ApproveRequisition", "Purchase")',
-                {
-                    id: id,
-                    actionType: action
-                },
-                function (res) {
-
-                    if (res && res.success) {
-
-                        var row = document.getElementById("pr-row-" + id);
-                        var cell = document.getElementById("pr-action-cell-" + id);
-
-                        if (action === "Approved") {
-                            if (cell) {
-                                cell.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" style="border-radius: 8px;"><i class="fa fa-circle-check text-success"></i> Approved &amp; Released</span>';
-                            }
-                            if (row) {
-                                row.setAttribute("data-status", "Approved");
-                                row.style.transition = "background-color 0.4s ease";
-                                row.style.backgroundColor = "rgba(34, 197, 94, 0.08)";
-                            }
-                        } else {
-                            if (cell) {
-                                cell.innerHTML = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" style="border-radius: 8px;"><i class="fa fa-circle-xmark text-danger"></i> Rejected</span>';
-                            }
-                            if (row) {
-                                row.setAttribute("data-status", "Rejected");
-                                row.style.transition = "background-color 0.4s ease";
-                                row.style.backgroundColor = "rgba(239, 68, 68, 0.08)";
-                            }
+                    if (decision === "Approved") {
+                        if (cell) {
+                            var createPoUrl = '@Url.Action("CreatePOFromPR", "Purchase")' + '?prId=' + prId;
+                            cell.innerHTML = '<a href="' + createPoUrl + '" class="btn btn-sm btn-primary px-2 shadow-sm"><i class="fa fa-file-invoice me-1"></i> Convert to PO</a>';
                         }
-
-                        // Update Pending KPI counter
-                        var pendingKpi = document.querySelector(".pr-kpi-warning .pr-kpi-value");
-                        if (pendingKpi) {
-                            var cur = parseInt(pendingKpi.textContent, 10);
-                            if (!isNaN(cur) && cur > 0) {
-                                pendingKpi.textContent = (cur - 1) + " Requisitions";
-                            }
+                        if (row) {
+                            row.setAttribute("data-status", "Approved");
+                            row.style.transition = "background-color 0.4s ease";
+                            row.style.backgroundColor = "rgba(34, 197, 94, 0.08)";
                         }
-
-                        // Update status filter counts
-                        updateFilterPills();
-
-                        showPRToast(
-                            res.message ||
-                            ("Requisition #" + id + " marked as " + action + ".")
-                        );
-
-                    }
-                    else {
-
-                        showPRToast(
-                            res && res.message
-                                ? res.message
-                                : "Unable to process the requisition."
-                        );
+                    } else {
+                        if (cell) {
+                            cell.innerHTML = '<span class="badge bg-danger px-2.5 py-1.5"><i class="fa fa-times me-1"></i> Rejected</span>';
+                        }
+                        if (row) {
+                            row.setAttribute("data-status", "Rejected");
+                            row.style.transition = "background-color 0.4s ease";
+                            row.style.backgroundColor = "rgba(239, 68, 68, 0.08)";
+                        }
                     }
 
+                    // Update Pending KPI counter
+                    var pendingKpi = document.querySelector(".pr-kpi-warning .pr-kpi-value");
+                    if (pendingKpi) {
+                        var cur = parseInt(pendingKpi.textContent, 10);
+                        if (!isNaN(cur) && cur > 0) {
+                            pendingKpi.textContent = (cur - 1) + " Requisitions";
+                        }
+                    }
+
+                    // Update status filter counts
+                    updateFilterPills();
+
+                    showPRToast(res.message || ("Purchase Requisition #" + prId + " marked as " + decision + "."));
+                } else {
+                    showPRToast(res && res.message ? res.message : "Unable to process requisition decision.", true);
                 }
-            ).fail(function () {
-
-                showPRToast(
-                    "Unable to process the requisition. Please try again."
-                );
-
+            }).fail(function () {
+                showPRToast("Unable to communicate with the procurement server. Please try again.", true);
             });
+        }
 
+        // Backwards compatibility alias
+        function prAction(id, action) {
+            handlePrDecision(id, action);
         }
 
         /* Status filter function */
@@ -2015,93 +1878,6 @@
                 rows.length,
                 ""
             );
-
-            /* Submit PR Form Handler */
-            var prForm = document.getElementById("submitPRForm");
-            if (prForm) {
-                prForm.addEventListener("submit", function(e) {
-                    e.preventDefault();
-                    var btn = document.getElementById("btnSubmitPR");
-                    if (btn) btn.disabled = true;
-
-                    var rawCost = document.getElementById("prEstimatedCost").value;
-                    var costClean = "₹ " + rawCost.replace(/[^0-9,.]/g, '');
-
-                    var formData = {
-                        Department: document.getElementById("prDepartment").value,
-                        RequestedBy: document.getElementById("prRequestedBy").value,
-                        ItemSummary: document.getElementById("prItemSummary").value,
-                        EstimatedCost: costClean,
-                        Urgency: document.getElementById("prUrgency").value
-                    };
-
-                    $.post('@Url.Action("SubmitPR", "Purchase")', formData, function(res) {
-                        if (res && res.success) {
-                            var modalEl = document.getElementById("submitPRModal");
-                            var modalInstance = bootstrap.Modal.getInstance(modalEl);
-                            if (modalInstance) modalInstance.hide();
-                            prForm.reset();
-
-                            showPRToast(res.message || "Requisition submitted successfully!");
-
-                            var tbody = document.querySelector("#prDataTable tbody");
-                            if (tbody) {
-                                var emptyRow = document.getElementById("prEmptyRow");
-                                if (emptyRow) emptyRow.remove();
-
-                                var urgencyBadge = '';
-                                if (formData.Urgency === "Urgent") {
-                                    urgencyBadge = '<span class="pr-urgency-badge badge-urgency-urgent"><i class="fa fa-bolt"></i> Urgent</span>';
-                                } else if (formData.Urgency === "High") {
-                                    urgencyBadge = '<span class="pr-urgency-badge badge-urgency-high"><i class="fa fa-clock"></i> High</span>';
-                                } else {
-                                    urgencyBadge = '<span class="pr-urgency-badge badge-urgency-medium"><i class="fa fa-minus"></i> Medium</span>';
-                                }
-
-                                var newRow = document.createElement("tr");
-                                newRow.id = "pr-row-" + res.id;
-                                newRow.className = "pr-data-row";
-                                newRow.setAttribute("data-status", "Pending");
-                                newRow.innerHTML = `
-                                    <td><span class="pr-id">#` + res.id + `</span></td>
-                                    <td><span class="pr-department">` + formData.Department + `</span><span class="pr-cost-center"><i class="fa fa-building me-1"></i> CC-GEN-101</span></td>
-                                    <td><div class="pr-requester"><span class="pr-requester-icon"><i class="fa fa-user"></i></span><span>` + formData.RequestedBy + `</span></div></td>
-                                    <td><div class="pr-item-summary" title="` + formData.ItemSummary + `">` + formData.ItemSummary + `</div></td>
-                                    <td><span class="compact-money" data-value="` + formData.EstimatedCost + `">` + formData.EstimatedCost + `</span></td>
-                                    <td>` + urgencyBadge + `</td>
-                                    <td><span class="text-muted"><i class="fa fa-calendar-days me-1"></i> Just Now</span></td>
-                                    <td class="text-end" id="pr-action-cell-` + res.id + `">
-                                        <div class="pr-action-group">
-                                            <button type="button" class="btn pr-action-btn pr-approve-btn" title="Approve & Release" onclick="prAction(` + res.id + `, 'Approved')">
-                                                <i class="fa fa-check"></i> <span>Approve</span>
-                                            </button>
-                                            <button type="button" class="btn pr-action-btn pr-reject-btn" title="Reject Requisition" onclick="prAction(` + res.id + `, 'Rejected')">
-                                                <i class="fa fa-xmark"></i>
-                                            </button>
-                                        </div>
-                                    </td>`;
-                                tbody.prepend(newRow);
-
-                                var updatedRows = document.querySelectorAll("#prDataTable tbody tr[id^='pr-row-']");
-                                updatePRResultCount(updatedRows.length, document.getElementById("prSearch")?.value || "");
-                                updateFilterPills();
-
-                                var pendingKpi = document.querySelector(".pr-kpi-warning .pr-kpi-value");
-                                if (pendingKpi) {
-                                    var curCount = parseInt(pendingKpi.textContent.trim(), 10) || 0;
-                                    pendingKpi.textContent = (curCount + 1) + " Requisitions";
-                                }
-                            }
-                        } else {
-                            showPRToast(res && res.message ? res.message : "Failed to submit requisition.");
-                        }
-                    }).fail(function() {
-                        showPRToast("Network error submitting requisition.");
-                    }).always(function() {
-                        if (btn) btn.disabled = false;
-                    });
-                });
-            }
 
         });
 

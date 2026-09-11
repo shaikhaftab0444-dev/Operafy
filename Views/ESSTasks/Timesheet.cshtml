@@ -1,105 +1,1627 @@
 @model IEnumerable<ERP_System.Models.ESSTask>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Daily Timesheet Entry";
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-business-time text-primary me-2"></i>Daily Timesheet Entry</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Timesheet Entry</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#timesheetModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Log Task / Hours
-        </button>
-    </div>
+<style>
+    /* =========================================================
+           DAILY TIMESHEET - PREMIUM ESS / ERP UI
+           ========================================================= */
 
-    <!-- Logged Tasks Grid -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Logged Work Tasks</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Work Item</th>
-                        <th>Details / Description</th>
-                        <th>Logged Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var t in Model)
+    .timesheet-page {
+        --ts-primary: #2563eb;
+        --ts-primary-dark: #1d4ed8;
+        --ts-text: #172033;
+        --ts-muted: #718096;
+        --ts-border: #e5eaf1;
+        --ts-bg: #f5f7fb;
+        --ts-card: #ffffff;
+        --ts-success: #16a34a;
+        --ts-info: #0891b2;
+        --ts-warning: #d97706;
+        min-height: calc(100vh - 80px);
+        padding: 28px 0 42px;
+        background: radial-gradient(circle at 8% 0%, rgba(37, 99, 235, .055), transparent 28%), radial-gradient(circle at 92% 12%, rgba(14, 165, 233, .045), transparent 25%), var(--ts-bg);
+        color: var(--ts-text);
+    }
+
+    .timesheet-shell {
+        width: min(100% - 36px, 1480px);
+        margin: 0 auto;
+    }
+
+    /* =========================================================
+           PAGE HEADER
+           ========================================================= */
+
+    .ts-header {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 23px 26px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(226, 232, 240, .95);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, .95);
+        box-shadow: 0 12px 35px rgba(15, 23, 42, .055);
+        animation: tsHeaderIn .55s ease both;
+    }
+
+        .ts-header::before {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            right: -75px;
+            top: -150px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .075);
+            pointer-events: none;
+        }
+
+        .ts-header::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 13%;
+            width: 6px;
+            height: 74%;
+            border-radius: 0 8px 8px 0;
+            background: linear-gradient(180deg, #2563eb, #60a5fa);
+        }
+
+    .ts-heading {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .ts-title-row {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+    }
+
+    .ts-title-icon {
+        width: 45px;
+        height: 45px;
+        flex: 0 0 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        color: var(--ts-primary);
+        font-size: 19px;
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .08);
+    }
+
+    .ts-title {
+        margin: 0;
+        color: #162033;
+        font-size: 1.42rem;
+        font-weight: 800;
+        letter-spacing: -.35px;
+    }
+
+    .ts-subtitle {
+        margin: 4px 0 0;
+        color: #718096;
+        font-size: .82rem;
+        line-height: 1.5;
+    }
+
+    .ts-breadcrumb {
+        margin-top: 9px;
+    }
+
+        .ts-breadcrumb .breadcrumb {
+            margin: 0;
+            padding: 0;
+        }
+
+        .ts-breadcrumb .breadcrumb-item {
+            color: #94a3b8;
+            font-size: .74rem;
+        }
+
+            .ts-breadcrumb .breadcrumb-item a {
+                color: #64748b;
+                text-decoration: none;
+                transition: color .2s ease;
+            }
+
+                .ts-breadcrumb .breadcrumb-item a:hover {
+                    color: var(--ts-primary);
+                }
+
+            .ts-breadcrumb .breadcrumb-item.active {
+                color: #334155;
+                font-weight: 600;
+            }
+
+    .ts-header-action {
+        position: relative;
+        z-index: 2;
+        flex-shrink: 0;
+    }
+
+    .ts-log-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 9px 16px;
+        border: 0;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        font-size: .76rem;
+        font-weight: 750;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .18);
+        transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+    }
+
+        .ts-log-button:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            filter: brightness(1.03);
+            box-shadow: 0 12px 25px rgba(37, 99, 235, .25);
+        }
+
+        .ts-log-button:active {
+            transform: translateY(0);
+        }
+
+        .ts-log-button i {
+            font-size: .72rem;
+        }
+
+    /* =========================================================
+           SUMMARY CARDS
+           ========================================================= */
+
+    .ts-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 15px;
+        margin-bottom: 21px;
+    }
+
+    .ts-summary-card {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        min-height: 98px;
+        padding: 17px 18px;
+        border: 1px solid var(--ts-border);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 9px 27px rgba(15, 23, 42, .045);
+        animation: tsCardIn .55s ease both;
+        transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+
+        .ts-summary-card:nth-child(2) {
+            animation-delay: .07s;
+        }
+
+        .ts-summary-card:nth-child(3) {
+            animation-delay: .14s;
+        }
+
+        .ts-summary-card:hover {
+            transform: translateY(-3px);
+            border-color: #d7dfeb;
+            box-shadow: 0 15px 34px rgba(15, 23, 42, .075);
+        }
+
+        .ts-summary-card::after {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            right: -38px;
+            bottom: -45px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .045);
+        }
+
+    .ts-summary-icon {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 16px;
+    }
+
+    .ts-summary-card:nth-child(2) .ts-summary-icon {
+        background: #ecfeff;
+        color: #0891b2;
+    }
+
+    .ts-summary-card:nth-child(3) .ts-summary-icon {
+        background: #f0fdf4;
+        color: #16a34a;
+    }
+
+    .ts-summary-label {
+        margin: 0 0 3px;
+        color: #94a3b8;
+        font-size: .67rem;
+        font-weight: 800;
+        letter-spacing: .65px;
+        text-transform: uppercase;
+    }
+
+    .ts-summary-value {
+        margin: 0;
+        color: #182235;
+        font-size: 1.18rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .ts-summary-note {
+        margin-top: 4px;
+        color: #a0aec0;
+        font-size: .68rem;
+    }
+
+    /* =========================================================
+           MAIN WORK LOG CARD
+           ========================================================= */
+
+    .ts-card {
+        overflow: hidden;
+        border: 1px solid var(--ts-border);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 35px rgba(15, 23, 42, .055);
+        animation: tsCardIn .65s ease both;
+        animation-delay: .12s;
+    }
+
+    .ts-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 20px 22px;
+        border-bottom: 1px solid #edf1f5;
+        background: linear-gradient(180deg, #fff, #fbfcfe);
+    }
+
+    .ts-card-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .ts-card-icon {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 15px;
+    }
+
+    .ts-card-title {
+        margin: 0;
+        color: #1e293b;
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .ts-card-caption {
+        margin: 3px 0 0;
+        color: #94a3b8;
+        font-size: .71rem;
+    }
+
+    .ts-record-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: .68rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+           TABLE
+           ========================================================= */
+
+    .ts-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+
+    .ts-table {
+        width: 100%;
+        min-width: 770px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .ts-table thead th {
+            padding: 13px 18px;
+            border-bottom: 1px solid #e8edf3;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: .67rem;
+            font-weight: 800;
+            letter-spacing: .6px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+            .ts-table thead th:first-child {
+                padding-left: 22px;
+            }
+
+        .ts-table tbody tr {
+            animation: tsRowIn .45s ease both;
+        }
+
+        .ts-table tbody td {
+            padding: 16px 18px;
+            border-bottom: 1px solid #edf1f5;
+            background: #fff;
+            color: #64748b;
+            font-size: .79rem;
+            vertical-align: middle;
+            transition: background .2s ease;
+        }
+
+        .ts-table tbody tr:hover td {
+            background: #f9fbff;
+        }
+
+        .ts-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .ts-table tbody td:first-child {
+            padding-left: 22px;
+        }
+
+    /* Work item */
+
+    .ts-work-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 190px;
+    }
+
+    .ts-work-icon {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 12px;
+        transition: transform .25s ease, background .25s ease;
+    }
+
+    .ts-table tbody tr:hover .ts-work-icon {
+        transform: scale(1.08) rotate(-3deg);
+        background: #dbeafe;
+    }
+
+    .ts-work-content {
+        min-width: 0;
+    }
+
+    .ts-work-title {
+        margin: 0;
+        color: #1e293b;
+        font-size: .81rem;
+        font-weight: 750;
+        line-height: 1.4;
+    }
+
+    .ts-work-label {
+        display: block;
+        margin-top: 3px;
+        color: #a0aec0;
+        font-size: .63rem;
+    }
+
+    /* Details */
+
+    .ts-description {
+        display: -webkit-box;
+        max-width: 390px;
+        overflow: hidden;
+        color: #64748b;
+        line-height: 1.55;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    /* Date */
+
+    .ts-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #475569;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .ts-date i {
+            color: #94a3b8;
+            font-size: .75rem;
+        }
+
+    /* =========================================================
+           STATUS
+           ========================================================= */
+
+    .ts-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-width: 105px;
+        padding: 7px 11px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: .66rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .ts-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .ts-status-completed {
+        color: #15803d;
+        background: #f0fdf4;
+        border-color: #dcfce7;
+    }
+
+    .ts-status-progress {
+        color: #0e7490;
+        background: #ecfeff;
+        border-color: #cffafe;
+    }
+
+        .ts-status-progress .ts-status-dot {
+            animation: tsPulse 1.8s ease-in-out infinite;
+        }
+
+    .ts-status-pending {
+        color: #b45309;
+        background: #fffbeb;
+        border-color: #fef3c7;
+    }
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .ts-empty {
+        padding: 62px 22px;
+        text-align: center;
+    }
+
+    .ts-empty-icon {
+        width: 66px;
+        height: 66px;
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 25px;
+        animation: tsFloat 3s ease-in-out infinite;
+    }
+
+    .ts-empty-title {
+        margin: 0 0 6px;
+        color: #334155;
+        font-size: .96rem;
+        font-weight: 800;
+    }
+
+    .ts-empty-text {
+        max-width: 400px;
+        margin: 0 auto;
+        color: #94a3b8;
+        font-size: .76rem;
+        line-height: 1.6;
+    }
+
+    /* =========================================================
+           FOOTER
+           ========================================================= */
+
+    .ts-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 12px 22px;
+        border-top: 1px solid #edf1f5;
+        background: #fbfcfe;
+        color: #94a3b8;
+        font-size: .66rem;
+    }
+
+    .ts-footer-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    /* =========================================================
+           MODAL
+           ========================================================= */
+
+    .ts-modal .modal-dialog {
+        max-width: 530px;
+    }
+
+    .ts-modal .modal-content {
+        overflow: hidden;
+        border: 1px solid #e3e8ef;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, .20);
+    }
+
+    .ts-modal .modal-header {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 19px 21px;
+        border-bottom: 1px solid #edf1f5;
+        background: linear-gradient(180deg, #fff, #f8fafc);
+    }
+
+        .ts-modal .modal-header::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #2563eb, #60a5fa);
+        }
+
+    .ts-modal-icon {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 15px;
+    }
+
+    .ts-modal-title-wrap {
+        min-width: 0;
+    }
+
+    .ts-modal .modal-title {
+        margin: 0;
+        color: #172033;
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .ts-modal-subtitle {
+        margin: 3px 0 0;
+        color: #94a3b8;
+        font-size: .69rem;
+    }
+
+    .ts-modal .btn-close {
+        margin-left: auto;
+        opacity: .55;
+        transition: opacity .2s ease, transform .2s ease;
+    }
+
+        .ts-modal .btn-close:hover {
+            opacity: .85;
+            transform: rotate(4deg);
+        }
+
+    .ts-modal .modal-body {
+        padding: 21px;
+    }
+
+    .ts-field {
+        margin-bottom: 17px;
+    }
+
+        .ts-field:last-child {
+            margin-bottom: 0;
+        }
+
+    .ts-field-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 7px;
+        color: #334155;
+        font-size: .72rem;
+        font-weight: 750;
+    }
+
+        .ts-field-label i {
+            color: #94a3b8;
+            font-size: .68rem;
+        }
+
+    .ts-required {
+        color: #ef4444;
+        font-size: .7rem;
+    }
+
+    .ts-input {
+        width: 100%;
+        min-height: 42px;
+        padding: 10px 12px;
+        border: 1px solid #dfe5ed;
+        border-radius: 10px;
+        outline: none;
+        background: #fff;
+        color: #334155;
+        font-size: .77rem;
+        box-shadow: none;
+        transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+        .ts-input::placeholder {
+            color: #a0aec0;
+        }
+
+        .ts-input:focus {
+            border-color: #93c5fd;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .08);
+        }
+
+    textarea.ts-input {
+        min-height: 105px;
+        resize: vertical;
+        line-height: 1.55;
+    }
+
+    .ts-input-hint {
+        margin-top: 5px;
+        color: #a0aec0;
+        font-size: .63rem;
+    }
+
+    .ts-modal .modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 15px 21px;
+        border-top: 1px solid #edf1f5;
+        background: #fbfcfe;
+    }
+
+    .ts-cancel-btn,
+    .ts-submit-btn {
+        min-height: 37px;
+        padding: 8px 15px;
+        border-radius: 9px;
+        font-size: .72rem;
+        font-weight: 750;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .ts-cancel-btn:hover,
+        .ts-submit-btn:hover {
+            transform: translateY(-1px);
+        }
+
+    .ts-submit-btn {
+        border: 0;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        box-shadow: 0 7px 16px rgba(37, 99, 235, .17);
+    }
+
+        .ts-submit-btn:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            box-shadow: 0 10px 21px rgba(37, 99, 235, .22);
+        }
+
+    /* =========================================================
+           ANIMATIONS
+           ========================================================= */
+
+    @@keyframes tsHeaderIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes tsCardIn {
+        from {
+            opacity: 0;
+            transform: translateY(13px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes tsRowIn {
+        from {
+            opacity: 0;
+            transform: translateX(-7px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes tsPulse {
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(8, 145, 178, .12);
+        }
+
+        50% {
+            opacity: .6;
+            transform: scale(.78);
+            box-shadow: 0 0 0 4px rgba(8, 145, 178, .07);
+        }
+    }
+
+    @@keyframes tsFloat {
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 992px) {
+        .timesheet-shell {
+            width: min(100% - 28px, 1480px);
+        }
+
+        .ts-header {
+            padding: 21px;
+        }
+
+        .ts-summary {
+            gap: 12px;
+        }
+
+        .ts-summary-card {
+            padding: 15px;
+        }
+
+        .ts-description {
+            max-width: 290px;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .timesheet-page {
+            padding-top: 18px;
+        }
+
+        .timesheet-shell {
+            width: min(100% - 22px, 1480px);
+        }
+
+        .ts-header {
+            display: block;
+            padding: 19px;
+            border-radius: 15px;
+        }
+
+        .ts-title-row {
+            gap: 10px;
+        }
+
+        .ts-title-icon {
+            width: 41px;
+            height: 41px;
+            flex-basis: 41px;
+        }
+
+        .ts-title {
+            font-size: 1.18rem;
+        }
+
+        .ts-subtitle {
+            font-size: .76rem;
+        }
+
+        .ts-header-action {
+            margin-top: 16px;
+        }
+
+        .ts-log-button {
+            width: 100%;
+        }
+
+        .ts-summary {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .ts-summary-card {
+            min-height: 81px;
+        }
+
+        .ts-card {
+            border-radius: 15px;
+        }
+
+        .ts-card-header {
+            padding: 16px;
+        }
+
+        .ts-card-caption {
+            display: none;
+        }
+
+        .ts-record-count {
+            padding: 6px 9px;
+        }
+
+        .ts-table thead th {
+            padding: 12px 14px;
+        }
+
+        .ts-table tbody td {
+            padding: 15px 14px;
+        }
+
+            .ts-table thead th:first-child,
+            .ts-table tbody td:first-child {
+                padding-left: 17px;
+            }
+
+        .ts-card-footer {
+            padding: 12px 17px;
+        }
+
+        .ts-modal .modal-dialog {
+            margin: 10px;
+        }
+
+        .ts-modal .modal-body {
+            padding: 18px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .timesheet-shell {
+            width: calc(100% - 16px);
+        }
+
+        .ts-header {
+            padding: 16px;
+        }
+
+        .ts-title-icon {
+            width: 38px;
+            height: 38px;
+            flex-basis: 38px;
+            border-radius: 10px;
+        }
+
+        .ts-title {
+            font-size: 1.06rem;
+        }
+
+        .ts-subtitle {
+            font-size: .71rem;
+        }
+
+        .ts-breadcrumb .breadcrumb-item {
+            font-size: .67rem;
+        }
+
+        .ts-summary-card {
+            padding: 13px;
+            border-radius: 13px;
+        }
+
+        .ts-summary-icon {
+            width: 38px;
+            height: 38px;
+            flex-basis: 38px;
+            border-radius: 10px;
+        }
+
+        .ts-summary-label {
+            font-size: .62rem;
+        }
+
+        .ts-summary-value {
+            font-size: 1rem;
+        }
+
+        .ts-card-header {
+            padding: 14px;
+        }
+
+        .ts-card-icon {
+            width: 34px;
+            height: 34px;
+        }
+
+        .ts-card-title {
+            font-size: .87rem;
+        }
+
+        .ts-record-count {
+            font-size: .61rem;
+        }
+
+        .ts-table {
+            min-width: 710px;
+        }
+
+        .ts-card-footer {
+            font-size: .61rem;
+        }
+
+        .ts-empty {
+            padding: 48px 18px;
+        }
+
+        .ts-modal .modal-dialog {
+            margin: 8px;
+        }
+
+        .ts-modal .modal-header {
+            padding: 17px;
+        }
+
+        .ts-modal .modal-body {
+            padding: 17px;
+        }
+
+        .ts-modal .modal-footer {
+            padding: 13px 17px;
+        }
+    }
+
+    /* =========================================================
+           REDUCED MOTION
+           ========================================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .ts-header,
+        .ts-summary-card,
+        .ts-card,
+        .ts-table tbody tr {
+            animation: none !important;
+        }
+
+        .ts-summary-card,
+        .ts-log-button,
+        .ts-work-icon,
+        .ts-submit-btn,
+        .ts-cancel-btn {
+            transition: none !important;
+        }
+
+        .ts-empty-icon,
+        .ts-status-progress .ts-status-dot {
+            animation: none !important;
+        }
+    }
+</style>
+
+
+@{
+    var totalEntries = Model?.Count() ?? 0;
+    var completedEntries = Model?.Count(x => x.Status == "Completed") ?? 0;
+    var activeEntries = Model?.Count(x => x.Status == "In Progress") ?? 0;
+}
+
+
+<div class="timesheet-page">
+
+    <div class="timesheet-shell">
+
+        <!-- =====================================================
+             PAGE HEADER
+             ===================================================== -->
+
+        <div class="ts-header">
+
+            <div class="ts-heading">
+
+                <div class="ts-title-row">
+
+                    <div class="ts-title-icon">
+                        <i class="fa-solid fa-business-time"></i>
+                    </div>
+
+                    <div>
+                        <h1 class="ts-title">
+                            Daily Timesheet Entry
+                        </h1>
+
+                        <p class="ts-subtitle">
+                            Record your daily work items, hours spent and activity details.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="ts-breadcrumb">
+
+                    <nav aria-label="breadcrumb">
+
+                        <ol class="breadcrumb">
+
+                            <li class="breadcrumb-item">
+                                <a href="/EmployeeDashboard">
+                                    <i class="fa-solid fa-house me-1"></i>
+                                    ESS
+                                </a>
+                            </li>
+
+                            <li class="breadcrumb-item active" aria-current="page">
+                                Timesheet Entry
+                            </li>
+
+                        </ol>
+
+                    </nav>
+
+                </div>
+
+            </div>
+
+
+            <div class="ts-header-action">
+
+                <button type="button"
+                        class="ts-log-button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#timesheetModal">
+
+                    <i class="fa-solid fa-plus"></i>
+
+                    <span>Log Task / Hours</span>
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SUMMARY
+             ===================================================== -->
+
+        <div class="ts-summary">
+
+            <div class="ts-summary-card">
+
+                <div class="ts-summary-icon">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+
+                <div>
+                    <p class="ts-summary-label">
+                        Total Entries
+                    </p>
+
+                    <p class="ts-summary-value">
+                        @totalEntries
+                    </p>
+
+                    <div class="ts-summary-note">
+                        Logged work items
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="ts-summary-card">
+
+                <div class="ts-summary-icon">
+                    <i class="fa-solid fa-spinner"></i>
+                </div>
+
+                <div>
+                    <p class="ts-summary-label">
+                        In Progress
+                    </p>
+
+                    <p class="ts-summary-value">
+                        @activeEntries
+                    </p>
+
+                    <div class="ts-summary-note">
+                        Active work items
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="ts-summary-card">
+
+                <div class="ts-summary-icon">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+
+                <div>
+                    <p class="ts-summary-label">
+                        Completed
+                    </p>
+
+                    <p class="ts-summary-value">
+                        @completedEntries
+                    </p>
+
+                    <div class="ts-summary-note">
+                        Completed work items
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             LOGGED TASKS
+             ===================================================== -->
+
+        <div class="ts-card">
+
+            <div class="ts-card-header">
+
+                <div class="ts-card-heading">
+
+                    <div class="ts-card-icon">
+                        <i class="fa-solid fa-table-list"></i>
+                    </div>
+
+                    <div>
+
+                        <h2 class="ts-card-title">
+                            Logged Work Tasks
+                        </h2>
+
+                        <p class="ts-card-caption">
+                            Review your recorded daily work activities.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="ts-record-count">
+
+                    <i class="fa-solid fa-database"></i>
+
+                    @totalEntries Records
+
+                </div>
+
+            </div>
+
+
+            <div class="ts-table-wrap">
+
+                <table class="ts-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Work Item
+                            </th>
+
+                            <th>
+                                Details / Description
+                            </th>
+
+                            <th>
+                                Logged Date
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model != null && Model.Any())
+                        {
+                            var rowIndex = 0;
+
+                            @foreach (var t in Model)
+                            {
+                                <tr style="animation-delay: @(rowIndex * 0.045)s;">
+
+                                    <td>
+
+                                        <div class="ts-work-item">
+
+                                            <div class="ts-work-icon">
+                                                <i class="fa-solid fa-clipboard-check"></i>
+                                            </div>
+
+                                            <div class="ts-work-content">
+
+                                                <p class="ts-work-title">
+                                                    @t.TaskTitle
+                                                </p>
+
+                                                <span class="ts-work-label">
+                                                    Daily Work Entry
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="ts-description">
+                                            @t.Description
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="ts-date">
+
+                                            <i class="fa-regular fa-calendar"></i>
+
+                                            @t.DueDate.ToString("dd MMM yyyy")
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        @if (t.Status == "Completed")
+                                        {
+                                            <span class="ts-status ts-status-completed">
+
+                                                <span class="ts-status-dot"></span>
+
+                                                Completed
+
+                                            </span>
+                                        }
+                                        else if (t.Status == "In Progress")
+                                        {
+                                            <span class="ts-status ts-status-progress">
+
+                                                <span class="ts-status-dot"></span>
+
+                                                In Progress
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="ts-status ts-status-pending">
+
+                                                <span class="ts-status-dot"></span>
+
+                                                Pending
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+
+                                rowIndex++;
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@t.TaskTitle</td>
-                                <td class="text-muted" style="max-width: 350px;">@t.Description</td>
-                                <td class="text-muted">@t.DueDate.ToString("dd MMM yyyy")</td>
-                                <td>
-                                    @if (t.Status == "Completed")
-                                    {
-                                        <span class="badge bg-success-subtle text-success">Completed</span>
-                                    }
-                                    else if (t.Status == "In Progress")
-                                    {
-                                        <span class="badge bg-info-subtle text-info">In Progress</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning-subtle text-warning">Pending</span>
-                                    }
+
+                                <td colspan="4">
+
+                                    <div class="ts-empty">
+
+                                        <div class="ts-empty-icon">
+                                            <i class="fa-regular fa-clock"></i>
+                                        </div>
+
+                                        <h3 class="ts-empty-title">
+                                            No Timesheets Logged
+                                        </h3>
+
+                                        <p class="ts-empty-text">
+                                            You haven't logged any work items yet.
+                                            Use the <strong>Log Task / Hours</strong> button above to record today's work.
+                                        </p>
+
+                                    </div>
+
                                 </td>
+
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No timesheets logged.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <div class="ts-card-footer">
+
+                <div class="ts-footer-info">
+
+                    <i class="fa-solid fa-circle-info"></i>
+
+                    Daily work entries are maintained through the ESS system.
+
+                </div>
+
+                <div>
+                    ESS Timesheet
+                </div>
+
+            </div>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Timesheet Modal -->
-<div class="modal fade text-start" id="timesheetModal" tabindex="-1" aria-labelledby="timesheetModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+
+<!-- =========================================================
+     TIMESHEET MODAL
+     ========================================================= -->
+
+<div class="modal fade ts-modal text-start"
+     id="timesheetModal"
+     tabindex="-1"
+     aria-labelledby="timesheetModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
         <div class="modal-content">
+
             <form action="/ESSTasks/AddTimesheetTask" method="post">
+
                 @Html.AntiForgeryToken()
+
+
+                <!-- Modal Header -->
+
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="timesheetModalLabel">Log Daily Work Item</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    <div class="ts-modal-icon">
+                        <i class="fa-solid fa-business-time"></i>
+                    </div>
+
+                    <div class="ts-modal-title-wrap">
+
+                        <h5 class="modal-title" id="timesheetModalLabel">
+                            Log Daily Work Item
+                        </h5>
+
+                        <p class="ts-modal-subtitle">
+                            Add your work activity and time details.
+                        </p>
+
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
                 </div>
+
+
+                <!-- Modal Body -->
+
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Task/Work Title</label>
-                        <input type="text" name="TaskTitle" class="form-control" placeholder="e.g. Fixed bug in billing pipeline" required />
+
+                    <!-- Task Title -->
+
+                    <div class="ts-field">
+
+                        <label class="ts-field-label">
+
+                            <i class="fa-solid fa-heading"></i>
+
+                            Task / Work Title
+
+                            <span class="ts-required">*</span>
+
+                        </label>
+
+                        <input type="text"
+                               name="TaskTitle"
+                               class="ts-input"
+                               placeholder="e.g. Fixed bug in billing pipeline"
+                               required />
+
+                        <div class="ts-input-hint">
+                            Enter a short and meaningful title for the work performed.
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Work Date</label>
-                        <input type="date" name="DueDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+
+
+                    <!-- Work Date -->
+
+                    <div class="ts-field">
+
+                        <label class="ts-field-label">
+
+                            <i class="fa-regular fa-calendar"></i>
+
+                            Work Date
+
+                            <span class="ts-required">*</span>
+
+                        </label>
+
+                        <input type="date"
+                               name="DueDate"
+                               class="ts-input"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               required />
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Work Details (Hours Spent/Notes)</label>
-                        <textarea name="Description" class="form-control" rows="3" placeholder="e.g. Spent 4 hours debugging the payment mapping module." required></textarea>
+
+
+                    <!-- Work Details -->
+
+                    <div class="ts-field">
+
+                        <label class="ts-field-label">
+
+                            <i class="fa-solid fa-align-left"></i>
+
+                            Work Details (Hours Spent / Notes)
+
+                            <span class="ts-required">*</span>
+
+                        </label>
+
+                        <textarea name="Description"
+                                  class="ts-input"
+                                  rows="4"
+                                  placeholder="e.g. Spent 4 hours debugging the payment mapping module."
+                                  required></textarea>
+
+                        <div class="ts-input-hint">
+                            Mention hours spent, work completed and any important notes.
+                        </div>
+
                     </div>
+
                 </div>
+
+
+                <!-- Modal Footer -->
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log Item</button>
+
+                    <button type="button"
+                            class="btn btn-outline-secondary ts-cancel-btn"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary ts-submit-btn">
+
+                        <i class="fa-solid fa-paper-plane me-1"></i>
+
+                        Log Item
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
