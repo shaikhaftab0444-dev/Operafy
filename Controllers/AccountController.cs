@@ -76,7 +76,11 @@ namespace ERP_System.Controllers
                             authProperties);
 
                         var roleName = user.Role?.RoleName ?? "";
-                        if (roleName == "Finance Manager" || roleName == "Accountant")
+                        if (roleName == "Accountant")
+                        {
+                            return RedirectToAction("Index", "Accountant");
+                        }
+                        if (roleName == "Finance Manager")
                         {
                             return RedirectToAction("Index", "Finance");
                         }
