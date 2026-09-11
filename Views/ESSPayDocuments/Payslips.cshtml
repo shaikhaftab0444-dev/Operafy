@@ -1,53 +1,160 @@
+@model IEnumerable<ERP_System.Models.Payslip>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Download Payslips";
+    var payslipsList = Model?.ToList() ?? new List<ERP_System.Models.Payslip>();
+    var latestSlip = payslipsList.FirstOrDefault();
+    var ytdNet = payslipsList.Sum(p => p.NetSalary ?? 0m);
+    var ytdDeductions = payslipsList.Sum(p => p.TotalDeductions ?? 0m);
 }
 
 <div class="container-fluid py-4 text-start">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-file-invoice-dollar text-primary me-2"></i>Download Payslips</h4>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-file-invoice-dollar text-primary me-2"></i>My Salary Payslips</h4>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Payslips</li>
+                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none text-muted">ESS</a></li>
+                    <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-muted">Pay Documents</a></li>
+                    <li class="breadcrumb-item active text-primary fw-semibold" aria-current="page">Payslips</li>
                 </ol>
             </nav>
+        </div>
+        <div>
+            @if (latestSlip != null)
+            {
+                <a href="@Url.Action("DownloadPayslip", "ESSPayDocuments", new { id = latestSlip.PayslipId })" target="_blank" class="btn btn-primary rounded-pill px-3 shadow-sm">
+                    <i class="fa-solid fa-file-arrow-down me-1.5"></i>Latest Payslip (@latestSlip.PayPeriod)
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Quick Stats Overview -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-primary border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Latest Take-Home Pay</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">₹@((latestSlip?.NetSalary ?? 0m).ToString("N2"))</div>
+                        <div class="small text-muted mt-1">Period: @(latestSlip?.PayPeriod ?? "N/A")</div>
+                    </div>
+                    <div class="bg-primary-subtle text-primary p-3 rounded-circle">
+                        <i class="fa-solid fa-money-bill-wave fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-success border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Total Disbursed (Statements)</div>
+                        <div class="fs-4 fw-bold text-success mt-1">₹@ytdNet.ToString("N2")</div>
+                        <div class="small text-muted mt-1">Across @payslipsList.Count payslip(s)</div>
+                    </div>
+                    <div class="bg-success-subtle text-success p-3 rounded-circle">
+                        <i class="fa-solid fa-wallet fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-danger border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Total Deductions (PF/Tax)</div>
+                        <div class="fs-4 fw-bold text-danger mt-1">₹@ytdDeductions.ToString("N2")</div>
+                        <div class="small text-muted mt-1">Taxes & Contributions</div>
+                    </div>
+                    <div class="bg-danger-subtle text-danger p-3 rounded-circle">
+                        <i class="fa-solid fa-file-contract fa-xl"></i>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Monthly Payslip Download List -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Available Salary Statements</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Month / Period</th>
-                        <th>Gross Pay</th>
-                        <th>Net Paid Amount</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">July 2026</td>
-                        <td>₹85,000</td>
-                        <td class="text-success fw-bold">₹76,300</td>
-                        <td>
-                            <button class="btn btn-outline-primary btn-xs rounded-pill px-3"><i class="fa-solid fa-download me-1.5"></i>Download PDF</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">June 2026</td>
-                        <td>₹85,000</td>
-                        <td class="text-success fw-bold">₹76,300</td>
-                        <td>
-                            <button class="btn btn-outline-primary btn-xs rounded-pill px-3"><i class="fa-solid fa-download me-1.5"></i>Download PDF</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+    <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-0 text-dark">Available Salary Statements</h5>
+                <p class="text-muted small mb-0">Official company payroll statements available for viewing and PDF download.</p>
+            </div>
+            <span class="badge bg-light text-dark border px-3 py-2">
+                <i class="fa-solid fa-receipt me-1.5 text-primary"></i>@payslipsList.Count Records
+            </span>
         </div>
+
+        @if (!payslipsList.Any())
+        {
+            <div class="text-center py-5">
+                <div class="text-muted mb-3">
+                    <i class="fa-regular fa-folder-open fa-3x"></i>
+                </div>
+                <h6 class="fw-bold text-dark">No Payslips Available</h6>
+                <p class="text-muted small">Your salary statements will appear here once the monthly payroll cycle is finalized.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Month / Period</th>
+                            <th>Slip Ref #</th>
+                            <th>Gross Pay</th>
+                            <th>Deductions</th>
+                            <th>Net Paid Amount</th>
+                            <th>Payment Status</th>
+                            <th class="text-end pe-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in payslipsList)
+                        {
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="fw-bold text-dark">
+                                        <i class="fa-regular fa-calendar-days text-primary me-2"></i>@item.PayPeriod
+                                    </div>
+                                    @if (item.PaymentDate.HasValue)
+                                    {
+                                        <div class="text-muted small" style="font-size: 0.75rem;">Paid on: @item.PaymentDate.Value.ToString("MMM dd, yyyy")</div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border font-monospace">@(string.IsNullOrEmpty(item.PayslipNumber) ? $"PS-{item.PayslipId:D5}" : item.PayslipNumber)</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-dark">₹@((item.GrossSalary ?? 0m).ToString("N2"))</span>
+                                </td>
+                                <td>
+                                    <span class="text-danger fw-semibold">₹@((item.TotalDeductions ?? 0m).ToString("N2"))</span>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold fs-6">₹@((item.NetSalary ?? 0m).ToString("N2"))</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">
+                                        <i class="fa-solid fa-circle-check me-1"></i>@(item.Status ?? "Paid")
+                                    </span>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <a href="@Url.Action("DownloadPayslip", "ESSPayDocuments", new { id = item.PayslipId })" 
+                                       target="_blank" 
+                                       class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-none">
+                                        <i class="fa-solid fa-file-pdf me-1.5 text-danger"></i>Download PDF
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>

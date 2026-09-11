@@ -117,6 +117,10 @@ namespace ERP_System.Data
         // Company Bank Master
         public DbSet<CompanyBankAccount> CompanyBankAccounts { get; set; }
 
+        // Procurement Catalog & Purchase Requisitions
+        public DbSet<ProcurementCatalogItem> ProcurementCatalogItems { get; set; }
+        public DbSet<PurchaseRequisition> PurchaseRequisitions { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -125,6 +129,8 @@ namespace ERP_System.Data
             modelBuilder.HasDefaultSchema("AITStudent");
 
             // Map entities to table names
+            modelBuilder.Entity<ProcurementCatalogItem>().ToTable("erp_ProcurementCatalogItems");
+            modelBuilder.Entity<PurchaseRequisition>().ToTable("erp_PurchaseRequisitions");
             modelBuilder.Entity<Role>().ToTable("erp_Roles");
             modelBuilder.Entity<User>().ToTable("erp_Users");
             modelBuilder.Entity<Transaction>().ToTable("erp_Transactions");
