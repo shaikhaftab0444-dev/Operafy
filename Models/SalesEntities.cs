@@ -4,9 +4,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ERP_System.Models
 {
-    public class ApplicationUser : User
-    {
-    }
 
     [Table("erp_Leads")]
     public class Lead

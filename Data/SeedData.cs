@@ -3126,5 +3126,252 @@ namespace ERP_System.Data
                 // Fallback in case table is not ready or already initialized
             }
         }
+
+        public static async Task InitializeAccountantDataAsync(ApplicationDbContext context)
+        {
+            try
+            {
+                string createAccountantSql = @"
+                    IF OBJECT_ID('AITStudent.erp_JournalVouchers', 'U') IS NULL AND OBJECT_ID('erp_JournalVouchers', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE AITStudent.erp_JournalVouchers (
+                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                            VoucherNumber NVARCHAR(50) NOT NULL,
+                            VoucherDate DATETIME NOT NULL DEFAULT GETDATE(),
+                            VoucherType NVARCHAR(50) NOT NULL,
+                            DebitAccount NVARCHAR(200) NOT NULL,
+                            CreditAccount NVARCHAR(200) NOT NULL,
+                            Amount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                            Narration NVARCHAR(500) NULL,
+                            Status NVARCHAR(50) NOT NULL DEFAULT 'Draft',
+                            CreatedByUserId NVARCHAR(100) NULL,
+                            CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                        );
+                    END
+
+                    IF OBJECT_ID('AITStudent.erp_BankReconciliations', 'U') IS NULL AND OBJECT_ID('erp_BankReconciliations', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE AITStudent.erp_BankReconciliations (
+                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                            BankAccountName NVARCHAR(200) NOT NULL,
+                            StatementBalance DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                            BookBalance DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                            UnreconciledEntriesCount INT NOT NULL DEFAULT 0,
+                            LastSyncDate DATETIME NOT NULL DEFAULT GETDATE()
+                        );
+                    END
+                ";
+                await context.Database.ExecuteSqlRawAsync(createAccountantSql);
+
+                // Seed Bank Accounts if empty
+                if (!await context.BankReconciliations.AnyAsync())
+                {
+                    var banks = new List<BankReconciliationItem>
+                    {
+                        new BankReconciliationItem
+                        {
+                            BankAccountName = "HDFC Current A/c - 50200",
+                            StatementBalance = 4250000.00m,
+                            BookBalance = 4238500.00m,
+                            UnreconciledEntriesCount = 4,
+                            LastSyncDate = DateTime.Today
+                        },
+                        new BankReconciliationItem
+                        {
+                            BankAccountName = "ICICI Operating A/c - 10892",
+                            StatementBalance = 1820000.00m,
+                            BookBalance = 1820000.00m,
+                            UnreconciledEntriesCount = 0,
+                            LastSyncDate = DateTime.Today
+                        },
+                        new BankReconciliationItem
+                        {
+                            BankAccountName = "SBI Corporate Escrow - 77201",
+                            StatementBalance = 8900000.00m,
+                            BookBalance = 8850000.00m,
+                            UnreconciledEntriesCount = 2,
+                            LastSyncDate = DateTime.Today
+                        },
+                        new BankReconciliationItem
+                        {
+                            BankAccountName = "Axis Petty Cash Vault - 003",
+                            StatementBalance = 150000.00m,
+                            BookBalance = 146800.00m,
+                            UnreconciledEntriesCount = 1,
+                            LastSyncDate = DateTime.Today
+                        }
+                    };
+                    await context.BankReconciliations.AddRangeAsync(banks);
+                    await context.SaveChangesAsync();
+                }
+
+                // Seed Journal Vouchers if empty
+                if (!await context.JournalVouchers.AnyAsync())
+                {
+                    var vouchers = new List<JournalVoucher>
+                    {
+                        new JournalVoucher
+                        {
+                            VoucherNumber = "JV-2026-0041",
+                            VoucherDate = DateTime.Today,
+                            VoucherType = "Receipt",
+                            DebitAccount = "HDFC Current A/c - 50200",
+                            CreditAccount = "Customer: Apex Global Systems",
+                            Amount = 245000.00m,
+                            Narration = "Customer invoice settlement INV-2026-081 received via NEFT",
+                            Status = "Posted",
+                            CreatedByUserId = "1",
+                            CreatedAt = DateTime.UtcNow.AddHours(-6)
+                        },
+                        new JournalVoucher
+                        {
+                            VoucherNumber = "JV-2026-0042",
+                            VoucherDate = DateTime.Today,
+                            VoucherType = "Payment",
+                            DebitAccount = "Vendor: TechInfra Cloud Ltd",
+                            CreditAccount = "HDFC Current A/c - 50200",
+                            Amount = 88500.00m,
+                            Narration = "Monthly AWS Cloud Infrastructure Bill PO-9021",
+                            Status = "Posted",
+                            CreatedByUserId = "1",
+                            CreatedAt = DateTime.UtcNow.AddHours(-4)
+                        },
+                        new JournalVoucher
+                        {
+                            VoucherNumber = "JV-2026-0043",
+                            VoucherDate = DateTime.Today,
+                            VoucherType = "Payment",
+                            DebitAccount = "Rent Expense - Head Office",
+                            CreditAccount = "ICICI Operating A/c - 10892",
+                            Amount = 120000.00m,
+                            Narration = "Headquarters facility lease payout for September 2026",
+                            Status = "Draft",
+                            CreatedByUserId = "1",
+                            CreatedAt = DateTime.UtcNow.AddHours(-2)
+                        },
+                        new JournalVoucher
+                        {
+                            VoucherNumber = "JV-2026-0044",
+                            VoucherDate = DateTime.Today,
+                            VoucherType = "Receipt",
+                            DebitAccount = "ICICI Operating A/c - 10892",
+                            CreditAccount = "Customer: Stellar Innovations",
+                            Amount = 175000.00m,
+                            Narration = "Advance milestone receipt for Enterprise ERP rollout",
+                            Status = "Draft",
+                            CreatedByUserId = "1",
+                            CreatedAt = DateTime.UtcNow.AddHours(-1)
+                        },
+                        new JournalVoucher
+                        {
+                            VoucherNumber = "JV-2026-0045",
+                            VoucherDate = DateTime.Today,
+                            VoucherType = "Contra",
+                            DebitAccount = "Axis Petty Cash Vault - 003",
+                            CreditAccount = "HDFC Current A/c - 50200",
+                            Amount = 25000.00m,
+                            Narration = "Petty cash replenishment withdrawal from HDFC main branch",
+                            Status = "Submitted",
+                            CreatedByUserId = "1",
+                            CreatedAt = DateTime.UtcNow.AddMinutes(-30)
+                        },
+                        new JournalVoucher
+                        {
+                            VoucherNumber = "JV-2026-0046",
+                            VoucherDate = DateTime.Today.AddDays(-1),
+                            VoucherType = "Journal",
+                            DebitAccount = "Depreciation Expense - IT Assets",
+                            CreditAccount = "Accumulated Depreciation - Servers",
+                            Amount = 32000.00m,
+                            Narration = "Monthly straight-line depreciation allocation",
+                            Status = "Posted",
+                            CreatedByUserId = "1",
+                            CreatedAt = DateTime.UtcNow.AddDays(-1)
+                        }
+                    };
+                    await context.JournalVouchers.AddRangeAsync(vouchers);
+                    await context.SaveChangesAsync();
+                }
+
+                // Seed Manager Directives (Assigned by Finance Manager - Vakkas)
+                if (!await context.HierarchicalTasks.AnyAsync(t => t.AssignedByUserId != null && t.AssignedByUserId.Contains("Vakkas")))
+                {
+                    var directives = new List<HierarchicalTask>
+                    {
+                        new HierarchicalTask
+                        {
+                            Title = "Q3 GST-3B Tax Filing & Reconciliation",
+                            Description = "Reconcile outward GSTR-1 supply invoices against purchase register GSTR-2B before monthly GST portal upload.",
+                            DueDate = DateTime.Today.AddDays(3),
+                            Priority = "High",
+                            Status = "In Progress",
+                            ProgressPercentage = 65,
+                            AssignedByUserId = "Vakkas (Finance Manager)",
+                            TaskType = "FINANCE_ACCOUNTING",
+                            DepartmentId = 2,
+                            CreatedAt = DateTime.UtcNow.AddDays(-2)
+                        },
+                        new HierarchicalTask
+                        {
+                            Title = "Bank Ledger vs HDFC Statement Reconciliation",
+                            Description = "Clear 4 pending NEFT inbound transfers and reconcile uncredited supplier vendor payouts for month-end closing.",
+                            DueDate = DateTime.Today.AddDays(1),
+                            Priority = "High",
+                            Status = "In Progress",
+                            ProgressPercentage = 80,
+                            AssignedByUserId = "Vakkas (Finance Manager)",
+                            TaskType = "FINANCE_ACCOUNTING",
+                            DepartmentId = 2,
+                            CreatedAt = DateTime.UtcNow.AddDays(-1)
+                        },
+                        new HierarchicalTask
+                        {
+                            Title = "Vendor Outstanding Aging Ledger Audit",
+                            Description = "Verify AP outstanding invoices beyond 60 days payment credit terms with procurement inventory receipts.",
+                            DueDate = DateTime.Today.AddDays(5),
+                            Priority = "Medium",
+                            Status = "Pending",
+                            ProgressPercentage = 20,
+                            AssignedByUserId = "Vakkas (Finance Manager)",
+                            TaskType = "FINANCE_ACCOUNTING",
+                            DepartmentId = 2,
+                            CreatedAt = DateTime.UtcNow.AddDays(-1)
+                        },
+                        new HierarchicalTask
+                        {
+                            Title = "Petty Cash Imprest Voucher Verification",
+                            Description = "Verify all debit vouchers, cash expense receipts, and fuel bills for administrative head office reimbursement.",
+                            DueDate = DateTime.Today.AddDays(7),
+                            Priority = "Low",
+                            Status = "Review",
+                            ProgressPercentage = 90,
+                            AssignedByUserId = "Vakkas (Finance Manager)",
+                            TaskType = "FINANCE_ACCOUNTING",
+                            DepartmentId = 2,
+                            CreatedAt = DateTime.UtcNow.AddHours(-18)
+                        },
+                        new HierarchicalTask
+                        {
+                            Title = "Fixed Asset Depreciation Schedule Review",
+                            Description = "Validate straight-line depreciation amortization schedule entries for newly commissioned IT server hardware.",
+                            DueDate = DateTime.Today.AddDays(10),
+                            Priority = "Medium",
+                            Status = "Pending",
+                            ProgressPercentage = 0,
+                            AssignedByUserId = "Vakkas (Finance Manager)",
+                            TaskType = "FINANCE_ACCOUNTING",
+                            DepartmentId = 2,
+                            CreatedAt = DateTime.UtcNow.AddHours(-10)
+                        }
+                    };
+                    await context.HierarchicalTasks.AddRangeAsync(directives);
+                    await context.SaveChangesAsync();
+                }
+            }
+            catch (Exception)
+            {
+                // Safe error handling for startup seeding
+            }
+        }
     }
-}
+}

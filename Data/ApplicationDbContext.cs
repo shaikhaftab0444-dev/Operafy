@@ -111,6 +111,10 @@ namespace ERP_System.Data
         public DbSet<SystemAuditTrail> SystemAuditTrails { get; set; }
         public DbSet<AuditFlaggedItem> AuditFlaggedItems { get; set; }
 
+        // Accountant Hub DbSets
+        public DbSet<JournalVoucher> JournalVouchers { get; set; }
+        public DbSet<BankReconciliationItem> BankReconciliations { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -192,6 +196,8 @@ namespace ERP_System.Data
 
             modelBuilder.Entity<SalesTarget>().ToTable("erp_SalesTargets");
             modelBuilder.Entity<HierarchicalTask>().ToTable("erp_HierarchicalTasks");
+            modelBuilder.Entity<JournalVoucher>().ToTable("erp_JournalVouchers");
+            modelBuilder.Entity<BankReconciliationItem>().ToTable("erp_BankReconciliations");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

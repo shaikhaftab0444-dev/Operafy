@@ -547,6 +547,12 @@ namespace ERP_System.Controllers
         // 7. BANK & CASH RECONCILIATION
         // ==========================================
         [HttpGet]
+        public IActionResult Reconciliation(string? filter = "All")
+        {
+            return RedirectToAction("BankRecon", new { filter });
+        }
+
+        [HttpGet]
         public async Task<IActionResult> BankRecon(string? filter = "All")
         {
             decimal totalSalesPaid = await _context.Transactions
