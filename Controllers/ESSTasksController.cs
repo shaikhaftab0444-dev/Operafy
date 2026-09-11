@@ -26,6 +26,13 @@ namespace ERP_System.Controllers
             return int.TryParse(userIdClaim, out int id) ? id : 1;
         }
 
+        // GET: /ESSTasks or /ESSTasks/Index
+        [HttpGet]
+        public IActionResult Index()
+        {
+            return RedirectToAction(nameof(Assigned));
+        }
+
         // GET: /ESSTasks/Assigned
         [HttpGet]
         public async Task<IActionResult> Assigned()
@@ -35,6 +42,58 @@ namespace ERP_System.Controllers
                 .Where(t => t.UserId == userId)
                 .OrderByDescending(t => t.DueDate)
                 .ToListAsync();
+
+            if (!tasks.Any())
+            {
+                tasks = await _context.ESSTasks
+                    .OrderByDescending(t => t.DueDate)
+                    .Take(10)
+                    .ToListAsync();
+            }
+
+            if (!tasks.Any())
+            {
+                // Seed initial tasks for demo/testing
+                var sampleTasks = new List<ESSTask>
+                {
+                    new ESSTask
+                    {
+                        UserId = userId,
+                        TaskTitle = "Reconcile GSTR-2B with Purchase Register",
+                        Description = "Cross-match supplier GST invoices against inward goods receipts for September closing.",
+                        DueDate = DateTime.Today.AddDays(2),
+                        Status = "In Progress"
+                    },
+                    new ESSTask
+                    {
+                        UserId = userId,
+                        TaskTitle = "Monthly Bank Statement Reconciliation",
+                        Description = "Clear 4 pending NEFT inbound entries and verify bank charges against HDFC statement.",
+                        DueDate = DateTime.Today.AddDays(1),
+                        Status = "In Progress"
+                    },
+                    new ESSTask
+                    {
+                        UserId = userId,
+                        TaskTitle = "Vendor Bill Verification & 3-Way Match",
+                        Description = "Verify invoice rates against approved PO #PO-2026-0041 and Warehouse GRN receipts.",
+                        DueDate = DateTime.Today.AddDays(5),
+                        Status = "Pending"
+                    },
+                    new ESSTask
+                    {
+                        UserId = userId,
+                        TaskTitle = "Petty Cash Imprest Audit & Vouchers",
+                        Description = "Review administrative petty cash receipts and replenishment vouchers for Head Office.",
+                        DueDate = DateTime.Today.AddDays(7),
+                        Status = "Completed"
+                    }
+                };
+                await _context.ESSTasks.AddRangeAsync(sampleTasks);
+                await _context.SaveChangesAsync();
+                tasks = sampleTasks;
+            }
+
             return View(tasks);
         }
 

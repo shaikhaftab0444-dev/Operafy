@@ -165,6 +165,7 @@ using (var scope = app.Services.CreateScope())
         await SeedData.InitializeLeaveApplicationsAsync(context);
         await SeedData.InitializePayrollRunsAndPayslipsAsync(context);
         await SeedData.InitializeAuditorDataAsync(context);
+        await SeedData.InitializeAccountantDataAsync(context);
     }
     catch (Exception ex)
     {

@@ -7,6 +7,13 @@ namespace ERP_System.Controllers
     [Authorize]
     public class ESSPayDocumentsController : Controller
     {
+        // GET: /ESSPayDocuments or /ESSPayDocuments/Index
+        [HttpGet]
+        public IActionResult Index()
+        {
+            return RedirectToAction("Payslips");
+        }
+
         // GET: /ESSPayDocuments/Payslips
         [HttpGet]
         public IActionResult Payslips()

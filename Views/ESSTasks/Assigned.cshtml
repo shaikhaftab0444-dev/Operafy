@@ -1,69 +1,1234 @@
 @model IEnumerable<ERP_System.Models.ESSTask>
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Assigned Tasks";
+    ViewData["Title"] = "Assigned Tasks — Deliverables";
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-list-check text-primary me-2"></i>Assigned Tasks</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Assigned Tasks</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+@Html.AntiForgeryToken()
 
-    <!-- Task List -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Tasks Listing</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Task Title</th>
-                        <th>Description</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var t in Model)
+<style>
+    /* =========================================================
+           ASSIGNED TASKS — PREMIUM ERP UI
+           ========================================================= */
+
+    .task-page {
+        --task-primary: #2563eb;
+        --task-primary-dark: #1d4ed8;
+        --task-success: #16a34a;
+        --task-warning: #d97706;
+        --task-danger: #dc2626;
+        --task-text: #172033;
+        --task-muted: #718096;
+        --task-border: #e7ebf2;
+        --task-surface: #ffffff;
+        --task-soft: #f7f9fc;
+        --task-shadow: 0 12px 35px rgba(15, 23, 42, 0.07);
+        color: var(--task-text);
+    }
+
+    /* ---------- PAGE WRAPPER ---------- */
+
+    .task-page-shell {
+        position: relative;
+        padding: 1.35rem 0 2rem;
+        animation: taskPageIn .55s ease both;
+    }
+
+        .task-page-shell::before {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            top: -100px;
+            right: 2%;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.035);
+            pointer-events: none;
+            filter: blur(2px);
+        }
+
+    @@keyframes taskPageIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* ---------- TOP HEADER ---------- */
+
+    .task-topbar {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1.5rem;
+        margin-bottom: 1.35rem;
+    }
+
+    .task-heading-area {
+        min-width: 0;
+    }
+
+    .task-breadcrumb {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .55rem;
+        margin-bottom: .65rem;
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
+        .task-breadcrumb a {
+            color: #7a8497;
+            text-decoration: none;
+            transition: color .2s ease;
+        }
+
+            .task-breadcrumb a:hover {
+                color: var(--task-primary);
+            }
+
+    .task-breadcrumb-divider {
+        color: #b4bcc9;
+    }
+
+    .task-section-label {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .34rem .68rem;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #dbeafe;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+    }
+
+    .task-title-row {
+        display: flex;
+        align-items: center;
+        gap: .8rem;
+    }
+
+    .task-title-icon {
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #2563eb, #4f7ff0);
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, .20);
+        animation: iconFloat 4s ease-in-out infinite;
+    }
+
+    @@keyframes iconFloat {
+        0%, 100%
+
+    {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-3px);
+    }
+
+    }
+
+    .task-page-title {
+        margin: 0;
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -.025em;
+        color: #182235;
+    }
+
+    .task-page-subtitle {
+        margin: .45rem 0 0 0;
+        color: var(--task-muted);
+        font-size: .86rem;
+        line-height: 1.55;
+    }
+
+    /* ---------- ACTION BUTTONS ---------- */
+
+    .task-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: .55rem;
+    }
+
+    .task-nav-btn {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        padding: .58rem .85rem;
+        border-radius: 10px;
+        font-size: .78rem;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
+    }
+
+        .task-nav-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .task-nav-outline {
+        color: #344054;
+        background: #fff;
+        border: 1px solid #dfe4ec;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, .035);
+    }
+
+        .task-nav-outline:hover {
+            color: var(--task-primary);
+            border-color: #bfd3fb;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, .08);
+        }
+
+    .task-nav-primary {
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        border: 1px solid #2563eb;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .16);
+    }
+
+        .task-nav-primary:hover {
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(37, 99, 235, .23);
+        }
+
+    /* ---------- SUMMARY STRIP ---------- */
+
+    .task-summary-strip {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: .85rem 1rem;
+        background: rgba(255,255,255,.88);
+        border: 1px solid var(--task-border);
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, .035);
+        backdrop-filter: blur(8px);
+    }
+
+    .task-summary-left {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        min-width: 0;
+    }
+
+    .task-summary-mark {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 34px;
+        border-radius: 9px;
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .task-summary-title {
+        margin: 0;
+        color: #263247;
+        font-size: .84rem;
+        font-weight: 800;
+    }
+
+    .task-summary-caption {
+        margin: .12rem 0 0;
+        color: #8a94a6;
+        font-size: .71rem;
+    }
+
+    .task-total-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .38rem;
+        padding: .48rem .7rem;
+        border-radius: 9px;
+        background: #f8fafc;
+        border: 1px solid #e5eaf1;
+        color: #667085;
+        font-size: .75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .task-total-badge strong {
+            color: #172033;
+            font-weight: 800;
+        }
+
+    /* ---------- MAIN CARD ---------- */
+
+    .task-card {
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+        background: var(--task-surface);
+        border: 1px solid var(--task-border);
+        border-radius: 18px;
+        box-shadow: var(--task-shadow);
+        animation: cardReveal .65s ease .08s both;
+    }
+
+    @@keyframes cardReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .task-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.15rem;
+        border-bottom: 1px solid #edf0f5;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    }
+
+    .task-card-heading {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        min-width: 0;
+    }
+
+    .task-card-heading-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 38px;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .task-card-title {
+        margin: 0;
+        color: #1f2937;
+        font-size: .92rem;
+        font-weight: 800;
+    }
+
+    .task-card-description {
+        margin: .16rem 0 0;
+        color: #98a1b2;
+        font-size: .7rem;
+    }
+
+    /* ---------- TABLE ---------- */
+
+    .task-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+        .task-table-wrapper::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .task-table-wrapper::-webkit-scrollbar-track {
+            background: #f3f5f8;
+        }
+
+        .task-table-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd3df;
+            border-radius: 20px;
+        }
+
+    .task-table {
+        width: 100%;
+        min-width: 880px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .82rem;
+    }
+
+        .task-table thead th {
+            padding: .82rem .8rem;
+            background: #f8fafc;
+            color: #7b8494;
+            border-bottom: 1px solid #e8edf3;
+            font-size: .67rem;
+            font-weight: 800;
+            letter-spacing: .055em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+            .task-table thead th:first-child {
+                padding-left: 1.15rem;
+            }
+
+            .task-table thead th:last-child {
+                padding-right: 1.15rem;
+            }
+
+        .task-table tbody tr {
+            position: relative;
+            transition: background-color .22s ease, box-shadow .22s ease;
+            animation: rowReveal .45s ease both;
+        }
+
+            .task-table tbody tr:nth-child(1) {
+                animation-delay: .04s;
+            }
+
+            .task-table tbody tr:nth-child(2) {
+                animation-delay: .07s;
+            }
+
+            .task-table tbody tr:nth-child(3) {
+                animation-delay: .10s;
+            }
+
+            .task-table tbody tr:nth-child(4) {
+                animation-delay: .13s;
+            }
+
+            .task-table tbody tr:nth-child(5) {
+                animation-delay: .16s;
+            }
+
+    @@keyframes rowReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(7px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .task-table tbody tr:hover {
+        background: #fbfdff;
+    }
+
+    .task-table tbody td {
+        padding: .95rem .8rem;
+        border-bottom: 1px solid #eef1f5;
+        color: #465166;
+        vertical-align: middle;
+    }
+
+    .task-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .task-table tbody td:first-child {
+        padding-left: 1.15rem;
+    }
+
+    .task-table tbody td:last-child {
+        padding-right: 1.15rem;
+    }
+
+    /* ---------- TASK TITLE ---------- */
+
+    .task-name-wrap {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        min-width: 210px;
+    }
+
+    .task-item-icon {
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 36px;
+        border-radius: 10px;
+        background: #f3f6fa;
+        color: #64748b;
+        border: 1px solid #e7ebf1;
+        transition: background-color .2s ease, color .2s ease, transform .2s ease;
+    }
+
+    .task-table tbody tr:hover .task-item-icon {
+        background: #eff6ff;
+        color: #2563eb;
+        transform: scale(1.04);
+    }
+
+    .task-name {
+        display: block;
+        max-width: 290px;
+        overflow: hidden;
+        color: #1d2939;
+        font-size: .82rem;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .task-name-meta {
+        display: block;
+        margin-top: .12rem;
+        color: #98a2b3;
+        font-size: .67rem;
+    }
+
+    /* ---------- DESCRIPTION ---------- */
+
+    .task-description {
+        width: 100%;
+        max-width: 350px;
+        color: #737e91;
+        font-size: .76rem;
+        line-height: 1.45;
+    }
+
+    .task-description-inner {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* ---------- DUE DATE ---------- */
+
+    .task-date {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        color: #596579;
+        font-size: .76rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .task-date-icon {
+        width: 29px;
+        height: 29px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #fff4f4;
+        color: #dc2626;
+        font-size: .72rem;
+    }
+
+    /* ---------- STATUS ---------- */
+
+    .task-status {
+        display: inline-flex;
+        align-items: center;
+        gap: .42rem;
+        min-width: 102px;
+        justify-content: center;
+        padding: .46rem .7rem;
+        border-radius: 999px;
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        white-space: nowrap;
+    }
+
+    .task-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 3px rgba(255,255,255,.7);
+    }
+
+    .task-status-completed {
+        background: #ecfdf3;
+        color: #16803c;
+        border: 1px solid #c9f1d8;
+    }
+
+    .task-status-progress {
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #d5e5ff;
+    }
+
+    .task-status-pending {
+        background: #fff8eb;
+        color: #b56a00;
+        border: 1px solid #f6dfb2;
+    }
+
+    /* ---------- ACTIONS ---------- */
+
+    .task-action-form {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        margin: 0;
+    }
+
+    .task-action-btn {
+        min-height: 33px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        padding: .4rem .65rem;
+        border-radius: 8px;
+        background: #fff;
+        font-size: .7rem;
+        font-weight: 800;
+        border: 1px solid;
+        transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, color .18s ease;
+    }
+
+        .task-action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .task-start-btn {
+        color: #2563eb;
+        border-color: #cfe0ff;
+    }
+
+        .task-start-btn:hover {
+            color: #fff;
+            background: #2563eb;
+            border-color: #2563eb;
+            box-shadow: 0 6px 14px rgba(37, 99, 235, .17);
+        }
+
+    .task-complete-btn {
+        color: #16803c;
+        border-color: #cbeed7;
+    }
+
+        .task-complete-btn:hover {
+            color: #fff;
+            background: #16a34a;
+            border-color: #16a34a;
+            box-shadow: 0 6px 14px rgba(22, 163, 74, .17);
+        }
+
+    .task-done {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .45rem .65rem;
+        color: #16803c;
+        background: #f0fdf4;
+        border: 1px solid #d1f1dc;
+        border-radius: 8px;
+        font-size: .7rem;
+        font-weight: 800;
+    }
+
+    /* ---------- EMPTY STATE ---------- */
+
+    .task-empty-state {
+        padding: 4rem 1.5rem;
+        text-align: center;
+    }
+
+    .task-empty-icon {
+        width: 72px;
+        height: 72px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        border-radius: 20px;
+        background: #f5f7fa;
+        color: #98a2b3;
+        font-size: 1.65rem;
+        border: 1px solid #e9edf2;
+        animation: emptyFloat 3.5s ease-in-out infinite;
+    }
+
+    @@keyframes emptyFloat {
+        0%, 100%
+
+    {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+
+    }
+
+    .task-empty-title {
+        margin: 0 0 .35rem;
+        color: #344054;
+        font-size: .95rem;
+        font-weight: 800;
+    }
+
+    .task-empty-text {
+        margin: 0;
+        color: #98a2b3;
+        font-size: .76rem;
+    }
+
+    /* ---------- FOOTER ---------- */
+
+    .task-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .72rem 1.15rem;
+        background: #fbfcfe;
+        border-top: 1px solid #edf0f4;
+    }
+
+    .task-footer-note {
+        display: inline-flex;
+        align-items: center;
+        gap: .42rem;
+        color: #98a2b3;
+        font-size: .68rem;
+    }
+
+        .task-footer-note i {
+            color: #94a3b8;
+        }
+
+    /* ---------- RESPONSIVE ---------- */
+
+    @@media (max-width: 1100px) {
+        .task-topbar
+
+    {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .task-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .task-page-shell
+
+    {
+        padding-top: 1rem;
+    }
+
+    .task-title-row {
+        align-items: flex-start;
+    }
+
+    .task-title-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+        border-radius: 12px;
+    }
+
+    .task-page-subtitle {
+        font-size: .8rem;
+    }
+
+    .task-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .task-nav-btn {
+        width: 100%;
+    }
+
+    .task-nav-primary {
+        grid-column: 1 / -1;
+    }
+
+    .task-summary-strip {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+    }
+
+    .task-total-badge {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .task-card {
+        border-radius: 14px;
+    }
+
+    .task-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: .95rem;
+    }
+
+    .task-table {
+        min-width: 820px;
+    }
+
+    .task-card-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: .7rem .95rem;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .task-title-icon
+
+    {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+        font-size: .9rem;
+    }
+
+    .task-page-title {
+        font-size: 1.2rem;
+    }
+
+    .task-page-subtitle {
+        font-size: .75rem;
+    }
+
+    .task-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .task-nav-primary {
+        grid-column: auto;
+    }
+
+    .task-summary-left {
+        align-items: flex-start;
+    }
+
+    .task-summary-caption {
+        line-height: 1.35;
+    }
+
+    .task-empty-state {
+        padding: 3rem 1rem;
+    }
+
+    }
+
+    /* ---------- ACCESSIBILITY / MOTION ---------- */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .task-page-shell, .task-card, .task-table tbody tr, .task-title-icon, .task-empty-icon
+
+    {
+        animation: none !important;
+    }
+
+    .task-nav-btn,
+    .task-action-btn,
+    .task-item-icon {
+        transition: none !important;
+    }
+
+    }</style>
+
+<div class="container-fluid text-start task-page">
+    <div class="task-page-shell">
+
+        <!-- =====================================================
+             PAGE HEADER
+             ===================================================== -->
+        <div class="task-topbar">
+
+            <div class="task-heading-area">
+
+                <div class="task-breadcrumb">
+                    <a href="/Accountant">
+                        <i class="fa fa-arrow-left me-1"></i>
+                        Accountant Desk
+                    </a>
+
+                    <span class="task-breadcrumb-divider">/</span>
+
+                    <span class="task-section-label">
+                        <i class="fa-solid fa-briefcase"></i>
+                        Manager Directives
+                    </span>
+                </div>
+
+                <div class="task-title-row">
+
+                    <div class="task-title-icon">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+
+                    <div>
+                        <h3 class="task-page-title">
+                            Assigned By Manager
+                        </h3>
+
+                        <p class="task-page-subtitle">
+                            Track and execute directives assigned to you by Finance / Department Managers
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Navigation Actions -->
+            <div class="task-actions">
+
+                <a href="@Url.Action("StatusUpdate", "ESSTasks")"
+                   class="task-nav-btn task-nav-outline">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Status Center</span>
+                </a>
+
+                <a href="@Url.Action("Timesheet", "ESSTasks")"
+                   class="task-nav-btn task-nav-outline">
+                    <i class="fa-solid fa-clock"></i>
+                    <span>Timesheet</span>
+                </a>
+
+                <a href="@Url.Action("Index", "Accountant")"
+                   class="task-nav-btn task-nav-primary">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>Accountant Hub</span>
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SUMMARY STRIP
+             ===================================================== -->
+        <div class="task-summary-strip">
+
+            <div class="task-summary-left">
+
+                <div class="task-summary-mark">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+
+                <div>
+                    <p class="task-summary-title">
+                        Active Deliverables
+                    </p>
+
+                    <p class="task-summary-caption">
+                        Manager-assigned work items requiring your attention
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="task-total-badge">
+                <i class="fa-solid fa-layer-group"></i>
+                Total Tasks:
+                <strong>@(Model?.Count() ?? 0)</strong>
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             TASK REGISTER CARD
+             ===================================================== -->
+        <div class="task-card">
+
+            <div class="task-card-header">
+
+                <div class="task-card-heading">
+
+                    <div class="task-card-heading-icon">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+
+                    <div>
+                        <h5 class="task-card-title">
+                            Active Deliverables Listing
+                        </h5>
+
+                        <p class="task-card-description">
+                            Review deadlines, monitor progress and update task completion status.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 TASK TABLE
+                 ================================================= -->
+            <div class="task-table-wrapper">
+
+                <table class="task-table align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Task Title</th>
+                            <th>Description</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model != null && Model.Any())
                         {
+                            @foreach (var t in Model)
+                            {
+                                var statusBadge = t.Status switch
+                                {
+                                    "Completed" => "task-status-completed",
+                                    "In Progress" => "task-status-progress",
+                                    _ => "task-status-pending"
+                                };
+
+                                <tr id="task-row-@t.TaskId">
+
+                                    <!-- TASK TITLE -->
+                                    <td>
+
+                                        <div class="task-name-wrap">
+
+                                            <div class="task-item-icon">
+                                                <i class="fa-solid fa-list-check"></i>
+                                            </div>
+
+                                            <div>
+                                                <span class="task-name"
+                                                      title="@t.TaskTitle">
+                                                    @t.TaskTitle
+                                                </span>
+
+                                                <span class="task-name-meta">
+                                                    Task #@t.TaskId
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- DESCRIPTION -->
+                                    <td>
+
+                                        <div class="task-description"
+                                             title="@t.Description">
+
+                                            <div class="task-description-inner">
+                                                @t.Description
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- DUE DATE -->
+                                    <td>
+
+                                        <div class="task-date">
+
+                                            <span class="task-date-icon">
+                                                <i class="fa-regular fa-calendar"></i>
+                                            </span>
+
+                                            <span>
+                                                @t.DueDate.ToString("dd MMM yyyy")
+                                            </span>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+                                    <td>
+
+                                        <span class="task-status @statusBadge"
+                                              id="status-span-@t.TaskId">
+
+                                            <span class="task-status-dot"></span>
+
+                                            @t.Status
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- ACTIONS -->
+                                    <td class="text-center">
+
+                                        <form method="post"
+                                              action="@Url.Action("UpdateStatus", "ESSTasks")"
+                                              class="task-action-form">
+
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="TaskId"
+                                                   value="@t.TaskId" />
+
+                                            @if (t.Status != "In Progress" && t.Status != "Completed")
+                                            {
+                                                <button type="submit"
+                                                        name="Status"
+                                                        value="In Progress"
+                                                        class="task-action-btn task-start-btn"
+                                                        title="Start Task">
+
+                                                    <i class="fa-solid fa-play"></i>
+                                                    <span>Start</span>
+
+                                                </button>
+                                            }
+
+                                            @if (t.Status != "Completed")
+                                            {
+                                                <button type="submit"
+                                                        name="Status"
+                                                        value="Completed"
+                                                        class="task-action-btn task-complete-btn"
+                                                        title="Mark as Completed">
+
+                                                    <i class="fa-solid fa-check"></i>
+                                                    <span>Complete</span>
+
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="task-done">
+                                                    <i class="fa-solid fa-check-double"></i>
+                                                    Done
+                                                </span>
+                                            }
+
+                                        </form>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <!-- EMPTY STATE -->
                             <tr>
-                                <td class="fw-bold text-dark">@t.TaskTitle</td>
-                                <td class="text-muted" style="max-width: 350px;">@t.Description</td>
-                                <td class="text-muted">@t.DueDate.ToString("dd MMM yyyy")</td>
-                                <td>
-                                    @if (t.Status == "Completed")
-                                    {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Completed</span>
-                                    }
-                                    else if (t.Status == "In Progress")
-                                    {
-                                        <span class="badge bg-info-subtle text-info rounded-pill px-2.5 py-1">In Progress</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Pending</span>
-                                    }
+
+                                <td colspan="5">
+
+                                    <div class="task-empty-state">
+
+                                        <div class="task-empty-icon">
+                                            <i class="fa-solid fa-clipboard-check"></i>
+                                        </div>
+
+                                        <h6 class="task-empty-title">
+                                            No Tasks Currently Assigned
+                                        </h6>
+
+                                        <p class="task-empty-text">
+                                            You are all caught up with your manager deliverables!
+                                        </p>
+
+                                    </div>
+
                                 </td>
+
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No tasks assigned.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- =================================================
+                 CARD FOOTER
+                 ================================================= -->
+            <div class="task-card-footer">
+
+                <div class="task-footer-note">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>
+                        Use the action buttons to update the current task status.
+                    </span>
+                </div>
+
+                <div class="task-footer-note">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>
+                        Manager-controlled assignments
+                    </span>
+                </div>
+
+            </div>
+
         </div>
+
     </div>
 </div>

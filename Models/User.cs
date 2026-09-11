@@ -10,6 +10,9 @@ namespace ERP_System.Models
         [Key]
         public int UserId { get; set; }
 
+        [NotMapped]
+        public string Id { get => UserId.ToString(); set { if (int.TryParse(value, out int uid)) UserId = uid; } }
+
         public int CompanyId { get; set; } = 1; // Seeded company ID (AIT Technologies)
 
         public int BranchId { get; set; } = 3; // Seeded branch ID (Head Office)
