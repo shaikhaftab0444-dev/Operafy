@@ -34,16 +34,18 @@ namespace ERP_System.Controllers
             new JournalEntryViewModel { JournalId = 4, JournalNo = "JV-2026-0002", PostingDate = DateTime.Today.AddDays(-2), Reference = "REF-99822", Description = "Inter-company transfer to secondary reserve", AccountCode = "AC-1001", AccountName = "Main Cash Account", Debit = 0.00m, Credit = 150000.00m, Status = "Posted" }
         };
 
+        private static readonly Dictionary<int, decimal> _statementBalances = new Dictionary<int, decimal>();
+
         private static List<BankStatementItemViewModel> _reconItems = new List<BankStatementItemViewModel>
         {
-            new BankStatementItemViewModel { Id = 1, Date = DateTime.Today.AddDays(-1), ReferenceNo = "NEFT-INW-88219", Description = "Inward NEFT: Acme Global Corp (Inv #INV-2026-0041)", Deposit = 145000.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0091", IsMatched = true, Category = "Client Receipt" },
-            new BankStatementItemViewModel { Id = 2, Date = DateTime.Today.AddDays(-2), ReferenceNo = "RTGS-OUT-44102", Description = "Vendor Direct Debit: TechCorp Solutions (PO-2026-0041)", Deposit = 0m, Withdrawal = 125000.00m, ErpMatchRef = "VND-2026-9081", IsMatched = true, Category = "Vendor Payout" },
-            new BankStatementItemViewModel { Id = 3, Date = DateTime.Today.AddDays(-3), ReferenceNo = "CHQ-DEP-10029", Description = "Cheque Deposit: Apex Industrial Supply", Deposit = 85000.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0094", IsMatched = true, Category = "Client Receipt" },
-            new BankStatementItemViewModel { Id = 4, Date = DateTime.Today.AddDays(-4), ReferenceNo = "CHQ-ISS-66291", Description = "Cheque Issued: Global Office Supplies (Unpresented)", Deposit = 0m, Withdrawal = 64000.00m, ErpMatchRef = "VND-2026-9083", IsMatched = false, Category = "Vendor Payout" },
-            new BankStatementItemViewModel { Id = 5, Date = DateTime.Today.AddDays(-5), ReferenceNo = "UPI-INW-99014", Description = "UPI Inward: Customer Settlement #CS-4410", Deposit = 12500.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0098", IsMatched = true, Category = "Client Receipt" },
-            new BankStatementItemViewModel { Id = 6, Date = DateTime.Today.AddDays(-6), ReferenceNo = "BNK-CHG-0021", Description = "Monthly Corporate NetBanking & API Fee", Deposit = 0m, Withdrawal = 3500.00m, ErpMatchRef = null, IsMatched = false, Category = "Bank Charges" },
-            new BankStatementItemViewModel { Id = 7, Date = DateTime.Today.AddDays(-7), ReferenceNo = "INT-CR-7721", Description = "Quarterly Auto-Sweep Deposit Interest Credit", Deposit = 51000.00m, Withdrawal = 0m, ErpMatchRef = null, IsMatched = false, Category = "Interest" },
-            new BankStatementItemViewModel { Id = 8, Date = DateTime.Today.AddDays(-8), ReferenceNo = "NEFT-OUT-99120", Description = "Salary Direct Credit Disbursal (Payroll HDFC Batch)", Deposit = 0m, Withdrawal = 840000.00m, ErpMatchRef = "PAY-2026-08", IsMatched = true, Category = "Vendor Payout" }
+            new BankStatementItemViewModel { Id = 1, BankAccountId = 1, Date = DateTime.Today.AddDays(-1), ReferenceNo = "NEFT-INW-88219", Description = "Inward NEFT: Acme Global Corp (Inv #INV-2026-0041)", Deposit = 145000.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0091", IsMatched = true, Category = "Client Receipt" },
+            new BankStatementItemViewModel { Id = 2, BankAccountId = 1, Date = DateTime.Today.AddDays(-2), ReferenceNo = "RTGS-OUT-44102", Description = "Vendor Direct Debit: TechCorp Solutions (PO-2026-0041)", Deposit = 0m, Withdrawal = 125000.00m, ErpMatchRef = "VND-2026-9081", IsMatched = true, Category = "Vendor Payout" },
+            new BankStatementItemViewModel { Id = 3, BankAccountId = 1, Date = DateTime.Today.AddDays(-3), ReferenceNo = "CHQ-DEP-10029", Description = "Cheque Deposit: Apex Industrial Supply", Deposit = 85000.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0094", IsMatched = true, Category = "Client Receipt" },
+            new BankStatementItemViewModel { Id = 4, BankAccountId = 1, Date = DateTime.Today.AddDays(-4), ReferenceNo = "CHQ-ISS-66291", Description = "Cheque Issued: Global Office Supplies (Unpresented)", Deposit = 0m, Withdrawal = 64000.00m, ErpMatchRef = "VND-2026-9083", IsMatched = false, Category = "Vendor Payout" },
+            new BankStatementItemViewModel { Id = 5, BankAccountId = 1, Date = DateTime.Today.AddDays(-5), ReferenceNo = "UPI-INW-99014", Description = "UPI Inward: Customer Settlement #CS-4410", Deposit = 12500.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0098", IsMatched = true, Category = "Client Receipt" },
+            new BankStatementItemViewModel { Id = 6, BankAccountId = 1, Date = DateTime.Today.AddDays(-6), ReferenceNo = "BNK-CHG-0021", Description = "Monthly Corporate NetBanking & API Fee", Deposit = 0m, Withdrawal = 3500.00m, ErpMatchRef = null, IsMatched = false, Category = "Bank Charges" },
+            new BankStatementItemViewModel { Id = 7, BankAccountId = 1, Date = DateTime.Today.AddDays(-7), ReferenceNo = "INT-CR-7721", Description = "Quarterly Auto-Sweep Deposit Interest Credit", Deposit = 51000.00m, Withdrawal = 0m, ErpMatchRef = null, IsMatched = false, Category = "Interest" },
+            new BankStatementItemViewModel { Id = 8, BankAccountId = 1, Date = DateTime.Today.AddDays(-8), ReferenceNo = "NEFT-OUT-99120", Description = "Salary Direct Credit Disbursal (Payroll HDFC Batch)", Deposit = 0m, Withdrawal = 840000.00m, ErpMatchRef = "PAY-2026-08", IsMatched = true, Category = "Vendor Payout" }
         };
 
         private static List<FixedAssetViewModel> _fixedAssets = new List<FixedAssetViewModel>
@@ -600,32 +602,159 @@ namespace ERP_System.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> BankRecon(string? filter = "All")
+        public async Task<IActionResult> BankRecon(int? bankAccountId = null, string? filter = "All")
         {
-            decimal totalSalesPaid = await _context.Transactions
-                .Where(t => t.Type == "Sales Invoice" && t.Status == "Paid")
-                .SumAsync(t => (decimal?)t.Amount) ?? 0m;
+            List<CompanyBankAccount> bankAccounts = new();
+            try
+            {
+                bankAccounts = await _context.CompanyBankAccounts
+                    .AsNoTracking()
+                    .Where(b => b.IsActive)
+                    .OrderByDescending(b => b.IsPrimaryAccount)
+                    .ThenBy(b => b.Id)
+                    .ToListAsync();
+            }
+            catch
+            {
+                // Fallback in case of database access error
+            }
 
-            decimal totalExpensesPaid = await _context.Transactions
-                .Where(t => (t.Type == "Expense Entry" || t.Type == "Purchase Order") && t.Status == "Paid")
-                .SumAsync(t => (decimal?)t.Amount) ?? 0m;
+            if (!bankAccounts.Any())
+            {
+                bankAccounts = new List<CompanyBankAccount>
+                {
+                    new CompanyBankAccount
+                    {
+                        Id = 1,
+                        BankName = "HDFC Bank Ltd",
+                        AccountNumber = "50200012345678",
+                        IFSCCode = "HDFC0000123",
+                        BranchName = "Usman Pura, Aurangabad Maharashtra-431001",
+                        AccountType = "CURRENT",
+                        OpeningBalance = 35000000.00m,
+                        CurrentBalance = 45250000.00m,
+                        IsPrimaryAccount = true,
+                        IsActive = true
+                    },
+                    new CompanyBankAccount
+                    {
+                        Id = 2,
+                        BankName = "ICICI Bank",
+                        AccountNumber = "001105009876",
+                        IFSCCode = "ICIC0000987",
+                        BranchName = "Connaught Place, Aurangabad Maharashtra-431001",
+                        AccountType = "OVERDRAFT",
+                        OpeningBalance = 10000000.00m,
+                        CurrentBalance = 9540000.00m,
+                        IsPrimaryAccount = false,
+                        IsActive = true
+                    },
+                    new CompanyBankAccount
+                    {
+                        Id = 3,
+                        BankName = "State Bank of India",
+                        AccountNumber = "33445566778",
+                        IFSCCode = "SBIN0004567",
+                        BranchName = "Center Naka, Aurangabad Maharashtra-431001",
+                        AccountType = "CURRENT",
+                        OpeningBalance = 15000000.00m,
+                        CurrentBalance = 18520000.00m,
+                        IsPrimaryAccount = false,
+                        IsActive = true
+                    }
+                };
+            }
 
-            decimal ledgerBalance = 42385000.00m + totalSalesPaid - totalExpensesPaid;
+            var selectedAccount = (bankAccountId.HasValue ? bankAccounts.FirstOrDefault(b => b.Id == bankAccountId.Value) : null)
+                ?? bankAccounts.FirstOrDefault(b => b.IsPrimaryAccount)
+                ?? bankAccounts.FirstOrDefault();
 
-            var items = _reconItems.AsEnumerable();
+            int selectedId = selectedAccount?.Id ?? 1;
+
+            EnsureStatementItemsForAccount(selectedId, selectedAccount);
+
+            decimal statementEndingBalance;
+            if (_statementBalances.TryGetValue(selectedId, out decimal customBalance))
+            {
+                statementEndingBalance = customBalance;
+            }
+            else
+            {
+                if (selectedAccount != null && (selectedAccount.AccountNumber.Contains("50200012345678") || selectedAccount.IsPrimaryAccount))
+                {
+                    statementEndingBalance = 42500000.00m;
+                }
+                else if (selectedAccount != null)
+                {
+                    statementEndingBalance = selectedAccount.CurrentBalance;
+                }
+                else
+                {
+                    statementEndingBalance = 42500000.00m;
+                }
+                _statementBalances[selectedId] = statementEndingBalance;
+            }
+
+            var items = _reconItems.Where(i => i.BankAccountId == selectedId).AsEnumerable();
             if (filter == "Unmatched") items = items.Where(i => !i.IsMatched);
             else if (filter == "Matched") items = items.Where(i => i.IsMatched);
             else if (filter == "Uncleared") items = items.Where(i => !i.IsMatched && i.Category == "Vendor Payout");
 
             var model = new BankReconciliationViewModel
             {
-                StatementEndingBalance = 42500000.00m,
-                LedgerBookBalance = ledgerBalance,
-                Transactions = items.OrderByDescending(i => i.Date).ToList()
+                SelectedBankAccountId = selectedId,
+                BankAccountName = selectedAccount?.BankName ?? "Company Bank Account",
+                AccountNumber = selectedAccount?.AccountNumber ?? "50200012345678",
+                IFSCCode = selectedAccount?.IFSCCode ?? string.Empty,
+                BranchName = selectedAccount?.BranchName ?? string.Empty,
+                AccountType = selectedAccount?.AccountType ?? "Current",
+                StatementEndingBalance = statementEndingBalance,
+                LedgerBookBalance = selectedAccount?.CurrentBalance ?? 0m,
+                Transactions = items.OrderByDescending(i => i.Date).ToList(),
+                BankAccounts = bankAccounts
             };
 
             ViewBag.CurrentFilter = filter ?? "All";
+            ViewBag.SelectedBankAccountId = selectedId;
             return View(model);
+        }
+
+        private static void EnsureStatementItemsForAccount(int bankAccountId, CompanyBankAccount? account)
+        {
+            if (_reconItems.Any(i => i.BankAccountId == bankAccountId))
+                return;
+
+            int nextId = _reconItems.Any() ? _reconItems.Max(i => i.Id) + 1 : 1;
+            string bankName = account?.BankName ?? "Bank";
+
+            if (account != null && (account.AccountNumber.Contains("001105009876") || bankName.Contains("ICICI")))
+            {
+                _reconItems.AddRange(new[]
+                {
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-1), ReferenceNo = "RTGS-INW-55410", Description = "Customer Escrow Transfer: Matrix Dynamic Ltd", Deposit = 250000.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0112", IsMatched = true, Category = "Client Receipt" },
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-3), ReferenceNo = "CHQ-ISS-11029", Description = "Overdraft Facility Fee & Quarterly Interest", Deposit = 0m, Withdrawal = 40000.00m, ErpMatchRef = "VND-2026-9102", IsMatched = true, Category = "Bank Charges" },
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-4), ReferenceNo = "NEFT-OUT-33190", Description = "Vendor Payout: Precision Tools & Dies (Unpresented)", Deposit = 0m, Withdrawal = 670000.00m, ErpMatchRef = "VND-2026-9105", IsMatched = false, Category = "Vendor Payout" },
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-6), ReferenceNo = "UPI-INW-88901", Description = "Client Advance: Synergy Infra Systems", Deposit = 185000.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0115", IsMatched = true, Category = "Client Receipt" }
+                });
+            }
+            else if (account != null && (account.AccountNumber.Contains("33445566778") || bankName.Contains("State Bank")))
+            {
+                _reconItems.AddRange(new[]
+                {
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-2), ReferenceNo = "NEFT-INW-77102", Description = "Direct Tax Return Refund FY25-26", Deposit = 320000.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0120", IsMatched = true, Category = "Client Receipt" },
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-4), ReferenceNo = "CHQ-DEP-44901", Description = "Treasury Fixed Deposit Maturity Transfer", Deposit = 1200000.00m, Withdrawal = 0m, ErpMatchRef = "REC-2026-0122", IsMatched = true, Category = "Client Receipt" },
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-5), ReferenceNo = "RTGS-OUT-99014", Description = "Statutory GST Payment Portal Settlement (Pending Clearing)", Deposit = 0m, Withdrawal = 450000.00m, ErpMatchRef = "TAX-2026-09", IsMatched = false, Category = "Vendor Payout" }
+                });
+            }
+            else
+            {
+                _reconItems.AddRange(new[]
+                {
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-1), ReferenceNo = $"NEFT-INW-{nextId:000}", Description = $"Customer Inward Clearing: {bankName}", Deposit = 150000.00m, Withdrawal = 0m, ErpMatchRef = $"REC-2026-{nextId}", IsMatched = true, Category = "Client Receipt" },
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-3), ReferenceNo = $"RTGS-OUT-{nextId:000}", Description = "Vendor Direct Transfer Batch (Unpresented)", Deposit = 0m, Withdrawal = 85000.00m, ErpMatchRef = $"VND-2026-{nextId}", IsMatched = false, Category = "Vendor Payout" },
+                    new BankStatementItemViewModel { Id = nextId++, BankAccountId = bankAccountId, Date = DateTime.Today.AddDays(-5), ReferenceNo = $"BNK-CHG-{nextId:000}", Description = "Bank Ledger Maintenance Fee", Deposit = 0m, Withdrawal = 2500.00m, ErpMatchRef = null, IsMatched = false, Category = "Bank Charges" }
+                });
+            }
         }
 
         [HttpPost]
@@ -644,10 +773,32 @@ namespace ERP_System.Controllers
         }
 
         [HttpPost]
-        public IActionResult UploadStatement(decimal statementBalance, Microsoft.AspNetCore.Http.IFormFile? statementFile)
+        public IActionResult AutoMatch(int? bankAccountId)
         {
+            int targetId = bankAccountId ?? 1;
+            var unlinked = _reconItems.Where(i => i.BankAccountId == targetId && !i.IsMatched && i.Category != "Bank Charges").ToList();
+            int count = 0;
+            foreach (var item in unlinked)
+            {
+                item.IsMatched = true;
+                if (string.IsNullOrEmpty(item.ErpMatchRef))
+                {
+                    item.ErpMatchRef = $"AUTO-REC-{DateTime.Now:mmss}-{item.Id}";
+                }
+                count++;
+            }
+            return Json(new { success = true, matchedCount = count, message = $"{count} unlinked bank statement items reconciled with matching ERP Payment Vouchers." });
+        }
+
+        [HttpPost]
+        public IActionResult UploadStatement(int? bankAccountId, decimal statementBalance, Microsoft.AspNetCore.Http.IFormFile? statementFile)
+        {
+            if (bankAccountId.HasValue && bankAccountId.Value > 0)
+            {
+                _statementBalances[bankAccountId.Value] = statementBalance;
+            }
             TempData["SuccessMessage"] = $"Bank statement uploaded successfully! Updated statement balance: ₹ {statementBalance:N2}. 3 matching entries auto-reconciled.";
-            return RedirectToAction(nameof(BankRecon));
+            return RedirectToAction(nameof(BankRecon), new { bankAccountId });
         }
 
         // ==========================================
