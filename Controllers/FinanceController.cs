@@ -12,7 +12,7 @@ using System.Security.Claims;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant")]
+    [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant,Auditor")]
     public class FinanceController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -66,6 +66,11 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            if (User.IsInRole("Auditor"))
+            {
+                return RedirectToAction(nameof(GeneralLedger));
+            }
+
             // 1. Calculate Real Receivables from PaymentReceipts & unpaid Sales Invoices
             decimal dbReceivables = await _context.PaymentReceipts
                 .Where(pr => pr.Status != "Paid")
@@ -289,8 +294,36 @@ namespace ERP_System.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Ledger(string search = "")
+        [Route("Finance/GeneralLedger")]
+        [Authorize(Roles = "Finance Manager,Auditor,Super Admin,Admin,Accountant")]
+        public async Task<IActionResult> GeneralLedger(string search = "")
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int.TryParse(userIdClaim, out int currentUserId);
+
+            // Verify dynamic permission from database if user is Auditor
+            if (User.IsInRole("Auditor"))
+            {
+                var hasRolePermission = await _context.RolePermissions
+                    .Include(p => p.Role)
+                    .AnyAsync(p => p.Role != null && p.Role.RoleName == "Auditor" &&
+                                   (p.ModuleName == "FinanceAccounts_GeneralLedger" || p.ModuleName == "Accounting") &&
+                                   (p.CanView || p.IsAllowed));
+
+                var userPerm = await _context.UserPermissions
+                    .FirstOrDefaultAsync(up => up.UserId == currentUserId &&
+                                              (up.ModuleName == "FinanceAccounts_GeneralLedger" || up.ModuleName == "Accounting"));
+
+                bool hasPermission = userPerm != null ? (userPerm.CanView || userPerm.IsAllowed) : hasRolePermission;
+
+                if (!hasPermission)
+                {
+                    return RedirectToAction("AccessDenied", "Account");
+                }
+
+                ViewBag.IsReadOnly = true; // Auditor has view-only rights
+            }
+
             var accountsQuery = _context.AccountHeads.Where(a => a.IsActive).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -319,7 +352,15 @@ namespace ERP_System.Controllers
 
             ViewBag.AccountHeads = accounts;
             ViewBag.SearchTerm = search;
-            return View(_journalEntries);
+            return View("Ledger", _journalEntries);
+        }
+
+        [HttpGet]
+        [Route("Finance/Ledger")]
+        [Authorize(Roles = "Finance Manager,Auditor,Super Admin,Admin,Accountant")]
+        public async Task<IActionResult> Ledger(string search = "")
+        {
+            return await GeneralLedger(search);
         }
 
         [HttpGet]
@@ -502,8 +543,14 @@ namespace ERP_System.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant")]
         public async Task<IActionResult> PostJournalEntry([FromBody] JournalEntryInputModel model)
         {
+            if (User.IsInRole("Auditor"))
+            {
+                return Json(new { success = false, message = "Auditor role has read-only access and is not permitted to post journal entries." });
+            }
+
             if (model == null || model.Lines == null || !model.Lines.Any())
             {
                 return Json(new { success = false, message = "No lines provided." });

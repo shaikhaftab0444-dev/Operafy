@@ -114,6 +114,8 @@ namespace ERP_System.Data
         // Accountant Hub DbSets
         public DbSet<JournalVoucher> JournalVouchers { get; set; }
         public DbSet<BankReconciliationItem> BankReconciliations { get; set; }
+        // Company Bank Master
+        public DbSet<CompanyBankAccount> CompanyBankAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -180,6 +182,7 @@ namespace ERP_System.Data
             modelBuilder.Entity<KeyResult>().ToTable("erp_KeyResults");
             modelBuilder.Entity<KpiItem>().ToTable("erp_Kpis");
             modelBuilder.Entity<AppraisalCycle>().ToTable("erp_AppraisalCycles");
+            modelBuilder.Entity<EmployeeAppraisal>().ToTable("erp_EmployeeAppraisals");
             modelBuilder.Entity<Lead>(entity =>
             {
                 entity.ToTable("erp_Leads");

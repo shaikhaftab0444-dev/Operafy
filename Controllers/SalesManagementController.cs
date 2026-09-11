@@ -23,7 +23,7 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Leads()
         {
-            var leads = await _context.Leads.OrderByDescending(l => l.LeadId).ToListAsync();
+            var leads = await _context.Leads.AsNoTracking().OrderByDescending(l => l.LeadId).ToListAsync();
             return View(leads);
         }
 
@@ -39,7 +39,7 @@ namespace ERP_System.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Leads));
             }
-            var leads = await _context.Leads.OrderByDescending(l => l.LeadId).ToListAsync();
+            var leads = await _context.Leads.AsNoTracking().OrderByDescending(l => l.LeadId).ToListAsync();
             return View(nameof(Leads), leads);
         }
 
@@ -47,7 +47,7 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Quotations()
         {
-            var quotations = await _context.Quotations.OrderByDescending(q => q.QuotationId).ToListAsync();
+            var quotations = await _context.Quotations.AsNoTracking().OrderByDescending(q => q.QuotationId).ToListAsync();
             return View(quotations);
         }
 
@@ -65,7 +65,7 @@ namespace ERP_System.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Quotations));
             }
-            var quotations = await _context.Quotations.OrderByDescending(q => q.QuotationId).ToListAsync();
+            var quotations = await _context.Quotations.AsNoTracking().OrderByDescending(q => q.QuotationId).ToListAsync();
             return View(nameof(Quotations), quotations);
         }
 
@@ -73,7 +73,7 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Orders()
         {
-            var orders = await _context.SalesOrders.OrderByDescending(o => o.SalesOrderId).ToListAsync();
+            var orders = await _context.SalesOrders.AsNoTracking().OrderByDescending(o => o.SalesOrderId).ToListAsync();
             return View(orders);
         }
 
@@ -92,7 +92,7 @@ namespace ERP_System.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Orders));
             }
-            var orders = await _context.SalesOrders.OrderByDescending(o => o.SalesOrderId).ToListAsync();
+            var orders = await _context.SalesOrders.AsNoTracking().OrderByDescending(o => o.SalesOrderId).ToListAsync();
             return View(nameof(Orders), orders);
         }
 

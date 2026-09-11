@@ -46,7 +46,15 @@ namespace ERP_System.Controllers
 
             // Finance & Accounts
             ("FinanceAccounts_GeneralLedger", "General Ledger & Daybook", "Finance"),
-            ("FinanceAccounts_ReportsTax", "Financial Reports & Tax", "Finance")
+            ("FinanceAccounts_ReportsTax", "Financial Reports & Tax", "Finance"),
+
+            // Team Management
+            ("TeamManagement_AttendanceRadar", "Team Attendance Radar", "Team Management"),
+            ("TeamManagement_TaskDelegation", "Assign & Track Tasks", "Team Management"),
+            ("TeamManagement_Approvals", "Manager Approvals (Leave/Claims)", "Team Management"),
+
+            // Employee Self-Service
+            ("ESS_ClockInOut", "Employee Clock In / Out", "Self-Service")
         };
 
         // GET: /RolePermissions or /PagePermissions or /UserPermissions
