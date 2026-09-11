@@ -1257,6 +1257,13 @@
 
             <div class="recon-header-actions">
 
+                <a href="@Url.Action("Index", "BankMaster")"
+                   class="recon-action-btn recon-btn-outline"
+                   title="Company Bank Master Setup">
+                    <i class="fa-solid fa-building-columns"></i>
+                    <span>Bank Master</span>
+                </a>
+
                 <button type="button"
                         class="recon-action-btn recon-btn-outline"
                         data-bs-toggle="modal"
@@ -1272,8 +1279,9 @@
                     <span>Auto-Match</span>
                 </button>
 
-                <a asp-action="Ledger"
-                   class="recon-action-btn recon-btn-primary">
+                <a href="@Url.Action("Vouchers", "Accountant")"
+                   class="recon-action-btn recon-btn-primary"
+                   title="Post Journal Voucher for discrepancies">
                     <i class="fa-solid fa-file-invoice"></i>
                     <span>Post Recon JV</span>
                 </a>
@@ -1319,24 +1327,23 @@
                         </span>
 
                         <select class="recon-control"
-                                onchange="location.href='@Url.Action("BankRecon")?bankAccount=' + this.value;">
-
-                            <option selected>
-                                HDFC Corporate Current A/c (50200084924829)
-                            </option>
-
-                            <option>
-                                ICICI Operating A/c (004905012490)
-                            </option>
-
-                            <option>
-                                SBI Treasury Reserve A/c (33091244810)
-                            </option>
-
-                            <option>
-                                Main Office Cash Ledger (AC-1001)
-                            </option>
-
+                                onchange="location.href='@Url.Action("BankRecon", "Finance")?bankAccountId=' + this.value + '&filter=@(ViewBag.CurrentFilter ?? "All")';">
+                            @if (Model.BankAccounts != null && Model.BankAccounts.Any())
+                            {
+                                foreach (var acc in Model.BankAccounts)
+                                {
+                                    var isSelected = acc.Id == Model.SelectedBankAccountId;
+                                    <option value="@acc.Id" selected="@(isSelected ? "selected" : null)">
+                                        @acc.BankName - @acc.AccountNumber (@acc.AccountType) @(acc.IsPrimaryAccount ? "★ Primary" : "")
+                                    </option>
+                                }
+                            }
+                            else
+                            {
+                                <option selected value="@Model.SelectedBankAccountId">
+                                    @Model.BankAccountName (@Model.AccountNumber)
+                                </option>
+                            }
                         </select>
 
                     </div>
@@ -1390,9 +1397,41 @@
                         }
 
                     </div>
-                </div>
-
             </div>
+
+            @if (!string.IsNullOrEmpty(Model.AccountNumber))
+            {
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-3 pt-3 border-top border-light-subtle" style="font-size: 0.82rem; color: #64748b;">
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div>
+                            <i class="fa-solid fa-hashtag text-primary me-1"></i>
+                            A/C No: <strong class="text-dark font-monospace">@Model.AccountNumber</strong>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.IFSCCode))
+                        {
+                            <div>
+                                <i class="fa-solid fa-code-branch text-info me-1"></i>
+                                IFSC: <strong class="text-dark font-monospace">@Model.IFSCCode</strong>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.BranchName))
+                        {
+                            <div>
+                                <i class="fa-solid fa-location-dot text-danger me-1"></i>
+                                Branch: <span class="text-dark">@Model.BranchName</span>
+                            </div>
+                        }
+                        <div>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">@Model.AccountType</span>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="@Url.Action("Index", "BankMaster")" class="badge bg-light text-secondary border text-decoration-none px-2 py-1" title="Open Bank Master in Admin Portal">
+                            <i class="fa-solid fa-sliders me-1 text-primary"></i>Manage in Bank Master
+                        </a>
+                    </div>
+                </div>
+            }
         </div>
 
         <!-- =========================================
@@ -1567,24 +1606,28 @@
                     <div class="recon-filter-tabs">
 
                         <a asp-action="BankRecon"
+                           asp-route-bankAccountId="@Model.SelectedBankAccountId"
                            asp-route-filter="All"
                            class="recon-filter @(currentFilter == "All" ? "active-all" : "")">
                             All Statement Items (@Model.Transactions.Count)
                         </a>
 
                         <a asp-action="BankRecon"
+                           asp-route-bankAccountId="@Model.SelectedBankAccountId"
                            asp-route-filter="Unmatched"
                            class="recon-filter @(currentFilter == "Unmatched" ? "active-unmatched" : "")">
                             Unmatched Discrepancies
                         </a>
 
                         <a asp-action="BankRecon"
+                           asp-route-bankAccountId="@Model.SelectedBankAccountId"
                            asp-route-filter="Matched"
                            class="recon-filter @(currentFilter == "Matched" ? "active-matched" : "")">
                             Matched / Verified
                         </a>
 
                         <a asp-action="BankRecon"
+                           asp-route-bankAccountId="@Model.SelectedBankAccountId"
                            asp-route-filter="Uncleared"
                            class="recon-filter @(currentFilter == "Uncleared" ? "active-uncleared" : "")">
                             Uncleared Cheques
@@ -1837,21 +1880,24 @@
                         </label>
 
                         <select class="recon-modal-control"
-                                name="bankAccount"
+                                name="bankAccountId"
                                 required>
-
-                            <option value="HDFC">
-                                HDFC Corporate Current A/c - 50200084924829
-                            </option>
-
-                            <option value="ICICI">
-                                ICICI Operating A/c - 004905012490
-                            </option>
-
-                            <option value="SBI">
-                                SBI Treasury Reserve A/c - 33091244810
-                            </option>
-
+                            @if (Model.BankAccounts != null && Model.BankAccounts.Any())
+                            {
+                                foreach (var acc in Model.BankAccounts)
+                                {
+                                    var isSelected = acc.Id == Model.SelectedBankAccountId;
+                                    <option value="@acc.Id" selected="@(isSelected ? "selected" : null)">
+                                        @acc.BankName - @acc.AccountNumber (@acc.AccountType)
+                                    </option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="@Model.SelectedBankAccountId" selected>
+                                    @Model.BankAccountName - @Model.AccountNumber
+                                </option>
+                            }
                         </select>
 
                     </div>
@@ -1882,7 +1928,7 @@
                                step="0.01"
                                class="recon-modal-control"
                                name="statementBalance"
-                               value="42500000.00"
+                               value="@Model.StatementEndingBalance.ToString("F2")"
                                required />
 
                     </div>
@@ -1952,7 +1998,24 @@
     }
 
     function autoMatchAll() {
-        alert('Auto-matching engine completed: 3 unlinked bank statement items reconciled with matching ERP Payment Vouchers based on Reference numbers and Amount parity.');
-        location.reload();
+        const bankAccountId = @Model.SelectedBankAccountId;
+        fetch('@Url.Action("AutoMatch", "Finance")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `bankAccountId=${bankAccountId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || 'Auto-matching engine completed: unlinked items reconciled.');
+                location.reload();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            location.reload();
+        });
     }
 </script>

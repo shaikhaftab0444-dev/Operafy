@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin")]
+    [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant")]
     public class BankMasterController : Controller
     {
         private readonly ApplicationDbContext _context;
