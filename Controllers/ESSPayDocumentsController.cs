@@ -29,6 +29,8 @@ namespace ERP_System.Controllers
                 return id;
             }
             return 1;
+        }
+
         // GET: /ESSPayDocuments or /ESSPayDocuments/Index
         [HttpGet]
         public IActionResult Index()
