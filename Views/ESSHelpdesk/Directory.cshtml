@@ -2,55 +2,110 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Company Employee Directory";
+    var userList = Model?.ToList() ?? new List<ERP_System.Models.User>();
 }
 
 <div class="container-fluid py-4 text-start">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-address-book text-primary me-2"></i>Company Directory</h4>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-address-book text-primary me-2"></i>Company Employee Directory</h4>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Company Directory</li>
+                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none text-muted">ESS</a></li>
+                    <li class="breadcrumb-item active text-primary fw-semibold" aria-current="page">Employee Directory</li>
                 </ol>
             </nav>
         </div>
+        <div class="badge bg-light text-dark border px-3 py-2">
+            <i class="fa-solid fa-users text-primary me-1.5"></i><span id="directoryCounter">@userList.Count</span> Active Colleagues
+        </div>
     </div>
 
-    <!-- Search input -->
-    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
-        <input type="text" id="directorySearchInput" class="form-control form-control-sm" placeholder="Search coworkers by name, email, or department..." />
+    <!-- Search Toolbar -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white p-3 mb-4">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="directorySearchInput" class="form-control border-start-0 ps-0" placeholder="Search coworkers by name, email, department, or role..." autofocus />
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="document.getElementById('directorySearchInput').value=''; filterDirectory();">
+                    <i class="fa-solid fa-rotate-left me-1"></i>Reset Filter
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Grid Card list -->
     <div class="row g-4" id="coworkerGrid">
-        @if (Model != null && Model.Any())
+        @if (userList.Any())
         {
-            @foreach (var emp in Model)
+            @foreach (var user in userList)
             {
-                <div class="col-md-3 coworker-card">
-                    <div class="bg-white border rounded-3 p-4 text-center shadow-sm h-100">
+                var deptName = user.Department?.DepartmentName ?? user.DepartmentName ?? "General";
+                var roleName = user.Role?.RoleName ?? "Employee";
+                var initials = !string.IsNullOrWhiteSpace(user.FullName) && user.FullName.Trim().Length >= 2 
+                    ? user.FullName.Trim().Substring(0, 2).ToUpper() 
+                    : "EM";
+                var phone = !string.IsNullOrWhiteSpace(user.MobileNumber) ? user.MobileNumber : "Ext. N/A";
+
+                <div class="col-xl-3 col-lg-4 col-md-6 coworker-card" 
+                     data-name="@user.FullName.ToLower()" 
+                     data-email="@user.Email.ToLower()" 
+                     data-dept="@deptName.ToLower()" 
+                     data-role="@roleName.ToLower()">
+                    <div class="card border-0 shadow-sm rounded-3 p-4 text-center h-100 bg-white hover-shadow transition">
+                        <!-- Avatar -->
                         <div class="mb-3 d-flex justify-content-center">
-                            @if (!string.IsNullOrEmpty(emp.ProfilePhoto))
+                            @if (!string.IsNullOrEmpty(user.ProfilePhoto))
                             {
-                                <img src="@emp.ProfilePhoto" class="rounded-circle" style="width: 70px; height: 70px; object-fit: cover;" />
+                                <img src="@user.ProfilePhoto" alt="@user.FullName" class="rounded-circle border border-2 border-primary shadow-sm" style="width: 72px; height: 72px; object-fit: cover;" />
                             }
                             else
                             {
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center font-bold" style="width: 70px; height: 70px; font-size: 1.5rem;">
-                                    @(!string.IsNullOrEmpty(emp.FullName) ? emp.FullName.Substring(0, Math.Min(2, emp.FullName.Length)).ToUpper() : "EM")
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 72px; height: 72px; font-size: 1.4rem; letter-spacing: 1px;">
+                                    @initials
                                 </div>
                             }
                         </div>
-                        <h6 class="fw-bold text-dark mb-1 coworker-name">@emp.FullName</h6>
-                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 small mb-3">@(emp.Role != null ? emp.Role.RoleName : "Employee")</span>
+
+                        <!-- Name & Badges -->
+                        <h6 class="fw-bold text-dark mb-1 coworker-name">@user.FullName</h6>
                         
-                        <div class="border-top pt-2 mt-2 text-start">
-                            <div class="small text-muted mb-1 text-truncate"><i class="fa-solid fa-envelope me-1.5 text-secondary"></i>@emp.Email</div>
-                            @if (!string.IsNullOrEmpty(emp.MobileNumber))
-                            {
-                                <div class="small text-muted"><i class="fa-solid fa-phone me-1.5 text-secondary"></i>@emp.MobileNumber</div>
-                            }
+                        <div class="mb-2">
+                            <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 small">
+                                <i class="fa-solid fa-briefcase me-1"></i>@roleName
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <span class="badge bg-light text-secondary border px-2.5 py-1 small">
+                                <i class="fa-solid fa-building me-1"></i>@deptName
+                            </span>
+                        </div>
+
+                        <!-- Contact Actions -->
+                        <div class="border-top pt-3 mt-auto text-start">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fa-solid fa-envelope text-primary me-2 flex-shrink-0" style="width: 16px;"></i>
+                                <a href="mailto:@user.Email" class="small text-decoration-none text-muted text-truncate hover-primary" title="@user.Email">
+                                    @user.Email
+                                </a>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="fa-solid fa-phone text-success me-2 flex-shrink-0" style="width: 16px;"></i>
+                                @if (phone != "Ext. N/A")
+                                {
+                                    <a href="tel:@phone" class="small text-decoration-none text-muted hover-success">
+                                        @phone
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="small text-muted">@phone</span>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -58,27 +113,72 @@
         }
         else
         {
-            <div class="col-12 text-center text-muted py-5">No employees found.</div>
+            <div class="col-12 text-center py-5">
+                <div class="text-muted mb-3">
+                    <i class="fa-solid fa-users-slash fa-3x"></i>
+                </div>
+                <h6 class="fw-bold text-dark">No employees found in directory.</h6>
+            </div>
         }
+    </div>
+
+    <!-- No Search Results Found (Hidden by default) -->
+    <div id="noResultsMessage" class="card border-0 shadow-sm rounded-3 bg-white text-center py-5 d-none">
+        <div class="text-muted mb-3">
+            <i class="fa-solid fa-user-slash fa-3x"></i>
+        </div>
+        <h6 class="fw-bold text-dark">No matching coworkers found</h6>
+        <p class="text-muted small mb-0">Try searching with a different name, department, or email keyword.</p>
     </div>
 </div>
 
+<style>
+    .transition { transition: all 0.2s ease-in-out; }
+    .hover-shadow:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important; }
+    .hover-primary:hover { color: #0d6efd !important; text-decoration: underline !important; }
+    .hover-success:hover { color: #198754 !important; text-decoration: underline !important; }
+</style>
+
 <script>
+    function filterDirectory() {
+        var input = document.getElementById("directorySearchInput");
+        var query = (input ? input.value : "").trim().toLowerCase();
+        var cards = document.querySelectorAll(".coworker-card");
+        var visibleCount = 0;
+
+        cards.forEach(function(card) {
+            var name = card.getAttribute("data-name") || "";
+            var email = card.getAttribute("data-email") || "";
+            var dept = card.getAttribute("data-dept") || "";
+            var role = card.getAttribute("data-role") || "";
+
+            if (!query || name.includes(query) || email.includes(query) || dept.includes(query) || role.includes(query)) {
+                card.classList.remove("d-none");
+                visibleCount++;
+            } else {
+                card.classList.add("d-none");
+            }
+        });
+
+        var counter = document.getElementById("directoryCounter");
+        if (counter) counter.textContent = visibleCount;
+
+        var noResults = document.getElementById("noResultsMessage");
+        if (noResults) {
+            if (visibleCount === 0 && cards.length > 0) {
+                noResults.classList.remove("d-none");
+            } else {
+                noResults.classList.add("d-none");
+            }
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
         var searchInput = document.getElementById("directorySearchInput");
         if (searchInput) {
-            searchInput.addEventListener("keyup", function() {
-                var query = this.value.toLowerCase();
-                var cards = document.querySelectorAll(".coworker-card");
-                cards.forEach(function(card) {
-                    var text = card.textContent.toLowerCase();
-                    if (text.includes(query)) {
-                        card.style.display = "";
-                    } else {
-                        card.style.display = "none";
-                    }
-                });
-            });
+            searchInput.addEventListener("input", filterDirectory);
+            searchInput.addEventListener("keyup", filterDirectory);
         }
     });
 </script>
+

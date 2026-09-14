@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -557,8 +557,39 @@ namespace ERP_System.Data
                     BEGIN
                         ALTER TABLE AITStudent.erp_ESSExpenseClaims ADD ReviewedAt DATETIME NULL;
                     END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSExpenseClaims') AND name = 'Description')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSExpenseClaims ADD Description NVARCHAR(1000) NULL;
+                    END
                 END";
             await context.Database.ExecuteSqlRawAsync(alterESSExpenseClaimsSql);
+
+            // Dynamically alter erp_ESSSupportTickets to add columns if they don't exist
+            string alterESSSupportTicketsSql = @"
+                IF OBJECT_ID('AITStudent.erp_ESSSupportTickets', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSSupportTickets') AND name = 'TicketNumber')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSSupportTickets ADD TicketNumber NVARCHAR(50) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSSupportTickets') AND name = 'Priority')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSSupportTickets ADD Priority NVARCHAR(50) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSSupportTickets') AND name = 'ResolutionRemarks')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSSupportTickets ADD ResolutionRemarks NVARCHAR(2000) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSSupportTickets') AND name = 'ResolvedBy')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSSupportTickets ADD ResolvedBy NVARCHAR(150) NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_ESSSupportTickets') AND name = 'ResolvedAt')
+                    BEGIN
+                        ALTER TABLE AITStudent.erp_ESSSupportTickets ADD ResolvedAt DATETIME NULL;
+                    END
+                END";
+            await context.Database.ExecuteSqlRawAsync(alterESSSupportTicketsSql);
 
             // Ensure erp_DepartmentTasks table exists
             string createDepartmentTasksSql = @"

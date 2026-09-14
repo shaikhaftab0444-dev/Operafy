@@ -2,58 +2,155 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Raise HR / IT Support Ticket";
+    var ticketsList = Model?.ToList() ?? new List<ERP_System.Models.ESSSupportTicket>();
+    var openCount = ticketsList.Count(t => t.Status == "Open");
+    var inProgressCount = ticketsList.Count(t => t.Status == "In Progress");
+    var resolvedCount = ticketsList.Count(t => t.Status == "Resolved" || t.Status == "Closed");
 }
 
 <div class="container-fluid py-4 text-start">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-circle-question text-primary me-2"></i>Raise HR / IT Support Ticket</h4>
+            <h4 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-headset text-primary me-2"></i>Employee Helpdesk &amp; Support</h4>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none">ESS</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Support Helpdesk</li>
+                    <li class="breadcrumb-item"><a href="/EmployeeDashboard" class="text-decoration-none text-muted">ESS</a></li>
+                    <li class="breadcrumb-item active text-primary fw-semibold" aria-current="page">Support Helpdesk</li>
                 </ol>
             </nav>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#ticketModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Raise Ticket
+        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#ticketModal">
+            <i class="fa-solid fa-plus me-1.5"></i>+ Raise Ticket
         </button>
     </div>
 
-    <!-- Ticket History -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h5 class="fw-bold mb-3">Ticket Submission History</h5>
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-warning border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Open Tickets</div>
+                        <div class="fs-4 fw-bold text-warning mt-1">@openCount Active</div>
+                        <div class="small text-muted mt-1">Awaiting Assignment</div>
+                    </div>
+                    <div class="bg-warning-subtle text-warning p-3 rounded-circle">
+                        <i class="fa-solid fa-envelope-open-text fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-info border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">In Progress</div>
+                        <div class="fs-4 fw-bold text-info mt-1">@inProgressCount Under Review</div>
+                        <div class="small text-muted mt-1">Technician Working</div>
+                    </div>
+                    <div class="bg-info-subtle text-info p-3 rounded-circle">
+                        <i class="fa-solid fa-screwdriver-wrench fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-success border-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Resolved / Closed</div>
+                        <div class="fs-4 fw-bold text-success mt-1">@resolvedCount Completed</div>
+                        <div class="small text-muted mt-1">Total Solved Issues</div>
+                    </div>
+                    <div class="bg-success-subtle text-success p-3 rounded-circle">
+                        <i class="fa-solid fa-circle-check fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket History List -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-0 text-dark">Ticket Submission History</h5>
+                <p class="text-muted small mb-0">Overview of all service requests submitted to IT, HR, or Facilities.</p>
+            </div>
+            <span class="badge bg-light text-dark border px-3 py-2">
+                <i class="fa-solid fa-ticket me-1.5 text-primary"></i>@ticketsList.Count Tickets
+            </span>
+        </div>
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
                 <thead class="table-light">
                     <tr>
+                        <th class="ps-3">Ticket #</th>
+                        <th>Target Department</th>
+                        <th>Priority</th>
+                        <th>Subject &amp; Details</th>
                         <th>Date Raised</th>
-                        <th>Category / Dept</th>
-                        <th>Subject</th>
-                        <th>Status</th>
+                        <th class="text-end pe-3">Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model != null && Model.Any())
+                    @if (ticketsList.Any())
                     {
-                        @foreach (var t in Model)
+                        @foreach (var t in ticketsList)
                         {
                             <tr>
-                                <td class="text-muted">@t.CreatedAt.ToString("dd MMM yyyy")</td>
-                                <td class="fw-bold text-dark">@t.Department</td>
-                                <td>@t.Subject</td>
+                                <td class="ps-3">
+                                    <span class="badge bg-light text-dark border font-monospace">
+                                        @(string.IsNullOrEmpty(t.TicketNumber) ? $"TCK-2026-{(t.TicketId > 0 ? t.TicketId : t.Id):D4}" : t.TicketNumber)
+                                    </span>
+                                </td>
                                 <td>
-                                    @if (t.Status == "Resolved")
+                                    <span class="fw-semibold text-dark">@t.Department</span>
+                                </td>
+                                <td>
+                                    @if (t.Priority == "Critical")
                                     {
-                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Resolved</span>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5">Critical</span>
                                     }
-                                    else if (t.Status == "In Progress")
+                                    else if (t.Priority == "High")
                                     {
-                                        <span class="badge bg-info-subtle text-info rounded-pill px-2.5 py-1">In Progress</span>
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0.5">High</span>
+                                    }
+                                    else if (t.Priority == "Low")
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-0.5">Low</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">Open</span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5">Medium</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark mb-0">@t.Subject</div>
+                                    <div class="text-muted small text-truncate" style="max-width: 320px;">@t.Description</div>
+                                </td>
+                                <td class="text-muted small">
+                                    <i class="fa-regular fa-clock me-1 text-secondary"></i>@t.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")
+                                </td>
+                                <td class="text-end pe-3">
+                                    @if (t.Status == "Resolved" || t.Status == "Closed")
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">
+                                            <i class="fa-solid fa-check me-1"></i>Resolved
+                                        </span>
+                                    }
+                                    else if (t.Status == "In Progress")
+                                    {
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2.5 py-1">
+                                            <i class="fa-solid fa-spinner me-1"></i>In Progress
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1">
+                                            <i class="fa-solid fa-circle-dot me-1"></i>Open
+                                        </span>
                                     }
                                 </td>
                             </tr>
@@ -62,7 +159,16 @@
                     else
                     {
                         <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No tickets raised.</td>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="text-muted mb-3">
+                                    <i class="fa-regular fa-comments fa-3x"></i>
+                                </div>
+                                <h6 class="fw-bold text-dark">No support tickets raised yet.</h6>
+                                <p class="text-muted small mb-3">Encountering an issue? Submit a ticket to reach our internal support teams.</p>
+                                <button class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#ticketModal">
+                                    <i class="fa-solid fa-plus me-1.5"></i>Raise Your First Ticket
+                                </button>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -71,37 +177,52 @@
     </div>
 </div>
 
-<!-- Ticket Modal -->
+<!-- Interactive Ticket Creation Modal -->
 <div class="modal fade text-start" id="ticketModal" tabindex="-1" aria-labelledby="ticketModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="/ESSHelpdesk/SubmitTicket" method="post">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-3">
+            <form action="/ESSHelpdesk/CreateTicket" method="post">
                 @Html.AntiForgeryToken()
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="ticketModalLabel">Raise Support Ticket</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="ticketModalLabel"><i class="fa-solid fa-headset me-2"></i>Raise Support Ticket</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Target Department</label>
-                        <select name="Department" class="form-select" required>
-                            <option value="IT Support">IT Infrastructure & Hardware</option>
-                            <option value="HR Support">Human Resources Support</option>
-                            <option value="Facilities">Facilities & Office Admin</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Subject / Title</label>
-                        <input type="text" name="Subject" class="form-control" placeholder="Brief summary of the issue..." required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Detailed Description</label>
-                        <textarea name="Description" class="form-control" rows="4" placeholder="Provide full details or steps to reproduce..." required></textarea>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Target Department <span class="text-danger">*</span></label>
+                            <select name="Department" class="form-select" required>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Human Resources">Human Resources</option>
+                                <option value="Facility Management">Facility Management</option>
+                                <option value="Finance & Accounts">Finance &amp; Accounts</option>
+                                <option value="Operations Support">Operations Support</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-dark">Urgency / Priority <span class="text-danger">*</span></label>
+                            <select name="Priority" class="form-select" required>
+                                <option value="Low">Low - Minor Query</option>
+                                <option value="Medium" selected>Medium - Normal Issue</option>
+                                <option value="High">High - Urgent Assistance</option>
+                                <option value="Critical">Critical - System / Work Blocker</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-dark">Subject <span class="text-danger">*</span></label>
+                            <input type="text" name="Subject" class="form-control" placeholder="Brief summary of the issue or request..." required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-dark">Description / Reproduction Steps <span class="text-danger">*</span></label>
+                            <textarea name="Description" class="form-control" rows="4" placeholder="Provide full details, error messages, or steps to reproduce..." required></textarea>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Raise Ticket</button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                        <i class="fa-solid fa-paper-plane me-1.5"></i>Submit Ticket
+                    </button>
                 </div>
             </form>
         </div>

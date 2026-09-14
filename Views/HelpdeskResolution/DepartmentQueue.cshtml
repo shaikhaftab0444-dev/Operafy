@@ -1,0 +1,383 @@
+@model IEnumerable<ERP_System.Models.ESSSupportTicket>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Department Helpdesk Resolution Queue";
+    var ticketsList = Model?.ToList() ?? new List<ERP_System.Models.ESSSupportTicket>();
+    string currentFilter = ViewBag.CurrentFilter as string ?? "All";
+    string deptScope = ViewBag.DepartmentScope as string ?? "Department Queue";
+    int totalCount = ViewBag.TotalCount ?? ticketsList.Count;
+    int openCount = ViewBag.OpenCount ?? ticketsList.Count(t => t.Status == "Open");
+    int inProgressCount = ViewBag.InProgressCount ?? ticketsList.Count(t => t.Status == "In Progress");
+    int resolvedCount = ViewBag.ResolvedCount ?? ticketsList.Count(t => t.Status == "Resolved" || t.Status == "Closed");
+}
+
+<div class="container-fluid py-4 text-start">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center mb-4 shadow-sm" role="alert">
+            <i class="fa-solid fa-circle-check fs-5 me-2"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-4 shadow-sm" role="alert">
+            <i class="fa-solid fa-triangle-exclamation fs-5 me-2"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h4 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-headset text-primary me-2"></i>Helpdesk Resolution Queue</h4>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 fw-semibold">
+                    <i class="fa-solid fa-building me-1"></i>@deptScope
+                </span>
+            </div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none text-muted">Operations</a></li>
+                    <li class="breadcrumb-item active text-primary fw-semibold" aria-current="page">Department Service Queue</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Quick Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <a href="@Url.Action("DepartmentQueue", "HelpdeskResolution", new { statusFilter = "All" })" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-primary border-4 h-100 transition-hover @(currentFilter == "All" ? "ring-2 ring-primary" : "")">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small fw-medium text-uppercase">Total Requests</div>
+                            <div class="fs-4 fw-bold text-dark mt-1">@totalCount</div>
+                            <div class="small text-muted">All Submitted</div>
+                        </div>
+                        <div class="bg-primary-subtle text-primary p-3 rounded-circle">
+                            <i class="fa-solid fa-inbox fa-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <a href="@Url.Action("DepartmentQueue", "HelpdeskResolution", new { statusFilter = "Open" })" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-warning border-4 h-100 transition-hover @(currentFilter == "Open" ? "ring-2 ring-warning" : "")">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small fw-medium text-uppercase">Open &amp; Pending</div>
+                            <div class="fs-4 fw-bold text-warning mt-1">@openCount</div>
+                            <div class="small text-warning-emphasis">Awaiting Action</div>
+                        </div>
+                        <div class="bg-warning-subtle text-warning p-3 rounded-circle">
+                            <i class="fa-solid fa-clock-rotate-left fa-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <a href="@Url.Action("DepartmentQueue", "HelpdeskResolution", new { statusFilter = "In Progress" })" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-info border-4 h-100 transition-hover @(currentFilter == "In Progress" ? "ring-2 ring-info" : "")">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small fw-medium text-uppercase">In Progress</div>
+                            <div class="fs-4 fw-bold text-info mt-1">@inProgressCount</div>
+                            <div class="small text-info-emphasis">Under Investigation</div>
+                        </div>
+                        <div class="bg-info-subtle text-info p-3 rounded-circle">
+                            <i class="fa-solid fa-spinner fa-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <a href="@Url.Action("DepartmentQueue", "HelpdeskResolution", new { statusFilter = "Resolved" })" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-success border-4 h-100 transition-hover @(currentFilter == "Resolved" ? "ring-2 ring-success" : "")">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small fw-medium text-uppercase">Resolved / Closed</div>
+                            <div class="fs-4 fw-bold text-success mt-1">@resolvedCount</div>
+                            <div class="small text-success-emphasis">Resolved Tickets</div>
+                        </div>
+                        <div class="bg-success-subtle text-success p-3 rounded-circle">
+                            <i class="fa-solid fa-circle-check fa-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Queue Table Card -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div>
+                <h5 class="fw-bold mb-0 text-dark">Service Requests &amp; Incidents</h5>
+                <p class="text-muted small mb-0">Assigned tickets routed to your department for investigation and resolution.</p>
+            </div>
+            <!-- Status Filter Buttons -->
+            <div class="btn-group btn-group-sm" role="group" aria-label="Status Filters">
+                <a href="@Url.Action("DepartmentQueue", "HelpdeskResolution", new { statusFilter = "All" })" class="btn @(currentFilter == "All" ? "btn-primary" : "btn-outline-secondary")">
+                    All (@totalCount)
+                </a>
+                <a href="@Url.Action("DepartmentQueue", "HelpdeskResolution", new { statusFilter = "Open" })" class="btn @(currentFilter == "Open" ? "btn-warning text-dark" : "btn-outline-secondary")">
+                    Open (@openCount)
+                </a>
+                <a href="@Url.Action("DepartmentQueue", "HelpdeskResolution", new { statusFilter = "In Progress" })" class="btn @(currentFilter == "In Progress" ? "btn-info text-white" : "btn-outline-secondary")">
+                    In Progress (@inProgressCount)
+                </a>
+                <a href="@Url.Action("DepartmentQueue", "HelpdeskResolution", new { statusFilter = "Resolved" })" class="btn @(currentFilter == "Resolved" ? "btn-success" : "btn-outline-secondary")">
+                    Resolved (@resolvedCount)
+                </a>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Ticket #</th>
+                        <th>Requester / Employee</th>
+                        <th>Target Dept</th>
+                        <th>Priority</th>
+                        <th>Subject &amp; Details</th>
+                        <th>Date Raised</th>
+                        <th>Status</th>
+                        <th>Resolution Notes</th>
+                        <th class="text-end pe-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (ticketsList.Any())
+                    {
+                        @foreach (var t in ticketsList)
+                        {
+                            string ticketCode = string.IsNullOrEmpty(t.TicketNumber) ? $"TCK-2026-{(t.TicketId > 0 ? t.TicketId : t.Id):D4}" : t.TicketNumber;
+                            string requesterName = t.User?.FullName ?? "Unknown User";
+                            string requesterEmail = t.User?.Email ?? "";
+                            string requesterDept = t.User?.Department?.DepartmentName ?? "General";
+                            <tr>
+                                <td class="ps-3">
+                                    <span class="badge bg-light text-dark border font-monospace fw-bold">
+                                        @ticketCode
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">@requesterName</div>
+                                    <div class="text-muted extra-small">
+                                        <i class="fa-solid fa-briefcase me-1 text-secondary"></i>@requesterDept
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(requesterEmail))
+                                    {
+                                        <div class="text-muted extra-small">
+                                            <a href="mailto:@requesterEmail" class="text-decoration-none text-muted">
+                                                <i class="fa-solid fa-envelope me-1 text-primary"></i>@requesterEmail
+                                            </a>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">
+                                        @t.Department
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (t.Priority == "Critical")
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5">Critical</span>
+                                    }
+                                    else if (t.Priority == "High")
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0.5">High</span>
+                                    }
+                                    else if (t.Priority == "Low")
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-0.5">Low</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5">Medium</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark mb-0">@t.Subject</div>
+                                    <div class="text-muted small text-truncate" style="max-width: 260px;" title="@t.Description">
+                                        @t.Description
+                                    </div>
+                                </td>
+                                <td class="text-muted small">
+                                    <div><i class="fa-regular fa-clock me-1 text-secondary"></i>@t.CreatedAt.ToString("dd MMM yyyy")</div>
+                                    <div class="extra-small text-muted">@t.CreatedAt.ToString("hh:mm tt")</div>
+                                </td>
+                                <td>
+                                    @if (t.Status == "Resolved" || t.Status == "Closed")
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">
+                                            <i class="fa-solid fa-check me-1"></i>@t.Status
+                                        </span>
+                                    }
+                                    else if (t.Status == "In Progress")
+                                    {
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2.5 py-1">
+                                            <i class="fa-solid fa-spinner me-1"></i>In Progress
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1">
+                                            <i class="fa-solid fa-envelope-open me-1"></i>Open
+                                        </span>
+                                    }
+                                </td>
+                                <td style="max-width: 200px;">
+                                    @if (!string.IsNullOrEmpty(t.ResolutionRemarks))
+                                    {
+                                        <div class="text-dark small text-truncate" title="@t.ResolutionRemarks">@t.ResolutionRemarks</div>
+                                        @if (!string.IsNullOrEmpty(t.ResolvedBy))
+                                        {
+                                            <div class="extra-small text-muted"><i class="fa-solid fa-user-check me-1 text-success"></i>@t.ResolvedBy</div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fst-italic">Pending resolution</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm btn-action"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#actionModal"
+                                            data-ticketid="@(t.TicketId > 0 ? t.TicketId : t.Id)"
+                                            data-ticketcode="@ticketCode"
+                                            data-requester="@requesterName"
+                                            data-dept="@t.Department"
+                                            data-priority="@t.Priority"
+                                            data-subject="@t.Subject"
+                                            data-description="@t.Description"
+                                            data-status="@t.Status"
+                                            data-remarks="@t.ResolutionRemarks">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i>Take Action
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="fa-solid fa-clipboard-check fa-3x mb-3 text-secondary opacity-50"></i>
+                                    <h6 class="fw-semibold">No Tickets Found</h6>
+                                    <p class="small mb-0">No support tickets currently match the selected department or status criteria.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Take Action / Update Status & Remarks -->
+<div class="modal fade text-start" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-3">
+            <form action="@Url.Action("UpdateTicketStatus", "HelpdeskResolution")" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ticketId" id="modalTicketId" value="0" />
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="actionModalLabel">
+                        <i class="fa-solid fa-screwdriver-wrench me-2"></i>Update Ticket: <span id="modalTicketCode"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <!-- Ticket Details Summary Card -->
+                    <div class="bg-light p-3 rounded-3 mb-3 border">
+                        <div class="row g-2 small">
+                            <div class="col-6">
+                                <span class="text-muted">Requester:</span>
+                                <div class="fw-bold text-dark" id="modalRequester"></div>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Target Dept:</span>
+                                <div class="fw-bold text-dark" id="modalDept"></div>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <span class="text-muted">Subject:</span>
+                                <div class="fw-semibold text-dark" id="modalSubject"></div>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <span class="text-muted">Description:</span>
+                                <div class="text-dark small bg-white p-2 rounded border" id="modalDescription" style="max-height: 100px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-dark">Ticket Status <span class="text-danger">*</span></label>
+                        <select name="status" id="modalStatusSelect" class="form-select" required>
+                            <option value="Open">Open - Awaiting Review</option>
+                            <option value="In Progress">In Progress - Working on Resolution</option>
+                            <option value="Resolved">Resolved - Issue Fixed</option>
+                            <option value="Closed">Closed - Completed &amp; Verified</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-dark">Resolution Notes / Action Taken Remarks</label>
+                        <textarea name="resolutionRemarks" id="modalRemarksText" class="form-control" rows="3" placeholder="Document the steps taken, solution provided, or instructions for the employee..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                        <i class="fa-solid fa-floppy-disk me-1.5"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var actionModal = document.getElementById('actionModal');
+        if (actionModal) {
+            actionModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var ticketId = button.getAttribute('data-ticketid');
+                var ticketCode = button.getAttribute('data-ticketcode');
+                var requester = button.getAttribute('data-requester');
+                var dept = button.getAttribute('data-dept');
+                var subject = button.getAttribute('data-subject');
+                var description = button.getAttribute('data-description');
+                var status = button.getAttribute('data-status');
+                var remarks = button.getAttribute('data-remarks') || '';
+
+                document.getElementById('modalTicketId').value = ticketId;
+                document.getElementById('modalTicketCode').textContent = ticketCode;
+                document.getElementById('modalRequester').textContent = requester;
+                document.getElementById('modalDept').textContent = dept;
+                document.getElementById('modalSubject').textContent = subject;
+                document.getElementById('modalDescription').textContent = description;
+                document.getElementById('modalStatusSelect').value = status;
+                document.getElementById('modalRemarksText').value = remarks;
+            });
+        }
+    });
+</script>
+}
