@@ -177,11 +177,15 @@ namespace ERP_System.Models
     // ==========================================
     public class BankReconciliationViewModel
     {
-        public string BankAccountName { get; set; } = "HDFC Corporate Current A/c - ...4829";
-        public string AccountNumber { get; set; } = "50200084924829";
+        public int SelectedBankAccountId { get; set; }
+        public string BankAccountName { get; set; } = "HDFC Bank Ltd";
+        public string AccountNumber { get; set; } = "50200012345678";
+        public string AccountType { get; set; } = "Current";
+        public string IFSCCode { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
         public DateTime StatementDate { get; set; } = DateTime.Today;
         public decimal StatementEndingBalance { get; set; } = 42500000.00m;
-        public decimal LedgerBookBalance { get; set; } = 42385000.00m;
+        public decimal LedgerBookBalance { get; set; } = 45250000.00m;
         public decimal UnclearedDepositsTotal => Transactions.Where(t => !t.IsMatched && t.Deposit > 0).Sum(t => t.Deposit);
         public decimal UnclearedPaymentsTotal => Transactions.Where(t => !t.IsMatched && t.Withdrawal > 0).Sum(t => t.Withdrawal);
         public decimal AdjustedBankBalance => StatementEndingBalance + UnclearedDepositsTotal - UnclearedPaymentsTotal;
@@ -189,11 +193,13 @@ namespace ERP_System.Models
         public bool IsBalanced => Math.Abs(UnreconciledDifference) < 1.00m;
 
         public List<BankStatementItemViewModel> Transactions { get; set; } = new List<BankStatementItemViewModel>();
+        public List<CompanyBankAccount> BankAccounts { get; set; } = new List<CompanyBankAccount>();
     }
 
     public class BankStatementItemViewModel
     {
         public int Id { get; set; }
+        public int BankAccountId { get; set; } = 1;
         public DateTime Date { get; set; }
         public string ReferenceNo { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
