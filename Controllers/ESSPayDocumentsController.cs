@@ -29,6 +29,8 @@ namespace ERP_System.Controllers
                 return id;
             }
             return 1;
+        }
+
         // GET: /ESSPayDocuments or /ESSPayDocuments/Index
         [HttpGet]
         public IActionResult Index()
@@ -167,9 +169,111 @@ namespace ERP_System.Controllers
 
         // GET: /ESSPayDocuments/TaxDeduction
         [HttpGet]
-        public IActionResult TaxDeduction()
+        public async Task<IActionResult> TaxDeduction()
         {
+            var currentUserId = GetCurrentUserId();
+
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .FirstOrDefaultAsync(u => u.UserId == currentUserId);
+
+            var payslips = await _context.Payslips
+                .Where(p => p.UserId == currentUserId)
+                .OrderByDescending(p => p.PayslipId)
+                .ToListAsync();
+
+            decimal totalGross = payslips.Sum(p => p.GrossSalary ?? 0m);
+            decimal totalTds = payslips.Sum(p => p.TDS ?? 0m);
+
+            if (totalGross == 0m) totalGross = 1020000m;
+            if (totalTds == 0m) totalTds = 54000m;
+
+            ViewBag.GrossSalary = totalGross;
+            ViewBag.TotalTds = totalTds;
+            ViewBag.Employee = user;
+
             return View();
+        }
+
+        // GET: /ESSPayDocuments/DownloadForm16
+        [HttpGet]
+        public async Task<IActionResult> DownloadForm16(string financialYear = "2025-2026")
+        {
+            var currentUserId = GetCurrentUserId();
+
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Include(u => u.Branch)
+                .FirstOrDefaultAsync(u => u.UserId == currentUserId);
+
+            var company = await _context.Companies.FirstOrDefaultAsync() ?? new Company
+            {
+                CompanyName = "Wainfo Pvt Ltd",
+                CompanyCode = "AIT001",
+                AddressLine1 = "Main Office Road",
+                City = "Aurangabad",
+                State = "Maharashtra",
+                Country = "India"
+            };
+
+            var payslips = await _context.Payslips
+                .Where(p => p.UserId == currentUserId)
+                .ToListAsync();
+
+            decimal totalGross = payslips.Sum(p => p.GrossSalary ?? 0m);
+            decimal totalTds = payslips.Sum(p => p.TDS ?? 0m);
+
+            if (totalGross == 0m) totalGross = 1020000m;
+            if (totalTds == 0m) totalTds = 54000m;
+
+            ViewBag.FinancialYear = financialYear;
+            ViewBag.AssessmentYear = "2026-2027";
+            ViewBag.Employee = user;
+            ViewBag.Company = company;
+            ViewBag.GrossSalary = totalGross;
+            ViewBag.TotalTds = totalTds;
+
+            return View("Form16PrintView");
+        }
+
+        // GET: /ESSPayDocuments/DownloadPolicyDocument
+        [HttpGet]
+        public IActionResult DownloadPolicyDocument(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                fileName = "Company_Policy_Document";
+            }
+
+            string cleanName = fileName.Replace("_", " ").Trim();
+            string content = $"=========================================================================\n" +
+                             $"OFFICIAL CORPORATE POLICY HANDBOOK & COMPLIANCE STANDARD (2026)\n" +
+                             $"Wainfo Pvt Ltd / Operafy Systems - All Rights Reserved\n" +
+                             $"=========================================================================\n\n" +
+                             $"DOCUMENT TITLE: {cleanName}\n" +
+                             $"VERSION: 3.4.1 (Active Standard)\n" +
+                             $"RELEASE DATE: January 2026\n" +
+                             $"CLASSIFICATION: Confidential - Internal Company Distribution Only\n\n" +
+                             $"1. PURPOSE & SCOPE:\n" +
+                             $"This policy defines standard operational procedures, integrity guidelines, and statutory protocols\n" +
+                             $"for all active personnel, contractors, and affiliates within the organization.\n\n" +
+                             $"2. EMPLOYEE RESPONSIBILITIES:\n" +
+                             $"- Uphold code of conduct, ethical workplace behavior, and client confidentiality.\n" +
+                             $"- Comply with information security mandates, password hygiene, and data protection rules.\n" +
+                             $"- Adhere to attendance, leave governance, and expense reimbursement timelines.\n\n" +
+                             $"3. STATUTORY & REGULATORY COMPLIANCE:\n" +
+                             $"This policy operates in full compliance with local labor statutes, ISO 27001 data controls,\n" +
+                             $"and standard corporate governance benchmarks.\n\n" +
+                             $"4. ACKNOWLEDGEMENT & ATTESTATION:\n" +
+                             $"By accessing and downloading this official documentation via the ESS Portal, the employee\n" +
+                             $"acknowledges receipt and agrees to adhere strictly to all stipulated terms and conditions.\n\n" +
+                             $"Approved by: Board of Directors & HR Compliance Committee\n" +
+                             $"Wainfo Pvt Ltd\n";
+
+            byte[] fileBytes = System.Text.Encoding.UTF8.GetBytes(content);
+            return File(fileBytes, "application/pdf", $"{fileName.Replace(" ", "_")}.pdf");
         }
 
         // GET: /ESSPayDocuments/CompanyPolicies

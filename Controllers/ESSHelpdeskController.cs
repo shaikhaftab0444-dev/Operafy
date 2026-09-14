@@ -33,7 +33,9 @@ namespace ERP_System.Controllers
             // Show all active employees
             var employees = await _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.IsActive && u.Role.RoleName != "Super Admin")
+                .Include(u => u.Department)
+                .Include(u => u.Branch)
+                .Where(u => u.IsActive && (u.Role == null || u.Role.RoleName != "Super Admin"))
                 .OrderBy(u => u.FullName)
                 .ToListAsync();
             return View(employees);
@@ -51,23 +53,34 @@ namespace ERP_System.Controllers
             return View(tickets);
         }
 
-        // POST: /ESSHelpdesk/SubmitTicket
+        // POST: /ESSHelpdesk/CreateTicket
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SubmitTicket(ESSSupportTicket ticket)
+        public async Task<IActionResult> CreateTicket(ESSSupportTicket ticket)
         {
-            if (ModelState.IsValid || (ticket.Subject != null && ticket.Description != null))
+            if (ModelState.IsValid || (!string.IsNullOrWhiteSpace(ticket.Subject) && !string.IsNullOrWhiteSpace(ticket.Description)))
             {
                 ticket.UserId = GetCurrentUserId();
-                ticket.CreatedAt = DateTime.Now;
+                ticket.TicketNumber = "TCK-" + DateTime.UtcNow.ToString("yyyyMM") + "-" + new Random().Next(100, 999);
                 ticket.Status = "Open";
+                if (string.IsNullOrWhiteSpace(ticket.Priority)) ticket.Priority = "Medium";
+                if (string.IsNullOrWhiteSpace(ticket.Department)) ticket.Department = "Information Technology";
+                ticket.CreatedAt = DateTime.UtcNow;
 
                 _context.ESSSupportTickets.Add(ticket);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(RaiseTicket));
             }
-            var tickets = await _context.ESSSupportTickets.Where(t => t.UserId == GetCurrentUserId()).ToListAsync();
+            var tickets = await _context.ESSSupportTickets.Where(t => t.UserId == GetCurrentUserId()).OrderByDescending(t => t.CreatedAt).ToListAsync();
             return View(nameof(RaiseTicket), tickets);
+        }
+
+        // POST: /ESSHelpdesk/SubmitTicket (Alias)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitTicket(ESSSupportTicket ticket)
+        {
+            return await CreateTicket(ticket);
         }
     }
 }

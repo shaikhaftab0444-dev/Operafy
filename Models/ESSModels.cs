@@ -103,28 +103,50 @@ namespace ERP_System.Models
     public class ESSExpenseClaim
     {
         [Key]
+        [Column("ExpenseClaimId")]
         public int ExpenseClaimId { get; set; }
+
+        [NotMapped]
+        public int Id { get => ExpenseClaimId; set => ExpenseClaimId = value; }
 
         [Required]
         public int UserId { get; set; }
 
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
+
         [Required]
         [StringLength(100)]
-        public string ExpenseType { get; set; } = "Travel"; // Travel, Food, Internet, Other
+        [Column("ExpenseType")]
+        public string ExpenseType { get; set; } = "Travel & Conveyance"; // Travel & Conveyance, Client Entertainment, Office Supplies
+
+        [NotMapped]
+        public string ExpenseCategory { get => ExpenseType; set => ExpenseType = value; }
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
 
         [Required]
-        public DateTime ClaimDate { get; set; } = DateTime.UtcNow;
+        [Column("ClaimDate")]
+        public DateTime ClaimDate { get; set; } = DateTime.Today;
 
-        [StringLength(255)]
+        [NotMapped]
+        public DateTime ExpenseDate { get => ClaimDate; set => ClaimDate = value; }
+
+        [StringLength(1000)]
+        public string? Description { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        [Column("ReceiptFileName")]
         public string? ReceiptFileName { get; set; }
+
+        [NotMapped]
+        public string? ReceiptFilePath { get => ReceiptFileName; set => ReceiptFileName = value; }
 
         [Required]
         [StringLength(50)]
-        public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected
+        public string Status { get; set; } = "Pending"; // Pending, Manager Approved, Finance Reimbursed, Rejected
 
         [StringLength(150)]
         public string? EmployeeName { get; set; }
@@ -147,21 +169,38 @@ namespace ERP_System.Models
     public class ESSSupportTicket
     {
         [Key]
+        [Column("TicketId")]
         public int TicketId { get; set; }
+
+        [NotMapped]
+        public int Id { get => TicketId; set => TicketId = value; }
+
+        [StringLength(50)]
+        public string? TicketNumber { get; set; } = string.Empty;
 
         [Required]
         public int UserId { get; set; }
 
-        [Required]
-        [StringLength(50)]
-        public string Department { get; set; } = "IT Support"; // IT Support, HR Support
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
 
         [Required]
-        [StringLength(150)]
+        [StringLength(100)]
+        [Column("Department")]
+        public string Department { get; set; } = "Information Technology"; // Information Technology, Human Resources, Facility
+
+        [NotMapped]
+        public string DepartmentTarget { get => Department; set => Department = value; }
+
+        [StringLength(50)]
+        public string Priority { get; set; } = "Medium"; // Low, Medium, High, Critical
+
+        [Required]
+        [StringLength(250)]
         public string Subject { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(1000)]
+        [StringLength(2000)]
         public string Description { get; set; } = string.Empty;
 
         [Required]
@@ -169,6 +208,17 @@ namespace ERP_System.Models
 
         [Required]
         [StringLength(50)]
-        public string Status { get; set; } = "Open"; // Open, In Progress, Resolved
+        public string Status { get; set; } = "Open"; // Open, In Progress, Resolved, Closed
+
+        [StringLength(2000)]
+        public string? ResolutionRemarks { get; set; }
+
+        [NotMapped]
+        public string? ResolutionNotes { get => ResolutionRemarks; set => ResolutionRemarks = value; }
+
+        [StringLength(150)]
+        public string? ResolvedBy { get; set; }
+
+        public DateTime? ResolvedAt { get; set; }
     }
 }

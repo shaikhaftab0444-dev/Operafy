@@ -17,193 +17,1163 @@
     bool isUserMode = Model.ActiveMode == "User";
 }
 
-<!-- =========================================================
-     ACCESS RIGHTS MATRIX (Role + User Specific)
-     ========================================================= -->
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
+    /* =========================================================
+           PREMIUM ACCESS RIGHTS MATRIX
+           UI ONLY - EXISTING FUNCTIONALITY PRESERVED
+           ========================================================= */
+
     .rbac-page {
         --rbac-primary: #2563eb;
         --rbac-primary-dark: #1d4ed8;
         --rbac-primary-soft: #eff6ff;
+        --rbac-indigo: #4f46e5;
         --rbac-success: #16a34a;
+        --rbac-success-soft: #f0fdf4;
+        --rbac-info: #0891b2;
         --rbac-warning: #d97706;
         --rbac-danger: #dc2626;
-        --rbac-indigo: #4f46e5;
+        --rbac-danger-soft: #fef2f2;
         --rbac-text: #172033;
         --rbac-muted: #64748b;
         --rbac-border: #e2e8f0;
-        --rbac-surface: rgba(255,255,255,.94);
-        --rbac-shadow: 0 10px 35px rgba(15,23,42,.07);
+        --rbac-border-soft: #edf2f7;
+        --rbac-surface: rgba(255,255,255,.97);
+        --rbac-surface-soft: #f8fafc;
+        --rbac-shadow: 0 12px 38px rgba(15,23,42,.07);
+        --rbac-shadow-hover: 0 18px 45px rgba(37,99,235,.12);
         position: relative;
         min-height: 100vh;
-        padding-bottom: 60px;
+        padding-bottom: 80px;
         color: var(--rbac-text);
-        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        overflow-x: hidden;
     }
+
+        .rbac-page::before {
+            content: "";
+            position: absolute;
+            top: -180px;
+            right: -160px;
+            width: 430px;
+            height: 430px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(37,99,235,.10), transparent 68%);
+            pointer-events: none;
+            animation: rbacFloat 8s ease-in-out infinite;
+        }
+
+        .rbac-page::after {
+            content: "";
+            position: absolute;
+            left: -180px;
+            top: 440px;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(79,70,229,.055), transparent 70%);
+            pointer-events: none;
+            animation: rbacFloatReverse 10s ease-in-out infinite;
+        }
+
+        .rbac-page > * {
+            position: relative;
+            z-index: 1;
+        }
+
+    /* =========================================================
+           HEADER
+           ========================================================= */
+
+    .rbac-header {
+        padding: 6px 2px 18px;
+        animation: rbacFadeUp .55s ease both;
+    }
+
+    .rbac-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 8px;
+        font-size: .76rem;
+        color: var(--rbac-muted);
+        font-weight: 600;
+    }
+
+        .rbac-breadcrumb a {
+            color: #64748b;
+            transition: color .2s ease;
+        }
+
+            .rbac-breadcrumb a:hover {
+                color: var(--rbac-primary);
+            }
+
+    .rbac-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+    }
+
+    .rbac-title-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 15px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+        box-shadow: 0 10px 24px rgba(37,99,235,.24);
+        font-size: 1.15rem;
+        flex-shrink: 0;
+        animation: rbacIconPulse 3.5s ease-in-out infinite;
+    }
+
+    .rbac-title {
+        margin: 0;
+        font-size: 1.48rem;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -.025em;
+        color: #172033;
+    }
+
+    .rbac-subtitle {
+        margin: 5px 0 0;
+        font-size: .78rem;
+        color: #718096;
+        font-weight: 500;
+    }
+
+    /* =========================================================
+           MODE SWITCHER
+           ========================================================= */
+
+    .rbac-mode-switch {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px;
+        border: 1px solid var(--rbac-border);
+        border-radius: 16px;
+        background: rgba(255,255,255,.9);
+        box-shadow: 0 8px 25px rgba(15,23,42,.06);
+        backdrop-filter: blur(14px);
+    }
+
+    .rbac-mode-btn {
+        min-height: 38px;
+        border: 0 !important;
+        border-radius: 11px !important;
+        padding: 8px 15px !important;
+        font-size: .77rem !important;
+        font-weight: 700 !important;
+        transition: transform .2s ease, background .25s ease, color .25s ease, box-shadow .25s ease;
+    }
+
+        .rbac-mode-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .rbac-mode-btn.active {
+            color: #fff !important;
+            background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+            box-shadow: 0 7px 18px rgba(37,99,235,.22);
+        }
+
+        .rbac-mode-btn:not(.active) {
+            background: #f8fafc !important;
+            color: #64748b !important;
+        }
+
+    /* =========================================================
+           CARDS
+           ========================================================= */
 
     .rbac-card {
+        position: relative;
         border: 1px solid rgba(226,232,240,.9);
-        border-radius: 18px;
+        border-radius: 20px;
         background: var(--rbac-surface);
         box-shadow: var(--rbac-shadow);
-        backdrop-filter: blur(16px);
-        margin-bottom: 24px;
+        backdrop-filter: blur(18px);
+        margin-bottom: 22px;
+        overflow: hidden;
+        animation: rbacFadeUp .65s ease both;
+        transition: box-shadow .3s ease, transform .3s ease, border-color .3s ease;
     }
 
-    .rbac-role-list, .rbac-user-list {
+        .rbac-card:hover {
+            border-color: rgba(191,219,254,.95);
+            box-shadow: var(--rbac-shadow-hover);
+        }
+
+        .rbac-card:nth-of-type(2) {
+            animation-delay: .08s;
+        }
+
+    /* =========================================================
+           CONTEXT CARD
+           ========================================================= */
+
+    .rbac-context-head {
+        padding: 19px 21px 16px;
+    }
+
+    .rbac-context-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 10px;
+        font-size: .69rem;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+        font-weight: 800;
+        color: #64748b;
+    }
+
+        .rbac-context-label i {
+            color: var(--rbac-primary);
+        }
+
+    .rbac-role-list,
+    .rbac-user-list {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        max-height: 180px;
+        max-height: 190px;
         overflow-y: auto;
-        padding: 4px;
+        padding: 3px;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
     }
 
-    .rbac-role-pill, .rbac-user-pill {
-        display: inline-flex;
+        .rbac-role-list::-webkit-scrollbar,
+        .rbac-user-list::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .rbac-role-list::-webkit-scrollbar-thumb,
+        .rbac-user-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+
+    .rbac-role-pill,
+    .rbac-user-pill {
+        display: inline-flex !important;
         align-items: center;
         gap: 8px;
-        padding: 7px 14px !important;
+        min-height: 38px;
+        padding: 7px 13px !important;
         border: 1px solid #e2e8f0 !important;
         border-radius: 999px !important;
         background: #fff !important;
         color: #475569 !important;
-        font-size: .8rem !important;
-        font-weight: 600 !important;
+        font-size: .77rem !important;
+        font-weight: 700 !important;
         cursor: pointer;
+        transition: transform .2s ease, border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+
+        .rbac-role-pill:hover,
+        .rbac-user-pill:hover {
+            border-color: #93c5fd !important;
+            background: #f8fbff !important;
+            color: #1e40af !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(37,99,235,.09);
+        }
+
+        .rbac-role-pill.active,
+        .rbac-user-pill.active {
+            border-color: transparent !important;
+            background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+            color: #fff !important;
+            box-shadow: 0 7px 19px rgba(37,99,235,.25);
+            animation: rbacActivePill .28s ease both;
+        }
+
+            .rbac-role-pill.active i,
+            .rbac-user-pill.active i {
+                color: #fff !important;
+            }
+
+        .rbac-user-pill .badge {
+            transition: all .2s ease;
+        }
+
+        .rbac-user-pill.active .badge {
+            background: rgba(255,255,255,.16) !important;
+            color: #fff !important;
+            border-color: rgba(255,255,255,.18) !important;
+        }
+
+    /* =========================================================
+           RESET USER
+           ========================================================= */
+
+    .rbac-reset-btn {
+        border-radius: 9px !important;
+        font-size: .7rem !important;
+        font-weight: 700 !important;
         transition: all .2s ease;
     }
 
-    .rbac-role-pill:hover, .rbac-user-pill:hover {
-        border-color: #93c5fd !important;
-        background: #f8fafc !important;
-        color: #1e40af !important;
-        transform: translateY(-1px);
-    }
+        .rbac-reset-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(220,38,38,.12);
+        }
 
-    .rbac-role-pill.active, .rbac-user-pill.active {
-        border-color: var(--rbac-primary) !important;
-        background: var(--rbac-primary) !important;
-        color: #fff !important;
-        box-shadow: 0 4px 14px rgba(37,99,235,.28);
-    }
+    /* =========================================================
+           TOOLBAR
+           ========================================================= */
 
     .rbac-toolbar {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 12px;
-        padding: 16px 22px;
-        border-top: 1px solid #f1f5f9;
-        background: #f8fafc;
-        border-bottom-left-radius: 18px;
-        border-bottom-right-radius: 18px;
+        gap: 10px;
+        padding: 14px 20px;
+        border-top: 1px solid #edf2f7;
+        background: linear-gradient(180deg, rgba(248,250,252,.94), rgba(248,250,252,.72));
     }
 
-    .rbac-save-bar {
-        position: sticky;
-        bottom: 16px;
-        z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 20px;
-        margin: 24px 18px 18px 18px;
-        padding: 14px 22px;
-        border: 1px solid rgba(226,232,240,.95);
-        border-radius: 16px;
-        background: rgba(255,255,255,.98);
-        backdrop-filter: blur(18px);
-        box-shadow: 0 10px 30px rgba(15,23,42,.10), 0 2px 8px rgba(15,23,42,.04);
+    .rbac-toolbar-control {
+        min-width: 200px;
     }
+
+    .rbac-toolbar .form-select,
+    .rbac-toolbar .form-control,
+    .rbac-toolbar .input-group-text {
+        border-color: #dfe7f1;
+        min-height: 37px;
+        font-size: .76rem;
+        box-shadow: none !important;
+    }
+
+        .rbac-toolbar .form-select:focus,
+        .rbac-toolbar .form-control:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(37,99,235,.08) !important;
+        }
+
+    .rbac-toolbar .input-group-text {
+        color: #64748b;
+        border-right: 0;
+    }
+
+    .rbac-toolbar .input-group .form-control {
+        border-left: 0;
+    }
+
+    .rbac-counter {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        white-space: nowrap;
+        color: #64748b;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+        .rbac-counter .badge {
+            min-width: 30px;
+            padding: 5px 8px;
+            border-radius: 8px;
+            background: #eff6ff !important;
+            color: #2563eb !important;
+            border: 1px solid #dbeafe;
+        }
+
+    /* =========================================================
+           MATRIX HEADER
+           ========================================================= */
+
+    .rbac-matrix-head {
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf2f7;
+        background: linear-gradient(135deg, #ffffff, #f8fbff);
+    }
+
+    .rbac-matrix-heading {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .rbac-matrix-heading-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+    }
+
+    .rbac-matrix-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 800;
+        color: #172033;
+    }
+
+    .rbac-context-name {
+        color: #2563eb;
+    }
+
+    .rbac-matrix-desc {
+        margin: 5px 0 0;
+        max-width: 800px;
+        color: #718096;
+        font-size: .73rem;
+        line-height: 1.5;
+    }
+
+    .rbac-role-badge {
+        border-radius: 999px !important;
+        font-size: .66rem !important;
+        font-weight: 800 !important;
+        padding: 5px 9px !important;
+    }
+
+    /* =========================================================
+           BATCH BUTTONS
+           ========================================================= */
+
+    .rbac-batch-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+
+    .rbac-batch-btn {
+        border-radius: 9px !important;
+        padding: 7px 11px !important;
+        font-size: .7rem !important;
+        font-weight: 750 !important;
+        transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+        .rbac-batch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(15,23,42,.08);
+        }
+
+    /* =========================================================
+           TABLE
+           ========================================================= */
 
     .rbac-table-wrapper {
         position: relative;
         overflow-x: auto;
-        padding-bottom: 15px;
+        padding: 8px 12px 18px;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f8fafc;
     }
+
+        .rbac-table-wrapper::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .rbac-table-wrapper::-webkit-scrollbar-track {
+            background: #f8fafc;
+            border-radius: 999px;
+        }
+
+        .rbac-table-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+
+    .rbac-table {
+        min-width: 980px;
+        border-collapse: separate !important;
+        border-spacing: 0 5px !important;
+    }
+
+        .rbac-table thead th {
+            border: 0 !important;
+            padding: 10px 9px !important;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: .64rem !important;
+            letter-spacing: .055em;
+            font-weight: 800 !important;
+            white-space: nowrap;
+        }
+
+            .rbac-table thead th:first-child {
+                border-radius: 10px 0 0 10px;
+            }
+
+            .rbac-table thead th:last-child {
+                border-radius: 0 10px 10px 0;
+            }
+
+        .rbac-table tbody tr.permission-row {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(15,23,42,.025);
+            transition: opacity .25s ease, transform .25s ease, box-shadow .25s ease, background .25s ease;
+            animation: rbacRowReveal .38s ease both;
+        }
+
+            .rbac-table tbody tr.permission-row:hover {
+                background: #fbfdff;
+                transform: translateY(-1px);
+                box-shadow: 0 8px 22px rgba(15,23,42,.06);
+            }
+
+        .rbac-table tbody td {
+            border-top: 1px solid #edf2f7 !important;
+            border-bottom: 1px solid #edf2f7 !important;
+            padding: 12px 9px !important;
+            vertical-align: middle !important;
+        }
+
+            .rbac-table tbody td:first-child {
+                border-left: 1px solid #edf2f7 !important;
+                border-radius: 12px 0 0 12px;
+            }
+
+            .rbac-table tbody td:last-child {
+                border-right: 1px solid #edf2f7 !important;
+                border-radius: 0 12px 12px 0;
+            }
+
+    .rbac-screen-cell {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 330px;
+    }
+
+    .rbac-screen-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: linear-gradient(145deg, #eff6ff, #eef2ff);
+        color: #2563eb;
+        border: 1px solid #dbeafe;
+        font-size: .95rem;
+        transition: all .25s ease;
+    }
+
+    .permission-row:hover .rbac-screen-icon {
+        transform: scale(1.06) rotate(-2deg);
+        box-shadow: 0 6px 15px rgba(37,99,235,.11);
+    }
+
+    .screen-name-title {
+        font-size: .79rem;
+        line-height: 1.25;
+    }
+
+    .screen-description {
+        max-width: 470px;
+        margin-top: 3px;
+        font-size: .68rem;
+        line-height: 1.4;
+        color: #94a3b8;
+    }
+
+    .rbac-module-tag {
+        display: inline-flex;
+        margin-top: 5px;
+        padding: 3px 7px;
+        border-radius: 6px;
+        font-size: .58rem;
+        font-weight: 700;
+        color: #64748b;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .rbac-category-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 8px !important;
+        padding: 6px 8px !important;
+        font-size: .64rem !important;
+        font-weight: 700 !important;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+           PREMIUM SWITCHES
+           ========================================================= */
+
+    .rbac-switch {
+        margin: 0 !important;
+        min-height: 27px;
+    }
+
+        .rbac-switch .form-check-input {
+            width: 2.45em;
+            height: 1.3em;
+            margin: 0;
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            background-color: #e2e8f0;
+            box-shadow: none !important;
+            transition: background-color .22s ease, border-color .22s ease, box-shadow .22s ease, transform .18s ease;
+        }
+
+            .rbac-switch .form-check-input:hover {
+                transform: scale(1.05);
+            }
+
+            .rbac-switch .form-check-input:focus {
+                border-color: #93c5fd;
+                box-shadow: 0 0 0 3px rgba(37,99,235,.10) !important;
+            }
+
+            .rbac-switch .form-check-input:checked {
+                background-color: #2563eb;
+                border-color: #2563eb;
+            }
+
+            .rbac-switch .form-check-input:active {
+                filter: brightness(.96);
+            }
+
+    /* =========================================================
+           ROW ACTION
+           ========================================================= */
+
+    .rbac-row-toggle {
+        width: 33px;
+        height: 33px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px !important;
+        transition: all .2s ease;
+    }
+
+        .rbac-row-toggle:hover {
+            color: #2563eb !important;
+            background: #eff6ff !important;
+            border-color: #bfdbfe !important;
+            transform: rotate(90deg);
+        }
+
+    /* =========================================================
+           EMPTY / HIDDEN ROW
+           ========================================================= */
 
     .row-hidden {
         display: none !important;
     }
 
-    .rbac-screen-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        display: inline-flex;
+    /* =========================================================
+           SAVE BAR
+           ========================================================= */
+
+    .rbac-save-bar {
+        position: sticky;
+        bottom: 14px;
+        z-index: 100;
+        display: flex;
         align-items: center;
-        justify-content: center;
-        background: rgba(37,99,235,.09);
-        color: var(--rbac-primary);
-        font-size: 1rem;
-        flex-shrink: 0;
+        justify-content: space-between;
+        gap: 20px;
+        margin: 12px 10px 8px;
+        padding: 12px 15px;
+        border: 1px solid rgba(226,232,240,.95);
+        border-radius: 15px;
+        background: rgba(255,255,255,.97);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 14px 35px rgba(15,23,42,.11), 0 2px 8px rgba(15,23,42,.04);
     }
 
-    .rbac-switch .form-check-input {
-        width: 2.35em;
-        height: 1.25em;
-        cursor: pointer;
+    .rbac-save-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #64748b;
+        font-size: .68rem;
+        font-weight: 600;
+    }
+
+        .rbac-save-info i {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: #2563eb;
+            flex-shrink: 0;
+        }
+
+    .rbac-reset-action {
+        border-radius: 9px !important;
+        font-size: .7rem !important;
+        font-weight: 700 !important;
+        transition: all .2s ease;
+    }
+
+        .rbac-reset-action:hover {
+            transform: translateY(-1px);
+        }
+
+    .rbac-save-btn {
+        min-width: 155px;
+        border: 0 !important;
+        border-radius: 10px !important;
+        padding: 9px 16px !important;
+        font-size: .72rem !important;
+        font-weight: 800 !important;
+        background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+        box-shadow: 0 8px 18px rgba(37,99,235,.22) !important;
+        transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    }
+
+        .rbac-save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(37,99,235,.28) !important;
+            filter: brightness(1.02);
+        }
+
+        .rbac-save-btn:active {
+            transform: translateY(0);
+        }
+
+    /* =========================================================
+           TOASTR / SWEETALERT POLISH
+           ========================================================= */
+
+    #toast-container > .toast {
+        border-radius: 12px;
+        box-shadow: 0 12px 28px rgba(15,23,42,.13);
+        font-size: .75rem;
+    }
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 1199.98px) {
+        .rbac-toolbar-control
+
+    {
+        width: calc(50% - 5px) !important;
+        min-width: 0 !important;
+    }
+
+    .rbac-toolbar .input-group {
+        width: calc(50% - 5px);
+        min-width: 0 !important;
+    }
+
+    .rbac-counter {
+        margin-left: 0 !important;
+    }
+
+    .rbac-matrix-head {
+        align-items: flex-start;
+    }
+
+    }
+
+    @@media (max-width: 991.98px) {
+        .rbac-header
+
+    {
+        padding-top: 4px;
+    }
+
+    .rbac-header-row {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .rbac-mode-switch {
+        align-self: flex-start;
+    }
+
+    .rbac-batch-actions {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .rbac-save-bar {
+        position: sticky;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .rbac-page
+
+    {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        padding-bottom: 100px;
+    }
+
+    .rbac-title {
+        font-size: 1.22rem;
+    }
+
+    .rbac-title-icon {
+        width: 43px;
+        height: 43px;
+        border-radius: 13px;
+    }
+
+    .rbac-mode-switch {
+        width: 100%;
+    }
+
+    .rbac-mode-btn {
+        flex: 1;
+        padding-left: 9px !important;
+        padding-right: 9px !important;
+        font-size: .69rem !important;
+    }
+
+    .rbac-context-head {
+        padding: 15px;
+    }
+
+    .rbac-toolbar {
+        padding: 12px;
+    }
+
+        .rbac-toolbar-control,
+        .rbac-toolbar .input-group {
+            width: 100% !important;
+            min-width: 100% !important;
+        }
+
+    .rbac-counter {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .rbac-matrix-head {
+        padding: 15px;
+    }
+
+    .rbac-matrix-heading {
+        gap: 9px;
+    }
+
+    .rbac-matrix-heading-icon {
+        width: 35px;
+        height: 35px;
+    }
+
+    .rbac-matrix-title {
+        font-size: .88rem;
+    }
+
+    .rbac-matrix-desc {
+        font-size: .68rem;
+    }
+
+    .rbac-batch-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        width: 100%;
+    }
+
+    .rbac-batch-btn {
+        width: 100%;
+    }
+
+    .rbac-save-bar {
+        bottom: 8px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin: 10px 3px 5px;
+        padding: 11px;
+    }
+
+    .rbac-save-info {
+        align-items: flex-start;
+    }
+
+    .rbac-save-actions {
+        width: 100%;
+    }
+
+    .rbac-reset-action,
+    .rbac-save-btn {
+        flex: 1;
+    }
+
+    .rbac-table-wrapper {
+        padding-left: 7px;
+        padding-right: 7px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .rbac-title-wrap
+
+    {
+        align-items: flex-start;
+    }
+
+    .rbac-title {
+        font-size: 1.08rem;
+    }
+
+    .rbac-subtitle {
+        font-size: .69rem;
+    }
+
+    .rbac-mode-btn {
+        font-size: .64rem !important;
+    }
+
+        .rbac-mode-btn i {
+            margin-right: 3px !important;
+        }
+
+    .rbac-role-pill,
+    .rbac-user-pill {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .rbac-batch-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .rbac-save-actions {
+        flex-direction: column;
+    }
+
+    .rbac-reset-action,
+    .rbac-save-btn {
+        width: 100%;
+    }
+
+    }
+
+    /* =========================================================
+           ANIMATIONS
+           ========================================================= */
+
+    @@keyframes rbacFadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes rbacRowReveal {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes rbacActivePill {
+        0%
+
+    {
+        transform: scale(.96);
+    }
+
+    70% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+
+    }
+
+    @@keyframes rbacIconPulse {
+        0%, 100%
+
+    {
+        transform: translateY(0);
+        box-shadow: 0 10px 24px rgba(37,99,235,.24);
+    }
+
+    50% {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 29px rgba(37,99,235,.30);
+    }
+
+    }
+
+    @@keyframes rbacFloat {
+        0%, 100%
+
+    {
+        transform: translate3d(0,0,0);
+    }
+
+    50% {
+        transform: translate3d(-18px,18px,0);
+    }
+
+    }
+
+    @@keyframes rbacFloatReverse {
+        0%, 100%
+
+    {
+        transform: translate3d(0,0,0);
+    }
+
+    50% {
+        transform: translate3d(15px,-15px,0);
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .rbac-page *, .rbac-page::before, .rbac-page::after
+
+    {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+
     }
 </style>
 
 <div class="container-fluid py-3 px-3 px-xl-4 text-start rbac-page">
 
-    <!-- Header & Mode Switcher -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-            <div class="d-flex align-items-center gap-2 text-secondary small fw-semibold mb-1">
-                <a href="/Dashboard" class="text-decoration-none text-muted">Security Control</a>
-                <span>/</span>
-                <span>Access Rights Matrix</span>
-            </div>
-            <h1 class="h4 mb-0 fw-bold text-slate-800">
-                <i class="fa-solid fa-shield-halved text-primary me-2"></i>Access Rights Matrix
-            </h1>
-        </div>
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+    <div class="rbac-header">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 rbac-header-row">
 
-        <!-- Mode Switcher: Role vs User Specific -->
-        <div class="bg-white p-1.5 rounded-pill border shadow-sm d-flex gap-1">
-            <button type="button"
-                    class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold @(!isUserMode ? "btn-primary" : "btn-light text-muted")"
-                    id="btnModeRole"
-                    onclick="switchMatrixMode('Role')">
-                <i class="fa-solid fa-users me-1.5"></i>Role Permissions
-            </button>
-            <button type="button"
-                    class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold @(isUserMode ? "btn-primary" : "btn-light text-muted")"
-                    id="btnModeUser"
-                    onclick="switchMatrixMode('User')">
-                <i class="fa-solid fa-user-gear me-1.5"></i>User-Specific Overrides
-            </button>
+            <div class="rbac-title-wrap">
+                <div class="rbac-title-icon">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+
+                <div>
+                    <div class="rbac-breadcrumb">
+                        <a href="/Dashboard" class="text-decoration-none">
+                            Security Control
+                        </a>
+                        <span>/</span>
+                        <span>Access Rights Matrix</span>
+                    </div>
+
+                    <h1 class="rbac-title">
+                        Access Rights Matrix
+                    </h1>
+
+                    <p class="rbac-subtitle">
+                        Centralized role and user-level access control management
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mode Switcher -->
+            <div class="rbac-mode-switch">
+
+                <button type="button"
+                        class="btn rbac-mode-btn @(!isUserMode ? "active" : "")"
+                        id="btnModeRole"
+                        onclick="switchMatrixMode('Role')">
+
+                    <i class="fa-solid fa-users me-1"></i>
+                    Role Permissions
+                </button>
+
+                <button type="button"
+                        class="btn rbac-mode-btn @(isUserMode ? "active" : "")"
+                        id="btnModeUser"
+                        onclick="switchMatrixMode('User')">
+
+                    <i class="fa-solid fa-user-gear me-1"></i>
+                    User Overrides
+                </button>
+
+            </div>
         </div>
     </div>
 
-    <!-- Status Messages -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div id="rbacSuccessMessage" data-message="@TempData["SuccessMessage"]" style="display:none;"></div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div id="rbacErrorMessage" data-message="@TempData["ErrorMessage"]" style="display:none;"></div>
-    }
+    <!-- =====================================================
+         STATUS MESSAGES
+         ===================================================== -->
+@if (TempData["SuccessMessage"] != null)
+{
+        <div id="rbacSuccessMessage"
+             data-message="@TempData["SuccessMessage"]"
+             style="display:none;">
+        </div>
+}
 
-    <!-- Selection Context Card -->
+@if (TempData["ErrorMessage"] != null)
+{
+        <div id="rbacErrorMessage"
+             data-message="@TempData["ErrorMessage"]"
+             style="display:none;">
+        </div>
+}
+
+    <!-- =====================================================
+         CONTEXT / SELECTOR CARD
+         ===================================================== -->
+
     <div class="rbac-card">
-        <div class="p-3 pb-2">
-            
-            <!-- ROLE SELECTOR BLOCK -->
-            <div id="roleSelectorBlock" style="@(isUserMode ? "display:none;" : "display:block;")">
-                <div class="small text-uppercase fw-bold text-muted mb-2">
-                    <i class="fa-solid fa-shield-cat me-1 text-primary"></i>Select Active Role Context
+
+        <div class="rbac-context-head">
+
+            <!-- ROLE SELECTOR -->
+
+            <div id="roleSelectorBlock"
+                 style="@(isUserMode ? "display:none;" : "display:block;")">
+
+                <div class="rbac-context-label">
+                    <i class="fa-solid fa-shield-cat"></i>
+                    Select Active Role Context
                 </div>
+
                 <div class="rbac-role-list">
+
                     @foreach (var role in roles)
                     {
                         <button type="button"
@@ -211,27 +1181,56 @@
                                 data-role-id="@role.RoleId"
                                 data-role-name="@role.RoleName"
                                 onclick="switchRole(@role.RoleId, this)">
+
                             <i class="fa-solid fa-user-gear"></i>
-                            <span>@role.RoleName</span>
+
+                            <span>
+                                @role.RoleName
+                            </span>
+
                         </button>
                     }
+
                 </div>
             </div>
 
-            <!-- USER SELECTOR BLOCK -->
-            <div id="userSelectorBlock" style="@(isUserMode ? "display:block;" : "display:none;")">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="small text-uppercase fw-bold text-muted">
-                        <i class="fa-solid fa-user-check me-1 text-primary"></i>Select Employee / User Context
+
+            <!-- USER SELECTOR -->
+
+            <div id="userSelectorBlock"
+                 style="@(isUserMode ? "display:block;" : "display:none;")">
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+
+                    <div class="rbac-context-label mb-0">
+                        <i class="fa-solid fa-user-check"></i>
+                        Select Employee / User Context
                     </div>
-                    <form asp-action="ResetUserPermissionsToRole" method="post" class="d-inline" onsubmit="return confirm('Reset this user\'s custom overrides and restore standard role defaults?');">
-                        <input type="hidden" name="userId" id="resetUserId" value="@Model.SelectedUserId" />
-                        <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2 fw-semibold" style="font-size: 0.75rem;">
-                            <i class="fa-solid fa-rotate-left me-1"></i>Reset to Role Defaults
+
+                    <form asp-action="ResetUserPermissionsToRole"
+                          method="post"
+                          class="d-inline"
+                          onsubmit="return confirm('Reset this user\'s custom overrides and restore standard role defaults?');">
+
+                        <input type="hidden"
+                               name="userId"
+                               id="resetUserId"
+                               value="@Model.SelectedUserId" />
+
+                        <button type="submit"
+                                class="btn btn-outline-danger btn-sm rbac-reset-btn">
+
+                            <i class="fa-solid fa-rotate-left me-1"></i>
+                            Reset to Role Defaults
+
                         </button>
+
                     </form>
+
                 </div>
+
                 <div class="rbac-user-list">
+
                     @foreach (var user in users)
                     {
                         <button type="button"
@@ -241,598 +1240,1707 @@
                                 data-user-role="@user.RoleName"
                                 data-user-role-id="@user.RoleId"
                                 onclick="switchUser(@user.UserId, this)">
+
                             <i class="fa-solid fa-circle-user text-primary"></i>
-                            <span>@user.FullName</span>
-                            <span class="badge bg-light text-secondary border ms-1" style="font-size:0.68rem;">@user.RoleName</span>
+
+                            <span>
+                                @user.FullName
+                            </span>
+
+                            <span class="badge bg-light text-secondary border ms-1"
+                                  style="font-size:.62rem;">
+                                @user.RoleName
+                            </span>
+
                         </button>
                     }
+
                 </div>
             </div>
 
         </div>
+        <!-- =================================================
+                     FILTER TOOLBAR
+                     ================================================= -->
 
-        <!-- Filter Toolbar -->
         <div class="rbac-toolbar">
-            
-            <!-- Context Select Dropdown -->
-            <div style="width: 28%; min-width: 200px;">
-                <select class="form-select form-select-sm" id="roleIdSelect" style="@(isUserMode ? "display:none;" : "display:block;")" onchange="switchRoleDropdown(this)">
+
+            <!-- Context Select -->
+
+            <div class="rbac-toolbar-control"
+                 style="width:28%;">
+
+                <select class="form-select form-select-sm"
+                        id="roleIdSelect"
+                        style="@(isUserMode ? "display:none;" : "display:block;")"
+                        onchange="switchRoleDropdown(this)">
+
                     @foreach (var role in roles)
                     {
-                        <option value="@role.RoleId" selected="@(Model.SelectedRoleId == role.RoleId ? "selected" : null)">
+                        <option value="@role.RoleId"
+                                selected="@(Model.SelectedRoleId == role.RoleId ? "selected" : null)">
                             Role: @role.RoleName
                         </option>
                     }
+
                 </select>
 
-                <select class="form-select form-select-sm" id="userIdSelect" style="@(isUserMode ? "display:block;" : "display:none;")" onchange="switchUserDropdown(this)">
+
+                <select class="form-select form-select-sm"
+                        id="userIdSelect"
+                        style="@(isUserMode ? "display:block;" : "display:none;")"
+                        onchange="switchUserDropdown(this)">
+
                     @foreach (var user in users)
                     {
-                        <option value="@user.UserId" selected="@(Model.SelectedUserId == user.UserId ? "selected" : null)">
+                        <option value="@user.UserId"
+                                selected="@(Model.SelectedUserId == user.UserId ? "selected" : null)">
                             User: @user.FullName (@user.RoleName)
                         </option>
                     }
+
                 </select>
+
             </div>
 
-            <!-- Search input -->
-            <div class="input-group input-group-sm flex-grow-1" style="min-width: 220px;">
-                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                <input type="text" id="moduleFilter" class="form-control" placeholder="Search screen, module or group..." oninput="filterMatrixRows()" />
+
+            <!-- Search -->
+
+            <div class="input-group input-group-sm flex-grow-1"
+                 style="min-width:220px;">
+
+                <span class="input-group-text bg-white">
+                    <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                </span>
+
+                <input type="text"
+                       id="moduleFilter"
+                       class="form-control"
+                       placeholder="Search screen, module or group..."
+                       oninput="filterMatrixRows()" />
+
             </div>
 
-            <!-- Category Filter -->
-            <div style="width: 18%; min-width: 150px;">
-                <select class="form-select form-select-sm" id="categoryFilter" onchange="filterMatrixRows()">
-                    <option value="">All Access Groups</option>
+
+            <!-- Category -->
+
+            <div class="rbac-toolbar-control"
+                 style="width:18%;">
+
+                <select class="form-select form-select-sm"
+                        id="categoryFilter"
+                        onchange="filterMatrixRows()">
+
+                    <option value="">
+                        All Access Groups
+                    </option>
+
                     @foreach (var category in categories)
                     {
-                        <option value="@category">@category</option>
+                        <option value="@category">
+                            @category
+                        </option>
                     }
+
                 </select>
+
             </div>
 
-            <!-- Visible counter -->
-            <div class="text-muted small fw-bold ms-auto">
-                Showing <span class="badge bg-primary px-2" id="visibleCount">@permissions.Count</span>
+
+            <!-- Counter -->
+
+            <div class="rbac-counter ms-auto">
+                <span>Showing</span>
+
+                <span class="badge"
+                      id="visibleCount">
+                    @permissions.Count
+                </span>
+
             </div>
+
         </div>
+
     </div>
 
-    <!-- Main Permissions Matrix Card -->
+
+    <!-- =====================================================
+         MAIN MATRIX
+         ===================================================== -->
+
     <div class="rbac-card">
-        
-        <!-- Header -->
-        <div class="p-3 px-4 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div>
-                <h2 class="h5 mb-1 fw-bold text-dark">
-                    <span id="matrix-mode-label">@(isUserMode ? "User Custom Overrides:" : "Grant Operational Access:")</span>
-                    <span id="context-title-display" class="text-primary">@(isUserMode ? Model.SelectedUserName : Model.SelectedRoleName)</span>
-                    <span id="user-role-badge" class="badge bg-info-subtle text-info border border-info-subtle ms-2" style="@(isUserMode ? "display:inline-block;" : "display:none;")">@Model.SelectedUserRole</span>
-                </h2>
-                <p class="text-muted small mb-0" id="context-desc-display">
-                    @(isUserMode 
-                        ? "Configure direct permission overrides for this employee. Takes precedence over role defaults." 
-                        : "Manage screen visibility, record creation, modification, deletion and approval workflows.")
-                </p>
+
+        <!-- Matrix Header -->
+
+        <div class="rbac-matrix-head">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div class="rbac-matrix-heading">
+
+                    <div class="rbac-matrix-heading-icon">
+                        <i class="fa-solid fa-table-cells-large"></i>
+                    </div>
+
+                    <div>
+
+                        <h2 class="rbac-matrix-title">
+
+                            <span id="matrix-mode-label">
+                                @(isUserMode
+                                                                ? "User Custom Overrides:"
+                                                                : "Grant Operational Access:")
+                            </span>
+
+                            <span id="context-title-display"
+                                  class="rbac-context-name">
+                                @(isUserMode
+                                                                ? Model.SelectedUserName
+                                                                : Model.SelectedRoleName)
+                            </span>
+
+                            <span id="user-role-badge"
+                                  class="badge bg-info-subtle text-info border border-info-subtle ms-1 rbac-role-badge"
+                                  style="@(isUserMode ? "display:inline-block;" : "display:none;")">
+                                @Model.SelectedUserRole
+                            </span>
+
+                        </h2>
+
+                        <p class="rbac-matrix-desc"
+                           id="context-desc-display">
+
+                            @(isUserMode
+                                                        ? "Configure direct permission overrides for this employee. These settings take precedence over role defaults."
+                                                        : "Manage screen visibility, record creation, modification, deletion and approval workflows for the selected role.")
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Batch Actions -->
+
+                <div class="rbac-batch-actions">
+
+                    <button type="button"
+                            class="btn btn-outline-primary rbac-batch-btn"
+                            onclick="batchGrantAll('view')">
+
+                        <i class="fa-solid fa-eye me-1"></i>
+                        Grant View
+
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-outline-success rbac-batch-btn"
+                            onclick="batchGrantAll('create')">
+
+                        <i class="fa-solid fa-plus me-1"></i>
+                        Grant Create
+
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-outline-info rbac-batch-btn"
+                            onclick="batchGrantAll('edit')">
+
+                        <i class="fa-solid fa-pen me-1"></i>
+                        Grant Edit
+
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-outline-danger rbac-batch-btn"
+                            onclick="batchClearAll()">
+
+                        <i class="fa-solid fa-eraser me-1"></i>
+                        Clear All
+
+                    </button>
+
+                </div>
+
             </div>
 
-            <!-- Batch Grants -->
-            <div class="d-flex flex-wrap gap-1.5">
-                <button type="button" class="btn btn-outline-primary btn-sm px-2.5 fw-semibold" onclick="batchGrantAll('view')">
-                    <i class="fa-solid fa-eye me-1"></i>Grant View
-                </button>
-                <button type="button" class="btn btn-outline-success btn-sm px-2.5 fw-semibold" onclick="batchGrantAll('create')">
-                    <i class="fa-solid fa-plus me-1"></i>Grant Create
-                </button>
-                <button type="button" class="btn btn-outline-info btn-sm px-2.5 fw-semibold" onclick="batchGrantAll('edit')">
-                    <i class="fa-solid fa-pen me-1"></i>Grant Edit
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm px-2.5 fw-semibold" onclick="batchClearAll()">
-                    <i class="fa-solid fa-eraser me-1"></i>Clear All
-                </button>
-            </div>
         </div>
 
-        <!-- Form for Submitting Permissions -->
-        <form method="post" action="@(isUserMode ? "/RolePermissions/SaveUserPermissions" : "/RolePermissions/SavePermissions")" id="permissionsForm">
+
+        <!-- =================================================
+             PERMISSION FORM
+             ================================================= -->
+
+        <form method="post"
+              action="@(isUserMode
+                                  ? "/RolePermissions/SaveUserPermissions"
+                                  : "/RolePermissions/SavePermissions")"
+              id="permissionsForm">
+
             @Html.AntiForgeryToken()
 
-            <input type="hidden" asp-for="ActiveMode" id="ActiveMode" value="@Model.ActiveMode" />
-            <input type="hidden" asp-for="SelectedRoleId" id="SelectedRoleId" />
-            <input type="hidden" asp-for="SelectedRoleName" id="SelectedRoleName" />
-            <input type="hidden" asp-for="SelectedUserId" id="SelectedUserId" />
-            <input type="hidden" asp-for="SelectedUserName" id="SelectedUserName" />
+            <input type="hidden"
+                   asp-for="ActiveMode"
+                   id="ActiveMode"
+                   value="@Model.ActiveMode" />
 
-            <!-- Table Wrapper -->
-            <div class="rbac-table-wrapper px-3 pt-2">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
-                    <thead class="table-light">
-                        <tr class="text-secondary small text-uppercase fw-bold">
-                            <th style="width: 32%;">Operational Screen</th>
-                            <th style="width: 14%;">Access Group</th>
-                            <th class="text-center" style="width: 10%;">
-                                <input type="checkbox" class="form-check-input" id="colHeaderView" onclick="toggleColumnCheckboxes('view', this.checked)" />
-                                <label class="d-block small text-muted" for="colHeaderView">View</label>
+            <input type="hidden"
+                   asp-for="SelectedRoleId"
+                   id="SelectedRoleId" />
+
+            <input type="hidden"
+                   asp-for="SelectedRoleName"
+                   id="SelectedRoleName" />
+
+            <input type="hidden"
+                   asp-for="SelectedUserId"
+                   id="SelectedUserId" />
+
+            <input type="hidden"
+                   asp-for="SelectedUserName"
+                   id="SelectedUserName" />
+
+
+            <!-- =================================================
+                 TABLE
+                 ================================================= -->
+
+            <div class="rbac-table-wrapper">
+
+                <table class="table align-middle mb-0 rbac-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th style="width:32%;">
+                                Operational Screen
                             </th>
-                            <th class="text-center" style="width: 10%;">
-                                <input type="checkbox" class="form-check-input" id="colHeaderCreate" onclick="toggleColumnCheckboxes('create', this.checked)" />
-                                <label class="d-block small text-muted" for="colHeaderCreate">Create</label>
+
+                            <th style="width:14%;">
+                                Access Group
                             </th>
-                            <th class="text-center" style="width: 10%;">
-                                <input type="checkbox" class="form-check-input" id="colHeaderEdit" onclick="toggleColumnCheckboxes('edit', this.checked)" />
-                                <label class="d-block small text-muted" for="colHeaderEdit">Edit</label>
+
+                            <th class="text-center" style="width:10%;">
+
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="colHeaderView"
+                                       onclick="toggleColumnCheckboxes('view', this.checked)" />
+
+                                <label class="d-block small text-muted"
+                                       for="colHeaderView">
+                                    View
+                                </label>
+
                             </th>
-                            <th class="text-center" style="width: 10%;">
-                                <input type="checkbox" class="form-check-input" id="colHeaderDelete" onclick="toggleColumnCheckboxes('delete', this.checked)" />
-                                <label class="d-block small text-muted" for="colHeaderDelete">Delete</label>
+
+                            <th class="text-center" style="width:10%;">
+
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="colHeaderCreate"
+                                       onclick="toggleColumnCheckboxes('create', this.checked)" />
+
+                                <label class="d-block small text-muted"
+                                       for="colHeaderCreate">
+                                    Create
+                                </label>
+
                             </th>
-                            <th class="text-center" style="width: 10%;">
-                                <input type="checkbox" class="form-check-input" id="colHeaderApprove" onclick="toggleColumnCheckboxes('approve', this.checked)" />
-                                <label class="d-block small text-muted" for="colHeaderApprove">Approve</label>
+
+                            <th class="text-center" style="width:10%;">
+
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="colHeaderEdit"
+                                       onclick="toggleColumnCheckboxes('edit', this.checked)" />
+
+                                <label class="d-block small text-muted"
+                                       for="colHeaderEdit">
+                                    Edit
+                                </label>
+
                             </th>
-                            <th class="text-center" style="width: 4%;">Row</th>
+
+                            <th class="text-center" style="width:10%;">
+
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="colHeaderDelete"
+                                       onclick="toggleColumnCheckboxes('delete', this.checked)" />
+
+                                <label class="d-block small text-muted"
+                                       for="colHeaderDelete">
+                                    Delete
+                                </label>
+
+                            </th>
+
+                            <th class="text-center" style="width:10%;">
+
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="colHeaderApprove"
+                                       onclick="toggleColumnCheckboxes('approve', this.checked)" />
+
+                                <label class="d-block small text-muted"
+                                       for="colHeaderApprove">
+                                    Approve
+                                </label>
+
+                            </th>
+
+                            <th class="text-center" style="width:4%;">
+                                Row
+                            </th>
+
                         </tr>
+
                     </thead>
+
+
                     <tbody id="permissionTableBody">
+
                         @for (int i = 0; i < permissions.Count; i++)
                         {
                             var row = permissions[i];
+
                             var iconClass = "fa-window-maximize";
                             var descText = "Operational screen settings";
 
-                            if (row.ModuleName == "UserManagement") { iconClass = "fa-user-shield"; descText = "Configure user access, password policies and role-based rights"; }
-                            else if (row.ModuleName == "Company") { iconClass = "fa-building"; descText = "Manage company profile, tax registration and fiscal year setup"; }
-                            else if (row.ModuleName == "BranchManagement") { iconClass = "fa-code-branch"; descText = "Configure branches, working schedules and locations"; }
-                            else if (row.ModuleName == "Settings") { iconClass = "fa-gears"; descText = "Manage email triggers, backup frequencies and localization"; }
-                            else if (row.ModuleName == "HRManagement_DailyAttendance") { iconClass = "fa-calendar-check"; descText = "Track staff clock-in, clock-out, biometric logs and overtime"; }
-                            else if (row.ModuleName == "HRManagement_EmployeeDirectory") { iconClass = "fa-address-book"; descText = "Manage staff profiles, contracts and onboarding files"; }
-                            else if (row.ModuleName == "HRManagement_LeaveRequests") { iconClass = "fa-umbrella-beach"; descText = "Process employee leave applications and balances"; }
-                            else if (row.ModuleName == "HRManagement_MonthlyPayroll") { iconClass = "fa-file-invoice-dollar"; descText = "Generate salary sheets, allowances and tax deductions"; }
-                            else if (row.ModuleName == "SupplyChain_InventoryStock") { iconClass = "fa-cubes"; descText = "Manage inventory, low stock alerts and warehouse count"; }
-                            else if (row.ModuleName == "SupplyChain_PurchaseOrders") { iconClass = "fa-file-signature"; descText = "Issue purchase orders and track supplier deliveries"; }
-                            else if (row.ModuleName == "SupplyChain_GoodsReceipt") { iconClass = "fa-clipboard-check"; descText = "Acknowledge material inward and inspect shipment status"; }
-                            else if (row.ModuleName == "SalesCRM_CustomerDirectory") { iconClass = "fa-users-rectangle"; descText = "Manage client database, contacts and credit limits"; }
-                            else if (row.ModuleName == "SalesCRM_QuotationsEstimates") { iconClass = "fa-calculator"; descText = "Create price offers, estimates and discount proposals"; }
-                            else if (row.ModuleName == "SalesCRM_OrdersInvoicing") { iconClass = "fa-receipt"; descText = "Confirm client orders and generate invoices"; }
-                            else if (row.ModuleName == "FinanceAccounts_GeneralLedger") { iconClass = "fa-book-open"; descText = "View double-entry journals and financial transactions"; }
-                            else if (row.ModuleName == "FinanceAccounts_ReportsTax") { iconClass = "fa-chart-pie"; descText = "Access trial balance, profit and loss and tax reports"; }
+                            if (row.ModuleName == "UserManagement")
+                            {
+                                iconClass = "fa-user-shield";
+                                descText = "Configure user access, password policies and role-based rights";
+                            }
+                            else if (row.ModuleName == "Company")
+                            {
+                                iconClass = "fa-building";
+                                descText = "Manage company profile, tax registration and fiscal year setup";
+                            }
+                            else if (row.ModuleName == "BranchManagement")
+                            {
+                                iconClass = "fa-code-branch";
+                                descText = "Configure branches, working schedules and locations";
+                            }
+                            else if (row.ModuleName == "Settings")
+                            {
+                                iconClass = "fa-gears";
+                                descText = "Manage email triggers, backup frequencies and localization";
+                            }
+                            else if (row.ModuleName == "HRManagement_DailyAttendance")
+                            {
+                                iconClass = "fa-calendar-check";
+                                descText = "Track staff clock-in, clock-out, biometric logs and overtime";
+                            }
+                            else if (row.ModuleName == "HRManagement_EmployeeDirectory")
+                            {
+                                iconClass = "fa-address-book";
+                                descText = "Manage staff profiles, contracts and onboarding files";
+                            }
+                            else if (row.ModuleName == "HRManagement_LeaveRequests")
+                            {
+                                iconClass = "fa-umbrella-beach";
+                                descText = "Process employee leave applications and balances";
+                            }
+                            else if (row.ModuleName == "HRManagement_MonthlyPayroll")
+                            {
+                                iconClass = "fa-file-invoice-dollar";
+                                descText = "Generate salary sheets, allowances and tax deductions";
+                            }
+                            else if (row.ModuleName == "SupplyChain_InventoryStock")
+                            {
+                                iconClass = "fa-cubes";
+                                descText = "Manage inventory, low stock alerts and warehouse count";
+                            }
+                            else if (row.ModuleName == "SupplyChain_PurchaseOrders")
+                            {
+                                iconClass = "fa-file-signature";
+                                descText = "Issue purchase orders and track supplier deliveries";
+                            }
+                            else if (row.ModuleName == "SupplyChain_GoodsReceipt")
+                            {
+                                iconClass = "fa-clipboard-check";
+                                descText = "Acknowledge material inward and inspect shipment status";
+                            }
+                            else if (row.ModuleName == "SalesCRM_CustomerDirectory")
+                            {
+                                iconClass = "fa-users-rectangle";
+                                descText = "Manage client database, contacts and credit limits";
+                            }
+                            else if (row.ModuleName == "SalesCRM_QuotationsEstimates")
+                            {
+                                iconClass = "fa-calculator";
+                                descText = "Create price offers, estimates and discount proposals";
+                            }
+                            else if (row.ModuleName == "SalesCRM_OrdersInvoicing")
+                            {
+                                iconClass = "fa-receipt";
+                                descText = "Confirm client orders and generate invoices";
+                            }
+                            else if (row.ModuleName == "FinanceAccounts_GeneralLedger")
+                            {
+                                iconClass = "fa-book-open";
+                                descText = "View double-entry journals and financial transactions";
+                            }
+                            else if (row.ModuleName == "FinanceAccounts_ReportsTax")
+                            {
+                                iconClass = "fa-chart-pie";
+                                descText = "Access trial balance, profit and loss and tax reports";
+                            }
+
 
                             <tr class="permission-row"
                                 data-module-name="@row.ModuleName"
                                 data-category="@row.Category"
                                 data-search-text="@($"{row.DisplayName} {row.Category} {row.ModuleName}".ToLowerInvariant())">
-                                
+
+                                <!-- SCREEN -->
+
                                 <td>
-                                    <div class="d-flex align-items-center gap-2.5">
+
+                                    <div class="rbac-screen-cell">
+
                                         <div class="rbac-screen-icon">
                                             <i class="fa-solid @iconClass"></i>
                                         </div>
-                                        <div>
-                                            <div class="fw-bold text-dark screen-name-title">@row.DisplayName</div>
-                                            <div class="small text-muted" style="font-size: 0.74rem;">@descText</div>
-                                            <span class="badge bg-light text-secondary border" style="font-size: 0.65rem;">@row.ModuleName</span>
 
-                                            <input type="hidden" asp-for="ModulePermissions[i].ModuleName" />
-                                            <input type="hidden" asp-for="ModulePermissions[i].DisplayName" />
-                                            <input type="hidden" asp-for="ModulePermissions[i].Category" />
+                                        <div>
+
+                                            <div class="fw-bold text-dark screen-name-title">
+                                                @row.DisplayName
+                                            </div>
+
+                                            <div class="screen-description">
+                                                @descText
+                                            </div>
+
+                                            <span class="rbac-module-tag">
+                                                @row.ModuleName
+                                            </span>
+
+
+                                            <input type="hidden"
+                                                   asp-for="ModulePermissions[i].ModuleName" />
+
+                                            <input type="hidden"
+                                                   asp-for="ModulePermissions[i].DisplayName" />
+
+                                            <input type="hidden"
+                                                   asp-for="ModulePermissions[i].Category" />
+
                                         </div>
+
                                     </div>
+
                                 </td>
+
+
+                                <!-- CATEGORY -->
 
                                 <td>
-                                    <span class="badge bg-light text-dark border">
-                                        <i class="fa-solid fa-folder-open me-1 text-primary"></i>@row.Category
+
+                                    <span class="badge bg-light text-dark border rbac-category-badge">
+
+                                        <i class="fa-solid fa-folder-open text-primary"></i>
+
+                                        @row.Category
+
                                     </span>
+
                                 </td>
 
+
+                                <!-- VIEW -->
+
                                 <td class="text-center">
+
                                     <div class="form-check form-switch rbac-switch d-inline-block">
-                                        <input class="form-check-input permission-checkbox view-cb" type="checkbox" asp-for="ModulePermissions[i].CanView" onchange="syncRowHeaderStates()" />
+
+                                        <input class="form-check-input permission-checkbox view-cb"
+                                               type="checkbox"
+                                               asp-for="ModulePermissions[i].CanView"
+                                               onchange="syncRowHeaderStates()" />
+
                                     </div>
+
                                 </td>
 
+
+                                <!-- CREATE -->
+
                                 <td class="text-center">
+
                                     <div class="form-check form-switch rbac-switch d-inline-block">
-                                        <input class="form-check-input permission-checkbox create-cb" type="checkbox" asp-for="ModulePermissions[i].CanCreate" onchange="syncRowHeaderStates()" />
+
+                                        <input class="form-check-input permission-checkbox create-cb"
+                                               type="checkbox"
+                                               asp-for="ModulePermissions[i].CanCreate"
+                                               onchange="syncRowHeaderStates()" />
+
                                     </div>
+
                                 </td>
 
+
+                                <!-- EDIT -->
+
                                 <td class="text-center">
+
                                     <div class="form-check form-switch rbac-switch d-inline-block">
-                                        <input class="form-check-input permission-checkbox edit-cb" type="checkbox" asp-for="ModulePermissions[i].CanEdit" onchange="syncRowHeaderStates()" />
+
+                                        <input class="form-check-input permission-checkbox edit-cb"
+                                               type="checkbox"
+                                               asp-for="ModulePermissions[i].CanEdit"
+                                               onchange="syncRowHeaderStates()" />
+
                                     </div>
+
                                 </td>
 
+
+                                <!-- DELETE -->
+
                                 <td class="text-center">
+
                                     <div class="form-check form-switch rbac-switch d-inline-block">
-                                        <input class="form-check-input permission-checkbox delete-cb" type="checkbox" asp-for="ModulePermissions[i].CanDelete" onchange="syncRowHeaderStates()" />
+
+                                        <input class="form-check-input permission-checkbox delete-cb"
+                                               type="checkbox"
+                                               asp-for="ModulePermissions[i].CanDelete"
+                                               onchange="syncRowHeaderStates()" />
+
                                     </div>
+
                                 </td>
 
+
+                                <!-- APPROVE -->
+
                                 <td class="text-center">
+
                                     <div class="form-check form-switch rbac-switch d-inline-block">
-                                        <input class="form-check-input permission-checkbox approve-cb" type="checkbox" asp-for="ModulePermissions[i].CanApprove" onchange="syncRowHeaderStates()" />
+
+                                        <input class="form-check-input permission-checkbox approve-cb"
+                                               type="checkbox"
+                                               asp-for="ModulePermissions[i].CanApprove"
+                                               onchange="syncRowHeaderStates()" />
+
                                     </div>
+
                                 </td>
 
+
+                                <!-- ROW TOGGLE -->
+
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-light btn-sm p-1 px-2 border rbac-row-toggle" onclick="toggleEntireRow(this)" title="Toggle whole row">
+
+                                    <button type="button"
+                                            class="btn btn-light btn-sm border rbac-row-toggle"
+                                            onclick="toggleEntireRow(this)"
+                                            title="Toggle whole row">
+
                                         <i class="fa-solid fa-arrows-rotate text-muted"></i>
+
                                     </button>
+
                                 </td>
+
                             </tr>
                         }
+
                     </tbody>
+
                 </table>
+
             </div>
 
-            <!-- Sticky Save Bar -->
+
+            <!-- =================================================
+                 STICKY SAVE BAR
+                 ================================================= -->
+
             <div class="rbac-save-bar">
-                <div class="d-flex align-items-center gap-2 text-secondary small">
-                    <i class="fa-solid fa-circle-info text-primary"></i>
-                    <span>Review permissions carefully before saving. Changes take effect on next request.</span>
+
+                <div class="rbac-save-info">
+
+                    <i class="fa-solid fa-circle-info"></i>
+
+                    <span>
+                        Review permissions carefully before saving.
+                        Changes take effect on the next request.
+                    </span>
+
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="window.location.reload();">
-                        <i class="fa-solid fa-arrow-rotate-left me-1"></i>Reset
+
+
+                <div class="d-flex align-items-center gap-2 rbac-save-actions">
+
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm rbac-reset-action px-3"
+                            onclick="window.location.reload();">
+
+                        <i class="fa-solid fa-arrow-rotate-left me-1"></i>
+                        Reset
+
                     </button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold shadow-sm" id="btnSavePermissions">
-                        <span id="btnText"><i class="fa-solid fa-floppy-disk me-1.5"></i>Save Permissions</span>
-                        <span id="btnSpinner" class="spinner-border spinner-border-sm me-1.5" role="status" style="display:none;"></span>
+
+
+                    <button type="submit"
+                            class="btn btn-primary rbac-save-btn"
+                            id="btnSavePermissions">
+
+                        <span id="btnText">
+
+                            <i class="fa-solid fa-floppy-disk me-1"></i>
+                            Save Permissions
+
+                        </span>
+
+                        <span id="btnSpinner"
+                              class="spinner-border spinner-border-sm me-1"
+                              role="status"
+                              style="display:none;">
+                        </span>
+
                     </button>
+
                 </div>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
 
-<!-- JavaScript Logic -->
-<script>
-    let activeMode = "@Model.ActiveMode";
-    let currentRoleId = @Model.SelectedRoleId;
-    let currentRoleName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SelectedRoleName ?? ""));
-    let currentUserId = @Model.SelectedUserId;
-    let currentUserName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SelectedUserName ?? ""));
 
-    // Preloaded In-Memory Caches for 0ms Instant Switching
-    const allRolePermissionsData = @Html.Raw(ViewBag.AllRolePermissionsJson ?? "[]");
-    const allUserPermissionsData = @Html.Raw(ViewBag.AllUserPermissionsJson ?? "[]");
+<!-- =========================================================
+     JAVASCRIPT
+     EXISTING FUNCTIONALITY PRESERVED
+     ========================================================= -->
+
+<script>
+
+    let activeMode = "@Model.ActiveMode";
+
+    let currentRoleId = @Model.SelectedRoleId;
+
+    let currentRoleName =
+        @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SelectedRoleName ?? ""));
+
+    let currentUserId = @Model.SelectedUserId;
+
+    let currentUserName =
+        @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SelectedUserName ?? ""));
+
+
+    /* =====================================================
+       PRELOADED IN-MEMORY CACHES
+       ===================================================== */
+
+    const allRolePermissionsData =
+        @Html.Raw(ViewBag.AllRolePermissionsJson ?? "[]");
+
+    const allUserPermissionsData =
+        @Html.Raw(ViewBag.AllUserPermissionsJson ?? "[]");
+
 
     const rolePermissionsCache = {};
+
     if (Array.isArray(allRolePermissionsData)) {
+
         allRolePermissionsData.forEach(p => {
+
             const rId = p.roleId || p.RoleId;
-            if (!rolePermissionsCache[rId]) rolePermissionsCache[rId] = [];
+
+            if (!rolePermissionsCache[rId]) {
+                rolePermissionsCache[rId] = [];
+            }
+
             rolePermissionsCache[rId].push(p);
+
         });
+
     }
+
 
     const userPermissionsCache = {};
+
     if (Array.isArray(allUserPermissionsData)) {
+
         allUserPermissionsData.forEach(p => {
+
             const uId = p.userId || p.UserId;
-            if (!userPermissionsCache[uId]) userPermissionsCache[uId] = [];
+
+            if (!userPermissionsCache[uId]) {
+                userPermissionsCache[uId] = [];
+            }
+
             userPermissionsCache[uId].push(p);
+
         });
+
     }
+
+
+    /* =====================================================
+       DOM READY
+       ===================================================== */
 
     document.addEventListener("DOMContentLoaded", function () {
+
         syncRowHeaderStates();
+
         initializeStatusMessages();
 
+
         const form = document.getElementById("permissionsForm");
+
         if (form) {
+
             form.addEventListener("submit", function () {
-                const btnText = document.getElementById("btnText");
-                const btnSpinner = document.getElementById("btnSpinner");
-                if (btnText) btnText.style.display = "none";
-                if (btnSpinner) btnSpinner.style.display = "inline-block";
+
+                const btnText =
+                    document.getElementById("btnText");
+
+                const btnSpinner =
+                    document.getElementById("btnSpinner");
+
+
+                if (btnText) {
+                    btnText.style.display = "none";
+                }
+
+                if (btnSpinner) {
+                    btnSpinner.style.display = "inline-block";
+                }
+
+
                 setTimeout(function () {
-                    const saveButton = document.getElementById("btnSavePermissions");
-                    if (saveButton) saveButton.disabled = true;
+
+                    const saveButton =
+                        document.getElementById("btnSavePermissions");
+
+                    if (saveButton) {
+                        saveButton.disabled = true;
+                    }
+
                 }, 20);
+
             });
+
         }
+
     });
 
+
+    /* =====================================================
+       STATUS MESSAGES
+       ===================================================== */
+
     function initializeStatusMessages() {
-        const success = document.getElementById("rbacSuccessMessage");
-        const error = document.getElementById("rbacErrorMessage");
+
+        const success =
+            document.getElementById("rbacSuccessMessage");
+
+        const error =
+            document.getElementById("rbacErrorMessage");
+
 
         if (success && success.dataset.message) {
+
             Swal.fire({
+
                 icon: "success",
+
                 title: "Permissions Saved",
+
                 text: success.dataset.message,
-                confirmButtonColor: "#2563eb"
+
+                confirmButtonColor: "#2563eb",
+
+                background: "#ffffff",
+
+                customClass: {
+                    popup: "rounded-4"
+                }
+
             });
+
         }
+
+
         if (error && error.dataset.message) {
+
             Swal.fire({
+
                 icon: "error",
+
                 title: "Error",
+
                 text: error.dataset.message,
-                confirmButtonColor: "#dc2626"
+
+                confirmButtonColor: "#dc2626",
+
+                background: "#ffffff",
+
+                customClass: {
+                    popup: "rounded-4"
+                }
+
             });
+
         }
+
     }
 
-    // MODE SWITCHER: Role vs User
+
+    /* =====================================================
+       MODE SWITCHER
+       ===================================================== */
+
     function switchMatrixMode(mode) {
+
         activeMode = mode;
+
         document.getElementById("ActiveMode").value = mode;
 
-        const roleBlock = document.getElementById("roleSelectorBlock");
-        const userBlock = document.getElementById("userSelectorBlock");
-        const roleSelect = document.getElementById("roleIdSelect");
-        const userSelect = document.getElementById("userIdSelect");
-        const btnRole = document.getElementById("btnModeRole");
-        const btnUser = document.getElementById("btnModeUser");
-        const modeLabel = document.getElementById("matrix-mode-label");
-        const userRoleBadge = document.getElementById("user-role-badge");
-        const contextDesc = document.getElementById("context-desc-display");
-        const form = document.getElementById("permissionsForm");
+
+        const roleBlock =
+            document.getElementById("roleSelectorBlock");
+
+        const userBlock =
+            document.getElementById("userSelectorBlock");
+
+        const roleSelect =
+            document.getElementById("roleIdSelect");
+
+        const userSelect =
+            document.getElementById("userIdSelect");
+
+        const btnRole =
+            document.getElementById("btnModeRole");
+
+        const btnUser =
+            document.getElementById("btnModeUser");
+
+        const modeLabel =
+            document.getElementById("matrix-mode-label");
+
+        const userRoleBadge =
+            document.getElementById("user-role-badge");
+
+        const contextDesc =
+            document.getElementById("context-desc-display");
+
+        const form =
+            document.getElementById("permissionsForm");
+
 
         if (mode === "User") {
+
             roleBlock.style.display = "none";
+
             userBlock.style.display = "block";
+
             roleSelect.style.display = "none";
+
             userSelect.style.display = "block";
 
-            btnUser.className = "btn btn-sm rounded-pill px-3 py-1.5 fw-bold btn-primary";
-            btnRole.className = "btn btn-sm rounded-pill px-3 py-1.5 fw-bold btn-light text-muted";
 
-            modeLabel.textContent = "User Custom Overrides:";
-            userRoleBadge.style.display = "inline-block";
-            contextDesc.textContent = "Configure direct permission overrides for this employee. Takes precedence over role defaults.";
-            form.action = "/RolePermissions/SaveUserPermissions";
+            btnUser.classList.add("active");
 
-            // Switch to currently selected user
-            const activeUserPill = document.querySelector(".rbac-user-pill.active") || document.querySelector(".rbac-user-pill");
+            btnRole.classList.remove("active");
+
+
+            modeLabel.textContent =
+                "User Custom Overrides:";
+
+
+            userRoleBadge.style.display =
+                "inline-block";
+
+
+            contextDesc.textContent =
+                "Configure direct permission overrides for this employee. Takes precedence over role defaults.";
+
+
+            form.action =
+                "/RolePermissions/SaveUserPermissions";
+
+
+            const activeUserPill =
+                document.querySelector(".rbac-user-pill.active")
+                || document.querySelector(".rbac-user-pill");
+
+
             if (activeUserPill) {
-                const uId = activeUserPill.dataset.userId;
+
+                const uId =
+                    activeUserPill.dataset.userId;
+
                 switchUser(uId, activeUserPill);
+
             }
-        } else {
+
+        }
+        else {
+
             roleBlock.style.display = "block";
+
             userBlock.style.display = "none";
+
             roleSelect.style.display = "block";
+
             userSelect.style.display = "none";
 
-            btnRole.className = "btn btn-sm rounded-pill px-3 py-1.5 fw-bold btn-primary";
-            btnUser.className = "btn btn-sm rounded-pill px-3 py-1.5 fw-bold btn-light text-muted";
 
-            modeLabel.textContent = "Grant Operational Access:";
-            userRoleBadge.style.display = "none";
-            contextDesc.textContent = "Manage screen visibility, record creation, modification, deletion and approval workflows for the selected role.";
-            form.action = "/RolePermissions/SavePermissions";
+            btnRole.classList.add("active");
 
-            // Switch to currently selected role
-            const activeRolePill = document.querySelector(".rbac-role-pill.active") || document.querySelector(".rbac-role-pill");
+            btnUser.classList.remove("active");
+
+
+            modeLabel.textContent =
+                "Grant Operational Access:";
+
+
+            userRoleBadge.style.display =
+                "none";
+
+
+            contextDesc.textContent =
+                "Manage screen visibility, record creation, modification, deletion and approval workflows for the selected role.";
+
+
+            form.action =
+                "/RolePermissions/SavePermissions";
+
+
+            const activeRolePill =
+                document.querySelector(".rbac-role-pill.active")
+                || document.querySelector(".rbac-role-pill");
+
+
             if (activeRolePill) {
-                const rId = activeRolePill.dataset.roleId;
+
+                const rId =
+                    activeRolePill.dataset.roleId;
+
                 switchRole(rId, activeRolePill);
+
             }
+
         }
+
     }
 
-    // ROLE SWITCH
+
+    /* =====================================================
+       ROLE SWITCH
+       ===================================================== */
+
     function switchRole(roleId, btnElement, optionalRoleName) {
+
         roleId = parseInt(roleId);
-        if (isNaN(roleId) || roleId <= 0) return;
+
+        if (isNaN(roleId) || roleId <= 0) {
+            return;
+        }
+
 
         let roleName = optionalRoleName;
-        if (!roleName && btnElement) roleName = btnElement.dataset?.roleName || btnElement.textContent?.trim();
-        if (!roleName) {
-            const opt = document.querySelector(`#roleIdSelect option[value="${roleId}"]`);
-            roleName = opt ? opt.textContent.replace("Role: ", "").trim() : "Role";
+
+
+        if (!roleName && btnElement) {
+
+            roleName =
+                btnElement.dataset?.roleName
+                || btnElement.textContent?.trim();
+
         }
+
+
+        if (!roleName) {
+
+            const opt =
+                document.querySelector(
+                    `#roleIdSelect option[value="${roleId}"]`
+                );
+
+            roleName =
+                opt
+                    ? opt.textContent.replace("Role: ", "").trim()
+                    : "Role";
+
+        }
+
 
         currentRoleId = roleId;
+
         currentRoleName = roleName;
 
-        document.querySelectorAll(".rbac-role-pill").forEach(b => b.classList.remove("active"));
-        const pill = btnElement || document.querySelector(`.rbac-role-pill[data-role-id="${roleId}"]`);
-        if (pill) pill.classList.add("active");
 
-        document.getElementById("SelectedRoleId").value = roleId;
-        document.getElementById("SelectedRoleName").value = roleName;
-        document.getElementById("context-title-display").textContent = roleName;
+        document.querySelectorAll(".rbac-role-pill")
+            .forEach(b => b.classList.remove("active"));
 
-        const select = document.getElementById("roleIdSelect");
-        if (select && select.value != roleId) select.value = roleId;
 
-        // Instant 0ms apply from cache
-        const cachedPerms = rolePermissionsCache[roleId] || [];
+        const pill =
+            btnElement
+            || document.querySelector(
+                `.rbac-role-pill[data-role-id="${roleId}"]`
+            );
+
+
+        if (pill) {
+            pill.classList.add("active");
+        }
+
+
+        document.getElementById("SelectedRoleId").value =
+            roleId;
+
+        document.getElementById("SelectedRoleName").value =
+            roleName;
+
+        document.getElementById("context-title-display").textContent =
+            roleName;
+
+
+        const select =
+            document.getElementById("roleIdSelect");
+
+
+        if (select && select.value != roleId) {
+            select.value = roleId;
+        }
+
+
+        const cachedPerms =
+            rolePermissionsCache[roleId] || [];
+
+
         applyPermissionsFromList(cachedPerms);
 
+
         if (typeof toastr !== "undefined") {
-            toastr.success("Role context: " + roleName, "RBAC", { timeOut: 1200 });
+
+            toastr.success(
+                "Role context: " + roleName,
+                "RBAC",
+                {
+                    timeOut: 1200
+                }
+            );
+
         }
+
     }
+
 
     function switchRoleDropdown(selectElement) {
-        const roleId = parseInt(selectElement.value);
-        const matchingButton = document.querySelector(`.rbac-role-pill[data-role-id="${roleId}"]`);
-        const roleName = selectElement.options[selectElement.selectedIndex]?.text?.replace("Role: ", "")?.trim();
-        switchRole(roleId, matchingButton, roleName);
+
+        const roleId =
+            parseInt(selectElement.value);
+
+
+        const matchingButton =
+            document.querySelector(
+                `.rbac-role-pill[data-role-id="${roleId}"]`
+            );
+
+
+        const roleName =
+            selectElement
+                .options[selectElement.selectedIndex]
+                ?.text
+                ?.replace("Role: ", "")
+                ?.trim();
+
+
+        switchRole(
+            roleId,
+            matchingButton,
+            roleName
+        );
+
     }
 
-    // USER SWITCH
+
+    /* =====================================================
+       USER SWITCH
+       ===================================================== */
+
     function switchUser(userId, btnElement, optionalUserName) {
+
         userId = parseInt(userId);
-        if (isNaN(userId) || userId <= 0) return;
+
+        if (isNaN(userId) || userId <= 0) {
+            return;
+        }
+
 
         let userName = optionalUserName;
+
         let userRole = "";
+
         let userRoleId = 0;
 
+
         if (btnElement) {
-            userName = btnElement.dataset?.userName || btnElement.querySelector("span")?.textContent?.trim();
-            userRole = btnElement.dataset?.userRole || "";
-            userRoleId = parseInt(btnElement.dataset?.userRoleId || "0");
+
+            userName =
+                btnElement.dataset?.userName
+                || btnElement.querySelector("span")?.textContent?.trim();
+
+            userRole =
+                btnElement.dataset?.userRole || "";
+
+            userRoleId =
+                parseInt(
+                    btnElement.dataset?.userRoleId || "0"
+                );
+
         }
+
+
         if (!userName) {
-            const opt = document.querySelector(`#userIdSelect option[value="${userId}"]`);
-            userName = opt ? opt.textContent.replace("User: ", "").trim() : "User";
+
+            const opt =
+                document.querySelector(
+                    `#userIdSelect option[value="${userId}"]`
+                );
+
+
+            userName =
+                opt
+                    ? opt.textContent.replace("User: ", "").trim()
+                    : "User";
+
         }
+
 
         currentUserId = userId;
+
         currentUserName = userName;
 
-        document.querySelectorAll(".rbac-user-pill").forEach(b => b.classList.remove("active"));
-        const pill = btnElement || document.querySelector(`.rbac-user-pill[data-user-id="${userId}"]`);
-        if (pill) pill.classList.add("active");
 
-        document.getElementById("SelectedUserId").value = userId;
-        document.getElementById("SelectedUserName").value = userName;
-        document.getElementById("resetUserId").value = userId;
-        document.getElementById("context-title-display").textContent = userName;
+        document.querySelectorAll(".rbac-user-pill")
+            .forEach(b => b.classList.remove("active"));
 
-        const badge = document.getElementById("user-role-badge");
+
+        const pill =
+            btnElement
+            || document.querySelector(
+                `.rbac-user-pill[data-user-id="${userId}"]`
+            );
+
+
+        if (pill) {
+            pill.classList.add("active");
+        }
+
+
+        document.getElementById("SelectedUserId").value =
+            userId;
+
+        document.getElementById("SelectedUserName").value =
+            userName;
+
+        document.getElementById("resetUserId").value =
+            userId;
+
+        document.getElementById("context-title-display").textContent =
+            userName;
+
+
+        const badge =
+            document.getElementById("user-role-badge");
+
+
         if (userRole && badge) {
-            badge.textContent = userRole;
-            badge.style.display = "inline-block";
+
+            badge.textContent =
+                userRole;
+
+            badge.style.display =
+                "inline-block";
+
         }
 
-        const select = document.getElementById("userIdSelect");
-        if (select && select.value != userId) select.value = userId;
 
-        // Instant 0ms apply from cache (fallback to role defaults if user has no custom perms yet)
-        let cachedUserPerms = userPermissionsCache[userId];
-        if (!cachedUserPerms || cachedUserPerms.length === 0) {
-            cachedUserPerms = rolePermissionsCache[userRoleId] || [];
+        const select =
+            document.getElementById("userIdSelect");
+
+
+        if (select && select.value != userId) {
+            select.value = userId;
         }
-        applyPermissionsFromList(cachedUserPerms);
+
+
+        let cachedUserPerms =
+            userPermissionsCache[userId];
+
+
+        if (!cachedUserPerms ||
+            cachedUserPerms.length === 0) {
+
+            cachedUserPerms =
+                rolePermissionsCache[userRoleId] || [];
+
+        }
+
+
+        applyPermissionsFromList(
+            cachedUserPerms
+        );
+
 
         if (typeof toastr !== "undefined") {
-            toastr.success("User context: " + userName, "User Security", { timeOut: 1200 });
+
+            toastr.success(
+                "User context: " + userName,
+                "User Security",
+                {
+                    timeOut: 1200
+                }
+            );
+
         }
+
     }
+
 
     function switchUserDropdown(selectElement) {
-        const userId = parseInt(selectElement.value);
-        const matchingButton = document.querySelector(`.rbac-user-pill[data-user-id="${userId}"]`);
-        const userName = selectElement.options[selectElement.selectedIndex]?.text?.replace("User: ", "")?.trim();
-        switchUser(userId, matchingButton, userName);
+
+        const userId =
+            parseInt(selectElement.value);
+
+
+        const matchingButton =
+            document.querySelector(
+                `.rbac-user-pill[data-user-id="${userId}"]`
+            );
+
+
+        const userName =
+            selectElement
+                .options[selectElement.selectedIndex]
+                ?.text
+                ?.replace("User: ", "")
+                ?.trim();
+
+
+        switchUser(
+            userId,
+            matchingButton,
+            userName
+        );
+
     }
+
+
+    /* =====================================================
+       APPLY PERMISSIONS
+       ===================================================== */
 
     function applyPermissionsFromList(perms) {
+
         clearAllPermissionCheckboxes();
 
+
         if (Array.isArray(perms)) {
+
             perms.forEach(perm => {
-                const moduleName = perm.moduleName || perm.ModuleName;
-                if (!moduleName) return;
 
-                const row = document.querySelector(`.permission-row[data-module-name="${moduleName}"]`);
-                if (!row) return;
+                const moduleName =
+                    perm.moduleName
+                    || perm.ModuleName;
 
-                setCheckboxValue(row.querySelector(".view-cb"), perm.canView ?? perm.CanView);
-                setCheckboxValue(row.querySelector(".create-cb"), perm.canCreate ?? perm.CanCreate);
-                setCheckboxValue(row.querySelector(".edit-cb"), perm.canEdit ?? perm.CanEdit);
-                setCheckboxValue(row.querySelector(".delete-cb"), perm.canDelete ?? perm.CanDelete);
-                setCheckboxValue(row.querySelector(".approve-cb"), perm.canApprove ?? perm.CanApprove);
+
+                if (!moduleName) {
+                    return;
+                }
+
+
+                const row =
+                    document.querySelector(
+                        `.permission-row[data-module-name="${moduleName}"]`
+                    );
+
+
+                if (!row) {
+                    return;
+                }
+
+
+                setCheckboxValue(
+                    row.querySelector(".view-cb"),
+                    perm.canView ?? perm.CanView
+                );
+
+
+                setCheckboxValue(
+                    row.querySelector(".create-cb"),
+                    perm.canCreate ?? perm.CanCreate
+                );
+
+
+                setCheckboxValue(
+                    row.querySelector(".edit-cb"),
+                    perm.canEdit ?? perm.CanEdit
+                );
+
+
+                setCheckboxValue(
+                    row.querySelector(".delete-cb"),
+                    perm.canDelete ?? perm.CanDelete
+                );
+
+
+                setCheckboxValue(
+                    row.querySelector(".approve-cb"),
+                    perm.canApprove ?? perm.CanApprove
+                );
+
             });
+
         }
 
+
         syncRowHeaderStates();
+
     }
+
 
     function clearAllPermissionCheckboxes() {
-        document.querySelectorAll(".permission-checkbox").forEach(cb => cb.checked = false);
+
+        document.querySelectorAll(".permission-checkbox")
+            .forEach(cb => cb.checked = false);
+
     }
+
 
     function setCheckboxValue(checkbox, value) {
-        if (!checkbox) return;
-        checkbox.checked = value === true || value === "true" || value === 1 || value === "1";
+
+        if (!checkbox) {
+            return;
+        }
+
+
+        checkbox.checked =
+            value === true
+            || value === "true"
+            || value === 1
+            || value === "1";
+
     }
+
+
+    /* =====================================================
+       ROW TOGGLE
+       ===================================================== */
 
     function toggleEntireRow(button) {
-        const row = button.closest(".permission-row");
-        if (!row) return;
-        const checkboxes = row.querySelectorAll(".permission-checkbox");
-        if (!checkboxes.length) return;
+
+        const row =
+            button.closest(".permission-row");
+
+
+        if (!row) {
+            return;
+        }
+
+
+        const checkboxes =
+            row.querySelectorAll(
+                ".permission-checkbox"
+            );
+
+
+        if (!checkboxes.length) {
+            return;
+        }
+
 
         let shouldEnable = false;
-        checkboxes.forEach(cb => { if (!cb.checked) shouldEnable = true; });
-        checkboxes.forEach(cb => { cb.checked = shouldEnable; });
+
+
+        checkboxes.forEach(cb => {
+
+            if (!cb.checked) {
+                shouldEnable = true;
+            }
+
+        });
+
+
+        checkboxes.forEach(cb => {
+
+            cb.checked =
+                shouldEnable;
+
+        });
+
 
         syncRowHeaderStates();
+
     }
+
+
+    /* =====================================================
+       COLUMN TOGGLE
+       ===================================================== */
 
     function toggleColumnCheckboxes(type, value) {
-        const checkboxes = document.querySelectorAll(`.${type}-cb`);
+
+        const checkboxes =
+            document.querySelectorAll(
+                `.${type}-cb`
+            );
+
+
         checkboxes.forEach(cb => {
-            const row = cb.closest(".permission-row");
-            if (row && !row.classList.contains("row-hidden")) {
+
+            const row =
+                cb.closest(".permission-row");
+
+
+            if (row &&
+                !row.classList.contains("row-hidden")) {
+
                 cb.checked = value;
+
             }
+
         });
+
+
         syncRowHeaderStates();
+
     }
+
+
+    /* =====================================================
+       BATCH GRANTS
+       ===================================================== */
 
     function batchGrantAll(type) {
-        toggleColumnCheckboxes(type, true);
+
+        toggleColumnCheckboxes(
+            type,
+            true
+        );
+
     }
+
 
     function batchClearAll() {
-        document.querySelectorAll(".permission-checkbox").forEach(cb => {
-            const row = cb.closest(".permission-row");
-            if (row && !row.classList.contains("row-hidden")) {
+
+        document.querySelectorAll(
+            ".permission-checkbox"
+        ).forEach(cb => {
+
+            const row =
+                cb.closest(".permission-row");
+
+
+            if (row &&
+                !row.classList.contains("row-hidden")) {
+
                 cb.checked = false;
+
             }
+
         });
+
+
         syncRowHeaderStates();
+
     }
+
+
+    /* =====================================================
+       FILTER MATRIX
+       ===================================================== */
 
     function filterMatrixRows() {
-        const query = (document.getElementById("moduleFilter")?.value || "").toLowerCase().trim();
-        const category = (document.getElementById("categoryFilter")?.value || "").toLowerCase().trim();
-        const rows = document.querySelectorAll(".permission-row");
+
+        const query =
+            (
+                document.getElementById(
+                    "moduleFilter"
+                )?.value || ""
+            )
+            .toLowerCase()
+            .trim();
+
+
+        const category =
+            (
+                document.getElementById(
+                    "categoryFilter"
+                )?.value || ""
+            )
+            .toLowerCase()
+            .trim();
+
+
+        const rows =
+            document.querySelectorAll(
+                ".permission-row"
+            );
+
+
         let visible = 0;
 
+
         rows.forEach(row => {
-            const searchText = (row.dataset.searchText || "").toLowerCase();
-            const rowCategory = (row.dataset.category || "").toLowerCase();
 
-            const matchesSearch = !query || searchText.includes(query);
-            const matchesCategory = !category || rowCategory === category;
+            const searchText =
+                (
+                    row.dataset.searchText || ""
+                )
+                .toLowerCase();
 
-            if (matchesSearch && matchesCategory) {
-                row.classList.remove("row-hidden");
+
+            const rowCategory =
+                (
+                    row.dataset.category || ""
+                )
+                .toLowerCase();
+
+
+            const matchesSearch =
+                !query
+                || searchText.includes(query);
+
+
+            const matchesCategory =
+                !category
+                || rowCategory === category;
+
+
+            if (matchesSearch &&
+                matchesCategory) {
+
+                row.classList.remove(
+                    "row-hidden"
+                );
+
                 visible++;
-            } else {
-                row.classList.add("row-hidden");
+
             }
+            else {
+
+                row.classList.add(
+                    "row-hidden"
+                );
+
+            }
+
         });
 
-        const counter = document.getElementById("visibleCount");
-        if (counter) counter.textContent = visible;
+
+        const counter =
+            document.getElementById(
+                "visibleCount"
+            );
+
+
+        if (counter) {
+            counter.textContent =
+                visible;
+        }
+
+
         syncRowHeaderStates();
+
     }
 
+
+    /* =====================================================
+       HEADER CHECKBOX STATES
+       ===================================================== */
+
     function syncRowHeaderStates() {
-        ["view", "create", "edit", "delete", "approve"].forEach(type => {
-            const header = document.getElementById("colHeader" + type.charAt(0).toUpperCase() + type.slice(1));
-            if (!header) return;
 
-            const visibleCheckboxes = Array.from(document.querySelectorAll(`.${type}-cb`))
-                .filter(cb => {
-                    const row = cb.closest(".permission-row");
-                    return row && !row.classList.contains("row-hidden");
-                });
+        [
+            "view",
+            "create",
+            "edit",
+            "delete",
+            "approve"
+        ]
+        .forEach(type => {
 
-            if (!visibleCheckboxes.length) {
-                header.checked = false;
-                header.indeterminate = false;
+            const header =
+                document.getElementById(
+                    "colHeader"
+                    + type.charAt(0).toUpperCase()
+                    + type.slice(1)
+                );
+
+
+            if (!header) {
                 return;
             }
 
-            const checkedCount = visibleCheckboxes.filter(cb => cb.checked).length;
-            header.checked = checkedCount === visibleCheckboxes.length;
-            header.indeterminate = checkedCount > 0 && checkedCount < visibleCheckboxes.length;
+
+            const visibleCheckboxes =
+                Array.from(
+                    document.querySelectorAll(
+                        `.${type}-cb`
+                    )
+                )
+                .filter(cb => {
+
+                    const row =
+                        cb.closest(
+                            ".permission-row"
+                        );
+
+
+                    return row
+                        && !row.classList.contains(
+                            "row-hidden"
+                        );
+
+                });
+
+
+            if (!visibleCheckboxes.length) {
+
+                header.checked = false;
+
+                header.indeterminate = false;
+
+                return;
+
+            }
+
+
+            const checkedCount =
+                visibleCheckboxes
+                    .filter(cb => cb.checked)
+                    .length;
+
+
+            header.checked =
+                checkedCount ===
+                visibleCheckboxes.length;
+
+
+            header.indeterminate =
+                checkedCount > 0
+                && checkedCount <
+                visibleCheckboxes.length;
+
         });
+
     }
+
 </script>
