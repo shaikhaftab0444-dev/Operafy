@@ -76,6 +76,7 @@ namespace ERP_System.Data
 
         public DbSet<ESSLeaveApplication> LeaveRequests { get { return ESSLeaveApplications; } set { ESSLeaveApplications = value; } }
         public DbSet<HRAttendanceRegularization> AttendanceRegularizations { get { return HRAttendanceRegularizations; } set { HRAttendanceRegularizations = value; } }
+        public DbSet<HRAttendanceRegularization> AttendanceRegularizationRequests { get { return HRAttendanceRegularizations; } set { HRAttendanceRegularizations = value; } }
         public DbSet<ESSExpenseClaim> ExpenseClaims { get { return ESSExpenseClaims; } set { ESSExpenseClaims = value; } }
         public DbSet<ESSSupportTicket> SupportTickets { get { return ESSSupportTickets; } set { ESSSupportTickets = value; } }
         public DbSet<HRAttendanceLog> AttendanceLogs { get { return HRAttendanceLogs; } set { HRAttendanceLogs = value; } }

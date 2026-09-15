@@ -547,6 +547,7 @@
 </style>
 
 <div class="container-fluid py-4 text-start regularization-page">
+    @Html.AntiForgeryToken()
 
     <!-- Success Message -->
     @if (TempData["SuccessMessage"] != null)
@@ -601,14 +602,6 @@
                 </ol>
             </nav>
         </div>
-
-        <button type="button"
-                class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm reg-btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#submitRequestModal">
-            <i class="fa-solid fa-plus me-1.5"></i>
-            Submit Regularization Request
-        </button>
 
     </div>
 
@@ -828,59 +821,27 @@
 
                                 <!-- Action -->
                                 <td>
-
-                            @if (req.Status == "Pending Review")
+                                    @if (req.Status == "Pending" || req.Status == "Pending Review")
                                     {
                                         <div class="d-flex flex-wrap gap-1">
-
-                                            <!-- Approve -->
-                                            <form asp-action="ApproveRequest"
-                                                  method="post"
-                                                  class="d-inline">
-
-                                                @Html.AntiForgeryToken()
-
-                                                <input type="hidden"
-                                                       name="requestId"
-                                                       value="@req.RequestId" />
-
-                                                <button type="submit"
-                                                        class="btn btn-success btn-xs rounded-pill px-2.5 reg-action-btn">
-                                                    <i class="fa-solid fa-check me-1"></i>
-                                                    Approve
-                                                </button>
-
-                                            </form>
-
-                                            <!-- Reject -->
-                                            <form asp-action="RejectRequest"
-                                                  method="post"
-                                                  class="d-inline">
-
-                                                @Html.AntiForgeryToken()
-
-                                                <input type="hidden"
-                                                       name="requestId"
-                                                       value="@req.RequestId" />
-
-                                                <button type="submit"
-                                                        class="btn btn-outline-danger btn-xs rounded-pill px-2.5 reg-action-btn">
-                                                    <i class="fa-solid fa-xmark me-1"></i>
-                                                    Reject
-                                                </button>
-
-                                            </form>
-
+                                            <button type="button"
+                                                    class="btn btn-sm btn-success rounded-pill px-3 me-1 reg-action-btn"
+                                                    onclick="handleRegularizationDecision(@req.RequestId, 'Approved')">
+                                                <i class="fa-solid fa-check me-1"></i> Approve
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-danger rounded-pill px-3 reg-action-btn"
+                                                    onclick="handleRegularizationDecision(@req.RequestId, 'Rejected')">
+                                                <i class="fa-solid fa-xmark me-1"></i> Reject
+                                            </button>
                                         </div>
                                     }
                                     else
                                     {
-                                        <span class="text-muted small">
-                                            <i class="fa-solid fa-circle-check me-1 opacity-50"></i>
-                                            Completed
+                                        <span class="badge @(req.Status == "Approved" ? "bg-success" : (req.Status == "Rejected" ? "bg-danger" : "bg-secondary")) rounded-pill px-2.5 py-1">
+                                            @req.Status
                                         </span>
                                     }
-
                                 </td>
 
                             </tr>
@@ -1099,3 +1060,35 @@
     </div>
 
 </div>
+
+<script>
+    function handleRegularizationDecision(id, decision) {
+        if (!confirm(`Are you sure you want to mark this regularization as ${decision}?`)) return;
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        fetch('/HRAttendance/ProcessRegularization', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': token
+            },
+            body: new URLSearchParams({ 
+                requestId: id, 
+                decision: decision,
+                __RequestVerificationToken: token
+            })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) { 
+                location.reload(); 
+            } else { 
+                alert(res.message || 'Error processing request.'); 
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('An error occurred while processing the regularization request.');
+        });
+    }
+</script>

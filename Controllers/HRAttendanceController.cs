@@ -24,39 +24,53 @@ namespace ERP_System.Controllers
         // 1. DAILY ATTENDANCE LOGS
         // -------------------------------------------------------------
         [HttpGet]
-        public async Task<IActionResult> DailyLogs(DateTime? selectedDate, string? searchTerm, string? statusFilter)
+        public async Task<IActionResult> DailyLogs(DateTime? filterDate, DateTime? selectedDate, string? searchEmployee = "", string? searchTerm = "", string? status = "", string? statusFilter = "")
         {
-            var date = selectedDate ?? DateTime.Today;
-            var query = _context.HRAttendanceLogs.Where(l => l.Date.Date == date.Date);
+            var targetDate = filterDate ?? selectedDate ?? DateTime.Today;
+            var search = !string.IsNullOrWhiteSpace(searchEmployee) ? searchEmployee : (!string.IsNullOrWhiteSpace(searchTerm) ? searchTerm : "");
+            var filterStatus = !string.IsNullOrWhiteSpace(status) ? status : (!string.IsNullOrWhiteSpace(statusFilter) ? statusFilter : "All");
 
-            if (!string.IsNullOrWhiteSpace(searchTerm))
+            var query = _context.HRAttendanceLogs.Where(l => l.Date.Date == targetDate.Date).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                var term = searchTerm.Trim().ToLower();
+                var term = search.Trim().ToLower();
                 query = query.Where(l => l.EmployeeName.ToLower().Contains(term) || l.EmployeeCode.ToLower().Contains(term));
             }
 
-            if (!string.IsNullOrWhiteSpace(statusFilter) && statusFilter != "All")
+            if (!string.IsNullOrWhiteSpace(filterStatus) && filterStatus != "All" && filterStatus != "All Statuses")
             {
-                query = query.Where(l => l.Status == statusFilter);
+                query = query.Where(l => l.Status == filterStatus || l.Status.StartsWith(filterStatus));
             }
 
             var logs = await query.OrderBy(l => l.EmployeeCode).ToListAsync();
             var employees = await _context.Users.Where(u => u.IsActive).OrderBy(u => u.FullName).ToListAsync();
 
             // Calculate statistics for the selected date
-            var allLogsForDate = await _context.HRAttendanceLogs.Where(l => l.Date.Date == date.Date).ToListAsync();
+            var allLogsForDate = await _context.HRAttendanceLogs.Where(l => l.Date.Date == targetDate.Date).ToListAsync();
+            var presentCount = allLogsForDate.Count(l => l.Status.StartsWith("Present"));
+            var lateCount = allLogsForDate.Count(l => l.Status.Contains("Late"));
+            var onLeaveCount = allLogsForDate.Count(l => l.Status.Contains("Leave"));
+            var totalActiveStaff = await _context.Users.CountAsync(u => u.IsActive);
+            var absentCount = Math.Max(0, totalActiveStaff - (presentCount + lateCount + onLeaveCount));
+
+            ViewBag.SelectedDate = targetDate.ToString("yyyy-MM-dd");
+            ViewBag.PresentCount = presentCount;
+            ViewBag.LateCount = lateCount;
+            ViewBag.OnLeaveCount = onLeaveCount;
+            ViewBag.AbsentCount = absentCount;
 
             var viewModel = new DailyLogsViewModel
             {
                 Logs = logs,
                 Employees = employees,
-                SelectedDate = date,
-                SearchTerm = searchTerm ?? "",
-                StatusFilter = statusFilter ?? "All",
-                TotalPresent = allLogsForDate.Count(l => l.Status.StartsWith("Present")),
-                TotalLate = allLogsForDate.Count(l => l.Status.Contains("Late")),
-                TotalOnLeave = allLogsForDate.Count(l => l.Status.Contains("Leave")),
-                TotalAbsent = allLogsForDate.Count(l => l.Status.Contains("Absent"))
+                SelectedDate = targetDate,
+                SearchTerm = search,
+                StatusFilter = filterStatus,
+                TotalPresent = presentCount,
+                TotalLate = lateCount,
+                TotalOnLeave = onLeaveCount,
+                TotalAbsent = absentCount
             };
 
             return View(viewModel);
@@ -414,6 +428,71 @@ namespace ERP_System.Controllers
             };
 
             return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcessRegularization(int requestId, string decision)
+        {
+            var request = await _context.HRAttendanceRegularizations.FindAsync(requestId);
+            if (request == null) return Json(new { success = false, message = "Request not found." });
+
+            request.Status = decision; // "Approved" or "Rejected"
+            request.ReviewedAt = DateTime.UtcNow;
+            request.AdminRemarks = $"{decision} by HR";
+
+            if (decision == "Approved")
+            {
+                // Adjust the actual attendance log entry for that day
+                var log = await _context.HRAttendanceLogs
+                    .FirstOrDefaultAsync(a => a.UserId == request.UserId && a.Date.Date == request.CorrectionDate.Date);
+
+                if (log != null)
+                {
+                    log.Status = "Present (Regularized)";
+                    log.Remarks = $"Regularized: {request.RequestedCorrectTime} ({request.Reason})";
+                    if (request.RequestedCorrectTime.Contains("06:00 PM"))
+                    {
+                        log.CheckOutTime = request.CorrectionDate.Date.AddHours(18);
+                        if (log.CheckInTime.HasValue)
+                        {
+                            var duration = log.CheckOutTime.Value - log.CheckInTime.Value;
+                            log.WorkHours = $"{(int)duration.TotalHours}h {duration.Minutes}m";
+                        }
+                    }
+                    else if (request.RequestedCorrectTime.Contains("09:00 AM"))
+                    {
+                        log.CheckInTime = request.CorrectionDate.Date.AddHours(9);
+                        if (log.CheckOutTime.HasValue)
+                        {
+                            var duration = log.CheckOutTime.Value - log.CheckInTime.Value;
+                            log.WorkHours = $"{(int)duration.TotalHours}h {duration.Minutes}m";
+                        }
+                    }
+                    _context.HRAttendanceLogs.Update(log);
+                }
+                else
+                {
+                    var user = await _context.Users.FindAsync(request.UserId);
+                    var newLog = new HRAttendanceLog
+                    {
+                        UserId = request.UserId,
+                        EmployeeCode = user?.UserCode ?? $"EMP-00{request.UserId}",
+                        EmployeeName = request.EmployeeName,
+                        Date = request.CorrectionDate.Date,
+                        CheckInTime = request.CorrectionDate.Date.AddHours(9),
+                        CheckOutTime = request.CorrectionDate.Date.AddHours(18),
+                        WorkHours = "9h 0m",
+                        PunchSource = "Regularization Approved",
+                        Status = "Present (Regularized)",
+                        Remarks = $"Regularized: {request.RequestedCorrectTime} ({request.Reason})"
+                    };
+                    await _context.HRAttendanceLogs.AddAsync(newLog);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = $"Regularization request #{requestId} {decision}." });
         }
 
         [HttpPost]

@@ -674,7 +674,22 @@
                                     @(string.IsNullOrEmpty(roster.Notes) ? "-" : roster.Notes)
                                 </td>
 
-                                <td class="text-center">
+                                <td class="text-center text-nowrap">
+                                    <button type="button"
+                                            class="btn btn-outline-primary btn-xs rounded-pill px-2.5 me-1 shift-edit-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editShiftModal"
+                                            data-roster-id="@roster.RosterId"
+                                            data-user-id="@roster.UserId"
+                                            data-emp-name="@roster.EmployeeName"
+                                            data-shift-name="@roster.ShiftName"
+                                            data-timings="@roster.Timings"
+                                            data-weekly-offs="@roster.WeeklyOffs"
+                                            data-effective-date="@roster.EffectiveDate.ToString("yyyy-MM-dd")"
+                                            data-notes="@roster.Notes">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i>Change Shift
+                                    </button>
+
                                     <form asp-action="DeleteRoster" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
 
@@ -857,3 +872,154 @@
         </div>
     </div>
 </div>
+
+<!-- Edit / Change Shift Modal -->
+<div class="modal fade shift-modal"
+     id="editShiftModal"
+     tabindex="-1"
+     aria-labelledby="editShiftModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold" id="editShiftModalLabel">
+                    <i class="fa-solid fa-pen-to-square text-primary me-2"></i>
+                    Change Employee Shift Roster
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+            </div>
+
+            <form asp-action="AssignShift" method="post">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" id="editUserId" name="userId" value="" />
+
+                <div class="modal-body p-4">
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">
+                            Employee
+                        </label>
+                        <input type="text" id="editEmployeeName" class="form-control bg-light" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">
+                            Shift Schedule Name
+                        </label>
+
+                        <select id="editShiftName" name="shiftName" class="form-select" required>
+                            <option value="General Shift (Day)">
+                                General Shift (Day)
+                            </option>
+                            <option value="Morning Shift">
+                                Morning Shift
+                            </option>
+                            <option value="Evening Shift">
+                                Evening Shift
+                            </option>
+                            <option value="Night Shift">
+                                Night Shift
+                            </option>
+                            <option value="Flexible Shift">
+                                Flexible Shift
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">
+                                Shift Timings
+                            </label>
+
+                            <input type="text"
+                                   id="editTimings"
+                                   name="timings"
+                                   class="form-control"
+                                   value="09:00 AM - 06:00 PM"
+                                   required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">
+                                Weekly Off Day(s)
+                            </label>
+
+                            <input type="text"
+                                   id="editWeeklyOffs"
+                                   name="weeklyOffs"
+                                   class="form-control"
+                                   value="Sunday"
+                                   required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">
+                            Effective Roster Date
+                        </label>
+
+                        <input type="date"
+                               id="editEffectiveDate"
+                               name="effectiveDate"
+                               class="form-control"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               required />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">
+                            Notes / Comments
+                        </label>
+
+                        <textarea id="editNotes"
+                                  name="notes"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="e.g. Special rotation shift assignment"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top px-4 py-3">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm rounded-pill px-3 shift-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary btn-sm rounded-pill px-4 shift-save-btn">
+                        <i class="fa-solid fa-save me-1"></i>
+                        Update Shift
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const editButtons = document.querySelectorAll(".shift-edit-btn");
+        editButtons.forEach(btn => {
+            btn.addEventListener("click", function () {
+                document.getElementById("editUserId").value = this.getAttribute("data-user-id") || "";
+                document.getElementById("editEmployeeName").value = this.getAttribute("data-emp-name") || "";
+                document.getElementById("editShiftName").value = this.getAttribute("data-shift-name") || "General Shift (Day)";
+                document.getElementById("editTimings").value = this.getAttribute("data-timings") || "09:00 AM - 06:00 PM";
+                document.getElementById("editWeeklyOffs").value = this.getAttribute("data-weekly-offs") || "Sunday";
+                document.getElementById("editEffectiveDate").value = this.getAttribute("data-effective-date") || "@DateTime.Today.ToString("yyyy-MM-dd")";
+                document.getElementById("editNotes").value = this.getAttribute("data-notes") || "";
+            });
+        });
+    });
+</script>

@@ -22,10 +22,14 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var totalEmployees = await _context.Users.CountAsync();
-            var activeEmployees = await _context.Users.CountAsync(u => u.IsActive);
-            var inactiveEmployees = await _context.Users.CountAsync(u => !u.IsActive);
-            var lockedAccounts = await _context.Users.CountAsync(u => u.IsLocked);
+            var totalStaffCount = await _context.Users.CountAsync();
+            var activeStaffCount = await _context.Users.CountAsync(u => u.IsActive);
+            var lockedAccountsCount = await _context.Users.CountAsync(u => u.IsLocked);
+
+            ViewBag.TotalStaff = totalStaffCount;
+            ViewBag.ActiveStaff = activeStaffCount;
+            ViewBag.InactiveStaff = totalStaffCount - activeStaffCount;
+            ViewBag.LockedAccounts = lockedAccountsCount;
 
             var recentHires = await _context.Users
                 .Include(u => u.Role)
@@ -50,10 +54,10 @@ namespace ERP_System.Controllers
 
             var model = new HRDashboardViewModel
             {
-                TotalEmployees = totalEmployees,
-                ActiveEmployees = activeEmployees,
-                InactiveEmployees = inactiveEmployees,
-                LockedAccounts = lockedAccounts,
+                TotalEmployees = totalStaffCount,
+                ActiveEmployees = activeStaffCount,
+                InactiveEmployees = totalStaffCount - activeStaffCount,
+                LockedAccounts = lockedAccountsCount,
                 RecentHires = recentHires,
                 EmployeesList = employeesList,
                 RoleDistribution = roleDistribution

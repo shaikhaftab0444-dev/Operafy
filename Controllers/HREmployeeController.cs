@@ -104,6 +104,16 @@ namespace ERP_System.Controllers
             ViewBag.Branches = await _context.Branches.Where(b => b.IsActive).ToListAsync();
             ViewBag.SelectedDepartmentId = departmentId;
 
+            // Synchronized workforce counts identical to HRController
+            var activeStaffCount = await _context.Users.CountAsync(u => u.IsActive);
+            var totalStaffCount = await _context.Users.CountAsync();
+            var lockedAccountsCount = await _context.Users.CountAsync(u => u.IsLocked);
+
+            ViewBag.TotalStaff = totalStaffCount;
+            ViewBag.ActiveStaff = activeStaffCount;
+            ViewBag.InactiveStaff = totalStaffCount - activeStaffCount;
+            ViewBag.LockedAccounts = lockedAccountsCount;
+
             return View(employees);
         }
 
