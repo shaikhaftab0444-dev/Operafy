@@ -14,6 +14,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<ERP_System.Helpers.ICurrencyService, ERP_System.Helpers.CurrencyService>();
 
+// Add SignalR to Services
+builder.Services.AddSignalR(options => {
+    options.EnableDetailedErrors = true;
+});
+
 // Configure Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -143,6 +148,100 @@ using (var scope = app.Services.CreateScope())
                     FlaggedOn DATETIME NOT NULL DEFAULT GETUTCDATE()
                 );
             END
+
+            -- 4. Ensure DepartmentId exists in SalaryStructureTemplates and erp_SalaryStructureMasters
+            IF OBJECT_ID('SalaryStructureTemplates', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SalaryStructureTemplates') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE SalaryStructureTemplates ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('dbo.SalaryStructureTemplates', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.SalaryStructureTemplates') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE dbo.SalaryStructureTemplates ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('AITStudent.SalaryStructureTemplates', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.SalaryStructureTemplates') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE AITStudent.SalaryStructureTemplates ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('erp_SalaryStructureMasters', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalaryStructureMasters') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE erp_SalaryStructureMasters ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('dbo.erp_SalaryStructureMasters', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.erp_SalaryStructureMasters') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE dbo.erp_SalaryStructureMasters ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('AITStudent.erp_SalaryStructureMasters', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalaryStructureMasters') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_SalaryStructureMasters ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('SalaryStructures', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SalaryStructures') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE SalaryStructures ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('erp_SalaryStructures', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalaryStructures') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE erp_SalaryStructures ADD DepartmentId INT NULL;
+                END
+            END
+
+            -- 5. Ensure PayrollComponents table exists
+            IF OBJECT_ID('PayrollComponents', 'U') IS NULL AND OBJECT_ID('AITStudent.PayrollComponents', 'U') IS NULL
+            BEGIN
+                CREATE TABLE PayrollComponents (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    ComponentName NVARCHAR(100) NOT NULL,
+                    Code NVARCHAR(15) NOT NULL,
+                    Type NVARCHAR(50) NOT NULL,
+                    Taxability NVARCHAR(50) NULL,
+                    CalculationBasis NVARCHAR(50) NULL,
+                    DefaultValueOrRate DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    MaxCapLimit NVARCHAR(50) NULL,
+                    PayFrequency NVARCHAR(50) NULL,
+                    IsActive BIT NOT NULL DEFAULT 1,
+                    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                    UpdatedAt DATETIME NULL
+                );
+
+                INSERT INTO PayrollComponents (ComponentName, Code, Type, Taxability, CalculationBasis, DefaultValueOrRate, MaxCapLimit, PayFrequency, IsActive, CreatedAt)
+                VALUES 
+                ('House Rent Allowance', 'HRA', 'Allowance', 'Partially Exempt', 'Percentage of Basic', 40.00, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Conveyance Allowance', 'CONV', 'Allowance', 'Tax Exempt', 'Fixed Amount', 1600.00, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Medical Allowance', 'MED', 'Allowance', 'Tax Exempt', 'Fixed Amount', 1250.00, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Special Allowance', 'SPEC', 'Allowance', 'Fully Taxable', 'Fixed Amount', 0.00, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Provident Fund', 'PF', 'Deduction', 'Fully Deductible', 'Percentage of Basic', 12.00, '1800', 'Monthly', 1, GETUTCDATE()),
+                ('Employee State Insurance', 'ESI', 'Deduction', 'Fully Deductible', 'Percentage of Gross', 0.75, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Professional Tax', 'PT', 'Deduction', 'Fully Deductible', 'Fixed Amount', 200.00, '200', 'Monthly', 1, GETUTCDATE());
+            END
         ";
         await context.Database.ExecuteSqlRawAsync(schemaPatchSql);
 
@@ -210,6 +309,9 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthorization();
+
+// Map Hub Endpoint before routing/endpoints termination
+app.MapHub<ERP_System.Hubs.ErpNotificationHub>("/erpNotificationHub");
 
 app.MapControllerRoute(
     name: "default",

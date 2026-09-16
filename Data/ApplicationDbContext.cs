@@ -73,8 +73,10 @@ namespace ERP_System.Data
         public DbSet<HRShiftRoster> HRShiftRosters { get; set; }
         public DbSet<HROvertimeRecord> HROvertimeRecords { get; set; }
         public DbSet<HRAttendanceRegularization> HRAttendanceRegularizations { get; set; }
-
-        public DbSet<ESSLeaveApplication> LeaveRequests { get { return ESSLeaveApplications; } set { ESSLeaveApplications = value; } }
+        public DbSet<LeaveType> LeaveTypes { get; set; }
+        public DbSet<LeaveRequest> LeaveRequests { get; set; }
+        public DbSet<CompanyHoliday> CompanyHolidays { get; set; }
+        public DbSet<ESSLeaveApplication> ESSLeaveRequests { get { return ESSLeaveApplications; } set { ESSLeaveApplications = value; } }
         public DbSet<HRAttendanceRegularization> AttendanceRegularizations { get { return HRAttendanceRegularizations; } set { HRAttendanceRegularizations = value; } }
         public DbSet<HRAttendanceRegularization> AttendanceRegularizationRequests { get { return HRAttendanceRegularizations; } set { HRAttendanceRegularizations = value; } }
         public DbSet<ESSExpenseClaim> ExpenseClaims { get { return ESSExpenseClaims; } set { ESSExpenseClaims = value; } }
@@ -86,8 +88,10 @@ namespace ERP_System.Data
         public DbSet<WorkShift> WorkShifts { get; set; }
 
         public DbSet<SalaryStructureMaster> SalaryStructureMasters { get; set; }
+        public DbSet<SalaryStructureMaster> SalaryStructureTemplates { get => SalaryStructureMasters; set => SalaryStructureMasters = value; }
         public DbSet<EmployeeSalaryAssignment> EmployeeSalaryAssignments { get; set; }
         public DbSet<AllowanceDeductionMaster> AllowanceDeductionMasters { get; set; }
+        public DbSet<PayrollComponent> PayrollComponents { get; set; }
         public DbSet<StatutoryConfiguration> StatutoryConfigurations { get; set; }
         public DbSet<StatutoryFilingLog> StatutoryFilingLogs { get; set; }
         public DbSet<BonusIncentive> BonusIncentives { get; set; }
@@ -159,6 +163,9 @@ namespace ERP_System.Data
             modelBuilder.Entity<HRTransfer>().ToTable("erp_Transfers");
             modelBuilder.Entity<HROffboarding>().ToTable("erp_Offboardings");
             modelBuilder.Entity<HRHoliday>().ToTable("erp_Holidays");
+            modelBuilder.Entity<CompanyHoliday>().ToTable("CompanyHolidays");
+            modelBuilder.Entity<LeaveType>().ToTable("LeaveTypes");
+            modelBuilder.Entity<LeaveRequest>().ToTable("LeaveRequests");
             modelBuilder.Entity<HRAttendanceLog>().ToTable("erp_HRAttendanceLogs");
             modelBuilder.Entity<HRBiometricDevice>().ToTable("erp_HRBiometricDevices");
             modelBuilder.Entity<HRShiftRoster>().ToTable("erp_HRShiftRosters");

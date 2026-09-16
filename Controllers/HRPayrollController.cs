@@ -5,9 +5,11 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using ERP_System.Data;
 using ERP_System.Models;
+using ERP_System.Hubs;
 
 namespace ERP_System.Controllers
 {
@@ -15,10 +17,12 @@ namespace ERP_System.Controllers
     public class HRPayrollController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHubContext<ErpNotificationHub> _hubContext;
 
-        public HRPayrollController(ApplicationDbContext context)
+        public HRPayrollController(ApplicationDbContext context, IHubContext<ErpNotificationHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         private int GetCurrentUserId()
@@ -48,39 +52,130 @@ namespace ERP_System.Controllers
         // 1. SALARY STRUCTURES & ASSIGNMENTS
         // ==========================================
         [HttpGet]
-        public async Task<IActionResult> SalaryStructures()
+        public async Task<IActionResult> SalaryStructures(int? year, int? month, int? departmentId, string search = "", string activeTab = "templates")
         {
             if (!IsHrOrAdminOrFinance())
             {
                 return RedirectToAction(nameof(Payslips));
             }
 
+            int filterYear = year ?? DateTime.Today.Year;
+            int filterMonth = month ?? DateTime.Today.Month;
+
+            ViewBag.SelectedYear = filterYear;
+            ViewBag.SelectedMonth = filterMonth;
+            ViewBag.SelectedDepartmentId = departmentId;
+            ViewBag.SearchTerm = search;
+            ViewBag.ActiveTab = activeTab;
+
+            // 1. Dynamic database-driven departments for dropdowns
+            var departments = await _context.Departments
+                .Where(d => d.IsActive)
+                .OrderBy(d => d.DepartmentName)
+                .ToListAsync();
+
+            // 2. Salary structure templates with linked department
             var structures = await _context.SalaryStructureMasters
+                .Include(s => s.DepartmentObj)
                 .OrderByDescending(s => s.IsActive)
                 .ThenBy(s => s.StructureName)
                 .ToListAsync();
 
-            var assignments = await _context.EmployeeSalaryAssignments
+            // 3. Current active salary assignments query with server-side date and scope filtering
+            var query = _context.EmployeeSalaryAssignments
                 .Include(a => a.User)
-                .Include(a => a.User!.Role)
+                    .ThenInclude(u => u!.Department)
+                .Include(a => a.User)
+                    .ThenInclude(u => u!.Role)
                 .Include(a => a.Structure)
                 .Where(a => a.IsCurrent)
-                .OrderBy(a => a.User!.FullName)
-                .ToListAsync();
+                .AsQueryable();
+
+            // Filter by effective period (records effective on or before the selected Month/Year)
+            if (filterYear > 0)
+            {
+                if (filterMonth > 0)
+                {
+                    query = query.Where(a => a.EffectiveFrom.Year <= filterYear &&
+                                             (a.EffectiveFrom.Year < filterYear || a.EffectiveFrom.Month <= filterMonth));
+                }
+                else
+                {
+                    query = query.Where(a => a.EffectiveFrom.Year <= filterYear);
+                }
+            }
+
+            if (departmentId.HasValue && departmentId.Value > 0)
+            {
+                query = query.Where(a => a.User != null && (a.User.DepartmentId == departmentId.Value || (a.Structure != null && a.Structure.DepartmentId == departmentId.Value)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(a => a.User != null &&
+                    (a.User.FullName.ToLower().Contains(cleanSearch) ||
+                     a.User.UserName.ToLower().Contains(cleanSearch) ||
+                     a.User.UserCode.ToLower().Contains(cleanSearch) ||
+                     a.User.Email.ToLower().Contains(cleanSearch)));
+            }
+
+            var assignments = await query.OrderByDescending(a => a.EffectiveFrom).ToListAsync();
 
             var activeEmployees = await _context.Users
+                .Include(u => u.Department)
                 .Include(u => u.Role)
                 .Where(u => u.IsActive && u.Role != null && u.Role.RoleName != "Admin" && u.Role.RoleName != "Super Admin")
                 .OrderBy(u => u.FullName)
                 .ToListAsync();
 
+            ViewBag.Departments = departments;
             ViewBag.Structures = structures;
             ViewBag.Assignments = assignments;
             ViewBag.ActiveEmployees = activeEmployees;
             ViewBag.TotalAssigned = assignments.Count;
             ViewBag.TotalStructures = structures.Count;
+            ViewBag.TotalTemplates = structures.Count;
+            ViewBag.AssignedCount = assignments.Count;
 
             return View();
+        }
+
+        // Scalable 300ms debounced AJAX typeahead lookup to prevent client freezing with 2,000+ employees
+        [HttpGet]
+        public async Task<IActionResult> SearchEmployees(string q)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+            {
+                return Json(new List<object>());
+            }
+
+            q = q.Trim().ToLower();
+
+            var employees = await _context.Users
+                .Include(u => u.Department)
+                .Include(u => u.Role)
+                .Where(u => u.IsActive &&
+                    (u.FullName.ToLower().Contains(q) ||
+                     u.Email.ToLower().Contains(q) ||
+                     u.UserCode.ToLower().Contains(q) ||
+                     u.UserName.ToLower().Contains(q)))
+                .OrderBy(u => u.FullName)
+                .Take(25)
+                .Select(u => new
+                {
+                    id = u.UserId,
+                    name = u.FullName,
+                    code = u.UserCode,
+                    email = u.Email,
+                    department = u.Department != null ? u.Department.DepartmentName : (!string.IsNullOrEmpty(u.DepartmentName) ? u.DepartmentName : "General"),
+                    designation = u.Role != null ? u.Role.RoleName : "Staff",
+                    initials = u.FullName.Length >= 2 ? u.FullName.Substring(0, 2).ToUpper() : "U",
+                    avatar = u.ProfilePhoto
+                })
+                .ToListAsync();
+
+            return Json(employees);
         }
 
         [HttpPost]
@@ -91,6 +186,15 @@ namespace ERP_System.Controllers
 
             if (ModelState.IsValid)
             {
+                if (model.DepartmentId.HasValue && model.DepartmentId.Value > 0)
+                {
+                    var dept = await _context.Departments.FindAsync(model.DepartmentId.Value);
+                    if (dept != null)
+                    {
+                        model.Department = dept.DepartmentName;
+                    }
+                }
+
                 model.CreatedAt = DateTime.UtcNow;
                 _context.SalaryStructureMasters.Add(model);
                 await _context.SaveChangesAsync();
@@ -104,6 +208,14 @@ namespace ERP_System.Controllers
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
+
+                // Broadcast real-time SignalR event
+                try
+                {
+                    await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                        .SendAsync("ReceiveSalaryStructureUpdated", new { structureName = model.StructureName, action = "Created", timestamp = DateTime.UtcNow });
+                }
+                catch { }
 
                 TempData["SuccessMessage"] = $"Salary Structure '{model.StructureName}' created successfully.";
             }
@@ -124,9 +236,23 @@ namespace ERP_System.Controllers
             var existing = await _context.SalaryStructureMasters.FindAsync(model.StructureId);
             if (existing == null) return NotFound();
 
+            if (model.DepartmentId.HasValue && model.DepartmentId.Value > 0)
+            {
+                var dept = await _context.Departments.FindAsync(model.DepartmentId.Value);
+                if (dept != null)
+                {
+                    existing.Department = dept.DepartmentName;
+                    existing.DepartmentId = dept.DepartmentId;
+                }
+            }
+            else
+            {
+                existing.Department = model.Department ?? "All Departments";
+                existing.DepartmentId = null;
+            }
+
             existing.StructureName = model.StructureName;
             existing.Description = model.Description;
-            existing.Department = model.Department;
             existing.Designation = model.Designation;
             existing.BasicPercent = model.BasicPercent;
             existing.HRAPercent = model.HRAPercent;
@@ -145,6 +271,14 @@ namespace ERP_System.Controllers
             _context.SalaryStructureMasters.Update(existing);
             await _context.SaveChangesAsync();
 
+            // Broadcast real-time SignalR event
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                    .SendAsync("ReceiveSalaryStructureUpdated", new { structureName = existing.StructureName, action = "Updated", timestamp = DateTime.UtcNow });
+            }
+            catch { }
+
             TempData["SuccessMessage"] = $"Salary Structure '{existing.StructureName}' updated successfully.";
             return RedirectToAction(nameof(SalaryStructures));
         }
@@ -162,6 +296,7 @@ namespace ERP_System.Controllers
             {
                 StructureName = $"Copy of {original.StructureName}",
                 Description = original.Description,
+                DepartmentId = original.DepartmentId,
                 Department = original.Department,
                 Designation = original.Designation,
                 BasicPercent = original.BasicPercent,
@@ -182,6 +317,13 @@ namespace ERP_System.Controllers
             _context.SalaryStructureMasters.Add(copy);
             await _context.SaveChangesAsync();
 
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                    .SendAsync("ReceiveSalaryStructureUpdated", new { structureName = copy.StructureName, action = "Created", timestamp = DateTime.UtcNow });
+            }
+            catch { }
+
             TempData["SuccessMessage"] = $"Duplicated structure successfully as '{copy.StructureName}'.";
             return RedirectToAction(nameof(SalaryStructures));
         }
@@ -198,6 +340,13 @@ namespace ERP_System.Controllers
             structure.IsActive = !structure.IsActive;
             structure.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                    .SendAsync("ReceiveSalaryStructureUpdated", new { structureName = structure.StructureName, action = structure.IsActive ? "Activated" : "Deactivated", timestamp = DateTime.UtcNow });
+            }
+            catch { }
 
             TempData["SuccessMessage"] = $"Structure '{structure.StructureName}' status set to {(structure.IsActive ? "Active" : "Inactive")}.";
             return RedirectToAction(nameof(SalaryStructures));
@@ -222,6 +371,13 @@ namespace ERP_System.Controllers
 
             _context.SalaryStructureMasters.Remove(structure);
             await _context.SaveChangesAsync();
+
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                    .SendAsync("ReceiveSalaryStructureUpdated", new { structureName = structure.StructureName, action = "Deleted", timestamp = DateTime.UtcNow });
+            }
+            catch { }
 
             TempData["SuccessMessage"] = $"Salary Structure '{structure.StructureName}' deleted successfully.";
             return RedirectToAction(nameof(SalaryStructures));
@@ -354,6 +510,16 @@ namespace ERP_System.Controllers
             });
             await _context.SaveChangesAsync();
 
+            // Broadcast real-time SignalR notification
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                    .SendAsync("ReceiveEmployeeSalaryAssigned", new { employeeId = userId, employeeName = user.FullName, ctc = annualCtc, timestamp = DateTime.UtcNow });
+                await _hubContext.Clients.User(userId.ToString())
+                    .SendAsync("ReceivePersonalSalaryUpdated", new { ctc = annualCtc, basic = basic, net = net });
+            }
+            catch { }
+
             TempData["SuccessMessage"] = $"Salary & CTC successfully assigned to '{user.FullName}'.";
             return RedirectToAction(nameof(SalaryStructures));
         }
@@ -366,53 +532,116 @@ namespace ERP_System.Controllers
         {
             if (!IsHrOrAdminOrFinance()) return Forbid();
 
-            var components = await _context.AllowanceDeductionMasters
-                .OrderBy(c => c.ComponentType)
+            // Fetch from PayrollComponents
+            var components = await _context.PayrollComponents
+                .OrderBy(c => c.Type)
                 .ThenBy(c => c.ComponentName)
                 .ToListAsync();
 
-            ViewBag.Allowances = components.Where(c => c.ComponentType == "Allowance").ToList();
-            ViewBag.Deductions = components.Where(c => c.ComponentType == "Deduction").ToList();
+            // If empty, fallback or seed default standard components
+            if (!components.Any())
+            {
+                var defaults = new List<PayrollComponent>
+                {
+                    new PayrollComponent { ComponentName = "House Rent Allowance", Code = "HRA", Type = "Allowance", Taxability = "Partially Exempt", CalculationBasis = "Percentage of Basic", DefaultValueOrRate = 40.00m, MaxCapLimit = "No Limit", PayFrequency = "Monthly", IsActive = true, CreatedAt = DateTime.UtcNow },
+                    new PayrollComponent { ComponentName = "Conveyance Allowance", Code = "CONV", Type = "Allowance", Taxability = "Tax Exempt", CalculationBasis = "Fixed Amount", DefaultValueOrRate = 1600.00m, MaxCapLimit = "No Limit", PayFrequency = "Monthly", IsActive = true, CreatedAt = DateTime.UtcNow },
+                    new PayrollComponent { ComponentName = "Medical Allowance", Code = "MED", Type = "Allowance", Taxability = "Tax Exempt", CalculationBasis = "Fixed Amount", DefaultValueOrRate = 1250.00m, MaxCapLimit = "No Limit", PayFrequency = "Monthly", IsActive = true, CreatedAt = DateTime.UtcNow },
+                    new PayrollComponent { ComponentName = "Special Allowance", Code = "SPEC", Type = "Allowance", Taxability = "Fully Taxable", CalculationBasis = "Fixed Amount", DefaultValueOrRate = 0.00m, MaxCapLimit = "No Limit", PayFrequency = "Monthly", IsActive = true, CreatedAt = DateTime.UtcNow },
+                    new PayrollComponent { ComponentName = "Provident Fund", Code = "PF", Type = "Deduction", Taxability = "Fully Deductible", CalculationBasis = "Percentage of Basic", DefaultValueOrRate = 12.00m, MaxCapLimit = "1800", PayFrequency = "Monthly", IsActive = true, CreatedAt = DateTime.UtcNow },
+                    new PayrollComponent { ComponentName = "Employee State Insurance", Code = "ESI", Type = "Deduction", Taxability = "Fully Deductible", CalculationBasis = "Percentage of Gross", DefaultValueOrRate = 0.75m, MaxCapLimit = "No Limit", PayFrequency = "Monthly", IsActive = true, CreatedAt = DateTime.UtcNow },
+                    new PayrollComponent { ComponentName = "Professional Tax", Code = "PT", Type = "Deduction", Taxability = "Fully Deductible", CalculationBasis = "Fixed Amount", DefaultValueOrRate = 200.00m, MaxCapLimit = "200", PayFrequency = "Monthly", IsActive = true, CreatedAt = DateTime.UtcNow }
+                };
+                _context.PayrollComponents.AddRange(defaults);
+                await _context.SaveChangesAsync();
+                components = defaults;
+            }
+
+            ViewBag.Allowances = components.Where(c => c.Type == "Allowance").ToList();
+            ViewBag.Deductions = components.Where(c => c.Type == "Deduction").ToList();
             ViewBag.TotalComponents = components.Count;
+            ViewBag.ActiveAllowancesCount = components.Count(c => c.Type == "Allowance" && c.IsActive);
+            ViewBag.ActiveDeductionsCount = components.Count(c => c.Type == "Deduction" && c.IsActive);
+            ViewBag.TotalEarningsCount = ViewBag.ActiveAllowancesCount;
+            ViewBag.TotalDeductionsCount = ViewBag.ActiveDeductionsCount;
 
             return View(components);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveComponent(AllowanceDeductionMaster model)
+        public async Task<IActionResult> CreateComponent(PayrollComponent model)
         {
             if (!IsHrOrAdminOrFinance()) return Forbid();
 
-            if (model.ComponentId == 0)
+            if (ModelState.IsValid)
             {
-                model.CreatedAt = DateTime.UtcNow;
-                _context.AllowanceDeductionMasters.Add(model);
-                TempData["SuccessMessage"] = $"Component '{model.ComponentName}' created successfully.";
+                if (model.Id == 0)
+                {
+                    model.CreatedAt = DateTime.UtcNow;
+                    _context.PayrollComponents.Add(model);
+                    await _context.SaveChangesAsync();
+
+                    _context.ActivityLogs.Add(new ActivityLog
+                    {
+                        Title = "Payroll Component Created",
+                        Description = $"Created {model.Type} '{model.ComponentName}' ({model.Code}).",
+                        IconClass = model.Type == "Allowance" ? "fa-arrow-trend-up" : "fa-arrow-trend-down",
+                        ColorClass = model.Type == "Allowance" ? "text-success" : "text-danger",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await _context.SaveChangesAsync();
+
+                    try
+                    {
+                        await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                            .SendAsync("ReceivePayrollComponentUpdated", new { id = model.Id, name = model.ComponentName, type = model.Type, action = "Created", timestamp = DateTime.UtcNow });
+                    }
+                    catch { }
+
+                    TempData["SuccessMessage"] = $"{model.Type} '{model.ComponentName}' created successfully.";
+                }
+                else
+                {
+                    var existing = await _context.PayrollComponents.FindAsync(model.Id);
+                    if (existing == null) return NotFound();
+
+                    existing.ComponentName = model.ComponentName;
+                    existing.Code = model.Code;
+                    existing.Type = model.Type;
+                    existing.Taxability = model.Taxability;
+                    existing.CalculationBasis = model.CalculationBasis;
+                    existing.DefaultValueOrRate = model.DefaultValueOrRate;
+                    existing.MaxCapLimit = model.MaxCapLimit ?? "No Limit";
+                    existing.PayFrequency = model.PayFrequency;
+                    existing.IsActive = model.IsActive;
+                    existing.UpdatedAt = DateTime.UtcNow;
+
+                    _context.PayrollComponents.Update(existing);
+                    await _context.SaveChangesAsync();
+
+                    try
+                    {
+                        await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                            .SendAsync("ReceivePayrollComponentUpdated", new { id = existing.Id, name = existing.ComponentName, type = existing.Type, action = "Updated", timestamp = DateTime.UtcNow });
+                    }
+                    catch { }
+
+                    TempData["SuccessMessage"] = $"{existing.Type} '{existing.ComponentName}' updated successfully.";
+                }
             }
             else
             {
-                var existing = await _context.AllowanceDeductionMasters.FindAsync(model.ComponentId);
-                if (existing == null) return NotFound();
-
-                existing.ComponentName = model.ComponentName;
-                existing.ComponentCode = model.ComponentCode;
-                existing.ComponentType = model.ComponentType;
-                existing.Taxability = model.Taxability;
-                existing.CalculationBasis = model.CalculationBasis;
-                existing.DefaultValueOrRate = model.DefaultValueOrRate;
-                existing.MinLimit = model.MinLimit;
-                existing.MaxLimit = model.MaxLimit;
-                existing.PayFrequency = model.PayFrequency;
-                existing.IsActive = model.IsActive;
-                existing.UpdatedAt = DateTime.UtcNow;
-
-                _context.AllowanceDeductionMasters.Update(existing);
-                TempData["SuccessMessage"] = $"Component '{model.ComponentName}' updated successfully.";
+                TempData["ErrorMessage"] = "Validation failed. Please verify the component details.";
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(AllowancesDeductions));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveComponent(PayrollComponent model)
+        {
+            return await CreateComponent(model);
         }
 
         [HttpPost]
@@ -421,12 +650,31 @@ namespace ERP_System.Controllers
         {
             if (!IsHrOrAdminOrFinance()) return Forbid();
 
-            var item = await _context.AllowanceDeductionMasters.FindAsync(id);
-            if (item == null) return NotFound();
+            var item = await _context.PayrollComponents.FindAsync(id);
+            if (item == null)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Headers["Accept"].ToString().Contains("application/json"))
+                {
+                    return Json(new { success = false, message = "Component not found." });
+                }
+                return NotFound();
+            }
 
             item.IsActive = !item.IsActive;
             item.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                    .SendAsync("ReceivePayrollComponentUpdated", new { id = item.Id, name = item.ComponentName, type = item.Type, action = item.IsActive ? "Activated" : "Deactivated", timestamp = DateTime.UtcNow });
+            }
+            catch { }
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Headers["Accept"].ToString().Contains("application/json"))
+            {
+                return Json(new { success = true, isActive = item.IsActive, message = $"Status of '{item.ComponentName}' set to {(item.IsActive ? "Active" : "Inactive")}." });
+            }
 
             TempData["SuccessMessage"] = $"Status of '{item.ComponentName}' updated to {(item.IsActive ? "Active" : "Inactive")}.";
             return RedirectToAction(nameof(AllowancesDeductions));
@@ -438,13 +686,45 @@ namespace ERP_System.Controllers
         {
             if (!IsHrOrAdminOrFinance()) return Forbid();
 
-            var item = await _context.AllowanceDeductionMasters.FindAsync(id);
-            if (item == null) return NotFound();
+            var item = await _context.PayrollComponents.FindAsync(id);
+            if (item == null)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Headers["Accept"].ToString().Contains("application/json"))
+                {
+                    return Json(new { success = false, message = "Component not found." });
+                }
+                return NotFound();
+            }
 
-            _context.AllowanceDeductionMasters.Remove(item);
+            var compName = item.ComponentName;
+            var compType = item.Type;
+
+            _context.PayrollComponents.Remove(item);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"Component '{item.ComponentName}' deleted successfully.";
+            _context.ActivityLogs.Add(new ActivityLog
+            {
+                Title = "Payroll Component Removed",
+                Description = $"Deleted {compType} '{compName}'.",
+                IconClass = "fa-trash-can",
+                ColorClass = "text-danger",
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager")
+                    .SendAsync("ReceivePayrollComponentUpdated", new { id = id, name = compName, type = compType, action = "Deleted", timestamp = DateTime.UtcNow });
+            }
+            catch { }
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Headers["Accept"].ToString().Contains("application/json"))
+            {
+                return Json(new { success = true, message = $"Component '{compName}' removed successfully." });
+            }
+
+            TempData["SuccessMessage"] = $"Component '{compName}' deleted successfully.";
             return RedirectToAction(nameof(AllowancesDeductions));
         }
 
@@ -788,6 +1068,13 @@ namespace ERP_System.Controllers
             });
             await _context.SaveChangesAsync();
 
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager", "Accountant")
+                    .SendAsync("ReceivePayrollRunUpdated", new { payPeriod = payPeriod, status = payrollRun.Status, timestamp = DateTime.UtcNow });
+            }
+            catch { }
+
             TempData["SuccessMessage"] = $"Payroll run for '{payPeriod}' successfully calculated! {payslipsCreatedOrUpdated} payslips generated/updated. Total Net Payout: ₹{runNet:N2}.";
             return RedirectToAction(nameof(PayrollProcessing));
         }
@@ -852,6 +1139,16 @@ namespace ERP_System.Controllers
 
             if (!string.IsNullOrEmpty(remarks)) run.Remarks = remarks;
             run.UpdatedAt = DateTime.UtcNow;
+
+            _context.PayrollRuns.Update(run);
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _hubContext.Clients.Groups("HR", "Super Admin", "Admin", "Finance Manager", "Accountant")
+                    .SendAsync("ReceivePayrollRunUpdated", new { payPeriod = run.PayPeriod, status = run.Status, timestamp = DateTime.UtcNow });
+            }
+            catch { }
 
             await _context.SaveChangesAsync();
 

@@ -491,12 +491,59 @@ namespace ERP_System.Data
                     );
                 END";
 
+            string createLeaveSuiteTablesSql = @"
+                IF OBJECT_ID('AITStudent.LeaveTypes', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.LeaveTypes (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        Name NVARCHAR(100) NOT NULL,
+                        Code NVARCHAR(10) NOT NULL,
+                        YearlyLimit INT NOT NULL DEFAULT 12,
+                        CarryForwardLimit INT NOT NULL DEFAULT 0,
+                        IsEncashable BIT NOT NULL DEFAULT 0,
+                        EligibilityCriteria NVARCHAR(500) NULL,
+                        IsActive BIT NOT NULL DEFAULT 1
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.LeaveRequests', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.LeaveRequests (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        LeaveTypeId INT NOT NULL DEFAULT 1,
+                        StartDate DATETIME NOT NULL,
+                        EndDate DATETIME NOT NULL,
+                        TotalDays INT NOT NULL DEFAULT 1,
+                        Reason NVARCHAR(MAX) NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending',
+                        ApproverRemarks NVARCHAR(500) NULL,
+                        ActionedByUserId NVARCHAR(100) NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                        ActionedAt DATETIME NULL
+                    );
+                END
+
+                IF OBJECT_ID('AITStudent.CompanyHolidays', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.CompanyHolidays (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        Name NVARCHAR(150) NOT NULL,
+                        HolidayDate DATETIME NOT NULL,
+                        DayOfWeek NVARCHAR(50) NOT NULL,
+                        Type NVARCHAR(50) NOT NULL DEFAULT 'Mandatory',
+                        Description NVARCHAR(500) NULL,
+                        Year INT NOT NULL DEFAULT 2026
+                    );
+                END";
+
             // Execute scripts
             await context.Database.ExecuteSqlRawAsync(createESSPunchesSql);
             await context.Database.ExecuteSqlRawAsync(createESSLeaveApplicationsSql);
             await context.Database.ExecuteSqlRawAsync(createESSTasksSql);
             await context.Database.ExecuteSqlRawAsync(createESSExpenseClaimsSql);
             await context.Database.ExecuteSqlRawAsync(createESSSupportTicketsSql);
+            await context.Database.ExecuteSqlRawAsync(createLeaveSuiteTablesSql);
 
             // Dynamically alter erp_ESSLeaveApplications to add columns if they don't exist
             string alterESSLeaveApplicationsSql = @"
