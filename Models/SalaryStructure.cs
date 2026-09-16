@@ -54,6 +54,11 @@ namespace ERP_System.Models
         [StringLength(500)]
         public string? Description { get; set; }
 
+        public int? DepartmentId { get; set; }
+
+        [ForeignKey("DepartmentId")]
+        public virtual Department? DepartmentObj { get; set; }
+
         [StringLength(100)]
         public string Department { get; set; } = "All Departments";
 
@@ -111,6 +116,12 @@ namespace ERP_System.Models
     {
         [Key]
         public int AssignmentId { get; set; }
+
+        [NotMapped]
+        public int Id { get => AssignmentId; set => AssignmentId = value; }
+
+        [NotMapped]
+        public string Status { get => IsCurrent ? "Current" : "Superseded"; set => IsCurrent = (value == "Current"); }
 
         [Required]
         public int UserId { get; set; }
@@ -181,5 +192,49 @@ namespace ERP_System.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+    }
+
+    [Table("SalaryStructureTemplates")]
+    public class SalaryStructureTemplate
+    {
+        [Key]
+        public int Id { get; set; }
+
+        [Required, MaxLength(150)]
+        public string StructureName { get; set; } = string.Empty;
+
+        public int? DepartmentId { get; set; }
+
+        [ForeignKey("DepartmentId")]
+        public virtual Department? Department { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [Column(TypeName = "decimal(5, 2)")]
+        public decimal BasicSalaryPercentage { get; set; } = 50.00m;
+
+        [Column(TypeName = "decimal(5, 2)")]
+        public decimal HraPercentage { get; set; } = 20.00m;
+
+        [Column(TypeName = "decimal(5, 2)")]
+        public decimal LtaPercentage { get; set; } = 5.00m;
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal ConveyanceAllowance { get; set; } = 1600.00m;
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal MedicalAllowance { get; set; } = 1250.00m;
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal OtherAllowance { get; set; } = 0.00m;
+
+        public bool EnablePF { get; set; } = true;
+        public bool EnableESI { get; set; } = false;
+        public bool EnableProfTax { get; set; } = true;
+        public bool EnableTDS { get; set; } = true;
+
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

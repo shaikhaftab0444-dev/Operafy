@@ -15,6 +15,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<ERP_System.Helpers.ICurrencyService, ERP_System.Helpers.CurrencyService>();
 builder.Services.AddScoped<ERP_System.Services.IHierarchyService, ERP_System.Services.HierarchyService>();
 
+// Add SignalR to Services
+builder.Services.AddSignalR(options => {
+    options.EnableDetailedErrors = true;
+});
+
 // Configure Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -148,60 +153,98 @@ using (var scope = app.Services.CreateScope())
                 );
             END
 
-            IF OBJECT_ID('AITStudent.AuditFlaggedItems', 'U') IS NOT NULL
+            -- 4. Ensure DepartmentId exists in SalaryStructureTemplates and erp_SalaryStructureMasters
+            IF OBJECT_ID('SalaryStructureTemplates', 'U') IS NOT NULL
             BEGIN
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.AuditFlaggedItems') AND name = 'ResolutionNotes')
-                    ALTER TABLE AITStudent.AuditFlaggedItems ADD ResolutionNotes NVARCHAR(MAX) NULL;
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.AuditFlaggedItems') AND name = 'AuditedByUserId')
-                    ALTER TABLE AITStudent.AuditFlaggedItems ADD AuditedByUserId NVARCHAR(100) NULL;
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.AuditFlaggedItems') AND name = 'ResolvedAt')
-                    ALTER TABLE AITStudent.AuditFlaggedItems ADD ResolvedAt DATETIME NULL;
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.AuditFlaggedItems') AND name = 'AuditedByUserUserId')
-                    ALTER TABLE AITStudent.AuditFlaggedItems ADD AuditedByUserUserId INT NULL;
-            END
-            ELSE IF OBJECT_ID('AuditFlaggedItems', 'U') IS NOT NULL
-            BEGIN
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AuditFlaggedItems') AND name = 'ResolutionNotes')
-                    ALTER TABLE AuditFlaggedItems ADD ResolutionNotes NVARCHAR(MAX) NULL;
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AuditFlaggedItems') AND name = 'AuditedByUserId')
-                    ALTER TABLE AuditFlaggedItems ADD AuditedByUserId NVARCHAR(100) NULL;
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AuditFlaggedItems') AND name = 'ResolvedAt')
-                    ALTER TABLE AuditFlaggedItems ADD ResolvedAt DATETIME NULL;
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AuditFlaggedItems') AND name = 'AuditedByUserUserId')
-                    ALTER TABLE AuditFlaggedItems ADD AuditedByUserUserId INT NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SalaryStructureTemplates') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE SalaryStructureTemplates ADD DepartmentId INT NULL;
+                END
             END
 
-            -- Ensure SystemMutationLogs exists
-            IF OBJECT_ID('AITStudent.SystemMutationLogs', 'U') IS NULL AND OBJECT_ID('SystemMutationLogs', 'U') IS NULL
+            IF OBJECT_ID('dbo.SalaryStructureTemplates', 'U') IS NOT NULL
             BEGIN
-                CREATE TABLE SystemMutationLogs (
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.SalaryStructureTemplates') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE dbo.SalaryStructureTemplates ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('AITStudent.SalaryStructureTemplates', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.SalaryStructureTemplates') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE AITStudent.SalaryStructureTemplates ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('erp_SalaryStructureMasters', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalaryStructureMasters') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE erp_SalaryStructureMasters ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('dbo.erp_SalaryStructureMasters', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.erp_SalaryStructureMasters') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE dbo.erp_SalaryStructureMasters ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('AITStudent.erp_SalaryStructureMasters', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalaryStructureMasters') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_SalaryStructureMasters ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('SalaryStructures', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('SalaryStructures') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE SalaryStructures ADD DepartmentId INT NULL;
+                END
+            END
+
+            IF OBJECT_ID('erp_SalaryStructures', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalaryStructures') AND name = 'DepartmentId')
+                BEGIN
+                    ALTER TABLE erp_SalaryStructures ADD DepartmentId INT NULL;
+                END
+            END
+
+            -- 5. Ensure PayrollComponents table exists
+            IF OBJECT_ID('PayrollComponents', 'U') IS NULL AND OBJECT_ID('AITStudent.PayrollComponents', 'U') IS NULL
+            BEGIN
+                CREATE TABLE PayrollComponents (
                     Id INT IDENTITY(1,1) PRIMARY KEY,
-                    Timestamp DATETIME NOT NULL DEFAULT GETUTCDATE(),
-                    EntityName NVARCHAR(100) NOT NULL,
-                    RecordId NVARCHAR(100) NOT NULL,
-                    ActionType NVARCHAR(50) NOT NULL,
-                    ChangesSummary NVARCHAR(500) NOT NULL,
-                    OldValuesJson NVARCHAR(MAX) NULL,
-                    NewValuesJson NVARCHAR(MAX) NULL,
-                    PerformedByUserId NVARCHAR(100) NULL,
-                    IpAddress NVARCHAR(50) NULL DEFAULT '127.0.0.1'
+                    ComponentName NVARCHAR(100) NOT NULL,
+                    Code NVARCHAR(15) NOT NULL,
+                    Type NVARCHAR(50) NOT NULL,
+                    Taxability NVARCHAR(50) NULL,
+                    CalculationBasis NVARCHAR(50) NULL,
+                    DefaultValueOrRate DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    MaxCapLimit NVARCHAR(50) NULL,
+                    PayFrequency NVARCHAR(50) NULL,
+                    IsActive BIT NOT NULL DEFAULT 1,
+                    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                    UpdatedAt DATETIME NULL
                 );
-            END
 
-            -- 4. Ensure IsGeneralTask and TargetWarehouseLocation exist on erp_HierarchicalTasks
-            IF OBJECT_ID('AITStudent.erp_HierarchicalTasks', 'U') IS NOT NULL
-            BEGIN
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'IsGeneralTask')
-                    ALTER TABLE AITStudent.erp_HierarchicalTasks ADD IsGeneralTask BIT NOT NULL DEFAULT 0;
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'TargetWarehouseLocation')
-                    ALTER TABLE AITStudent.erp_HierarchicalTasks ADD TargetWarehouseLocation NVARCHAR(250) NULL;
-            END
-            ELSE IF OBJECT_ID('erp_HierarchicalTasks', 'U') IS NOT NULL
-            BEGIN
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_HierarchicalTasks') AND name = 'IsGeneralTask')
-                    ALTER TABLE erp_HierarchicalTasks ADD IsGeneralTask BIT NOT NULL DEFAULT 0;
-                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_HierarchicalTasks') AND name = 'TargetWarehouseLocation')
-                    ALTER TABLE erp_HierarchicalTasks ADD TargetWarehouseLocation NVARCHAR(250) NULL;
+                INSERT INTO PayrollComponents (ComponentName, Code, Type, Taxability, CalculationBasis, DefaultValueOrRate, MaxCapLimit, PayFrequency, IsActive, CreatedAt)
+                VALUES 
+                ('House Rent Allowance', 'HRA', 'Allowance', 'Partially Exempt', 'Percentage of Basic', 40.00, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Conveyance Allowance', 'CONV', 'Allowance', 'Tax Exempt', 'Fixed Amount', 1600.00, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Medical Allowance', 'MED', 'Allowance', 'Tax Exempt', 'Fixed Amount', 1250.00, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Special Allowance', 'SPEC', 'Allowance', 'Fully Taxable', 'Fixed Amount', 0.00, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Provident Fund', 'PF', 'Deduction', 'Fully Deductible', 'Percentage of Basic', 12.00, '1800', 'Monthly', 1, GETUTCDATE()),
+                ('Employee State Insurance', 'ESI', 'Deduction', 'Fully Deductible', 'Percentage of Gross', 0.75, 'No Limit', 'Monthly', 1, GETUTCDATE()),
+                ('Professional Tax', 'PT', 'Deduction', 'Fully Deductible', 'Fixed Amount', 200.00, '200', 'Monthly', 1, GETUTCDATE());
             END
         ";
         await context.Database.ExecuteSqlRawAsync(schemaPatchSql);
@@ -270,6 +313,9 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthorization();
+
+// Map Hub Endpoint before routing/endpoints termination
+app.MapHub<ERP_System.Hubs.ErpNotificationHub>("/erpNotificationHub");
 
 app.MapControllerRoute(
     name: "default",

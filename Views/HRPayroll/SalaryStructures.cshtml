@@ -5,6 +5,14 @@
     var structures = ViewBag.Structures as List<ERP_System.Models.SalaryStructureMaster> ?? new List<ERP_System.Models.SalaryStructureMaster>();
     var assignments = ViewBag.Assignments as List<ERP_System.Models.EmployeeSalaryAssignment> ?? new List<ERP_System.Models.EmployeeSalaryAssignment>();
     var employees = ViewBag.ActiveEmployees as List<ERP_System.Models.User> ?? new List<ERP_System.Models.User>();
+    var departments = ViewBag.Departments as List<ERP_System.Models.Department> ?? new List<ERP_System.Models.Department>();
+
+    int selectedYear = ViewBag.SelectedYear ?? DateTime.Today.Year;
+    int selectedMonth = ViewBag.SelectedMonth ?? DateTime.Today.Month;
+    int? selectedDeptId = ViewBag.SelectedDepartmentId as int?;
+    string searchTerm = ViewBag.SearchTerm as string ?? "";
+    string activeTab = ViewBag.ActiveTab as string ?? "templates";
+    bool isAssignmentsTabActive = activeTab == "assignments";
 }
 
 <style>
@@ -957,7 +965,7 @@
         <ul class="nav salary-tabs" id="salaryTabs" role="tablist">
 
             <li class="nav-item" role="presentation">
-                <button class="nav-link active fw-bold"
+                <button class="nav-link @(!isAssignmentsTabActive ? "active" : "") fw-bold"
                         id="templates-tab"
                         data-bs-toggle="tab"
                         data-bs-target="#templates-pane"
@@ -973,7 +981,7 @@
             </li>
 
             <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold"
+                <button class="nav-link @(isAssignmentsTabActive ? "active" : "") fw-bold"
                         id="assignments-tab"
                         data-bs-toggle="tab"
                         data-bs-target="#assignments-pane"
@@ -996,7 +1004,7 @@
         <!-- =========================================================
              TAB 1: STRUCTURE TEMPLATES
              ========================================================= -->
-        <div class="tab-pane fade show active" id="templates-pane" role="tabpanel">
+        <div class="tab-pane fade @(!isAssignmentsTabActive ? "show active" : "")" id="templates-pane" role="tabpanel">
 
             <div class="salary-content-card">
 
@@ -1179,6 +1187,29 @@
 
                                                 <div class="d-inline-flex align-items-center gap-1">
 
+                                                    <button type="button"
+                                                            class="btn btn-outline-primary salary-row-action edit-struct-btn"
+                                                            title="Edit Structure"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#editStructureModal"
+                                                            data-id="@item.StructureId"
+                                                            data-name="@item.StructureName"
+                                                            data-deptid="@item.DepartmentId"
+                                                            data-dept="@item.Department"
+                                                            data-desc="@item.Description"
+                                                            data-basic="@item.BasicPercent"
+                                                            data-hra="@item.HRAPercent"
+                                                            data-lta="@item.LTAPercent"
+                                                            data-conv="@item.ConveyanceAllowance"
+                                                            data-med="@item.MedicalAllowance"
+                                                            data-other="@item.OtherAllowance"
+                                                            data-pf="@(item.IsPFEnabled ? "true" : "false")"
+                                                            data-esi="@(item.IsESIEnabled ? "true" : "false")"
+                                                            data-pt="@(item.IsPTEnabled ? "true" : "false")"
+                                                            data-tds="@(item.IsTDSEnabled ? "true" : "false")">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                    </button>
+
                                                     <form asp-action="DuplicateSalaryStructure"
                                                           method="post"
                                                           class="d-inline">
@@ -1256,21 +1287,94 @@
         <!-- =========================================================
              TAB 2: EMPLOYEE ASSIGNMENTS
              ========================================================= -->
-        <div class="tab-pane fade" id="assignments-pane" role="tabpanel">
+        <div class="tab-pane fade @(isAssignmentsTabActive ? "show active" : "")" id="assignments-pane" role="tabpanel">
 
             <div class="salary-content-card">
 
-                <div class="salary-card-top">
+                <div class="salary-card-top d-flex flex-wrap align-items-center justify-content-between gap-3">
 
-                    <h6 class="salary-card-title">
-                        Employee Salary Assignments
-                    </h6>
+                    <div>
+                        <h6 class="salary-card-title">
+                            Employee Salary Assignments
+                        </h6>
 
-                    <div class="salary-card-description">
-                        Review employee CTC assignments, salary structure and monthly compensation.
+                        <div class="salary-card-description">
+                            Review employee CTC assignments, salary structure and monthly compensation.
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-bold">
+                            <i class="fa-solid fa-calendar-check me-1"></i>
+                            @(selectedMonth > 0 ? new DateTime(2026, selectedMonth, 1).ToString("MMMM") : "All Months") @selectedYear Scope
+                        </span>
                     </div>
 
                 </div>
+
+                <!-- Monthly / Fiscal Calendar & Department Filter Strip -->
+                <form method="get" asp-action="SalaryStructures" class="p-3 bg-light border-bottom">
+                    <input type="hidden" name="activeTab" value="assignments" />
+
+                    <div class="row g-2 align-items-center">
+
+                        <!-- Month Selector -->
+                        <div class="col-md-2 col-sm-6">
+                            <label class="form-label text-muted extra-small mb-1 fw-bold">Effective Month</label>
+                            <select name="month" class="form-select form-select-sm">
+                                <option value="0" selected="@(selectedMonth == 0)">All Months</option>
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    var monthName = new DateTime(2026, m, 1).ToString("MMMM");
+                                    <option value="@m" selected="@(selectedMonth == m)">@monthName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Year Selector -->
+                        <div class="col-md-2 col-sm-6">
+                            <label class="form-label text-muted extra-small mb-1 fw-bold">Fiscal / Cal Year</label>
+                            <select name="year" class="form-select form-select-sm">
+                                @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 1; y++)
+                                {
+                                    <option value="@y" selected="@(selectedYear == y)">@y</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Department Selector -->
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label text-muted extra-small mb-1 fw-bold">Department Scope</label>
+                            <select name="departmentId" class="form-select form-select-sm">
+                                <option value="">All Departments</option>
+                                @foreach (var d in departments)
+                                {
+                                    <option value="@d.DepartmentId" selected="@(selectedDeptId == d.DepartmentId)">@d.DepartmentName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Search Input -->
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label text-muted extra-small mb-1 fw-bold">Employee Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                <input type="text" name="search" value="@searchTerm" class="form-control" placeholder="Search name, code, email..." />
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="col-md-2 col-sm-12 d-flex gap-1 mt-auto">
+                            <button type="submit" class="btn btn-sm btn-primary flex-grow-1" style="min-height: 31px;">
+                                <i class="fa-solid fa-filter me-1"></i>Filter
+                            </button>
+                            <a href="@Url.Action("SalaryStructures", "HRPayroll", new { activeTab = "assignments" })" class="btn btn-sm btn-outline-secondary" title="Reset Filters" style="min-height: 31px;">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </a>
+                        </div>
+
+                    </div>
+                </form>
 
                 <div class="salary-table-area">
 
@@ -1281,6 +1385,7 @@
                             <thead>
                                 <tr>
                                     <th>Employee</th>
+                                    <th>Department</th>
                                     <th>Structure Template</th>
                                     <th>Annual CTC</th>
                                     <th>Monthly Basic</th>
@@ -1296,7 +1401,7 @@
                                 @if (!assignments.Any())
                                 {
                                     <tr>
-                                        <td colspan="8" class="text-center salary-empty-state">
+                                        <td colspan="9" class="text-center salary-empty-state">
 
                                             <div class="salary-empty-icon">
                                                 <i class="fa-solid fa-user-gear fa-xl"></i>
@@ -1307,7 +1412,7 @@
                                             </div>
 
                                             <div class="salary-empty-text">
-                                                Assign a salary structure and CTC to an employee to get started.
+                                                No assignments found matching the selected month/year/department filters.
                                             </div>
 
                                         </td>
@@ -1339,6 +1444,14 @@
                                                     </div>
 
                                                 </div>
+                                            </td>
+
+                                            <!-- Department -->
+                                            <td>
+                                                <span class="salary-department-badge">
+                                                    <i class="fa-solid fa-building me-1"></i>
+                                                    @(assign.User?.Department?.DepartmentName ?? assign.User?.DepartmentName ?? "General")
+                                                </span>
                                             </td>
 
                                             <!-- Structure -->
@@ -1465,10 +1578,13 @@
                                 Department
                             </label>
 
-                            <input type="text"
-                                   name="Department"
-                                   class="form-control"
-                                   value="All Departments">
+                            <select name="DepartmentId" class="form-select" id="createStructDept">
+                                <option value="">All Departments (Company-wide)</option>
+                                @foreach (var dept in departments)
+                                {
+                                    <option value="@dept.DepartmentId">@dept.DepartmentName</option>
+                                }
+                            </select>
                         </div>
 
                         <!-- Description -->
@@ -1688,7 +1804,291 @@
 </div>
 
 <!-- =========================================================
-     MODAL 2: ASSIGN CTC TO EMPLOYEE
+     MODAL 2: EDIT SALARY STRUCTURE TEMPLATE
+     ========================================================= -->
+
+<div class="modal fade salary-modal"
+     id="editStructureModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header bg-primary text-white">
+
+                <h5 class="modal-title">
+                    <span class="modal-title-icon">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </span>
+                    Edit Salary Structure
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
+            </div>
+
+            <form asp-action="EditSalaryStructure" method="post">
+
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="StructureId" id="editStructId" />
+
+                <div class="modal-body">
+
+                    <div class="row g-3">
+
+                        <!-- Structure Name -->
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Structure Name
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="text"
+                                   name="StructureName"
+                                   id="editStructName"
+                                   class="form-control"
+                                   required
+                                   placeholder="e.g. Standard Executive CTC">
+                        </div>
+
+                        <!-- Department -->
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Department
+                            </label>
+
+                            <select name="DepartmentId" class="form-select" id="editStructDeptId">
+                                <option value="">All Departments (Company-wide)</option>
+                                @foreach (var dept in departments)
+                                {
+                                    <option value="@dept.DepartmentId">@dept.DepartmentName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-12">
+                            <label class="form-label">
+                                Description
+                            </label>
+
+                            <textarea name="Description"
+                                      id="editStructDesc"
+                                      class="form-control"
+                                      rows="2"
+                                      placeholder="Brief description of this salary component rules..."></textarea>
+                        </div>
+
+                        <!-- Salary Components Section -->
+                        <div class="col-12">
+                            <div class="salary-modal-section">
+                                <i class="fa-solid fa-chart-pie"></i>
+                                Salary Component % Breakdown
+                            </div>
+                        </div>
+
+                        <!-- Basic -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Basic Salary (%)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="BasicPercent"
+                                   id="editStructBasic"
+                                   class="form-control"
+                                   value="50.00"
+                                   required>
+                        </div>
+
+                        <!-- HRA -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                HRA (% of Basic)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="HRAPercent"
+                                   id="editStructHRA"
+                                   class="form-control"
+                                   value="20.00"
+                                   required>
+                        </div>
+
+                        <!-- LTA -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                LTA (% of Basic)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="LTAPercent"
+                                   id="editStructLTA"
+                                   class="form-control"
+                                   value="5.00"
+                                   required>
+                        </div>
+
+                        <!-- Conveyance -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Conveyance (Fixed ₹/mo)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="ConveyanceAllowance"
+                                   id="editStructConv"
+                                   class="form-control"
+                                   value="1600.00">
+                        </div>
+
+                        <!-- Medical -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Medical (Fixed ₹/mo)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="MedicalAllowance"
+                                   id="editStructMed"
+                                   class="form-control"
+                                   value="1250.00">
+                        </div>
+
+                        <!-- Other Allowances -->
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Other Allowances (Fixed ₹/mo)
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   name="OtherAllowance"
+                                   id="editStructOther"
+                                   class="form-control"
+                                   value="0.00">
+                        </div>
+
+                        <!-- Statutory Rules Section -->
+                        <div class="col-12">
+                            <div class="salary-modal-section">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                Statutory Rules & Deductions
+                            </div>
+                        </div>
+
+                        <!-- PF -->
+                        <div class="col-md-3">
+                            <div class="salary-switch-card">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsPFEnabled"
+                                           value="true"
+                                           id="editPfSwitch">
+
+                                    <label class="form-check-label"
+                                           for="editPfSwitch">
+                                        Enable PF (12%)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ESI -->
+                        <div class="col-md-3">
+                            <div class="salary-switch-card">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsESIEnabled"
+                                           value="true"
+                                           id="editEsiSwitch">
+
+                                    <label class="form-check-label"
+                                           for="editEsiSwitch">
+                                        Enable ESI (0.75%)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PT -->
+                        <div class="col-md-3">
+                            <div class="salary-switch-card">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsPTEnabled"
+                                           value="true"
+                                           id="editPtSwitch">
+
+                                    <label class="form-check-label"
+                                           for="editPtSwitch">
+                                        Enable Prof Tax
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TDS -->
+                        <div class="col-md-3">
+                            <div class="salary-switch-card">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsTDSEnabled"
+                                           value="true"
+                                           id="editTdsSwitch">
+
+                                    <label class="form-check-label"
+                                           for="editTdsSwitch">
+                                        Enable TDS
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-light border salary-modal-cancel"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn salary-modal-submit">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>
+                        Update Structure
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL 3: ASSIGN CTC TO EMPLOYEE (DEBOUNCED TYPEAHEAD)
      ========================================================= -->
 
 <div class="modal fade salary-modal"
@@ -1716,7 +2116,7 @@
 
             </div>
 
-            <form asp-action="AssignSalaryToEmployee" method="post">
+            <form asp-action="AssignSalaryToEmployee" method="post" id="assignCtcForm">
 
                 @Html.AntiForgeryToken()
 
@@ -1724,32 +2124,51 @@
 
                     <div class="row g-3">
 
-                        <!-- Employee -->
-                        <div class="col-md-6">
+                        <!-- Employee Debounced AJAX Typeahead Lookup -->
+                        <div class="col-md-6 position-relative">
 
                             <label class="form-label">
-                                Select Employee
+                                Search Employee (Scalable 2,000+ Staff)
                                 <span class="text-danger">*</span>
                             </label>
 
-                            <select name="userId"
-                                    class="form-select"
-                                    required>
+                            <input type="hidden" name="userId" id="assignEmpUserId" required />
 
-                                <option value="">-- Choose Employee --</option>
+                            <div class="position-relative" id="typeaheadWrapper">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                                    </span>
+                                    <input type="text"
+                                           id="assignEmpSearchInput"
+                                           class="form-control border-start-0"
+                                           placeholder="Type name, emp code, or email..."
+                                           autocomplete="off" />
+                                </div>
+                                <div id="assignEmpSpinner" class="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3 d-none" role="status"></div>
+                            </div>
 
-                                @foreach (var emp in employees)
-                                {
-                                    <option value="@emp.UserId">
-                                        @emp.FullName (@emp.UserCode - @emp.Role?.RoleName)
-                                    </option>
-                                }
+                            <!-- Typeahead Live Search Results Dropdown -->
+                            <div id="assignEmpResultsMenu" class="dropdown-menu shadow-lg w-100 p-2 position-absolute" style="display:none; max-height: 260px; overflow-y: auto; z-index: 1065;">
+                            </div>
 
-                            </select>
+                            <!-- Selected Employee Pill -->
+                            <div id="assignEmpSelectedPill" class="mt-2 p-2.5 rounded-3 border bg-light d-none align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="salary-employee-avatar" id="assignEmpPillAvatar" style="width: 34px; height: 34px; min-width: 34px; font-size: 0.8rem; background: rgba(13, 110, 253, 0.12);">EM</div>
+                                    <div>
+                                        <div class="fw-bold text-dark small" id="assignEmpPillName">Employee Name</div>
+                                        <div class="text-muted extra-small" style="font-size: 0.73rem;" id="assignEmpPillMeta">EMP001 • Department</div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" id="assignEmpClearBtn" title="Change selection">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            </div>
 
                         </div>
 
-                        <!-- Structure -->
+                        <!-- Structure Template -->
                         <div class="col-md-6">
 
                             <label class="form-label">
@@ -1835,6 +2254,9 @@
 </div>
 
 <script>
+    // -------------------------------------------------------------
+    // 1. Structure Search Filter
+    // -------------------------------------------------------------
     document.getElementById('searchStructureInput')?.addEventListener('keyup', function () {
         let val = this.value.toLowerCase();
         let rows = document.querySelectorAll('#structuresTable tbody tr');
@@ -1843,5 +2265,196 @@
             let text = r.innerText.toLowerCase();
             r.style.display = text.includes(val) ? '' : 'none';
         });
+    });
+
+    // -------------------------------------------------------------
+    // 2. Edit Salary Structure Modal Handler
+    // -------------------------------------------------------------
+    document.querySelectorAll('.edit-struct-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.getElementById('editStructId').value = this.dataset.id || '';
+            document.getElementById('editStructName').value = this.dataset.name || '';
+            document.getElementById('editStructDesc').value = this.dataset.desc || '';
+            document.getElementById('editStructDeptId').value = this.dataset.deptid || '';
+            document.getElementById('editStructBasic').value = this.dataset.basic || '50';
+            document.getElementById('editStructHRA').value = this.dataset.hra || '20';
+            document.getElementById('editStructLTA').value = this.dataset.lta || '5';
+            document.getElementById('editStructConv').value = this.dataset.conv || '1600';
+            document.getElementById('editStructMed').value = this.dataset.med || '1250';
+            document.getElementById('editStructOther').value = this.dataset.other || '0';
+
+            document.getElementById('editPfSwitch').checked = this.dataset.pf === 'true';
+            document.getElementById('editEsiSwitch').checked = this.dataset.esi === 'true';
+            document.getElementById('editPtSwitch').checked = this.dataset.pt === 'true';
+            document.getElementById('editTdsSwitch').checked = this.dataset.tds === 'true';
+        });
+    });
+
+    // -------------------------------------------------------------
+    // 3. 300ms Debounced AJAX Employee Typeahead Search Engine
+    // -------------------------------------------------------------
+    (function () {
+        const searchInput = document.getElementById('assignEmpSearchInput');
+        const hiddenUserId = document.getElementById('assignEmpUserId');
+        const resultsMenu = document.getElementById('assignEmpResultsMenu');
+        const spinner = document.getElementById('assignEmpSpinner');
+        const selectedPill = document.getElementById('assignEmpSelectedPill');
+        const pillAvatar = document.getElementById('assignEmpPillAvatar');
+        const pillName = document.getElementById('assignEmpPillName');
+        const pillMeta = document.getElementById('assignEmpPillMeta');
+        const clearBtn = document.getElementById('assignEmpClearBtn');
+        const typeaheadWrapper = document.getElementById('typeaheadWrapper');
+
+        let debounceTimer = null;
+
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', function () {
+            const query = this.value.trim();
+
+            clearTimeout(debounceTimer);
+
+            if (query.length < 2) {
+                resultsMenu.style.display = 'none';
+                resultsMenu.innerHTML = '';
+                spinner.classList.add('d-none');
+                return;
+            }
+
+            spinner.classList.remove('d-none');
+
+            debounceTimer = setTimeout(async function () {
+                try {
+                    const res = await fetch(`/HRPayroll/SearchEmployees?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+
+                    spinner.classList.add('d-none');
+
+                    if (!data || data.length === 0) {
+                        resultsMenu.innerHTML = '<div class="p-2 text-muted small text-center"><i class="fa-solid fa-circle-info me-1"></i>No matching employees found</div>';
+                        resultsMenu.style.display = 'block';
+                        return;
+                    }
+
+                    let html = '';
+                    data.forEach(emp => {
+                        html += `
+                            <a href="javascript:void(0)" class="dropdown-item d-flex align-items-center gap-2 p-2 rounded emp-result-item"
+                               data-id="${emp.id}"
+                               data-name="${escapeHtml(emp.name)}"
+                               data-code="${escapeHtml(emp.code)}"
+                               data-dept="${escapeHtml(emp.department)}"
+                               data-role="${escapeHtml(emp.designation)}"
+                               data-initials="${escapeHtml(emp.initials)}">
+                                <div class="salary-employee-avatar" style="width: 32px; height: 32px; min-width: 32px; font-size: 0.75rem; background: rgba(13, 110, 253, 0.1);">
+                                    ${escapeHtml(emp.initials)}
+                                </div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="fw-bold small text-dark text-truncate">${escapeHtml(emp.name)}</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.72rem;">${escapeHtml(emp.code)} • ${escapeHtml(emp.department)} • ${escapeHtml(emp.designation)}</div>
+                                </div>
+                            </a>
+                        `;
+                    });
+
+                    resultsMenu.innerHTML = html;
+                    resultsMenu.style.display = 'block';
+
+                    // Wire click events
+                    resultsMenu.querySelectorAll('.emp-result-item').forEach(item => {
+                        item.addEventListener('click', function () {
+                            const empId = this.dataset.id;
+                            const empName = this.dataset.name;
+                            const empCode = this.dataset.code;
+                            const empDept = this.dataset.dept;
+                            const empInitials = this.dataset.initials;
+
+                            hiddenUserId.value = empId;
+                            pillAvatar.innerText = empInitials;
+                            pillName.innerText = empName;
+                            pillMeta.innerText = `${empCode} • ${empDept}`;
+
+                            typeaheadWrapper.classList.add('d-none');
+                            resultsMenu.style.display = 'none';
+                            selectedPill.classList.remove('d-none');
+                            selectedPill.classList.add('d-flex');
+                        });
+                    });
+                } catch (err) {
+                    spinner.classList.add('d-none');
+                    console.error('Error searching employees:', err);
+                }
+            }, 300);
+        });
+
+        // Clear Selection
+        clearBtn?.addEventListener('click', function () {
+            hiddenUserId.value = '';
+            searchInput.value = '';
+            selectedPill.classList.add('d-none');
+            selectedPill.classList.remove('d-flex');
+            typeaheadWrapper.classList.remove('d-none');
+            searchInput.focus();
+        });
+
+        // Hide results menu on outside click
+        document.addEventListener('click', function (e) {
+            if (!resultsMenu.contains(e.target) && e.target !== searchInput) {
+                resultsMenu.style.display = 'none';
+            }
+        });
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    })();
+
+    // -------------------------------------------------------------
+    // 4. ASP.NET Core SignalR Real-Time Event Synchronization
+    // -------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof signalR !== 'undefined') {
+            const hubConn = new signalR.HubConnectionBuilder()
+                .withUrl("/erpNotificationHub")
+                .withAutomaticReconnect()
+                .build();
+
+            hubConn.on("ReceiveSalaryStructureUpdated", function (data) {
+                console.log("[SignalR] Salary Structure Updated:", data);
+                if (typeof toastr !== 'undefined') {
+                    toastr.info(`Salary structure '${data.structureName}' was ${data.action.toLowerCase()}.`, "Payroll Master Update");
+                }
+            });
+
+            hubConn.on("ReceiveEmployeeSalaryAssigned", function (data) {
+                console.log("[SignalR] Employee Salary Assigned:", data);
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(`CTC ₹${Number(data.ctc).toLocaleString('en-IN')} assigned to ${data.employeeName}.`, "CTC Updated");
+                }
+            });
+
+            hubConn.on("ReceivePayrollRunUpdated", function (data) {
+                console.log("[SignalR] Payroll Run Updated:", data);
+                if (typeof toastr !== 'undefined') {
+                    toastr.info(`Payroll run for ${data.payPeriod} is now ${data.status}.`, "Payroll Run Synchronized");
+                }
+            });
+
+            hubConn.start()
+                .then(function () {
+                    console.log("[SignalR] Connected to /erpNotificationHub");
+                    hubConn.invoke("JoinRoleGroup", "HR").catch(console.error);
+                    hubConn.invoke("JoinRoleGroup", "Super Admin").catch(console.error);
+                })
+                .catch(function (err) {
+                    console.warn("[SignalR] Hub connection notice:", err.toString());
+                });
+        }
     });
 </script>

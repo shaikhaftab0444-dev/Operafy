@@ -1,53 +1,30 @@
+﻿@model IEnumerable<ERP_System.Models.LeaveType>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Leave Policy & Types";
+
+    var totalPolicies = ViewBag.TotalLeaveTypes ?? Model?.Count() ?? 0;
+    var maxYearly = ViewBag.MaxYearlyLeave ?? Model?.Sum(p => p.YearlyLimit) ?? 0;
+    var encashableCount = ViewBag.EncashableCount ?? Model?.Count(p => p.IsEncashable) ?? 0;
 }
 
 <style>
     /* ============================================
-           LEAVE POLICY - PREMIUM UI
-           ============================================ */
-
+       LEAVE POLICY - PREMIUM UI
+       ============================================ */
     .leave-policy-page {
         animation: leavePageEntrance 0.6s ease-out both;
     }
 
     @@keyframes leavePageEntrance {
-        from
-
-    {
-        opacity: 0;
-        transform: translateY(18px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    }
-
-    /* ============================================
-           HEADER
-           ============================================ */
-
-    .leave-policy-header {
-        animation: leaveHeaderEntrance 0.6s ease-out both;
-    }
-
-    @@keyframes leaveHeaderEntrance {
-        from
-
-    {
-        opacity: 0;
-        transform: translateY(-12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .leave-title-icon {
@@ -70,21 +47,9 @@
     }
 
     .leave-policy-title {
-        color: var(--text-color, #1f2937);
+        color: #1f2937;
         letter-spacing: -0.5px;
     }
-
-    .leave-policy-breadcrumb a {
-        transition: color 0.2s ease;
-    }
-
-        .leave-policy-breadcrumb a:hover {
-            color: var(--bs-primary) !important;
-        }
-
-    /* ============================================
-           CREATE BUTTON
-           ============================================ */
 
     .leave-create-btn {
         position: relative;
@@ -92,34 +57,10 @@
         transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
 
-        .leave-create-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 22px rgba(13, 110, 253, 0.22) !important;
-        }
-
-        .leave-create-btn:active {
-            transform: scale(0.97);
-        }
-
-        .leave-create-btn::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 50%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.2);
-            transform: skewX(-25deg);
-            transition: left 0.55s ease;
-        }
-
-        .leave-create-btn:hover::before {
-            left: 140%;
-        }
-
-    /* ============================================
-           SUMMARY CARDS
-           ============================================ */
+    .leave-create-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(13, 110, 253, 0.22) !important;
+    }
 
     .leave-summary-card {
         position: relative;
@@ -127,56 +68,11 @@
         border: 1px solid #edf0f4 !important;
         min-height: 120px;
         transition: transform 0.28s ease, box-shadow 0.28s ease;
-        animation: leaveCardEntrance 0.55s ease-out both;
     }
 
-        .leave-summary-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 16px 32px rgba(20, 30, 55, 0.1) !important;
-        }
-
-        .leave-summary-card::after {
-            content: "";
-            position: absolute;
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            top: -55px;
-            right: -50px;
-            background: currentColor;
-            opacity: 0.035;
-            transition: transform 0.4s ease;
-        }
-
-        .leave-summary-card:hover::after {
-            transform: scale(1.45);
-        }
-
-    @@keyframes leaveCardEntrance {
-        from
-
-    {
-        opacity: 0;
-        transform: translateY(20px) scale(0.98);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-
-    }
-
-    .leave-summary-card:nth-child(1) {
-        animation-delay: 0.08s;
-    }
-
-    .leave-summary-card:nth-child(2) {
-        animation-delay: 0.14s;
-    }
-
-    .leave-summary-card:nth-child(3) {
-        animation-delay: 0.20s;
+    .leave-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 16px 32px rgba(20, 30, 55, 0.1) !important;
     }
 
     .leave-summary-icon {
@@ -187,132 +83,11 @@
         justify-content: center;
         border-radius: 16px;
         flex-shrink: 0;
-        transition: transform 0.3s ease;
     }
-
-    .leave-summary-card:hover .leave-summary-icon {
-        transform: rotate(-6deg) scale(1.08);
-    }
-
-    .leave-summary-label {
-        font-size: 0.7rem;
-        letter-spacing: 0.7px;
-        text-transform: uppercase;
-    }
-
-    .leave-summary-value {
-        letter-spacing: -0.6px;
-    }
-
-    /* ============================================
-           TABLE CARD
-           ============================================ */
 
     .leave-policy-table-card {
         overflow: hidden;
         border: 1px solid #e9edf2 !important;
-        animation: leaveTableEntrance 0.65s ease-out 0.22s both;
-        transition: box-shadow 0.3s ease;
-    }
-
-        .leave-policy-table-card:hover {
-            box-shadow: 0 15px 35px rgba(20, 30, 55, 0.07) !important;
-        }
-
-    @@keyframes leaveTableEntrance {
-        from
-
-    {
-        opacity: 0;
-        transform: translateY(18px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    }
-
-    .leave-table-header {
-        padding-bottom: 16px;
-        border-bottom: 1px solid #edf0f4;
-    }
-
-    .leave-record-badge {
-        background: #f8f9fb;
-        transition: all 0.25s ease;
-    }
-
-    .leave-policy-table-card:hover .leave-record-badge {
-        border-color: rgba(13, 110, 253, 0.3) !important;
-        color: var(--bs-primary) !important;
-    }
-
-    /* ============================================
-           TABLE
-           ============================================ */
-
-    .leave-policy-table thead th {
-        padding: 14px 13px;
-        font-size: 0.71rem;
-        letter-spacing: 0.55px;
-        text-transform: uppercase;
-        color: #6c757d;
-        border-bottom: 1px solid #e8ebef;
-        white-space: nowrap;
-    }
-
-    .leave-policy-table tbody tr {
-        transition: background-color 0.22s ease, transform 0.22s ease;
-        animation: leaveRowEntrance 0.4s ease-out both;
-    }
-
-        .leave-policy-table tbody tr:nth-child(1) {
-            animation-delay: 0.28s;
-        }
-
-        .leave-policy-table tbody tr:nth-child(2) {
-            animation-delay: 0.36s;
-        }
-
-        .leave-policy-table tbody tr:nth-child(3) {
-            animation-delay: 0.44s;
-        }
-
-    @@keyframes leaveRowEntrance {
-        from
-
-    {
-        opacity: 0;
-        transform: translateX(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-
-    }
-
-    .leave-policy-table tbody tr:hover {
-        background: rgba(13, 110, 253, 0.025);
-    }
-
-    .leave-policy-table tbody td {
-        padding: 15px 13px;
-        border-color: #f0f2f5;
-        vertical-align: middle;
-    }
-
-    /* ============================================
-           LEAVE NAME
-           ============================================ */
-
-    .leave-name-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 11px;
     }
 
     .leave-type-icon {
@@ -323,103 +98,29 @@
         justify-content: center;
         border-radius: 12px;
         flex-shrink: 0;
-        transition: transform 0.25s ease;
-    }
-
-    .leave-policy-table tbody tr:hover .leave-type-icon {
-        transform: rotate(-7deg) scale(1.08);
-    }
-
-    .leave-type-name {
-        font-weight: 700;
-        color: var(--text-color, #212529);
-        transition: color 0.2s ease;
-    }
-
-    .leave-policy-table tbody tr:hover .leave-type-name {
-        color: var(--bs-primary);
-    }
-
-    /* ============================================
-           BADGES
-           ============================================ */
-
-    .leave-code-badge,
-    .leave-limit-badge,
-    .leave-encashable-badge {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .leave-policy-table tbody tr:hover .leave-code-badge,
-    .leave-policy-table tbody tr:hover .leave-limit-badge,
-    .leave-policy-table tbody tr:hover .leave-encashable-badge {
-        transform: scale(1.04);
-    }
-
-    .leave-code-badge {
-        font-size: 0.72rem;
-        letter-spacing: 0.5px;
-        padding: 6px 10px;
-    }
-
-    .leave-criteria {
-        max-width: 280px;
-        line-height: 1.5;
-    }
-
-    /* ============================================
-           RESPONSIVE
-           ============================================ */
-
-    @@media (max-width: 767.98px) {
-        .leave-policy-header
-
-    {
-        align-items: flex-start !important;
-    }
-
-    .leave-summary-card {
-        min-height: 105px;
-    }
-
-    .leave-policy-table-card {
-        padding: 1rem !important;
-    }
-
-    .leave-table-header {
-        align-items: flex-start !important;
-        gap: 10px;
-    }
-
-    .leave-policy-table tbody td,
-    .leave-policy-table thead th {
-        padding: 12px 10px;
-    }
-
-    }
-
-    /* ============================================
-           REDUCED MOTION
-           ============================================ */
-
-    @@media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after
-
-    {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
-
     }
 </style>
 
 <div class="container-fluid py-4 text-start leave-policy-page">
 
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- Header -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 leave-policy-header">
-
         <div>
             <h4 class="fw-bold mb-1 leave-policy-title">
                 <span class="leave-title-icon">
@@ -427,318 +128,261 @@
                 </span>
                 Leave Policy & Types
             </h4>
-
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small leave-policy-breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="/HR" class="text-decoration-none">
-                            HR Dashboard
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item active" aria-current="page">
-                        Leave Policy
-                    </li>
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="/HR" class="text-decoration-none">HR Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Leave Policy</li>
                 </ol>
             </nav>
         </div>
 
-        <button class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm leave-create-btn">
-            <i class="fa-solid fa-plus me-1"></i>
+        <button type="button"
+                class="btn btn-primary rounded-pill px-3 btn-sm shadow-sm leave-create-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#createLeaveTypeModal">
+            <i class="fa-solid fa-plus me-1.5"></i>
             Create Leave Type
         </button>
     </div>
 
     <!-- Summary Cards -->
     <div class="row g-3 mb-4">
-
-        <!-- Total Leave Types -->
         <div class="col-12 col-md-4">
             <div class="card bg-white rounded-3 shadow-sm p-3 leave-summary-card">
                 <div class="d-flex align-items-center justify-content-between">
-
                     <div>
-                        <div class="text-muted fw-semibold leave-summary-label">
+                        <div class="text-muted fw-semibold small text-uppercase" style="letter-spacing: 0.5px;">
                             Active Leave Types
                         </div>
-
-                        <h3 class="fw-bold text-dark mb-0 mt-2 leave-summary-value">
-                            3
+                        <h3 class="fw-bold text-dark mb-0 mt-2">
+                            @totalPolicies
                         </h3>
                     </div>
-
                     <div class="leave-summary-icon bg-primary bg-opacity-10 text-primary">
                         <i class="fa-solid fa-layer-group fa-lg"></i>
                     </div>
-
                 </div>
             </div>
         </div>
 
-        <!-- Maximum Yearly Leave -->
         <div class="col-12 col-md-4">
             <div class="card bg-white rounded-3 shadow-sm p-3 leave-summary-card">
                 <div class="d-flex align-items-center justify-content-between">
-
                     <div>
-                        <div class="text-muted fw-semibold leave-summary-label">
-                            Maximum Yearly Leave
+                        <div class="text-muted fw-semibold small text-uppercase" style="letter-spacing: 0.5px;">
+                            Total Yearly Entitlement
                         </div>
-
-                        <h3 class="fw-bold text-dark mb-0 mt-2 leave-summary-value">
-                            15 Days
+                        <h3 class="fw-bold text-dark mb-0 mt-2">
+                            @maxYearly Days
                         </h3>
                     </div>
-
                     <div class="leave-summary-icon bg-success bg-opacity-10 text-success">
                         <i class="fa-solid fa-calendar-check fa-lg"></i>
                     </div>
-
                 </div>
             </div>
         </div>
 
-        <!-- Encashable Policies -->
         <div class="col-12 col-md-4">
             <div class="card bg-white rounded-3 shadow-sm p-3 leave-summary-card">
                 <div class="d-flex align-items-center justify-content-between">
-
                     <div>
-                        <div class="text-muted fw-semibold leave-summary-label">
+                        <div class="text-muted fw-semibold small text-uppercase" style="letter-spacing: 0.5px;">
                             Encashable Leave Types
                         </div>
-
-                        <h3 class="fw-bold text-dark mb-0 mt-2 leave-summary-value">
-                            1
+                        <h3 class="fw-bold text-dark mb-0 mt-2">
+                            @encashableCount
                         </h3>
                     </div>
-
                     <div class="leave-summary-icon bg-warning bg-opacity-10 text-warning">
                         <i class="fa-solid fa-wallet fa-lg"></i>
                     </div>
-
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- Leave Policies Table -->
     <div class="bg-white rounded-3 p-4 shadow-sm leave-policy-table-card">
-
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 leave-table-header">
-
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 pb-2 border-bottom">
             <div>
                 <h6 class="fw-bold mb-1 text-secondary">
                     Leave Policy Configuration
                 </h6>
-
                 <div class="small text-muted">
-                    Manage available leave types, yearly limits and employee eligibility.
+                    Manage available leave categories, yearly limits, carry forward, and employee eligibility.
                 </div>
             </div>
-
-            <span class="badge text-dark border rounded-pill px-3 py-2 leave-record-badge">
-                <i class="fa-solid fa-list me-1"></i>
-                3 Leave Types
+            <span class="badge bg-light text-dark border rounded-pill px-3 py-2 mt-2 mt-md-0">
+                <i class="fa-solid fa-list me-1 text-primary"></i>
+                @totalPolicies Leave Types Configured
             </span>
-
         </div>
 
         <div class="table-responsive">
-
-            <table class="table table-hover align-middle mb-0 leave-policy-table">
-
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="table-light">
                     <tr>
                         <th>Leave Name</th>
                         <th>Code</th>
                         <th>Yearly Limit</th>
-                        <th>Carry Forward Limit</th>
+                        <th>Carry Forward</th>
                         <th>Encashable</th>
                         <th>Eligibility Criteria</th>
                     </tr>
                 </thead>
-
                 <tbody>
-
-                    <!-- Casual Leave -->
-                    <tr>
-
-                        <td>
-                            <div class="leave-name-wrapper">
-
-                                <div class="leave-type-icon bg-primary bg-opacity-10 text-primary">
-                                    <i class="fa-solid fa-mug-hot"></i>
-                                </div>
-
-                                <div>
-                                    <div class="leave-type-name">
-                                        Casual Leave
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="leave-type-icon @(item.Code == "CL" ? "bg-primary text-primary" : item.Code == "SL" ? "bg-danger text-danger" : item.Code == "EL" ? "bg-success text-success" : "bg-info text-info") bg-opacity-10">
+                                            @if (item.Code == "CL") { <i class="fa-solid fa-mug-hot"></i> }
+                                            else if (item.Code == "SL") { <i class="fa-solid fa-kit-medical"></i> }
+                                            else if (item.Code == "EL") { <i class="fa-solid fa-trophy"></i> }
+                                            else { <i class="fa-solid fa-umbrella-beach"></i> }
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@item.Name</div>
+                                            <small class="text-muted">Standard Enterprise Policy</small>
+                                        </div>
                                     </div>
-
-                                    <small class="text-muted">
-                                        Short-term personal leave
-                                    </small>
-                                </div>
-
-                            </div>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill leave-code-badge">
-                                CL
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-light text-dark border rounded-pill leave-limit-badge">
-                                <i class="fa-solid fa-calendar-days me-1 text-primary"></i>
-                                12 Days
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="text-muted small">
-                                <i class="fa-solid fa-ban me-1"></i>
-                                No Carry Forward
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-danger-subtle text-danger rounded-pill leave-encashable-badge">
-                                <i class="fa-solid fa-xmark me-1"></i>
-                                No
-                            </span>
-                        </td>
-
-                        <td>
-                            <div class="small text-muted leave-criteria">
-                                Immediate after probationary period
-                            </div>
-                        </td>
-
-                    </tr>
-
-                    <!-- Sick Leave -->
-                    <tr>
-
-                        <td>
-                            <div class="leave-name-wrapper">
-
-                                <div class="leave-type-icon bg-danger bg-opacity-10 text-danger">
-                                    <i class="fa-solid fa-kit-medical"></i>
-                                </div>
-
-                                <div>
-                                    <div class="leave-type-name">
-                                        Sick Leave
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-bold">
+                                        @item.Code
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1">
+                                        <i class="fa-solid fa-calendar-days me-1 text-primary"></i>
+                                        @item.YearlyLimit Days / Year
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (item.CarryForwardLimit > 0)
+                                    {
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">
+                                            Up to @item.CarryForwardLimit Days
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">
+                                            <i class="fa-solid fa-ban me-1 text-secondary opacity-50"></i>No Carry Forward
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.IsEncashable)
+                                    {
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">
+                                            <i class="fa-solid fa-check me-1"></i>Yes
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">
+                                            <i class="fa-solid fa-xmark me-1"></i>No
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="small text-muted" style="max-width: 320px;">
+                                        @(string.IsNullOrEmpty(item.EligibilityCriteria) ? "Immediate upon confirmation" : item.EligibilityCriteria)
                                     </div>
-
-                                    <small class="text-muted">
-                                        Medical & health-related leave
-                                    </small>
-                                </div>
-
-                            </div>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill leave-code-badge">
-                                SL
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-light text-dark border rounded-pill leave-limit-badge">
-                                <i class="fa-solid fa-calendar-days me-1 text-danger"></i>
-                                8 Days
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-info-subtle text-info rounded-pill leave-limit-badge">
-                                Up to 4 Days
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-danger-subtle text-danger rounded-pill leave-encashable-badge">
-                                <i class="fa-solid fa-xmark me-1"></i>
-                                No
-                            </span>
-                        </td>
-
-                        <td>
-                            <div class="small text-muted leave-criteria">
-                                Immediate upon joining
-                            </div>
-                        </td>
-
-                    </tr>
-
-                    <!-- Earned Leave -->
-                    <tr>
-
-                        <td>
-                            <div class="leave-name-wrapper">
-
-                                <div class="leave-type-icon bg-success bg-opacity-10 text-success">
-                                    <i class="fa-solid fa-trophy"></i>
-                                </div>
-
-                                <div>
-                                    <div class="leave-type-name">
-                                        Earned Leave
-                                    </div>
-
-                                    <small class="text-muted">
-                                        Privileged long-term leave
-                                    </small>
-                                </div>
-
-                            </div>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill leave-code-badge">
-                                EL
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-light text-dark border rounded-pill leave-limit-badge">
-                                <i class="fa-solid fa-calendar-days me-1 text-success"></i>
-                                15 Days
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-success-subtle text-success rounded-pill leave-limit-badge">
-                                Up to 30 Days Max
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="badge bg-success-subtle text-success rounded-pill leave-encashable-badge">
-                                <i class="fa-solid fa-check me-1"></i>
-                                Yes
-                            </span>
-                        </td>
-
-                        <td>
-                            <div class="small text-muted leave-criteria">
-                                Post completion of 1 year service
-                            </div>
-                        </td>
-
-                    </tr>
-
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-file-circle-xmark fa-2x mb-2 text-secondary opacity-50"></i>
+                                <div>No leave policies found. Click "Create Leave Type" to configure.</div>
+                            </td>
+                        </tr>
+                    }
                 </tbody>
-
             </table>
-
         </div>
-
     </div>
+</div>
 
+<!-- Create Leave Type Modal -->
+<div class="modal fade" id="createLeaveTypeModal" tabindex="-1" aria-labelledby="createLeaveTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 border-0 shadow">
+            <div class="modal-header border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold" id="createLeaveTypeModalLabel">
+                    <i class="fa-solid fa-plus-circle text-primary me-2"></i>
+                    Create Leave Type Policy
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form asp-action="CreateLeaveType" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">
+                            Leave Type Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="leaveName" class="form-control" placeholder="e.g. Casual Leave, Sick Leave, Paternity Leave" required />
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">
+                                Code <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="code" class="form-control text-uppercase" placeholder="e.g. CL, SL, PL" maxlength="10" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">
+                                Yearly Limit (Days) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" name="yearlyLimit" class="form-control" value="12" min="1" max="365" required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">
+                                Carry Forward Limit (Days)
+                            </label>
+                            <input type="number" name="carryForwardLimit" class="form-control" value="0" min="0" max="180" />
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center pt-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" role="switch" id="isEncashableSwitch" name="isEncashable" value="true" />
+                                <label class="form-check-label small fw-bold text-secondary" for="isEncashableSwitch">
+                                    Encashable Payout
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-secondary">
+                            Eligibility / Probation Criteria
+                        </label>
+                        <textarea name="eligibilityCriteria" class="form-control" rows="2" placeholder="e.g. Post 6 months probation period"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">
+                        <i class="fa-solid fa-save me-1"></i> Save Policy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
