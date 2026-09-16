@@ -11,7 +11,7 @@ using ERP_System.Models;
 
 namespace ERP_System.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Super Admin,Admin,Accountant")]
     public class AccountantController : Controller
     {
         private readonly ApplicationDbContext _context;

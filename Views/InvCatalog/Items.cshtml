@@ -1,9 +1,11 @@
-@model IEnumerable<ERP_System.Models.Product>
-
+@model ERP_System.Models.ItemsPageViewModel
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Items & SKUs Master";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
+
+@Html.AntiForgeryToken()
 
 <style>
     .items-page {
@@ -14,7 +16,8 @@
 
     .items-header-card,
     .items-summary-card,
-    .items-content-card {
+    .items-content-card,
+    .items-filter-card {
         background: #ffffff;
         border: 1px solid #e9eef5;
         border-radius: 18px;
@@ -22,7 +25,7 @@
     }
 
     .items-header-card {
-        padding: 26px 28px;
+        padding: 24px 28px;
     }
 
     .items-icon-box {
@@ -42,7 +45,7 @@
         color: #172b4d;
         font-size: 1.45rem;
         font-weight: 700;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
 
     .items-page-subtitle {
@@ -51,50 +54,7 @@
         margin-bottom: 0;
     }
 
-    .items-breadcrumb {
-        margin-bottom: 0;
-        padding: 0;
-        background: transparent;
-    }
-
-        .items-breadcrumb .breadcrumb-item {
-            color: #8a94a6;
-            font-size: 0.78rem;
-        }
-
-            .items-breadcrumb .breadcrumb-item a {
-                color: #2563eb;
-                text-decoration: none;
-                font-weight: 500;
-            }
-
-            .items-breadcrumb .breadcrumb-item.active {
-                color: #8a94a6;
-            }
-
-    .items-back-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        border: 1px solid #dfe5ec;
-        background: #ffffff;
-        color: #667085;
-        border-radius: 10px;
-        padding: 11px 17px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.2s ease;
-    }
-
-        .items-back-btn:hover {
-            background: #f8fafc;
-            border-color: #cbd5e1;
-            color: #344054;
-            transform: translateY(-1px);
-        }
-
+    /* Summary Cards */
     .items-summary-card {
         height: 100%;
         padding: 20px;
@@ -111,80 +71,115 @@
         flex-shrink: 0;
     }
 
-        .items-summary-icon.blue {
-            background: #eaf2ff;
-            color: #2563eb;
-        }
-
-        .items-summary-icon.green {
-            background: #e9f8ef;
-            color: #16a34a;
-        }
-
-        .items-summary-icon.orange {
-            background: #fff4df;
-            color: #d97706;
-        }
-
-        .items-summary-icon.red {
-            background: #ffeded;
-            color: #dc2626;
-        }
+    .items-summary-icon.blue { background: #eaf2ff; color: #2563eb; }
+    .items-summary-icon.green { background: #e9f8ef; color: #16a34a; }
+    .items-summary-icon.orange { background: #fff4df; color: #d97706; }
+    .items-summary-icon.red { background: #ffeded; color: #dc2626; }
 
     .items-summary-label {
         color: #8a94a6;
         font-size: 0.78rem;
-        font-weight: 500;
-        margin-bottom: 5px;
+        font-weight: 600;
+        margin-bottom: 4px;
     }
 
     .items-summary-value {
         color: #172b4d;
         font-size: 1.45rem;
-        font-weight: 700;
+        font-weight: 750;
         margin-bottom: 0;
     }
 
     .items-summary-description {
         color: #98a2b3;
         font-size: 0.76rem;
-        margin-top: 14px;
+        margin-top: 10px;
         margin-bottom: 0;
     }
 
+    /* Top Controls & Filter Bar */
+    .items-filter-card {
+        padding: 16px 22px;
+        margin-bottom: 24px;
+    }
+
+    .search-input-group {
+        position: relative;
+        width: 100%;
+    }
+
+    .search-input-group i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+
+    .search-input-group .form-control {
+        padding-left: 38px;
+        border-radius: 11px;
+        border: 1px solid #dce4ee;
+        font-size: 0.88rem;
+        background: #f8fafc;
+        transition: all 0.2s ease;
+    }
+
+    .search-input-group .form-control:focus {
+        background: #ffffff;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .filter-select {
+        border-radius: 11px;
+        border: 1px solid #dce4ee;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475467;
+        background-color: #f8fafc;
+        padding: 0.55rem 0.85rem;
+    }
+
+    .filter-select:focus {
+        background-color: #ffffff;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Primary Add Button */
+    .btn-add-product {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #ffffff;
+        border: none;
+        border-radius: 11px;
+        padding: 9px 18px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .btn-add-product:hover {
+        background: linear-gradient(135deg, #1d4ed8, #1e40af);
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+    }
+
+    /* Table & Badges */
     .items-content-card {
         overflow: hidden;
     }
 
     .items-card-header {
-        padding: 24px 28px;
+        padding: 20px 24px;
         border-bottom: 1px solid #edf0f5;
-    }
-
-    .items-section-title {
-        color: #172b4d;
-        font-size: 1.05rem;
-        font-weight: 700;
-        margin-bottom: 5px;
-    }
-
-    .items-section-subtitle {
-        color: #8a94a6;
-        font-size: 0.8rem;
-        margin-bottom: 0;
-    }
-
-    .items-record-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: #eaf2ff;
-        color: #2563eb;
-        border-radius: 30px;
-        padding: 8px 13px;
-        font-size: 0.74rem;
-        font-weight: 600;
-        white-space: nowrap;
     }
 
     .items-table-wrapper {
@@ -194,221 +189,172 @@
     }
 
     .items-table {
-        min-width: 950px;
+        min-width: 1050px;
         margin-bottom: 0;
     }
 
-        .items-table thead th {
-            background: #f8fafc;
-            color: #667085;
-            border-bottom: 1px solid #e8edf3;
-            font-size: 0.74rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            padding: 15px 16px;
-            white-space: nowrap;
-            text-transform: uppercase;
-        }
-
-        .items-table tbody td {
-            color: #475467;
-            border-bottom: 1px solid #f0f2f6;
-            font-size: 0.82rem;
-            padding: 16px;
-            vertical-align: middle;
-        }
-
-        .items-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .items-table tbody tr:hover {
-            background: #fbfdff;
-        }
-
-    .items-product-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .items-product-icon {
-        width: 40px;
-        height: 40px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 11px;
-        background: #eaf2ff;
-        color: #2563eb;
-        flex-shrink: 0;
-    }
-
-    .items-product-name {
-        color: #172b4d;
-        font-weight: 700;
-        margin-bottom: 3px;
-    }
-
-    .items-product-type {
-        color: #98a2b3;
+    .items-table thead th {
+        background: #f8fafc;
+        color: #64748b;
+        border-bottom: 1px solid #e2e8f0;
         font-size: 0.74rem;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+        padding: 14px 16px;
+        white-space: nowrap;
+        text-transform: uppercase;
     }
 
-    .items-value {
-        color: #344054;
-        font-weight: 600;
+    .items-table tbody td {
+        color: #334155;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.84rem;
+        padding: 14px 16px;
+        vertical-align: middle;
     }
 
-    .items-secondary-text {
-        color: #98a2b3;
-        font-size: 0.75rem;
-        margin-left: 3px;
+    .items-table tbody tr:hover {
+        background: #f8fbff;
     }
 
-    .items-branch {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        color: #475467;
-    }
-
-        .items-branch i {
-            color: #98a2b3;
-        }
-
-    .items-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        border-radius: 30px;
-        padding: 7px 11px;
+    .sku-badge {
+        font-family: 'SFMono-Regular', Consolas, monospace;
         font-size: 0.72rem;
+        font-weight: 700;
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #dbeafe;
+        border-radius: 6px;
+        padding: 2px 6px;
+        margin-right: 4px;
+    }
+
+    .barcode-pill {
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 0.7rem;
         font-weight: 600;
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 2px 6px;
+    }
+
+    .category-badge {
+        display: inline-block;
+        font-size: 0.74rem;
+        font-weight: 600;
+        background: #f3f4f6;
+        color: #374151;
+        border-radius: 6px;
+        padding: 3px 8px;
+    }
+
+    .subcat-text {
+        font-size: 0.72rem;
+        color: #9ca3af;
+        margin-top: 2px;
+    }
+
+    .price-text {
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .cost-text {
+        font-size: 0.74rem;
+        color: #64748b;
+    }
+
+    .stock-badge {
+        font-weight: 700;
+        font-size: 0.86rem;
+    }
+
+    .stock-uom {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748b;
+        margin-left: 2px;
+    }
+
+    /* Status Badges */
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 30px;
+        padding: 4px 10px;
+        font-size: 0.74rem;
+        font-weight: 700;
         white-space: nowrap;
     }
 
-        .items-status::before {
-            content: "";
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            display: inline-block;
-        }
+    .status-pill.in-stock { background: #dcfce7; color: #15803d; }
+    .status-pill.low-stock { background: #fef3c7; color: #b45309; }
+    .status-pill.out-of-stock { background: #fee2e2; color: #b91c1c; }
 
-        .items-status.in-stock {
-            background: #eaf8ef;
-            color: #16803c;
-        }
-
-            .items-status.in-stock::before {
-                background: #22c55e;
-            }
-
-        .items-status.low-stock {
-            background: #fff4df;
-            color: #b76b00;
-        }
-
-            .items-status.low-stock::before {
-                background: #f59e0b;
-            }
-
-        .items-status.out-of-stock {
-            background: #ffeded;
-            color: #c62828;
-        }
-
-            .items-status.out-of-stock::before {
-                background: #ef4444;
-            }
-
-    .items-empty-state {
-        padding: 54px 20px !important;
-        text-align: center;
-    }
-
-    .items-empty-icon {
-        width: 70px;
-        height: 70px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        background: #f1f5f9;
-        color: #94a3b8;
-        font-size: 28px;
-        margin-bottom: 16px;
-    }
-
-    .items-empty-title {
-        color: #172b4d;
-        font-size: 1rem;
-        font-weight: 700;
-        margin-bottom: 7px;
-    }
-
-    .items-empty-description {
-        color: #8a94a6;
-        font-size: 0.82rem;
-        margin-bottom: 0;
-    }
-
-    .items-card-footer {
-        padding: 16px 28px;
-        border-top: 1px solid #edf0f5;
+    /* Actions dropdown */
+    .btn-action-trigger {
+        border: 1px solid #e2e8f0;
         background: #ffffff;
+        color: #475467;
+        border-radius: 9px;
+        padding: 5px 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
     }
 
-    .items-footer-text {
-        color: #98a2b3;
-        font-size: 0.76rem;
+    .btn-action-trigger:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
     }
 
-    @@media (max-width: 991.98px) {
-        .items-header-actions
-
-    {
-        width: 100%;
+    /* Modal Form */
+    .modal-content {
+        border-radius: 18px;
+        border: none;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
     }
 
-    .items-back-btn {
-        width: 100%;
+    .modal-header {
+        border-bottom: 1px solid #eef2f6;
+        padding: 18px 24px;
     }
 
+    .modal-body {
+        padding: 24px;
     }
 
-    @@media (max-width: 767.98px) {
-        .items-page
-
-    {
-        padding: 18px 0;
+    .modal-footer {
+        border-top: 1px solid #eef2f6;
+        padding: 16px 24px;
     }
 
-    .items-header-card {
-        padding: 20px;
+    .form-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 5px;
     }
 
-    .items-card-header {
-        padding: 20px;
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #d8e1ec;
+        font-size: 0.86rem;
+        padding: 0.6rem 0.8rem;
     }
 
-    .items-card-footer {
-        padding: 15px 20px;
+    .form-control:focus, .form-select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
-    .items-page-title {
-        font-size: 1.2rem;
-    }
-
-    .items-summary-card {
-        padding: 16px;
-    }
-
-    .items-table-wrapper {
-        border-radius: 12px;
-    }
-
+    .btn-auto-gen {
+        font-size: 0.74rem;
+        font-weight: 700;
+        padding: 0 10px;
+        border-radius: 8px;
     }
 </style>
 
@@ -421,68 +367,53 @@
                 <div class="col-lg-8">
                     <div class="d-flex align-items-center">
                         <div class="items-icon-box me-3">
-                            <i class="fa-solid fa-box-open"></i>
+                            <i class="fa-solid fa-boxes-stacked"></i>
                         </div>
-
                         <div>
-                            <h3 class="items-page-title">
-                                Items &amp; SKUs Master
-                            </h3>
-
+                            <h3 class="items-page-title">Items &amp; SKUs Master</h3>
                             <p class="items-page-subtitle">
-                                Manage and monitor product items, stock levels, sales, and branch allocation.
+                                Central product catalog registry with barcode tracking, warehouse bin mapping, and inventory status.
                             </p>
-
                             <nav aria-label="breadcrumb" class="mt-2">
-                                <ol class="breadcrumb items-breadcrumb">
-                                    <li class="breadcrumb-item">
-                                        <a href="/InventoryDashboard">
-                                            Inventory Dashboard
-                                        </a>
-                                    </li>
-
-                                    <li class="breadcrumb-item active" aria-current="page">
-                                        Items &amp; SKUs
-                                    </li>
+                                <ol class="breadcrumb mb-0 small">
+                                    <li class="breadcrumb-item"><a href="/InventoryDashboard" class="text-decoration-none text-primary">Inventory Dashboard</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">Catalog Master</li>
+                                    <li class="breadcrumb-item active" aria-current="page">Items &amp; SKUs</li>
                                 </ol>
                             </nav>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-4">
-                    <div class="d-flex justify-content-lg-end items-header-actions">
-                        <a href="/InventoryDashboard" class="items-back-btn">
-                            <i class="fa-solid fa-arrow-left"></i>
-                            Back to Dashboard
+                <div class="col-lg-4 text-lg-end">
+                    <div class="d-flex justify-content-lg-end gap-2">
+                        <button type="button" class="btn-add-product" onclick="openCreateItemModal()">
+                            <i class="fa-solid fa-plus"></i>
+                            Add New Product
+                        </button>
+
+                        <a href="/InventoryDashboard" class="btn btn-outline-secondary rounded-3 px-3 py-2 fw-semibold" style="font-size: 0.82rem;">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
                         </a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Summary Cards -->
+        <!-- Summary Metric Cards -->
         <div class="row g-4 mb-4">
-
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="items-summary-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <p class="items-summary-label">Total Items</p>
-
-                            <h4 class="items-summary-value">
-                                @(Model?.Count() ?? 0)
-                            </h4>
+                            <p class="items-summary-label">TOTAL PRODUCTS</p>
+                            <h4 class="items-summary-value">@Model.TotalItemsCount</h4>
                         </div>
-
                         <div class="items-summary-icon blue">
                             <i class="fa-solid fa-boxes-stacked"></i>
                         </div>
                     </div>
-
-                    <p class="items-summary-description">
-                        Products available in the system
-                    </p>
+                    <p class="items-summary-description">Registered catalog items</p>
                 </div>
             </div>
 
@@ -490,21 +421,14 @@
                 <div class="items-summary-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <p class="items-summary-label">In Stock</p>
-
-                            <h4 class="items-summary-value text-success">
-                                @(Model?.Count(p => p.Status == "In Stock") ?? 0)
-                            </h4>
+                            <p class="items-summary-label">IN STOCK</p>
+                            <h4 class="items-summary-value text-success">@Model.InStockCount</h4>
                         </div>
-
                         <div class="items-summary-icon green">
                             <i class="fa-solid fa-circle-check"></i>
                         </div>
                     </div>
-
-                    <p class="items-summary-description">
-                        Items currently available
-                    </p>
+                    <p class="items-summary-description">Healthy safety buffer</p>
                 </div>
             </div>
 
@@ -512,21 +436,14 @@
                 <div class="items-summary-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <p class="items-summary-label">Low Stock</p>
-
-                            <h4 class="items-summary-value text-warning">
-                                @(Model?.Count(p => p.Status == "Low Stock") ?? 0)
-                            </h4>
+                            <p class="items-summary-label">LOW STOCK ALERTS</p>
+                            <h4 class="items-summary-value text-warning">@Model.LowStockCount</h4>
                         </div>
-
                         <div class="items-summary-icon orange">
                             <i class="fa-solid fa-triangle-exclamation"></i>
                         </div>
                     </div>
-
-                    <p class="items-summary-description">
-                        Items requiring attention
-                    </p>
+                    <p class="items-summary-description">Below reorder threshold</p>
                 </div>
             </div>
 
@@ -534,153 +451,196 @@
                 <div class="items-summary-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <p class="items-summary-label">Out of Stock</p>
-
-                            <h4 class="items-summary-value text-danger">
-                                @(Model?.Count(p => p.Status != "In Stock" && p.Status != "Low Stock") ?? 0)
-                            </h4>
+                            <p class="items-summary-label">OUT OF STOCK</p>
+                            <h4 class="items-summary-value text-danger">@Model.OutOfStockCount</h4>
                         </div>
-
                         <div class="items-summary-icon red">
-                            <i class="fa-solid fa-box-open"></i>
+                            <i class="fa-solid fa-ban"></i>
                         </div>
                     </div>
-
-                    <p class="items-summary-description">
-                        Items unavailable for sale
-                    </p>
+                    <p class="items-summary-description">Critical zero inventory</p>
                 </div>
             </div>
-
         </div>
 
-        <!-- Main Content Card -->
-        <div class="items-content-card">
-
-            <!-- Card Header -->
-            <div class="items-card-header">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-                    <div>
-                        <h5 class="items-section-title">
-                            <i class="fa-solid fa-list-check text-primary me-2"></i>
-                            Product Items
-                        </h5>
-
-                        <p class="items-section-subtitle">
-                            View all registered products and their current inventory details.
-                        </p>
+        <!-- Top Controls & Filter Bar -->
+        <div class="items-filter-card">
+            <form id="itemsFilterForm" method="get" action="@Url.Action("Items", "InvCatalog")">
+                <div class="row g-3 align-items-center">
+                    <!-- Search Input -->
+                    <div class="col-12 col-md-5 col-lg-4">
+                        <div class="search-input-group">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text"
+                                   id="searchInput"
+                                   name="search"
+                                   class="form-control"
+                                   placeholder="Search by Item Name, SKU, or Barcode..."
+                                   value="@Model.SearchTerm"
+                                   onkeyup="clientSideFilterTable()" />
+                        </div>
                     </div>
 
-                    <div>
-                        <span class="items-record-badge">
-                            <i class="fa-solid fa-database"></i>
-                            @(Model?.Count() ?? 0) Records
-                        </span>
+                    <!-- Category Filter -->
+                    <div class="col-6 col-md-3 col-lg-3">
+                        <select name="categoryId" class="form-select filter-select" onchange="document.getElementById('itemsFilterForm').submit()">
+                            <option value="">All Categories</option>
+                            @foreach (var c in Model.Categories)
+                            {
+                                if (Model.SelectedCategoryId == c.Id)
+                                {
+                                    <option value="@c.Id" selected>@c.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Stock Status Filter -->
+                    <div class="col-6 col-md-3 col-lg-3">
+                        <select name="status" class="form-select filter-select" onchange="document.getElementById('itemsFilterForm').submit()">
+                            <option value="All" selected="@(Model.SelectedStatus == "All")">All Stock Status</option>
+                            <option value="In Stock" selected="@(Model.SelectedStatus == "In Stock")">In Stock (Healthy)</option>
+                            <option value="Low Stock" selected="@(Model.SelectedStatus == "Low Stock")">Low Stock (&le; Reorder)</option>
+                            <option value="Out of Stock" selected="@(Model.SelectedStatus == "Out of Stock")">Out of Stock (Zero)</option>
+                        </select>
+                    </div>
+
+                    <!-- Reset & Actions -->
+                    <div class="col-12 col-md-auto ms-md-auto text-end">
+                        <a href="@Url.Action("Items", "InvCatalog")" class="btn btn-sm btn-light border text-muted px-3 py-2 fw-semibold">
+                            <i class="fa-solid fa-rotate-right me-1"></i> Reset
+                        </a>
                     </div>
                 </div>
+            </form>
+        </div>
+
+        <!-- Master Table Card -->
+        <div class="items-content-card">
+            <div class="items-card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-table-list text-primary me-2"></i>
+                        Master Product Records
+                    </h5>
+                    <span class="small text-muted">Showing @Model.Items.Count matching items</span>
+                </div>
+
+                <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2">
+                    <i class="fa-solid fa-database me-1"></i> @Model.Items.Count Catalog Items
+                </span>
             </div>
 
-            <!-- Table -->
             <div class="p-3 p-md-4">
-                @if (Model != null && Model.Any())
+                @if (Model.Items != null && Model.Items.Any())
                 {
                     <div class="table-responsive items-table-wrapper">
-                        <table class="table table-hover align-middle items-table">
+                        <table class="table table-hover align-middle items-table" id="catalogTable">
                             <thead>
                                 <tr>
-                                    <th>Product Name</th>
-                                    <th>Category</th>
-                                    <th>Sold Qty</th>
-                                    <th>Revenue</th>
-                                    <th>Stock Qty</th>
-                                    <th>Branch</th>
+                                    <th>Product Identity (Name / SKU / Barcode)</th>
+                                    <th>Category &amp; Sub-Category</th>
+                                    <th>Pricing (Cost / MRP)</th>
+                                    <th>Available Stock</th>
+                                    <th>Location (Branch / Bin)</th>
                                     <th>Status</th>
+                                    <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
-
                             <tbody>
-                                @foreach (var p in Model)
+                                @foreach (var item in Model.Items)
                                 {
-                                    <tr>
+                                    <tr class="item-row"
+                                        data-name="@item.ItemName.ToLower()"
+                                        data-sku="@item.SKU.ToLower()"
+                                        data-barcode="@item.Barcode.ToLower()">
                                         <td>
-                                            <div class="items-product-wrapper">
-                                                <div class="items-product-icon">
-                                                    <i class="fa-solid fa-box"></i>
-                                                </div>
-
-                                                <div>
-                                                    <div class="items-product-name">
-                                                        @p.ProductName
-                                                    </div>
-
-                                                    <div class="items-product-type">
-                                                        Product item
-                                                    </div>
-                                                </div>
+                                            <div class="fw-bold text-dark fs-6">@item.ItemName</div>
+                                            <div class="mt-1">
+                                                <span class="sku-badge"><i class="fa-solid fa-tag me-1"></i>@item.SKU</span>
+                                                <span class="barcode-pill"><i class="fa-solid fa-barcode me-1"></i>@item.Barcode</span>
                                             </div>
                                         </td>
-
                                         <td>
-                                            <span class="items-value">
-                                                @(string.IsNullOrWhiteSpace(p.Category) ? "—" : p.Category)
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <span class="items-value">
-                                                @p.SoldQty
-                                            </span>
-
-                                            <span class="items-secondary-text">
-                                                Items
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <span class="items-value">
-                                                ₹@p.Revenue.ToString("N2")
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <span class="items-value">
-                                                @p.StockQty
-                                            </span>
-
-                                            <span class="items-secondary-text">
-                                                Units
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <div class="items-branch">
-                                                <i class="fa-solid fa-location-dot"></i>
-
-                                                <span>
-                                                    @(p.Branch != null ? p.Branch.BranchName : "Head Office")
-                                                </span>
-                                            </div>
-                                        </td>
-
-                                        <td>
-                                            @if (p.Status == "In Stock")
+                                            <span class="category-badge">@(item.Category?.Name ?? "General")</span>
+                                            @if (item.SubCategory != null)
                                             {
-                                                <span class="items-status in-stock">
-                                                    In Stock
+                                                <div class="subcat-text"><i class="fa-solid fa-angle-right me-1"></i>@item.SubCategory.Name</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="price-text">₹@item.SellingPrice.ToString("N2", inCulture)</div>
+                                            <div class="cost-text">Cost: ₹@item.PurchasePrice.ToString("N2", inCulture)</div>
+                                        </td>
+                                        <td>
+                                            <span class="stock-badge @(item.CurrentStock <= 0 ? "text-danger" : item.CurrentStock <= item.MinimumReorderLevel ? "text-warning" : "text-success")">
+                                                @item.CurrentStock
+                                            </span>
+                                            <span class="stock-uom">@(item.Uom?.Code ?? "PCS")</span>
+                                            <div class="small text-muted">Min: @item.MinimumReorderLevel</div>
+                                        </td>
+                                        <td>
+                                            <div class="small fw-semibold text-secondary">
+                                                <i class="fa-solid fa-building me-1 text-muted"></i>@item.BranchLocation
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(item.BinLocation))
+                                            {
+                                                <div class="small text-muted">
+                                                    <i class="fa-solid fa-layer-group me-1"></i>@item.BinLocation
+                                                </div>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (item.StockStatus == "In Stock")
+                                            {
+                                                <span class="status-pill in-stock">
+                                                    <i class="fa-solid fa-circle" style="font-size: 6px;"></i> In Stock
                                                 </span>
                                             }
-                                            else if (p.Status == "Low Stock")
+                                            else if (item.StockStatus == "Low Stock")
                                             {
-                                                <span class="items-status low-stock">
-                                                    Low Stock
+                                                <span class="status-pill low-stock">
+                                                    <i class="fa-solid fa-circle" style="font-size: 6px;"></i> Low Stock
                                                 </span>
                                             }
                                             else
                                             {
-                                                <span class="items-status out-of-stock">
-                                                    Out of Stock
+                                                <span class="status-pill out-of-stock">
+                                                    <i class="fa-solid fa-circle" style="font-size: 6px;"></i> Out of Stock
                                                 </span>
                                             }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="dropdown">
+                                                <button class="btn btn-action-trigger dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    Manage
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                                    <li>
+                                                        <a class="dropdown-item py-2" href="javascript:void(0)"
+                                                           onclick="openEditItemModal(@item.Id, '@item.ItemName', '@item.SKU', '@item.Barcode', @item.CategoryId, @(item.SubCategoryId ?? 0), @item.UomId, @item.PurchasePrice, @item.SellingPrice, @item.CurrentStock, @item.MinimumReorderLevel, '@item.BranchLocation', '@(item.BinLocation ?? "")')">
+                                                            <i class="fa-solid fa-pen-to-square text-primary me-2"></i> Edit Details
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item py-2" href="javascript:void(0)"
+                                                           onclick="openAuditAdjustModal(@item.Id, '@item.ItemName', '@item.SKU', @item.CurrentStock, '@(item.Uom?.Code ?? "PCS")')">
+                                                            <i class="fa-solid fa-sliders text-warning me-2"></i> Stock Audit Adjust
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item py-2" href="javascript:void(0)"
+                                                           onclick="openHistoryModal(@item.Id, '@item.ItemName')">
+                                                            <i class="fa-solid fa-clock-rotate-left text-info me-2"></i> View Movement History
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
@@ -690,37 +650,520 @@
                 }
                 else
                 {
-                    <div class="items-empty-state">
-                        <div class="items-empty-icon">
+                    <div class="text-center py-5">
+                        <div class="items-summary-icon blue mx-auto mb-3" style="width: 60px; height: 60px; font-size: 24px;">
                             <i class="fa-solid fa-box-open"></i>
                         </div>
-
-                        <h5 class="items-empty-title">
-                            No Items Found
-                        </h5>
-
-                        <p class="items-empty-description">
-                            No product items were found in the database.
-                        </p>
+                        <h5 class="fw-bold text-dark">No Products Found</h5>
+                        <p class="text-muted small">No items matched your current search filters. Create your first product now.</p>
+                        <button type="button" class="btn-add-product mx-auto mt-2" onclick="openCreateItemModal()">
+                            <i class="fa-solid fa-plus"></i> Add New Product
+                        </button>
                     </div>
                 }
             </div>
-
-            <!-- Card Footer -->
-            <div class="items-card-footer">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                    <span class="items-footer-text">
-                        Showing @(Model?.Count() ?? 0) product records
-                    </span>
-
-                    <span class="items-footer-text">
-                        <i class="fa-solid fa-shield-halved me-1"></i>
-                        Inventory data overview
-                    </span>
-                </div>
-            </div>
-
         </div>
 
     </div>
 </div>
+
+<!-- =========================================================================
+     MODAL 1: CREATE / EDIT PRODUCT MODAL
+     ========================================================================= -->
+<div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="itemModalLabel">
+                    <i class="fa-solid fa-box text-primary me-2"></i>
+                    <span id="itemModalTitle">Create New Catalog Product</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form id="itemForm" onsubmit="saveItemForm(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="itemId" name="Id" value="0" />
+
+                    <div class="row g-3">
+                        <!-- Item Name -->
+                        <div class="col-12">
+                            <label class="form-label">Product / Item Name <span class="text-danger">*</span></label>
+                            <input type="text" id="itemName" name="ItemName" class="form-control" placeholder="e.g. Dell Latitude 5430 Core i7 Laptop" required />
+                        </div>
+
+                        <!-- SKU with Auto-generate -->
+                        <div class="col-md-6">
+                            <label class="form-label">SKU (Stock Keeping Unit) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" id="itemSKU" name="SKU" class="form-control" placeholder="e.g. SKU-EL-0921" required />
+                                <button type="button" class="btn btn-outline-primary btn-auto-gen" onclick="generateSKU()">
+                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Auto
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Barcode with Auto-generate -->
+                        <div class="col-md-6">
+                            <label class="form-label">Barcode / EAN-13 <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" id="itemBarcode" name="Barcode" class="form-control" placeholder="e.g. 890123456789" required />
+                                <button type="button" class="btn btn-outline-secondary btn-auto-gen" onclick="generateBarcode()">
+                                    <i class="fa-solid fa-barcode me-1"></i> Auto
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="col-md-6">
+                            <label class="form-label">Primary Category <span class="text-danger">*</span></label>
+                            <select id="itemCategoryId" name="CategoryId" class="form-select" onchange="onCategoryChanged()" required>
+                                <option value="">-- Select Category --</option>
+                                @foreach (var cat in Model.Categories)
+                                {
+                                    <option value="@cat.Id">@cat.Name (GST: @cat.DefaultGstRate%)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Sub-Category (Dynamic Cascading) -->
+                        <div class="col-md-6">
+                            <label class="form-label">Sub-Category</label>
+                            <select id="itemSubCategoryId" name="SubCategoryId" class="form-select">
+                                <option value="">-- Select Sub-Category --</option>
+                                @foreach (var sub in Model.SubCategories)
+                                {
+                                    <option value="@sub.Id" data-category-id="@sub.CategoryId">@sub.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Base UOM -->
+                        <div class="col-md-4">
+                            <label class="form-label">Base Unit of Measure (UOM) <span class="text-danger">*</span></label>
+                            <select id="itemUomId" name="UomId" class="form-select" required>
+                                <option value="">-- Choose Unit --</option>
+                                @foreach (var u in Model.UnitsOfMeasure)
+                                {
+                                    <option value="@u.Id">@u.Code (@u.Description)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Cost Price -->
+                        <div class="col-md-4">
+                            <label class="form-label">Cost Price (Purchase) ₹ <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" id="itemPurchasePrice" name="PurchasePrice" class="form-control" placeholder="0.00" min="0" required />
+                        </div>
+
+                        <!-- Selling Price -->
+                        <div class="col-md-4">
+                            <label class="form-label">Selling Price (MRP) ₹ <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" id="itemSellingPrice" name="SellingPrice" class="form-control" placeholder="0.00" min="0" required />
+                        </div>
+
+                        <!-- Initial Current Stock -->
+                        <div class="col-md-4">
+                            <label class="form-label">Available Physical Stock <span class="text-danger">*</span></label>
+                            <input type="number" id="itemCurrentStock" name="CurrentStock" class="form-control" min="0" value="0" required />
+                        </div>
+
+                        <!-- Minimum Reorder Level -->
+                        <div class="col-md-4">
+                            <label class="form-label">Minimum Reorder Threshold <span class="text-danger">*</span></label>
+                            <input type="number" id="itemMinimumReorderLevel" name="MinimumReorderLevel" class="form-control" min="1" value="10" required />
+                        </div>
+
+                        <!-- Branch Location -->
+                        <div class="col-md-4">
+                            <label class="form-label">Branch / Warehouse</label>
+                            <select id="itemBranchLocation" name="BranchLocation" class="form-select">
+                                <option value="Head Office">Head Office</option>
+                                <option value="Regional Hub">Regional Hub</option>
+                                <option value="Transit Logistics Hub">Transit Logistics Hub</option>
+                            </select>
+                        </div>
+
+                        <!-- Bin / Rack Location -->
+                        <div class="col-12">
+                            <label class="form-label">Warehouse Bin / Rack Location</label>
+                            <input type="text" id="itemBinLocation" name="BinLocation" class="form-control" placeholder="e.g. Rack A-01, Bin Shelf 4" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4" id="btnSaveItem">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Product Details
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL 2: STOCK AUDIT ADJUST MODAL
+     ========================================================================= -->
+<div class="modal fade" id="auditAdjustModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-sliders text-warning me-2"></i>
+                    Stock Audit &amp; Reconciliation Adjustment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form id="auditAdjustForm" onsubmit="submitStockAdjustment(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="audItemId" />
+
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <div class="fw-bold text-dark fs-6" id="audDisplayItemName">—</div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <span class="sku-badge" id="audDisplaySKU">—</span>
+                            <div>
+                                <span class="small text-muted">Current Stock: </span>
+                                <span class="fw-bold text-primary" id="audDisplayStock">0</span>
+                                <span class="small text-muted" id="audDisplayUom">PCS</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label">Adjustment Type <span class="text-danger">*</span></label>
+                            <select id="audType" class="form-select" required>
+                                <option value="Add">+ Add to Stock (Found / Reconciled)</option>
+                                <option value="Deduct">- Deduct from Stock (Damaged / Loss)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                            <input type="number" id="audQty" class="form-control" min="1" value="1" required />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Audit Reason <span class="text-danger">*</span></label>
+                            <select id="audReason" class="form-select" required>
+                                <option value="Physical Audit Count Reconcile">Physical Audit Count Reconcile</option>
+                                <option value="Damaged During Storage / Handling">Damaged During Storage / Handling</option>
+                                <option value="Inventory Shrinkage / Theft Loss">Inventory Shrinkage / Theft Loss</option>
+                                <option value="Found Unregistered Physical Units">Found Unregistered Physical Units</option>
+                                <option value="Returned Unsalable Scrap">Returned Unsalable Scrap</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Auditor Remarks / Notes</label>
+                            <textarea id="audRemarks" class="form-control" rows="2" placeholder="e.g. Reconciled during monthly warehouse shelf audit."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning px-4" id="btnSubmitAudit">
+                        <i class="fa-solid fa-check me-1"></i> Apply Stock Adjustment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL 3: VIEW MOVEMENT HISTORY
+     ========================================================================= -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-clock-rotate-left text-info me-2"></i>
+                    Movement History: <span id="histItemName" class="text-primary">—</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Change</th>
+                                <th>Previous</th>
+                                <th>New Stock</th>
+                                <th>Reason</th>
+                                <th>Operator</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span> Loading history logs...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    let itemModal = null;
+    let auditModal = null;
+    let historyModal = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const itemEl = document.getElementById('itemModal');
+        if (itemEl) itemModal = new bootstrap.Modal(itemEl);
+
+        const auditEl = document.getElementById('auditAdjustModal');
+        if (auditEl) auditModal = new bootstrap.Modal(auditEl);
+
+        const histEl = document.getElementById('historyModal');
+        if (histEl) historyModal = new bootstrap.Modal(histEl);
+
+        // Check URL params for openCreate
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('openCreate') === 'true') {
+            openCreateItemModal();
+        }
+    });
+
+    // Real-time client-side table filter
+    function clientSideFilterTable() {
+        const term = document.getElementById('searchInput').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#catalogTable tbody tr.item-row');
+
+        rows.forEach(row => {
+            const name = row.getAttribute('data-name') || '';
+            const sku = row.getAttribute('data-sku') || '';
+            const barcode = row.getAttribute('data-barcode') || '';
+
+            if (name.includes(term) || sku.includes(term) || barcode.includes(term)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Dynamic Sub-Category cascading filter
+    async function onCategoryChanged() {
+        const catId = document.getElementById('itemCategoryId').value;
+        const subSelect = document.getElementById('itemSubCategoryId');
+        subSelect.innerHTML = '<option value="">-- Select Sub-Category --</option>';
+
+        if (!catId) return;
+
+        try {
+            const response = await fetch(`/InvCatalog/GetSubCategories?categoryId=${catId}`);
+            const subs = await response.json();
+            subs.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                subSelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function generateSKU() {
+        const catSelect = document.getElementById('itemCategoryId');
+        let prefix = "PR";
+        if (catSelect && catSelect.selectedIndex > 0) {
+            const text = catSelect.options[catSelect.selectedIndex].text.substring(0, 2).toUpperCase();
+            prefix = text;
+        }
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('itemSKU').value = `SKU-${prefix}-${rand}`;
+    }
+
+    function generateBarcode() {
+        const rand = Math.floor(100000000 + Math.random() * 900000000);
+        document.getElementById('itemBarcode').value = `890${rand}`;
+    }
+
+    function openCreateItemModal() {
+        document.getElementById('itemForm').reset();
+        document.getElementById('itemId').value = "0";
+        document.getElementById('itemModalTitle').innerText = "Create New Catalog Product";
+        generateSKU();
+        generateBarcode();
+        if (itemModal) itemModal.show();
+    }
+
+    async function openEditItemModal(id, name, sku, barcode, catId, subCatId, uomId, cost, price, stock, reorder, branch, bin) {
+        document.getElementById('itemId').value = id;
+        document.getElementById('itemName').value = name;
+        document.getElementById('itemSKU').value = sku;
+        document.getElementById('itemBarcode').value = barcode;
+        document.getElementById('itemCategoryId').value = catId;
+
+        await onCategoryChanged();
+        if (subCatId > 0) {
+            document.getElementById('itemSubCategoryId').value = subCatId;
+        }
+
+        document.getElementById('itemUomId').value = uomId;
+        document.getElementById('itemPurchasePrice').value = cost;
+        document.getElementById('itemSellingPrice').value = price;
+        document.getElementById('itemCurrentStock').value = stock;
+        document.getElementById('itemMinimumReorderLevel').value = reorder;
+        document.getElementById('itemBranchLocation').value = branch;
+        document.getElementById('itemBinLocation').value = bin;
+
+        document.getElementById('itemModalTitle').innerText = `Edit Product: ${name}`;
+        if (itemModal) itemModal.show();
+    }
+
+    async function saveItemForm(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSaveItem');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+        const formData = new FormData(document.getElementById('itemForm'));
+
+        try {
+            const response = await fetch('/InvCatalog/SaveItem', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': getCsrfToken()
+                },
+                body: formData
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                alert(res.message || "Product saved successfully!");
+                if (itemModal) itemModal.hide();
+                location.reload();
+            } else {
+                alert(res.message || "Failed to save product.");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Product Details';
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred during submission.");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Product Details';
+        }
+    }
+
+    function openAuditAdjustModal(itemId, itemName, sku, currentStock, uomCode) {
+        document.getElementById('audItemId').value = itemId;
+        document.getElementById('audDisplayItemName').innerText = itemName;
+        document.getElementById('audDisplaySKU').innerText = sku;
+        document.getElementById('audDisplayStock').innerText = currentStock;
+        document.getElementById('audDisplayUom').innerText = uomCode;
+        document.getElementById('audQty').value = 1;
+        document.getElementById('audRemarks').value = '';
+
+        if (auditModal) auditModal.show();
+    }
+
+    async function submitStockAdjustment(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmitAudit');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Applying...';
+
+        const itemId = parseInt(document.getElementById('audItemId').value);
+        const type = document.getElementById('audType').value;
+        const qtyVal = parseInt(document.getElementById('audQty').value);
+        const adjustmentQty = type === 'Deduct' ? -qtyVal : qtyVal;
+        const reason = document.getElementById('audReason').value + ": " + document.getElementById('audRemarks').value;
+
+        const formData = new URLSearchParams();
+        formData.append('itemId', itemId);
+        formData.append('adjustmentQty', adjustmentQty);
+        formData.append('reason', reason);
+
+        try {
+            const response = await fetch('/InvCatalog/AdjustItemStock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': getCsrfToken()
+                },
+                body: formData
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                alert(res.message || "Stock adjusted successfully!");
+                if (auditModal) auditModal.hide();
+                location.reload();
+            } else {
+                alert(res.message || "Adjustment failed.");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Apply Stock Adjustment';
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error adjusting item stock.");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Apply Stock Adjustment';
+        }
+    }
+
+    async function openHistoryModal(itemId, itemName) {
+        document.getElementById('histItemName').innerText = itemName;
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span> Loading...</td></tr>';
+
+        if (historyModal) historyModal.show();
+
+        try {
+            const res = await fetch(`/InvCatalog/GetItemHistory?itemId=${itemId}`);
+            const data = await res.json();
+
+            if (data && data.length > 0) {
+                tbody.innerHTML = '';
+                data.forEach(h => {
+                    const tr = document.createElement('tr');
+                    const changeClass = h.quantityChange >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+                    const changeSign = h.quantityChange >= 0 ? '+' : '';
+                    tr.innerHTML = `
+                        <td>${h.date}</td>
+                        <td><span class="badge bg-light text-dark border">${h.adjustmentType}</span></td>
+                        <td class="${changeClass}">${changeSign}${h.quantityChange}</td>
+                        <td>${h.previousQty}</td>
+                        <td class="fw-bold">${h.newQty}</td>
+                        <td><small>${h.reason}</small></td>
+                        <td><small class="text-muted">${h.performedBy}</small></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No stock movement history recorded for this item yet.</td></tr>';
+            }
+        } catch (err) {
+            console.error(err);
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load movement logs.</td></tr>';
+        }
+    }
+</script>

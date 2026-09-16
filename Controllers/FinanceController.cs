@@ -70,7 +70,7 @@ namespace ERP_System.Controllers
         {
             if (User.IsInRole("Auditor"))
             {
-                return RedirectToAction(nameof(GeneralLedger));
+                return RedirectToAction("GeneralLedger", "Auditor");
             }
 
             // 1. Calculate Real Receivables from PaymentReceipts & unpaid Sales Invoices
@@ -533,6 +533,7 @@ namespace ERP_System.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager")]
         public IActionResult ApprovePaymentRelease(int billId)
         {
             var bill = _bills.FirstOrDefault(b => b.BillId == billId);
@@ -758,6 +759,7 @@ namespace ERP_System.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant")]
         public IActionResult ToggleReconMatch(int id, bool matched)
         {
             var item = _reconItems.FirstOrDefault(i => i.Id == id);
@@ -773,6 +775,7 @@ namespace ERP_System.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant")]
         public IActionResult AutoMatch(int? bankAccountId)
         {
             int targetId = bankAccountId ?? 1;
@@ -791,6 +794,7 @@ namespace ERP_System.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant")]
         public IActionResult UploadStatement(int? bankAccountId, decimal statementBalance, Microsoft.AspNetCore.Http.IFormFile? statementFile)
         {
             if (bankAccountId.HasValue && bankAccountId.Value > 0)
@@ -828,6 +832,7 @@ namespace ERP_System.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant")]
         public IActionResult AddFixedAsset(FixedAssetViewModel model)
         {
             if (ModelState.IsValid)
@@ -853,6 +858,7 @@ namespace ERP_System.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager")]
         public IActionResult RunDepreciation()
         {
             decimal totalMonthly = 0m;
@@ -1045,6 +1051,7 @@ namespace ERP_System.Controllers
 
         // POST: /Finance/AssignTask
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager")]
         public async Task<IActionResult> AssignTask([FromForm] CreateTaskInputModel input, [FromForm] string? assignedToUserId = null)
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -1130,6 +1137,7 @@ namespace ERP_System.Controllers
 
         // POST: /Finance/UpdateTaskProgress
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager")]
         public async Task<IActionResult> UpdateTaskProgress(int id, int progress, string status)
         {
             var task = await _context.DepartmentTasks.FindAsync(id);
@@ -1152,6 +1160,7 @@ namespace ERP_System.Controllers
 
         // POST: /Finance/DeleteTask
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager")]
         public async Task<IActionResult> DeleteTask(int id)
         {
             var task = await _context.DepartmentTasks.FindAsync(id);

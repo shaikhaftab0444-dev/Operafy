@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERP_System.Data;
@@ -169,6 +169,7 @@ namespace ERP_System.Controllers
         // POST: /Accounts/CreateAccountHead
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager")]
         public async Task<IActionResult> CreateAccountHead(string headCode, string headName, string accountType, string? description)
         {
             if (string.IsNullOrWhiteSpace(headCode) || string.IsNullOrWhiteSpace(headName) || string.IsNullOrWhiteSpace(accountType))
@@ -215,6 +216,7 @@ namespace ERP_System.Controllers
         // POST: /Accounts/CreateVoucher
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager,Accountant")]
         public async Task<IActionResult> CreateVoucher(string voucherType, string partyName, decimal amount, string status, string? notes)
         {
             if (string.IsNullOrWhiteSpace(voucherType) || string.IsNullOrWhiteSpace(partyName) || amount <= 0)
@@ -267,6 +269,7 @@ namespace ERP_System.Controllers
         // POST: /Accounts/ToggleHeadStatus/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Super Admin,Admin,Finance Manager")]
         public async Task<IActionResult> ToggleHeadStatus(int id)
         {
             var head = await _context.AccountHeads.FindAsync(id);

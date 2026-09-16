@@ -1,20 +1,12 @@
-@model IEnumerable<ERP_System.Models.Product>
-
+@model ERP_System.Models.CategoriesPageViewModel
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Product Categories";
-
-    var categories = Model != null
-        ? Model
-            .Where(p => !string.IsNullOrWhiteSpace(p.Category))
-            .Select(p => p.Category)
-            .Distinct()
-            .OrderBy(c => c)
-            .ToList()
-        : new List<string>();
+    ViewData["Title"] = "Product Categories & Sub-Categories";
 }
 
-<div class="container-fluid px-3 px-md-4 py-4 product-category-page">
+@Html.AntiForgeryToken()
+
+<div class="container-fluid px-3 px-md-4 py-4 product-category-page text-start">
 
     <!-- Page Header -->
     <div class="page-header-card mb-4">
@@ -34,41 +26,48 @@
                                     Inventory Dashboard
                                 </a>
                             </li>
+                            <li class="breadcrumb-item"><a href="/InvCatalog/Items">Catalog</a></li>
                             <li class="breadcrumb-item active" aria-current="page">
-                                Categories
+                                Categories &amp; Sub-Categories
                             </li>
                         </ol>
                     </nav>
 
-                    <h2 class="page-title mb-2">Product Categories</h2>
+                    <h2 class="page-title mb-2">Categories &amp; Sub-Categories</h2>
 
                     <p class="page-subtitle mb-0">
-                        Organize and monitor product categories across your inventory.
+                        Classify catalog items hierarchically with HSN tax rules and safety deletion guards.
                     </p>
                 </div>
             </div>
 
-            <a href="/InventoryDashboard" class="btn btn-dashboard">
-                <i class="fa-solid fa-chart-pie me-2"></i>
-                Dashboard
-            </a>
+            <!-- Master Action Buttons -->
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary px-3 py-2 fw-bold rounded-3 shadow-sm" onclick="openAddCategoryModal()">
+                    <i class="fa-solid fa-folder-plus me-1"></i> Add Category
+                </button>
+
+                <button type="button" class="btn btn-outline-primary px-3 py-2 fw-bold rounded-3 bg-white shadow-sm" onclick="openAddSubCategoryModal(0)">
+                    <i class="fa-solid fa-layer-group me-1"></i> Add Sub-Category
+                </button>
+
+                <a href="/InventoryDashboard" class="btn btn-dashboard">
+                    <i class="fa-solid fa-chart-pie me-2"></i> Dashboard
+                </a>
+            </div>
 
         </div>
     </div>
 
     <!-- Summary Cards -->
     <div class="row g-3 mb-4">
-
         <div class="col-12 col-md-4">
             <div class="summary-card">
                 <div class="summary-content">
                     <span class="summary-label">TOTAL CATEGORIES</span>
-                    <h3 class="summary-value">@categories.Count</h3>
-                    <span class="summary-description">
-                        Registered product categories
-                    </span>
+                    <h3 class="summary-value">@Model.TotalCategoriesCount</h3>
+                    <span class="summary-description">Parent classification heads</span>
                 </div>
-
                 <div class="summary-icon summary-icon-blue">
                     <i class="fa-solid fa-layer-group"></i>
                 </div>
@@ -78,15 +77,12 @@
         <div class="col-12 col-md-4">
             <div class="summary-card">
                 <div class="summary-content">
-                    <span class="summary-label">ACTIVE CATEGORIES</span>
-                    <h3 class="summary-value text-success">@categories.Count</h3>
-                    <span class="summary-description">
-                        Categories currently available
-                    </span>
+                    <span class="summary-label">SUB-CATEGORIES</span>
+                    <h3 class="summary-value text-success">@Model.TotalSubCategoriesCount</h3>
+                    <span class="summary-description">Nested product taxonomy nodes</span>
                 </div>
-
                 <div class="summary-icon summary-icon-green">
-                    <i class="fa-solid fa-circle-check"></i>
+                    <i class="fa-solid fa-diagram-project"></i>
                 </div>
             </div>
         </div>
@@ -94,115 +90,212 @@
         <div class="col-12 col-md-4">
             <div class="summary-card">
                 <div class="summary-content">
-                    <span class="summary-label">PRODUCT RECORDS</span>
-                    <h3 class="summary-value">@(Model?.Count() ?? 0)</h3>
-                    <span class="summary-description">
-                        Products linked to categories
-                    </span>
+                    <span class="summary-label">LINKED CATALOG ITEMS</span>
+                    <h3 class="summary-value text-purple">@Model.TotalLinkedProductsCount</h3>
+                    <span class="summary-description">Items currently assigned</span>
                 </div>
-
                 <div class="summary-icon summary-icon-purple">
                     <i class="fa-solid fa-boxes-stacked"></i>
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Category Master Section -->
+    <!-- Category Master Section with Expandable Tree -->
     <div class="content-card">
-
         <div class="content-card-header">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-
                 <div class="d-flex align-items-center gap-3">
                     <div class="section-icon">
-                        <i class="fa-solid fa-list"></i>
+                        <i class="fa-solid fa-list-tree"></i>
                     </div>
-
                     <div>
-                        <h5 class="section-title mb-1">Category Master</h5>
+                        <h5 class="section-title mb-1">Taxonomy Master Tree</h5>
                         <p class="section-subtitle mb-0">
-                            View all product categories registered in the system.
+                            Click any category row to smoothly reveal and manage nested sub-categories.
                         </p>
                     </div>
                 </div>
 
                 <div class="record-count">
                     <i class="fa-solid fa-database me-1"></i>
-                    Showing @categories.Count categories
+                    Showing @Model.TotalCategoriesCount Categories (@Model.TotalSubCategoriesCount Sub-Categories)
                 </div>
-
             </div>
         </div>
 
         <div class="content-card-body">
-
-            @if (categories.Any())
+            @if (Model.Categories != null && Model.Categories.Any())
             {
                 <div class="table-responsive">
                     <table class="table category-table align-middle mb-0">
-
                         <thead>
                             <tr>
-                                <th class="category-number-column">#</th>
+                                <th style="width: 50px;">#</th>
                                 <th>Category Name</th>
-                                <th>Sub-Categories Count</th>
+                                <th>HSN / SAC Code</th>
+                                <th>Default GST Rate</th>
+                                <th>Sub-Categories</th>
+                                <th>Linked Items</th>
                                 <th>Status</th>
+                                <th class="text-end" style="width: 220px;">Actions</th>
                             </tr>
                         </thead>
-
                         <tbody>
                             @{
-                                var categoryIndex = 1;
+                                var index = 1;
                             }
-
-                            @foreach (var cat in categories)
+                            @foreach (var cat in Model.Categories)
                             {
-                                <tr>
-                                    <td>
-                                        <span class="category-number">
-                                            @categoryIndex
-                                        </span>
-                                    </td>
+                                var subCount = cat.SubCategories?.Count ?? 0;
+                                var itemsCount = cat.Items?.Count ?? 0;
+                                var collapseId = $"collapseCat{cat.Id}";
 
+                                <!-- Parent Category Row -->
+                                <tr class="category-parent-row" style="cursor: pointer;" onclick="toggleAccordion('@collapseId', event)">
+                                    <td>
+                                        <span class="category-number">@index</span>
+                                    </td>
                                     <td>
                                         <div class="category-name-wrapper">
                                             <div class="category-avatar">
                                                 <i class="fa-solid fa-tag"></i>
                                             </div>
-
                                             <div>
-                                                <div class="category-name">
-                                                    @cat
+                                                <div class="category-name d-flex align-items-center gap-2">
+                                                    <span>@cat.Name</span>
+                                                    <i class="fa-solid fa-chevron-down accordion-arrow small text-muted" id="arrow-@collapseId"></i>
                                                 </div>
-
-                                                <div class="category-description">
-                                                    Product classification
-                                                </div>
+                                                <div class="category-description">Click to toggle @subCount sub-categories</div>
                                             </div>
                                         </div>
                                     </td>
-
                                     <td>
-                                        <span class="sub-category-badge">
-                                            <i class="fa-solid fa-layer-group me-1"></i>
-                                            2 Sub-Categories
+                                        <span class="badge bg-light text-dark border font-monospace">
+                                            @(string.IsNullOrWhiteSpace(cat.HsnCode) ? "N/A" : cat.HsnCode)
                                         </span>
                                     </td>
-
                                     <td>
-                                        <span class="status-badge">
-                                            <span class="status-dot"></span>
-                                            Active
+                                        <span class="fw-bold text-secondary">@cat.DefaultGstRate.ToString("0.##")%</span>
+                                    </td>
+                                    <td>
+                                        <span class="sub-category-badge">
+                                            <i class="fa-solid fa-layer-group me-1 text-primary"></i>
+                                            @subCount Sub-Categories
                                         </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @(itemsCount > 0 ? "bg-primary-subtle text-primary" : "bg-light text-muted") px-2 py-1">
+                                            <i class="fa-solid fa-box me-1"></i> @itemsCount Items
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (cat.IsActive)
+                                        {
+                                            <span class="status-badge">
+                                                <span class="status-dot"></span> Active
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary px-2 py-1">Inactive</span>
+                                        }
+                                    </td>
+                                    <td class="text-end" onclick="event.stopPropagation()">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                                    title="Add Sub-Category"
+                                                    onclick="openAddSubCategoryModal(@cat.Id)">
+                                                <i class="fa-solid fa-plus"></i> Sub
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                    title="Edit Category"
+                                                    onclick="openEditCategoryModal(@cat.Id, '@cat.Name', '@(cat.HsnCode ?? "")', @cat.DefaultGstRate, @(cat.IsActive ? "true" : "false"))">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    title="Delete Category"
+                                                    onclick="confirmDeleteCategory(@cat.Id, '@cat.Name', @itemsCount)">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
 
-                                categoryIndex++;
+                                <!-- Nested Sub-Categories Collapsible Accordion Row -->
+                                <tr class="nested-sub-row p-0" id="@collapseId" style="display: none;">
+                                    <td colspan="8" class="p-0 border-0">
+                                        <div class="nested-accordion-content p-3 bg-light border-bottom">
+                                            <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+                                                <span class="fw-bold text-secondary small text-uppercase">
+                                                    <i class="fa-solid fa-diagram-project text-primary me-2"></i>
+                                                    Mapped Sub-Categories under <strong>@cat.Name</strong>
+                                                </span>
+
+                                                <button type="button" class="btn btn-xs btn-primary" onclick="openAddSubCategoryModal(@cat.Id)">
+                                                    <i class="fa-solid fa-plus me-1"></i> Add Sub-Category
+                                                </button>
+                                            </div>
+
+                                            @if (cat.SubCategories != null && cat.SubCategories.Any())
+                                            {
+                                                <div class="table-responsive bg-white rounded-3 border">
+                                                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th style="width: 30%;">Sub-Category Name</th>
+                                                                <th style="width: 40%;">Description</th>
+                                                                <th style="width: 15%;">Mapped Items</th>
+                                                                <th class="text-end" style="width: 15%;">Action</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var sub in cat.SubCategories)
+                                                            {
+                                                                var subItemCount = sub.Items?.Count ?? 0;
+                                                                <tr>
+                                                                    <td class="fw-bold text-dark ps-3">
+                                                                        <i class="fa-solid fa-folder me-1 text-warning"></i>
+                                                                        @sub.Name
+                                                                    </td>
+                                                                    <td class="text-muted">
+                                                                        @(string.IsNullOrWhiteSpace(sub.Description) ? "—" : sub.Description)
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="badge bg-light text-secondary border">
+                                                                            @subItemCount Items
+                                                                        </span>
+                                                                    </td>
+                                                                    <td class="text-end pe-3">
+                                                                        <button type="button" class="btn btn-xs btn-outline-secondary me-1"
+                                                                                onclick="openEditSubCategoryModal(@sub.Id, @cat.Id, '@sub.Name', '@(sub.Description ?? "")')">
+                                                                            <i class="fa-solid fa-pen"></i> Edit
+                                                                        </button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-danger"
+                                                                                onclick="confirmDeleteSubCategory(@sub.Id, '@sub.Name', @subItemCount)">
+                                                                            <i class="fa-solid fa-trash"></i> Remove
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-white rounded-3 p-3 text-center text-muted small border">
+                                                    No sub-categories defined for <strong>@cat.Name</strong> yet.
+                                                    <a href="javascript:void(0)" class="text-primary ms-1" onclick="openAddSubCategoryModal(@cat.Id)">Create one now</a>.
+                                                </div>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                index++;
                             }
                         </tbody>
-
                     </table>
                 </div>
             }
@@ -212,470 +305,386 @@
                     <div class="empty-state-icon">
                         <i class="fa-solid fa-tags"></i>
                     </div>
-
                     <h5 class="empty-state-title">No Categories Found</h5>
-
-                    <p class="empty-state-description mb-0">
-                        No product categories were found in the database.
-                    </p>
+                    <p class="empty-state-description mb-3">Get started by creating your first product category.</p>
+                    <button type="button" class="btn btn-primary px-4 py-2" onclick="openAddCategoryModal()">
+                        <i class="fa-solid fa-plus me-1"></i> Create Category
+                    </button>
                 </div>
             }
-
         </div>
 
-        <div class="content-card-footer">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                <span>
-                    <i class="fa-solid fa-circle-info me-1"></i>
-                    Category information is based on registered product records.
-                </span>
-
-                <span>
-                    Total: <strong>@categories.Count</strong>
-                </span>
-            </div>
+        <div class="content-card-footer d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fa-solid fa-shield-halved me-1 text-success"></i>
+                Safety deletion protection is active. Categories containing mapped items cannot be deleted.
+            </span>
+            <span>Total Categories: <strong>@Model.TotalCategoriesCount</strong></span>
         </div>
-
     </div>
+</div>
 
+<!-- =========================================================================
+     MODAL 1: ADD / EDIT CATEGORY MODAL
+     ========================================================================= -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="catModalTitle">
+                    <i class="fa-solid fa-folder-plus text-primary me-2"></i> Add Product Category
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form id="categoryForm" onsubmit="saveCategoryForm(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="catId" name="Id" value="0" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" id="catName" name="Name" class="form-control" placeholder="e.g. Electronics, Office Supplies" required />
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label">HSN / SAC Code</label>
+                            <input type="text" id="catHsn" name="HsnCode" class="form-control font-monospace" placeholder="e.g. 8471" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Default GST Rate (%)</label>
+                            <input type="number" step="0.01" id="catGst" name="DefaultGstRate" class="form-control" value="18.0" required />
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" id="catActive" name="IsActive" value="true" checked />
+                        <label class="form-check-label fw-bold" for="catActive">Category is Active</label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4" id="btnSaveCat">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL 2: ADD / EDIT SUB-CATEGORY MODAL
+     ========================================================================= -->
+<div class="modal fade" id="subCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="subModalTitle">
+                    <i class="fa-solid fa-diagram-project text-success me-2"></i> Add Sub-Category
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form id="subCategoryForm" onsubmit="saveSubCategoryForm(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="subId" name="Id" value="0" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Parent Category <span class="text-danger">*</span></label>
+                        <select id="subCatParentId" name="CategoryId" class="form-select" required>
+                            <option value="">-- Select Parent Category --</option>
+                            @foreach (var c in Model.Categories)
+                            {
+                                <option value="@c.Id">@c.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Sub-Category Name <span class="text-danger">*</span></label>
+                        <input type="text" id="subName" name="Name" class="form-control" placeholder="e.g. Laptops &amp; Workstations" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description / Scope</label>
+                        <textarea id="subDescription" name="Description" class="form-control" rows="2" placeholder="Brief summary of items classified under this sub-category..."></textarea>
+                    </div>
+
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="subActive" name="IsActive" value="true" checked />
+                        <label class="form-check-label fw-bold" for="subActive">Sub-Category is Active</label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success px-4" id="btnSaveSub">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Sub-Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <style>
-    .product-category-page {
-        background: #f4f7fb;
-        min-height: calc(100vh - 80px);
-    }
-
-    .page-header-card {
-        position: relative;
-        overflow: hidden;
-        padding: 30px;
-        background: #ffffff;
-        border: 1px solid #e5eaf1;
-        border-radius: 22px;
-        box-shadow: 0 8px 25px rgba(31, 45, 61, 0.04);
-    }
-
-        .page-header-card::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #1677ff, #635bff);
-        }
-
-    .page-icon {
-        width: 58px;
-        height: 58px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #ffffff;
-        background: linear-gradient(135deg, #2878f0, #4f46e5);
-        border-radius: 16px;
-        font-size: 23px;
-        box-shadow: 0 10px 22px rgba(37, 99, 235, 0.2);
-    }
-
-    .custom-breadcrumb {
-        font-size: 13px;
-        color: #8a9ab3;
-    }
-
-        .custom-breadcrumb a {
-            color: #71819a;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-            .custom-breadcrumb a:hover {
-                color: #2563eb;
-            }
-
-        .custom-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
-            color: #b5c0cf;
-            content: "/";
-        }
-
-        .custom-breadcrumb .active {
-            color: #2563eb;
-            font-weight: 600;
-        }
-
-    .page-title {
-        color: #17233c;
-        font-size: clamp(24px, 3vw, 34px);
-        font-weight: 750;
-        letter-spacing: -1.2px;
-    }
-
-    .page-subtitle {
-        color: #8291a8;
-        font-size: 14px;
-        line-height: 1.6;
-    }
-
-    .btn-dashboard {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 42px;
-        padding: 10px 18px;
-        color: #526177;
-        background: #ffffff;
-        border: 1px solid #dce4ee;
-        border-radius: 11px;
-        font-size: 13px;
-        font-weight: 650;
-        transition: all 0.2s ease;
-    }
-
-        .btn-dashboard:hover {
-            color: #2563eb;
-            background: #f5f8ff;
-            border-color: #b9cdf5;
-            transform: translateY(-1px);
-        }
-
-    .summary-card {
-        position: relative;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        min-height: 145px;
-        padding: 25px 20px;
-        overflow: hidden;
-        background: #ffffff;
-        border: 1px solid #e4e9f0;
-        border-radius: 18px;
-        box-shadow: 0 7px 20px rgba(31, 45, 61, 0.035);
-    }
-
-        .summary-card::after {
-            content: "";
-            position: absolute;
-            top: -35px;
-            right: -35px;
-            width: 105px;
-            height: 105px;
-            background: #f7f9fc;
-            border-radius: 50%;
-            z-index: 0;
-        }
-
-    .summary-content,
-    .summary-icon {
-        position: relative;
-        z-index: 1;
-    }
-
-    .summary-label {
-        display: block;
-        margin-bottom: 12px;
-        color: #6b7d97;
-        font-size: 11px;
-        font-weight: 750;
-        letter-spacing: 0.7px;
-    }
-
-    .summary-value {
-        margin-bottom: 6px;
-        color: #1d2940;
-        font-size: 26px;
-        font-weight: 750;
-        letter-spacing: -0.8px;
-    }
-
-    .summary-description {
-        color: #9aa9bd;
-        font-size: 12px;
-    }
-
-    .summary-icon {
-        width: 43px;
-        height: 43px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 13px;
-        font-size: 17px;
-    }
-
-    .summary-icon-blue {
-        color: #2563eb;
-        background: #edf4ff;
-    }
-
-    .summary-icon-green {
-        color: #16a05d;
-        background: #eafaf1;
-    }
-
-    .summary-icon-purple {
-        color: #7c3aed;
-        background: #f3edff;
-    }
-
-    .content-card {
-        overflow: hidden;
-        background: #ffffff;
-        border: 1px solid #e3e8ef;
-        border-radius: 20px;
-        box-shadow: 0 8px 25px rgba(31, 45, 61, 0.035);
-    }
-
-    .content-card-header {
-        padding: 23px 25px;
-        border-bottom: 1px solid #edf0f5;
-    }
-
-    .section-icon {
-        width: 42px;
-        height: 42px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #1685d9;
-        background: #eaf7ff;
-        border-radius: 12px;
-        font-size: 17px;
-    }
-
-    .section-title {
-        color: #1c2940;
-        font-size: 17px;
-        font-weight: 750;
-        letter-spacing: -0.3px;
-    }
-
-    .section-subtitle {
-        color: #9aa9bd;
-        font-size: 12px;
-    }
-
-    .record-count {
-        color: #8291a8;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .content-card-body {
-        padding: 0;
-    }
-
-    .category-table {
-        min-width: 650px;
-        color: #344258;
-        font-size: 13px;
-    }
-
-        .category-table thead th {
-            padding: 17px 25px;
-            color: #687b96;
-            background: #f8fafc;
-            border-bottom: 1px solid #e5eaf1;
-            font-size: 11px;
-            font-weight: 750;
-            letter-spacing: 0.55px;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-
-        .category-table tbody td {
-            padding: 18px 25px;
-            border-bottom: 1px solid #edf1f5;
-            vertical-align: middle;
-        }
-
-        .category-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .category-table tbody tr {
-            transition: background 0.2s ease;
-        }
-
-            .category-table tbody tr:hover {
-                background: #f8fbff;
-            }
-
-    .category-number-column {
-        width: 70px;
-    }
-
-    .category-number {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        color: #6d7f98;
-        background: #f1f5f9;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .category-name-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .category-avatar {
-        width: 39px;
-        height: 39px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        color: #2563eb;
-        background: #edf4ff;
-        border-radius: 11px;
-        font-size: 15px;
-    }
-
-    .category-name {
-        color: #202d43;
-        font-size: 13px;
-        font-weight: 700;
-    }
-
-    .category-description {
-        margin-top: 3px;
-        color: #9aa9bd;
-        font-size: 11px;
-    }
-
-    .sub-category-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 7px 11px;
-        color: #62738b;
-        background: #f7f9fc;
-        border: 1px solid #e3e9f1;
-        border-radius: 9px;
-        font-size: 12px;
-        white-space: nowrap;
-    }
-
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 7px 12px;
-        color: #16864e;
-        background: #edfbf3;
-        border: 1px solid #c8f1d9;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 650;
-    }
-
-    .status-dot {
-        width: 6px;
-        height: 6px;
-        background: #18a957;
-        border-radius: 50%;
-    }
-
-    .content-card-footer {
-        padding: 15px 25px;
-        color: #99a8bb;
-        background: #fbfcfe;
-        border-top: 1px solid #edf1f5;
-        font-size: 11px;
-    }
-
-        .content-card-footer strong {
-            color: #65758d;
-        }
-
-    .empty-state {
-        padding: 65px 20px;
-        text-align: center;
-    }
-
-    .empty-state-icon {
-        width: 72px;
-        height: 72px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 18px;
-        color: #91a1b6;
-        background: #f2f5f9;
-        border-radius: 20px;
-        font-size: 28px;
-    }
-
-    .empty-state-title {
-        color: #26344b;
-        font-size: 17px;
-        font-weight: 750;
-    }
-
-    .empty-state-description {
-        color: #98a7ba;
-        font-size: 13px;
-    }
-
-    @@media (max-width: 767.98px) {
-        .product-category-page
-
-    {
-        padding-top: 20px !important;
-    }
-
-    .page-header-card {
-        padding: 22px 18px;
-        border-radius: 17px;
-    }
-
-    .page-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 13px;
-        font-size: 19px;
-    }
-
-    .page-title {
-        font-size: 25px;
-    }
-
-    .page-subtitle {
-        font-size: 13px;
-    }
-
-    .btn-dashboard {
-        width: 100%;
-    }
-
-    .summary-card {
-        min-height: 125px;
-        padding: 20px;
-    }
-
-    .summary-value {
-        font-size: 24px;
-    }
-
-    .content-card-header {
-        padding: 20px 18px;
-    }
-
-    .category-table thead th,
-    .category-table tbody td {
-        padding-left: 18px;
-        padding-right: 18px;
-    }
-
-    .content-card-footer {
-        padding: 14px 18px;
-    }
-
-    }
+    .product-category-page { background: #f4f7fb; min-height: calc(100vh - 80px); }
+    .page-header-card { position: relative; overflow: hidden; padding: 26px 30px; background: #ffffff; border: 1px solid #e5eaf1; border-radius: 22px; box-shadow: 0 8px 25px rgba(31, 45, 61, 0.04); }
+    .page-header-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #1677ff, #635bff); }
+    .page-icon { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; color: #ffffff; background: linear-gradient(135deg, #2878f0, #4f46e5); border-radius: 16px; font-size: 22px; }
+    .custom-breadcrumb { font-size: 13px; }
+    .page-title { color: #17233c; font-size: 1.6rem; font-weight: 750; }
+    .page-subtitle { color: #8291a8; font-size: 14px; }
+    .btn-dashboard { display: inline-flex; align-items: center; padding: 9px 16px; color: #526177; background: #ffffff; border: 1px solid #dce4ee; border-radius: 11px; font-size: 13px; font-weight: 650; }
+    .btn-dashboard:hover { color: #2563eb; background: #f5f8ff; }
+    .summary-card { position: relative; display: flex; justify-content: space-between; align-items: flex-start; min-height: 130px; padding: 22px 20px; background: #ffffff; border: 1px solid #e4e9f0; border-radius: 18px; }
+    .summary-label { display: block; margin-bottom: 8px; color: #6b7d97; font-size: 11px; font-weight: 750; letter-spacing: 0.7px; }
+    .summary-value { margin-bottom: 4px; color: #1d2940; font-size: 24px; font-weight: 750; }
+    .summary-description { color: #9aa9bd; font-size: 12px; }
+    .summary-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 13px; font-size: 17px; }
+    .summary-icon-blue { color: #2563eb; background: #edf4ff; }
+    .summary-icon-green { color: #16a05d; background: #eafaf1; }
+    .summary-icon-purple { color: #7c3aed; background: #f3edff; }
+    .text-purple { color: #7c3aed !important; }
+    .content-card { overflow: hidden; background: #ffffff; border: 1px solid #e3e8ef; border-radius: 20px; box-shadow: 0 8px 25px rgba(31, 45, 61, 0.035); }
+    .content-card-header { padding: 20px 25px; border-bottom: 1px solid #edf0f5; }
+    .section-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: #1685d9; background: #eaf7ff; border-radius: 12px; font-size: 17px; }
+    .section-title { color: #1c2940; font-size: 17px; font-weight: 750; }
+    .section-subtitle { color: #9aa9bd; font-size: 12px; }
+    .record-count { color: #8291a8; font-size: 12px; font-weight: 600; }
+    .category-table { min-width: 850px; font-size: 13px; }
+    .category-table thead th { padding: 15px 20px; color: #687b96; background: #f8fafc; border-bottom: 1px solid #e5eaf1; font-size: 11px; font-weight: 750; text-transform: uppercase; white-space: nowrap; }
+    .category-table tbody td { padding: 16px 20px; border-bottom: 1px solid #edf1f5; vertical-align: middle; }
+    .category-parent-row:hover { background: #f8fbff; }
+    .category-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: #6d7f98; background: #f1f5f9; border-radius: 8px; font-size: 12px; font-weight: 700; }
+    .category-name-wrapper { display: flex; align-items: center; gap: 12px; }
+    .category-avatar { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #2563eb; background: #edf4ff; border-radius: 11px; font-size: 15px; }
+    .category-name { color: #202d43; font-size: 14px; font-weight: 750; }
+    .category-description { color: #9aa9bd; font-size: 11px; }
+    .accordion-arrow { transition: transform 0.2s ease; }
+    .accordion-arrow.rotated { transform: rotate(180deg); color: #2563eb !important; }
+    .sub-category-badge { display: inline-flex; align-items: center; padding: 5px 10px; color: #475467; background: #f7f9fc; border: 1px solid #e3e9f1; border-radius: 9px; font-size: 12px; font-weight: 600; }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; color: #16864e; background: #edfbf3; border: 1px solid #c8f1d9; border-radius: 999px; font-size: 12px; font-weight: 650; }
+    .status-dot { width: 6px; height: 6px; background: #18a957; border-radius: 50%; }
+    .content-card-footer { padding: 14px 25px; color: #99a8bb; background: #fbfcfe; border-top: 1px solid #edf1f5; font-size: 12px; }
+    .btn-xs { padding: 0.28rem 0.65rem; font-size: 0.74rem; border-radius: 7px; }
+    .empty-state { padding: 60px 20px; text-align: center; }
+    .empty-state-icon { width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #91a1b6; background: #f2f5f9; border-radius: 20px; font-size: 28px; }
+    .empty-state-title { color: #26344b; font-size: 18px; font-weight: 750; }
+    .empty-state-description { color: #98a7ba; font-size: 13px; }
 </style>
+
+<script>
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    let catModal = null;
+    let subModal = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const catEl = document.getElementById('categoryModal');
+        if (catEl) catModal = new bootstrap.Modal(catEl);
+
+        const subEl = document.getElementById('subCategoryModal');
+        if (subEl) subModal = new bootstrap.Modal(subEl);
+    });
+
+    function toggleAccordion(rowId, event) {
+        // Don't toggle if user clicked a button or link
+        if (event.target.closest('button') || event.target.closest('a')) return;
+
+        const row = document.getElementById(rowId);
+        const arrow = document.getElementById('arrow-' + rowId);
+
+        if (row.style.display === 'none' || row.style.display === '') {
+            row.style.display = 'table-row';
+            if (arrow) arrow.classList.add('rotated');
+        } else {
+            row.style.display = 'none';
+            if (arrow) arrow.classList.remove('rotated');
+        }
+    }
+
+    function openAddCategoryModal() {
+        document.getElementById('categoryForm').reset();
+        document.getElementById('catId').value = "0";
+        document.getElementById('catModalTitle').innerHTML = '<i class="fa-solid fa-folder-plus text-primary me-2"></i> Add Product Category';
+        document.getElementById('catGst').value = "18.0";
+        document.getElementById('catActive').checked = true;
+        if (catModal) catModal.show();
+    }
+
+    function openEditCategoryModal(id, name, hsn, gst, isActive) {
+        document.getElementById('catId').value = id;
+        document.getElementById('catName').value = name;
+        document.getElementById('catHsn').value = hsn;
+        document.getElementById('catGst').value = gst;
+        document.getElementById('catActive').checked = isActive;
+        document.getElementById('catModalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-primary me-2"></i> Edit Category: ${name}`;
+        if (catModal) catModal.show();
+    }
+
+    async function saveCategoryForm(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSaveCat');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+        const formData = new FormData(document.getElementById('categoryForm'));
+
+        try {
+            const response = await fetch('/InvCatalog/SaveCategory', {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': getCsrfToken() },
+                body: formData
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                alert(res.message || "Category saved successfully!");
+                if (catModal) catModal.hide();
+                location.reload();
+            } else {
+                alert(res.message || "Failed to save category.");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Category';
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error saving category.");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Category';
+        }
+    }
+
+    // SAFETY VALIDATION GUARD ON CATEGORY DELETE
+    async function confirmDeleteCategory(id, name, linkedItemsCount) {
+        if (linkedItemsCount > 0) {
+            alert(`Cannot delete category '${name}' containing ${linkedItemsCount} active products. Reassign items first.`);
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete category '${name}'? This will also remove any empty sub-categories.`)) {
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('id', id);
+
+        try {
+            const response = await fetch('/InvCatalog/DeleteCategory', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': getCsrfToken()
+                },
+                body: formData
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                alert(res.message || "Category deleted.");
+                location.reload();
+            } else {
+                alert(res.message || "Failed to delete category.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred during deletion.");
+        }
+    }
+
+    function openAddSubCategoryModal(parentId) {
+        document.getElementById('subCategoryForm').reset();
+        document.getElementById('subId').value = "0";
+        document.getElementById('subModalTitle').innerHTML = '<i class="fa-solid fa-diagram-project text-success me-2"></i> Add Sub-Category';
+        if (parentId > 0) {
+            document.getElementById('subCatParentId').value = parentId;
+        }
+        document.getElementById('subActive').checked = true;
+        if (subModal) subModal.show();
+    }
+
+    function openEditSubCategoryModal(id, parentId, name, desc) {
+        document.getElementById('subId').value = id;
+        document.getElementById('subCatParentId').value = parentId;
+        document.getElementById('subName').value = name;
+        document.getElementById('subDescription').value = desc;
+        document.getElementById('subActive').checked = true;
+        document.getElementById('subModalTitle').innerHTML = `<i class="fa-solid fa-pen text-success me-2"></i> Edit Sub-Category: ${name}`;
+        if (subModal) subModal.show();
+    }
+
+    async function saveSubCategoryForm(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSaveSub');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+        const formData = new FormData(document.getElementById('subCategoryForm'));
+
+        try {
+            const response = await fetch('/InvCatalog/SaveSubCategory', {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': getCsrfToken() },
+                body: formData
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                alert(res.message || "Sub-Category saved successfully!");
+                if (subModal) subModal.hide();
+                location.reload();
+            } else {
+                alert(res.message || "Failed to save sub-category.");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Sub-Category';
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error saving sub-category.");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save Sub-Category';
+        }
+    }
+
+    async function confirmDeleteSubCategory(id, name, linkedItemsCount) {
+        if (linkedItemsCount > 0) {
+            alert(`Cannot delete sub-category '${name}' containing active products. Reassign items first.`);
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to remove sub-category '${name}'?`)) {
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('id', id);
+
+        try {
+            const response = await fetch('/InvCatalog/DeleteSubCategory', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': getCsrfToken()
+                },
+                body: formData
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                alert(res.message || "Sub-Category deleted.");
+                location.reload();
+            } else {
+                alert(res.message || "Failed to delete sub-category.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error during sub-category deletion.");
+        }
+    }
+</script>

@@ -1,14 +1,651 @@
-@model IEnumerable<ERP_System.Models.InvGrn>
+@model IEnumerable<ERP_System.Models.GoodsReceiptNote>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Goods Receipt Note (GRN)";
+
+    var grns = Model?.ToList() ?? new List<ERP_System.Models.GoodsReceiptNote>();
+    var totalGrns = grns.Count;
+    var completedGrns = grns.Count(g => g.Status == "Completed");
+    var pendingGrns = grns.Count(g => g.Status != "Completed");
+    var totalReceivedQty = grns.SelectMany(g => g.LineItems).Sum(li => li.ReceivedQuantity);
+
+    var warehouses = ViewBag.Warehouses as List<ERP_System.Models.WarehouseLocation> ?? new List<ERP_System.Models.WarehouseLocation>();
+    var catalogItems = ViewBag.CatalogItems as List<ERP_System.Models.CatalogItem> ?? new List<ERP_System.Models.CatalogItem>();
+    var bins = ViewBag.Bins as List<ERP_System.Models.BinRackMaster> ?? new List<ERP_System.Models.BinRackMaster>();
+    var selectedWarehouseId = ViewBag.SelectedWarehouseId as int?;
+    var selectedStatus = ViewBag.SelectedStatus as string;
 }
+
+<div class="container-fluid grn-page text-start px-3 px-md-4 py-4">
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Toast Notification for Ajax calls -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+        <div id="ajaxToast" class="toast align-items-center text-bg-primary border-0 rounded-4 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center gap-2" id="toastMessage">
+                    <i class="fa-solid fa-circle-info"></i> Action executed.
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="grn-header-card mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center">
+                    <div class="grn-icon-box me-3">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+
+                    <div>
+                        <h4 class="grn-page-title">
+                            Goods Receipt Note (GRN - Inward)
+                        </h4>
+
+                        <p class="grn-page-subtitle">
+                            Verify inbound supplier shipments, batch allocations, and trigger automatic stock additions.
+                        </p>
+
+                        <nav aria-label="breadcrumb" class="mt-2">
+                            <ol class="breadcrumb grn-breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a href="/InventoryDashboard">Inventory Dashboard</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a href="/InvWarehouse/Locations">Warehouses</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">
+                                    Inward GRN
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="d-flex justify-content-lg-end gap-2 grn-header-actions">
+                    <button type="button"
+                            class="btn grn-primary-btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#grnModal">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        Log GRN Entry
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="grn-summary-card">
+                <div class="d-flex align-items-center">
+                    <div class="grn-summary-icon blue me-3">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
+
+                    <div>
+                        <p class="grn-summary-label">Total Inward Notes</p>
+                        <h5 class="grn-summary-value">@totalGrns</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="grn-summary-card">
+                <div class="d-flex align-items-center">
+                    <div class="grn-summary-icon green me-3">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                    <div>
+                        <p class="grn-summary-label">Verified &amp; Accepted</p>
+                        <h5 class="grn-summary-value text-success">@completedGrns</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="grn-summary-card">
+                <div class="d-flex align-items-center">
+                    <div class="grn-summary-icon orange me-3">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+
+                    <div>
+                        <p class="grn-summary-label">Pending Verification</p>
+                        <h5 class="grn-summary-value text-warning">@pendingGrns</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="grn-summary-card">
+                <div class="d-flex align-items-center">
+                    <div class="grn-summary-icon blue me-3">
+                        <i class="fa-solid fa-boxes-packing"></i>
+                    </div>
+
+                    <div>
+                        <p class="grn-summary-label">Total Units Received</p>
+                        <h5 class="grn-summary-value text-primary">@totalReceivedQty.ToString("N0")</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRN List & Filters -->
+    <div class="grn-content-card">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h5 class="grn-section-title">Inward Transactions Directory</h5>
+                <p class="grn-section-subtitle">
+                    Recorded supplier delivery notes, items, inspection status, and inventory adjustments.
+                </p>
+            </div>
+
+            <!-- Filter Controls -->
+            <form method="get" action="/InvWarehouse/Grn" class="d-flex flex-wrap align-items-center gap-2">
+                <select name="warehouseId" class="form-select form-select-sm" style="min-width: 170px; border-radius: 8px;" onchange="this.form.submit()">
+                    <option value="">All Destination Facilities</option>
+                    @foreach (var wh in warehouses)
+                    {
+                        <option value="@wh.Id" selected="@(selectedWarehouseId == wh.Id ? "selected" : null)">
+                            @wh.WarehouseName (@wh.WarehouseCode)
+                        </option>
+                    }
+                </select>
+
+                <select name="status" class="form-select form-select-sm" style="min-width: 150px; border-radius: 8px;" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="Pending verification" selected="@(selectedStatus == "Pending verification" ? "selected" : null)">Pending Verification</option>
+                    <option value="Completed" selected="@(selectedStatus == "Completed" ? "selected" : null)">Completed</option>
+                </select>
+
+                @if (selectedWarehouseId.HasValue || !string.IsNullOrEmpty(selectedStatus))
+                {
+                    <a href="/InvWarehouse/Grn" class="btn btn-sm btn-outline-secondary" title="Reset Filters" style="border-radius: 8px;">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                }
+            </form>
+        </div>
+
+        <div class="table-responsive grn-table-wrapper">
+            <table class="table grn-table align-middle">
+                <thead>
+                    <tr>
+                        <th>GRN # &amp; PO Ref</th>
+                        <th>Supplier Name</th>
+                        <th>Destination Facility</th>
+                        <th>Received Date</th>
+                        <th>Received By</th>
+                        <th>Line Items / Qty</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @if (grns.Any())
+                    {
+                        @foreach (var g in grns)
+                        {
+                            var totalUnits = g.LineItems?.Sum(l => l.ReceivedQuantity) ?? 0;
+                            var itemsCount = g.LineItems?.Count ?? 0;
+
+                            <tr id="grn-row-@g.Id">
+                                <td>
+                                    <div>
+                                        <span class="grn-number font-monospace text-primary">
+                                            @g.GrnNumber
+                                        </span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(g.PurchaseOrderNumber))
+                                    {
+                                        <small class="text-muted font-monospace" style="font-size: 11px;">
+                                            PO: @g.PurchaseOrderNumber
+                                        </small>
+                                    }
+                                </td>
+
+                                <td>
+                                    <div class="fw-semibold text-dark">@g.SupplierName</div>
+                                    @if (!string.IsNullOrEmpty(g.Remarks))
+                                    {
+                                        <small class="text-muted text-truncate d-inline-block" style="max-width: 180px; font-size: 11px;">
+                                            @g.Remarks
+                                        </small>
+                                    }
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 12px;">
+                                        <i class="fa-solid fa-warehouse me-1 text-primary"></i>
+                                        @(g.DestinationWarehouse?.WarehouseName ?? "Central WH")
+                                    </span>
+                                </td>
+
+                                <td class="grn-muted font-monospace" style="font-size: 12px;">
+                                    @g.ReceivedDate.ToString("dd MMM yyyy, HH:mm")
+                                </td>
+
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-light text-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 11px; font-weight: 700;">
+                                            @(string.IsNullOrEmpty(g.ReceivedByUserId) ? "A" : g.ReceivedByUserId.Substring(0, 1).ToUpper())
+                                        </div>
+                                        <span style="font-size: 13px;">@(g.ReceivedByUser?.FullName ?? g.ReceivedByUser?.UserName ?? g.ReceivedByUserId ?? "Admin")</span>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div>
+                                        <span class="fw-bold text-dark">@totalUnits</span>
+                                        <span class="text-muted" style="font-size: 12px;">units</span>
+                                    </div>
+                                    <small class="text-muted" style="font-size: 11px;">@itemsCount distinct item(s)</small>
+                                </td>
+
+                                <td>
+                                    @if (g.Status == "Completed")
+                                    {
+                                        <span class="grn-status completed">
+                                            Completed
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="grn-status pending">
+                                            Pending verification
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        @if (g.Status != "Completed")
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-success text-white"
+                                                    title="Verify & Accept Shipment (Credit Stock)"
+                                                    onclick="verifyGrn(@g.Id, '@g.GrnNumber')">
+                                                <i class="fa-solid fa-check me-1"></i> Verify &amp; Accept
+                                            </button>
+                                        }
+
+                                        <a href="/InvWarehouse/PrintGrn?id=@g.Id" target="_blank" class="btn btn-sm btn-light text-primary border" title="Print GRN Slip">
+                                            <i class="fa-solid fa-print"></i>
+                                        </a>
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-light text-secondary border"
+                                                title="View Line Items"
+                                                onclick="viewGrnDetails('@g.GrnNumber', '@g.SupplierName', '@(g.DestinationWarehouse?.WarehouseName ?? "")', '@g.ReceivedDate.ToString("dd MMM yyyy")', '@g.Status', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(g.LineItems.Select(li => new {
+                                                    item = li.CatalogItem?.ItemName ?? "Item #" + li.CatalogItemId,
+                                                    sku = li.CatalogItem?.SKU ?? "N/A",
+                                                    qty = li.ReceivedQuantity,
+                                                    bin = li.TargetBin != null ? li.TargetBin.RackCode + " / " + li.TargetBin.BinLevel : "General",
+                                                    batch = li.BatchNumber ?? "-"
+                                                }))))">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="grn-empty-state">
+                                <div class="grn-empty-icon">
+                                    <i class="fa-solid fa-receipt"></i>
+                                </div>
+
+                                <div class="fw-semibold text-dark mb-1">
+                                    No Goods Receipt Notes Found
+                                </div>
+
+                                <div class="small text-muted mb-3">
+                                    No inward shipment transactions logged matching your filter criteria.
+                                </div>
+
+                                <button type="button"
+                                        class="btn grn-primary-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#grnModal">
+                                    <i class="fa-solid fa-plus me-2"></i>
+                                    Log First GRN
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Log GRN Modal -->
+<div class="modal fade grn-modal text-start"
+     id="grnModal"
+     tabindex="-1"
+     aria-labelledby="grnModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <form action="/InvWarehouse/CreateGrn" method="post" id="createGrnForm">
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header bg-light px-4 py-3 border-bottom">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-1" id="grnModalLabel">
+                            <i class="fa-solid fa-receipt text-primary me-2"></i>
+                            Log Goods Receipt Note (Inward)
+                        </h5>
+
+                        <small class="text-muted">
+                            Record incoming products from suppliers and map target storage bins.
+                        </small>
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                Destination Warehouse <span class="text-danger">*</span>
+                            </label>
+                            <select name="DestinationWarehouseId" class="form-select" required>
+                                <option value="">-- Select Receiving Facility --</option>
+                                @foreach (var wh in warehouses)
+                                {
+                                    <option value="@wh.Id">@wh.WarehouseName (@wh.WarehouseCode)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                Supplier / Vendor Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   name="SupplierName"
+                                   class="form-control"
+                                   placeholder="e.g. Apex Global Supplies Ltd"
+                                   required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                Purchase Order # (Optional)
+                            </label>
+                            <input type="text"
+                                   name="PurchaseOrderNumber"
+                                   class="form-control"
+                                   placeholder="e.g. PO-2026-0891" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                General Inspection Remarks
+                            </label>
+                            <input type="text"
+                                   name="Remarks"
+                                   class="form-control"
+                                   placeholder="e.g. Sealed cartons inspected without damage" />
+                        </div>
+                    </div>
+
+                    <!-- Line Items Section -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="fa-solid fa-boxes-stacked text-primary me-2"></i> Received Product Line Items
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-3" onclick="addGrnRow()">
+                                <i class="fa-solid fa-plus me-1"></i> Add Item
+                            </button>
+                        </div>
+
+                        <div class="table-responsive border rounded-3">
+                            <table class="table table-sm align-middle mb-0" id="grnItemsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 35%;">Catalog Item <span class="text-danger">*</span></th>
+                                        <th style="width: 25%;">Target Bin / Rack</th>
+                                        <th style="width: 15%;">Received Qty</th>
+                                        <th style="width: 20%;">Batch #</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="grnItemsBody">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-top">
+                    <button type="button"
+                            class="btn grn-secondary-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn grn-primary-btn">
+                        <i class="fa-solid fa-check me-2"></i>
+                        Submit GRN Entry
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- GRN Details Modal -->
+<div class="modal fade" id="grnDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header bg-light px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="modalDetailGrnNumber">GRN Details</h5>
+                    <small class="text-muted" id="modalDetailSubtitle"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive border rounded-3">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item &amp; SKU</th>
+                                <th>Received Quantity</th>
+                                <th>Target Bin</th>
+                                <th>Batch Number</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalDetailBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light px-4 py-3">
+                <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var availableItems = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(catalogItems.Select(c => new { id = c.Id, name = c.ItemName, sku = c.SKU })));
+    var availableBins = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(bins.Select(b => new { id = b.Id, code = b.RackCode + " - " + b.BinLevel + " (" + (b.Warehouse?.WarehouseCode ?? "") + ")" })));
+    var rowIndex = 0;
+
+    function addGrnRow() {
+        var tbody = document.getElementById('grnItemsBody');
+        var tr = document.createElement('tr');
+        tr.id = 'grn-item-' + rowIndex;
+
+        var itemOptions = '<option value="">-- Select Product --</option>';
+        availableItems.forEach(function (it) {
+            itemOptions += '<option value="' + it.id + '">' + it.name + ' (' + it.sku + ')</option>';
+        });
+
+        var binOptions = '<option value="">-- General Storage --</option>';
+        availableBins.forEach(function (b) {
+            binOptions += '<option value="' + b.id + '">' + b.code + '</option>';
+        });
+
+        tr.innerHTML = `
+            <td>
+                <select name="lineItems[${rowIndex}].CatalogItemId" class="form-select form-select-sm" required>
+                    ${itemOptions}
+                </select>
+            </td>
+            <td>
+                <select name="lineItems[${rowIndex}].TargetBinId" class="form-select form-select-sm">
+                    ${binOptions}
+                </select>
+            </td>
+            <td>
+                <input type="number" name="lineItems[${rowIndex}].ReceivedQuantity" class="form-control form-control-sm" min="1" value="10" required />
+                <input type="hidden" name="lineItems[${rowIndex}].OrderedQuantity" value="10" />
+            </td>
+            <td>
+                <input type="text" name="lineItems[${rowIndex}].BatchNumber" class="form-control form-control-sm" placeholder="e.g. BAT-01" />
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeGrnRow(${rowIndex})">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+        rowIndex++;
+    }
+
+    function removeGrnRow(idx) {
+        var row = document.getElementById('grn-item-' + idx);
+        if (row) {
+            row.remove();
+        }
+    }
+
+    // Initialize with 1 empty row on load
+    document.addEventListener('DOMContentLoaded', function () {
+        addGrnRow();
+    });
+
+    // Verification Async trigger
+    function verifyGrn(id, grnNum) {
+        if (!confirm(`Are you sure you want to verify and accept ${grnNum}? This will immediately credit item stock and update storage positions.`)) {
+            return;
+        }
+
+        fetch('/InvWarehouse/VerifyAndAcceptGrn?id=' + id, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message);
+                setTimeout(function () {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                alert(data.message || 'Error occurred while verifying GRN.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Request failed. Please check network or try again.');
+        });
+    }
+
+    function viewGrnDetails(grnNum, supplier, wh, date, status, items) {
+        document.getElementById('modalDetailGrnNumber').innerText = 'GRN: ' + grnNum;
+        document.getElementById('modalDetailSubtitle').innerText = `Supplier: ${supplier} | Facility: ${wh} | Date: ${date} | Status: ${status}`;
+
+        var tbody = document.getElementById('modalDetailBody');
+        tbody.innerHTML = '';
+
+        if (items && items.length > 0) {
+            items.forEach(function (it) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="fw-bold">${it.item}</div>
+                        <small class="text-muted font-monospace">${it.sku}</small>
+                    </td>
+                    <td><span class="badge bg-primary px-2 py-1">${it.qty} Units</span></td>
+                    <td><span class="badge bg-light text-dark border">${it.bin}</span></td>
+                    <td><span class="font-monospace">${it.batch}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No line items logged.</td></tr>';
+        }
+
+        var modal = new bootstrap.Modal(document.getElementById('grnDetailsModal'));
+        modal.show();
+    }
+
+    function showToast(msg) {
+        var el = document.getElementById('ajaxToast');
+        document.getElementById('toastMessage').innerHTML = '<i class="fa-solid fa-circle-check me-2"></i> ' + msg;
+        var toast = new bootstrap.Toast(el);
+        toast.show();
+    }
+</script>
 
 <style>
     .grn-page {
         background: #f7f9fc;
         min-height: calc(100vh - 70px);
-        padding: 28px 0;
     }
 
     .grn-header-card,
@@ -66,41 +703,36 @@
                 font-weight: 500;
             }
 
-            .grn-breadcrumb .breadcrumb-item.active {
-                color: #8a94a6;
-            }
-
     .grn-primary-btn {
-        border: none;
-        background: #2563eb;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: #ffffff;
+        border: none;
         border-radius: 10px;
-        padding: 11px 18px;
+        padding: 10px 18px;
         font-size: 0.84rem;
         font-weight: 600;
-        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.20);
         transition: all 0.2s ease;
     }
 
         .grn-primary-btn:hover {
-            background: #1d4ed8;
             color: #ffffff;
             transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28);
         }
 
     .grn-summary-card {
-        padding: 20px;
-        height: 100%;
+        padding: 22px;
     }
 
     .grn-summary-icon {
-        width: 42px;
-        height: 42px;
+        width: 44px;
+        height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 12px;
-        font-size: 17px;
+        font-size: 18px;
     }
 
         .grn-summary-icon.blue {
@@ -109,7 +741,7 @@
         }
 
         .grn-summary-icon.green {
-            background: #e9f8ef;
+            background: #eaf8ef;
             color: #16a34a;
         }
 
@@ -221,12 +853,12 @@
         }
 
             .grn-status.completed::before {
-                background: #22c55e;
+                background: #16a34a;
             }
 
         .grn-status.pending {
             background: #fff4df;
-            color: #b76b00;
+            color: #b45309;
         }
 
             .grn-status.pending::before {
@@ -234,73 +866,22 @@
             }
 
     .grn-empty-state {
-        padding: 46px 20px !important;
         text-align: center;
-        color: #8a94a6 !important;
+        padding: 50px 20px;
     }
 
     .grn-empty-icon {
-        width: 48px;
-        height: 48px;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: #f2f5f9;
+        color: #98a2b3;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 14px;
-        background: #f1f5f9;
-        color: #94a3b8;
-        font-size: 20px;
+        font-size: 24px;
         margin-bottom: 12px;
     }
-
-    .grn-modal .modal-content {
-        border: none;
-        border-radius: 18px;
-        overflow: hidden;
-        box-shadow: 0 18px 55px rgba(15, 23, 42, 0.16);
-    }
-
-    .grn-modal .modal-header {
-        padding: 20px 24px;
-        border-bottom: 1px solid #edf0f5;
-        background: #ffffff;
-    }
-
-    .grn-modal .modal-title {
-        color: #172b4d;
-        font-size: 1.05rem;
-    }
-
-    .grn-modal .modal-body {
-        padding: 24px;
-        background: #ffffff;
-    }
-
-    .grn-modal .modal-footer {
-        padding: 16px 24px;
-        border-top: 1px solid #edf0f5;
-        background: #fbfcfe;
-    }
-
-    .grn-modal .form-label {
-        color: #344054;
-        font-size: 0.8rem;
-        font-weight: 600;
-        margin-bottom: 8px;
-    }
-
-    .grn-modal .form-control {
-        border: 1px solid #dfe5ec;
-        border-radius: 10px;
-        color: #344054;
-        font-size: 0.84rem;
-        padding: 11px 13px;
-        box-shadow: none;
-    }
-
-        .grn-modal .form-control:focus {
-            border-color: #93b4f8;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
-        }
 
     .grn-secondary-btn {
         border: 1px solid #dfe5ec;
@@ -317,315 +898,4 @@
             color: #344054;
             border-color: #cbd5e1;
         }
-
-    @@media (max-width: 767.98px) {
-        .grn-page
-
-    {
-        padding: 18px 0;
-    }
-
-    .grn-header-card {
-        padding: 20px;
-    }
-
-    .grn-header-actions {
-        width: 100%;
-        margin-top: 18px;
-    }
-
-        .grn-header-actions .grn-primary-btn {
-            width: 100%;
-        }
-
-    .grn-content-card {
-        padding: 16px;
-    }
-
-    .grn-page-title {
-        font-size: 1.2rem;
-    }
-
-    .grn-summary-card {
-        padding: 16px;
-    }
-
-    }
 </style>
-
-<div class="container-fluid grn-page text-start">
-    <div class="container-fluid px-0">
-
-        <!-- Page Header -->
-        <div class="grn-header-card mb-4">
-            <div class="row align-items-center g-3">
-                <div class="col-lg-8">
-                    <div class="d-flex align-items-center">
-                        <div class="grn-icon-box me-3">
-                            <i class="fa-solid fa-receipt"></i>
-                        </div>
-
-                        <div>
-                            <h4 class="grn-page-title">
-                                Goods Receipt Note (GRN - Inward)
-                            </h4>
-
-                            <p class="grn-page-subtitle">
-                                Record and monitor incoming goods received from suppliers.
-                            </p>
-
-                            <nav aria-label="breadcrumb" class="mt-2">
-                                <ol class="breadcrumb grn-breadcrumb">
-                                    <li class="breadcrumb-item">
-                                        <a href="/InventoryDashboard">Inventory Dashboard</a>
-                                    </li>
-                                    <li class="breadcrumb-item active" aria-current="page">
-                                        GRN Inwards
-                                    </li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="d-flex justify-content-lg-end grn-header-actions">
-                        <button type="button"
-                                class="btn grn-primary-btn"
-                                data-bs-toggle="modal"
-                                data-bs-target="#grnModal">
-                            <i class="fa-solid fa-plus me-2"></i>
-                            Log GRN Entry
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Summary Cards -->
-        @{
-            var totalGrns = Model != null ? Model.Count() : 0;
-            var completedGrns = Model != null
-            ? Model.Count(g => g.Status == "Completed")
-            : 0;
-            var pendingGrns = Model != null
-            ? Model.Count(g => g.Status != "Completed")
-            : 0;
-        }
-
-        <div class="row g-4 mb-4">
-            <div class="col-xl-4 col-md-4">
-                <div class="grn-summary-card">
-                    <div class="d-flex align-items-center">
-                        <div class="grn-summary-icon blue me-3">
-                            <i class="fa-solid fa-file-invoice"></i>
-                        </div>
-
-                        <div>
-                            <p class="grn-summary-label">Total GRN Entries</p>
-                            <h5 class="grn-summary-value">@totalGrns</h5>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-4">
-                <div class="grn-summary-card">
-                    <div class="d-flex align-items-center">
-                        <div class="grn-summary-icon green me-3">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-
-                        <div>
-                            <p class="grn-summary-label">Completed GRNs</p>
-                            <h5 class="grn-summary-value">@completedGrns</h5>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-4">
-                <div class="grn-summary-card">
-                    <div class="d-flex align-items-center">
-                        <div class="grn-summary-icon orange me-3">
-                            <i class="fa-solid fa-clock"></i>
-                        </div>
-
-                        <div>
-                            <p class="grn-summary-label">Pending Verification</p>
-                            <h5 class="grn-summary-value">@pendingGrns</h5>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- GRN List -->
-        <div class="grn-content-card">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-                <div>
-                    <h5 class="grn-section-title">Inward Transactions</h5>
-                    <p class="grn-section-subtitle">
-                        View all goods receipt notes recorded in the inventory system.
-                    </p>
-                </div>
-
-                <div class="mt-3 mt-md-0">
-                    <span class="badge rounded-pill bg-light text-secondary px-3 py-2">
-                        <i class="fa-solid fa-list-check me-1"></i>
-                        @totalGrns Records
-                    </span>
-                </div>
-            </div>
-
-            <div class="table-responsive grn-table-wrapper">
-                <table class="table grn-table align-middle">
-                    <thead>
-                        <tr>
-                            <th>GRN Number</th>
-                            <th>Supplier</th>
-                            <th>Received Date</th>
-                            <th>Received By</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            @foreach (var g in Model)
-                            {
-                                <tr>
-                                    <td>
-                                        <span class="grn-number">
-                                            @g.GrnNo
-                                        </span>
-                                    </td>
-
-                                    <td>
-                                        @g.SupplierName
-                                    </td>
-
-                                    <td class="grn-muted">
-                                        @g.ReceivedDate.ToString("dd MMM yyyy")
-                                    </td>
-
-                                    <td>
-                                        @g.ReceivedBy
-                                    </td>
-
-                                    <td>
-                                        @if (g.Status == "Completed")
-                                        {
-                                            <span class="grn-status completed">
-                                                Completed
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="grn-status pending">
-                                                Pending verification
-                                            </span>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="5" class="grn-empty-state">
-                                    <div class="grn-empty-icon">
-                                        <i class="fa-solid fa-receipt"></i>
-                                    </div>
-
-                                    <div class="fw-semibold text-dark mb-1">
-                                        No GRN transactions found
-                                    </div>
-
-                                    <div class="small">
-                                        No goods receipt notes have been logged yet.
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- GRN Modal -->
-<div class="modal fade grn-modal text-start"
-     id="grnModal"
-     tabindex="-1"
-     aria-labelledby="grnModalLabel"
-     aria-hidden="true">
-
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form action="/InvWarehouse/CreateGrn" method="post">
-                @Html.AntiForgeryToken()
-
-                <div class="modal-header">
-                    <div>
-                        <h5 class="modal-title fw-bold mb-1" id="grnModalLabel">
-                            <i class="fa-solid fa-receipt text-primary me-2"></i>
-                            Log Goods Receipt (GRN)
-                        </h5>
-
-                        <small class="text-muted">
-                            Enter the supplier and receiving staff details.
-                        </small>
-                    </div>
-
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            Supplier Name
-                        </label>
-
-                        <input type="text"
-                               name="SupplierName"
-                               class="form-control"
-                               placeholder="e.g. Global Electronics Ltd"
-                               required />
-                    </div>
-
-                    <div class="mb-0">
-                        <label class="form-label">
-                            Received By (Auditor / Staff)
-                        </label>
-
-                        <input type="text"
-                               name="ReceivedBy"
-                               class="form-control"
-                               placeholder="e.g. Numan Sales Man"
-                               required />
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button"
-                            class="btn grn-secondary-btn"
-                            data-bs-dismiss="modal">
-                        Cancel
-                    </button>
-
-                    <button type="submit"
-                            class="btn grn-primary-btn">
-                        <i class="fa-solid fa-check me-2"></i>
-                        Receive Goods
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>

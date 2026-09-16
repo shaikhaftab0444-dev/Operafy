@@ -1,4 +1,4 @@
-@model List<ERP_System.Models.SystemAuditTrail>
+@model List<ERP_System.Models.SystemMutationLog>
 
 @{
     Layout = "_DashboardLayout";
@@ -7,10 +7,11 @@
     var selectedEntity = ViewBag.SelectedEntity as string ?? "";
     var searchTerm = ViewBag.SearchTerm as string ?? "";
 
-    var totalLogs = Model?.Count ?? 0;
-    var approvalLogs = Model?.Count(x => x.ActionType != null && x.ActionType.ToUpper() == "APPROVAL") ?? 0;
-    var updateLogs = Model?.Count(x => x.ActionType != null && x.ActionType.ToUpper() == "UPDATE") ?? 0;
-    var deleteLogs = Model?.Count(x => x.ActionType != null && x.ActionType.ToUpper() == "DELETE") ?? 0;
+    var totalLogs = (int)(ViewBag.TotalLogsCount ?? (Model?.Count ?? 0));
+    var approvalLogs = (int)(ViewBag.ApprovalLogsCount ?? (Model?.Count(x => x.ActionType != null && x.ActionType.ToUpper() == "APPROVAL") ?? 0));
+    var updateLogs = (int)(ViewBag.UpdateLogsCount ?? (Model?.Count(x => x.ActionType != null && x.ActionType.ToUpper() == "UPDATE") ?? 0));
+    var deleteLogs = (int)(ViewBag.OverrideLogsCount ?? (Model?.Count(x => x.ActionType != null && (x.ActionType.ToUpper() == "DELETE" || x.ActionType.ToUpper() == "FORCE_OVERRIDE")) ?? 0));
+    var usersDict = ViewBag.UsersDict as Dictionary<string, string>;
 }
 
 <style>
@@ -831,6 +832,10 @@
                                     <th>
                                         IP Address
                                     </th>
+
+                                    <th class="text-end">
+                                        Mutation Diff
+                                    </th>
                                 </tr>
                             </thead>
 
@@ -838,6 +843,16 @@
 
                                 @foreach (var log in Model)
                                 {
+                                    string logUser = "System";
+                                    if (!string.IsNullOrEmpty(log.PerformedByUserId) && usersDict != null && usersDict.ContainsKey(log.PerformedByUserId))
+                                    {
+                                        logUser = usersDict[log.PerformedByUserId];
+                                    }
+                                    else if (!string.IsNullOrEmpty(log.PerformedByUserId))
+                                    {
+                                        logUser = "User #" + log.PerformedByUserId;
+                                    }
+
                                     <tr>
 
                                         <!-- Log ID -->
@@ -871,28 +886,32 @@
                                         <!-- Action -->
                                         <td>
 
-                                            @if (log.ActionType != null &&
-                                                                                log.ActionType.ToUpper() == "APPROVAL")
+                                            @if (log.ActionType != null && log.ActionType.ToUpper() == "APPROVAL")
                                             {
                                                 <span class="audit-action approval">
                                                     <i class="fa-solid fa-circle-check"></i>
                                                     APPROVAL
                                                 </span>
                                             }
-                                            else if (log.ActionType != null &&
-                                            log.ActionType.ToUpper() == "UPDATE")
+                                            else if (log.ActionType != null && log.ActionType.ToUpper() == "UPDATE")
                                             {
                                                 <span class="audit-action update">
                                                     <i class="fa-solid fa-pen"></i>
                                                     UPDATE
                                                 </span>
                                             }
-                                            else if (log.ActionType != null &&
-                                            log.ActionType.ToUpper() == "DELETE")
+                                            else if (log.ActionType != null && log.ActionType.ToUpper() == "DELETE")
                                             {
                                                 <span class="audit-action delete">
                                                     <i class="fa-solid fa-trash-can"></i>
                                                     DELETE
+                                                </span>
+                                            }
+                                            else if (log.ActionType != null && log.ActionType.ToUpper() == "FORCE_OVERRIDE")
+                                            {
+                                                <span class="audit-action" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca;">
+                                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                                    OVERRIDE
                                                 </span>
                                             }
                                             else
@@ -903,25 +922,22 @@
                                                 </span>
                                             }
 
-                                    </td>
+                                        </td>
 
-                                    <!-- Changes Summary -->
-                                    <td>
-                                        <span class="audit-summary">
-                                            @log.ChangesSummary
-                                        </span>
-                                    </td>
+                                        <!-- Changes Summary -->
+                                        <td>
+                                            <span class="audit-summary">
+                                                @log.ChangesSummary
+                                            </span>
+                                        </td>
 
-                                    <!-- Performed By -->
-                                    <td>
-                                        <span class="audit-user">
-                                            <i class="fa-solid fa-user-shield me-2"></i>
-
-                                            @(log.PerformedByUser?.FullName
-                                                                                    ?? log.PerformedByUserId
-                                                                                    ?? "System")
-                                    </span>
-                                </td>
+                                        <!-- Performed By -->
+                                        <td>
+                                            <span class="audit-user">
+                                                <i class="fa-solid fa-user-shield me-2"></i>
+                                                @logUser
+                                            </span>
+                                        </td>
 
                                         <!-- IP Address -->
                                         <td>
@@ -930,8 +946,15 @@
                                             </span>
                                         </td>
 
+                                        <!-- Diff Inspector Action -->
+                                        <td class="text-end text-nowrap">
+                                            <button type="button" class="btn btn-sm btn-outline-primary px-2 py-1 font-monospace" style="font-size: 0.76rem;" onclick="inspectDiff(@log.Id)" title="Inspect Before/After Mutation Snapshot">
+                                                <i class="fa-solid fa-code-compare me-1"></i> Inspect Diff
+                                            </button>
+                                        </td>
+
                                     </tr>
-                                                        }
+                                }
 
                             </tbody>
 
@@ -980,3 +1003,140 @@
 
     </div>
 </div>
+
+<!-- =========================================================
+     MUTATION SNAPSHOT INSPECTION MODAL (JSON DIFF)
+     ========================================================= -->
+<div class="modal fade" id="diffModal" tabindex="-1" aria-labelledby="diffModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-dark text-white px-4 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary bg-opacity-25 p-2 text-primary">
+                        <i class="fa-solid fa-code-compare fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="diffModalLabel">
+                            Mutation Snapshot Diff Inspector
+                        </h5>
+                        <small class="text-muted" style="font-size: 0.78rem;">
+                            Immutable JSON audit trail comparing state before and after mutation
+                        </small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- Meta summary row -->
+                <div class="card border-0 shadow-sm p-3 mb-4 bg-white" style="border-radius: 12px;">
+                    <div class="row g-3 text-secondary" style="font-size: 0.84rem;">
+                        <div class="col-md-3">
+                            <span class="text-muted d-block small">Target Entity:</span>
+                            <span class="fw-bold text-dark" id="modalDiffEntity">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted d-block small">Record Reference:</span>
+                            <span class="fw-bold text-dark font-monospace" id="modalDiffRecord">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted d-block small">Mutation Action:</span>
+                            <span class="badge bg-primary-subtle text-primary px-2 py-1" id="modalDiffAction">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted d-block small">Timestamp & IP:</span>
+                            <span class="text-dark font-monospace small"><span id="modalDiffTime">-</span> (<span id="modalDiffIp">-</span>)</span>
+                        </div>
+                        <div class="col-12 mt-2 pt-2 border-top">
+                            <span class="text-muted small">Summary: </span>
+                            <span class="fw-semibold text-dark" id="modalDiffSummary">-</span>
+                            <span class="text-muted ms-3 small">Executed By: </span>
+                            <span class="badge bg-secondary-subtle text-secondary" id="modalDiffUser">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Side by Side JSON Diffs -->
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card h-100 border-danger border-opacity-25 shadow-sm" style="border-radius: 12px; overflow:hidden;">
+                            <div class="card-header bg-danger bg-opacity-10 py-2 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-danger small">
+                                    <i class="fa-solid fa-minus-circle me-1"></i> State Before Mutation (Old Values)
+                                </span>
+                                <span class="badge bg-danger text-white small">Snapshot A</span>
+                            </div>
+                            <div class="card-body p-0 bg-dark">
+                                <pre id="modalOldJson" class="text-light p-3 m-0 font-monospace" style="font-size: 0.78rem; max-height: 400px; overflow-y: auto; background: #0f172a; line-height: 1.4;"></pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 border-success border-opacity-25 shadow-sm" style="border-radius: 12px; overflow:hidden;">
+                            <div class="card-header bg-success bg-opacity-10 py-2 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-success small">
+                                    <i class="fa-solid fa-plus-circle me-1"></i> State After Mutation (New Values)
+                                </span>
+                                <span class="badge bg-success text-white small">Snapshot B</span>
+                            </div>
+                            <div class="card-body p-0 bg-dark">
+                                <pre id="modalNewJson" class="text-light p-3 m-0 font-monospace" style="font-size: 0.78rem; max-height: 400px; overflow-y: auto; background: #0f172a; line-height: 1.4;"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white border-top px-4 py-2 d-flex justify-content-between">
+                <span class="text-muted small">
+                    <i class="fa-solid fa-lock me-1"></i> Cryptographically linked immutable ledger record
+                </span>
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close Inspector</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function inspectDiff(id) {
+        try {
+            const res = await fetch('/Auditor/GetLogDiff?id=' + id);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('modalDiffRecord').innerText = data.recordId || '-';
+                document.getElementById('modalDiffEntity').innerText = data.entityName || '-';
+                document.getElementById('modalDiffAction').innerText = data.actionType || '-';
+                document.getElementById('modalDiffSummary').innerText = data.changesSummary || '-';
+                document.getElementById('modalDiffUser').innerText = data.performedBy || 'System';
+                document.getElementById('modalDiffTime').innerText = data.timestamp || '-';
+                document.getElementById('modalDiffIp').innerText = data.ipAddress || '127.0.0.1';
+
+                let formattedOld = "No prior state recorded (Initial Record Creation).";
+                if (data.oldValues && data.oldValues !== "{}" && data.oldValues !== "null") {
+                    try {
+                        formattedOld = JSON.stringify(JSON.parse(data.oldValues), null, 2);
+                    } catch(e) {
+                        formattedOld = data.oldValues;
+                    }
+                }
+                document.getElementById('modalOldJson').textContent = formattedOld;
+
+                let formattedNew = "No resulting state payload recorded.";
+                if (data.newValues && data.newValues !== "{}" && data.newValues !== "null") {
+                    try {
+                        formattedNew = JSON.stringify(JSON.parse(data.newValues), null, 2);
+                    } catch(e) {
+                        formattedNew = data.newValues;
+                    }
+                }
+                document.getElementById('modalNewJson').textContent = formattedNew;
+
+                const modal = new bootstrap.Modal(document.getElementById('diffModal'));
+                modal.show();
+            } else {
+                alert(data.message || "Failed to retrieve mutation diff.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Server communication error retrieving mutation snapshot.");
+        }
+    }
+</script>
