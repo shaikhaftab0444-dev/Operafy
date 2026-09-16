@@ -13,6 +13,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<ERP_System.Helpers.ICurrencyService, ERP_System.Helpers.CurrencyService>();
+builder.Services.AddScoped<ERP_System.Services.IHierarchyService, ERP_System.Services.HierarchyService>();
 
 // Configure Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -139,9 +140,68 @@ using (var scope = app.Services.CreateScope())
                     DiscrepancyAmount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
                     Severity NVARCHAR(50) NOT NULL DEFAULT 'Medium',
                     Status NVARCHAR(50) NOT NULL DEFAULT 'Pending Review',
+                    ResolutionNotes NVARCHAR(MAX) NULL,
+                    AuditedByUserId NVARCHAR(100) NULL,
+                    ResolvedAt DATETIME NULL,
                     FlaggedByUserId NVARCHAR(100) NULL,
                     FlaggedOn DATETIME NOT NULL DEFAULT GETUTCDATE()
                 );
+            END
+
+            IF OBJECT_ID('AITStudent.AuditFlaggedItems', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.AuditFlaggedItems') AND name = 'ResolutionNotes')
+                    ALTER TABLE AITStudent.AuditFlaggedItems ADD ResolutionNotes NVARCHAR(MAX) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.AuditFlaggedItems') AND name = 'AuditedByUserId')
+                    ALTER TABLE AITStudent.AuditFlaggedItems ADD AuditedByUserId NVARCHAR(100) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.AuditFlaggedItems') AND name = 'ResolvedAt')
+                    ALTER TABLE AITStudent.AuditFlaggedItems ADD ResolvedAt DATETIME NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.AuditFlaggedItems') AND name = 'AuditedByUserUserId')
+                    ALTER TABLE AITStudent.AuditFlaggedItems ADD AuditedByUserUserId INT NULL;
+            END
+            ELSE IF OBJECT_ID('AuditFlaggedItems', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AuditFlaggedItems') AND name = 'ResolutionNotes')
+                    ALTER TABLE AuditFlaggedItems ADD ResolutionNotes NVARCHAR(MAX) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AuditFlaggedItems') AND name = 'AuditedByUserId')
+                    ALTER TABLE AuditFlaggedItems ADD AuditedByUserId NVARCHAR(100) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AuditFlaggedItems') AND name = 'ResolvedAt')
+                    ALTER TABLE AuditFlaggedItems ADD ResolvedAt DATETIME NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AuditFlaggedItems') AND name = 'AuditedByUserUserId')
+                    ALTER TABLE AuditFlaggedItems ADD AuditedByUserUserId INT NULL;
+            END
+
+            -- Ensure SystemMutationLogs exists
+            IF OBJECT_ID('AITStudent.SystemMutationLogs', 'U') IS NULL AND OBJECT_ID('SystemMutationLogs', 'U') IS NULL
+            BEGIN
+                CREATE TABLE SystemMutationLogs (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    Timestamp DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                    EntityName NVARCHAR(100) NOT NULL,
+                    RecordId NVARCHAR(100) NOT NULL,
+                    ActionType NVARCHAR(50) NOT NULL,
+                    ChangesSummary NVARCHAR(500) NOT NULL,
+                    OldValuesJson NVARCHAR(MAX) NULL,
+                    NewValuesJson NVARCHAR(MAX) NULL,
+                    PerformedByUserId NVARCHAR(100) NULL,
+                    IpAddress NVARCHAR(50) NULL DEFAULT '127.0.0.1'
+                );
+            END
+
+            -- 4. Ensure IsGeneralTask and TargetWarehouseLocation exist on erp_HierarchicalTasks
+            IF OBJECT_ID('AITStudent.erp_HierarchicalTasks', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'IsGeneralTask')
+                    ALTER TABLE AITStudent.erp_HierarchicalTasks ADD IsGeneralTask BIT NOT NULL DEFAULT 0;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'TargetWarehouseLocation')
+                    ALTER TABLE AITStudent.erp_HierarchicalTasks ADD TargetWarehouseLocation NVARCHAR(250) NULL;
+            END
+            ELSE IF OBJECT_ID('erp_HierarchicalTasks', 'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_HierarchicalTasks') AND name = 'IsGeneralTask')
+                    ALTER TABLE erp_HierarchicalTasks ADD IsGeneralTask BIT NOT NULL DEFAULT 0;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_HierarchicalTasks') AND name = 'TargetWarehouseLocation')
+                    ALTER TABLE erp_HierarchicalTasks ADD TargetWarehouseLocation NVARCHAR(250) NULL;
             END
         ";
         await context.Database.ExecuteSqlRawAsync(schemaPatchSql);

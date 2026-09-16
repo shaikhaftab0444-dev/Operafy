@@ -37,61 +37,83 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Assigned()
         {
-            int userId = GetCurrentUserId();
-            var tasks = await _context.ESSTasks
-                .Where(t => t.UserId == userId)
-                .OrderByDescending(t => t.DueDate)
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.TryParse(userIdClaim, out int id) ? id : 1;
+            var currentUser = await _context.Users.FindAsync(currentUserId);
+            var currentUserIdStr = currentUserId.ToString();
+
+            var tasks = await _context.HierarchicalTasks
+                .Where(t => t.AssignedToUserId == currentUserIdStr || 
+                           (currentUser != null && t.AssignedToUserId == currentUser.UserName) || 
+                           (t.IsGeneralTask && currentUser != null && t.DepartmentId == currentUser.DepartmentId))
+                .OrderByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
             if (!tasks.Any())
             {
-                tasks = await _context.ESSTasks
-                    .OrderByDescending(t => t.DueDate)
-                    .Take(10)
-                    .ToListAsync();
+                var sampleTask = new HierarchicalTask
+                {
+                    Title = "Warehouse General Safety & Daily Inventory Audit",
+                    Description = "Conduct physical count across main warehouse aisles and ensure QA staging compliance.",
+                    DepartmentId = currentUser?.DepartmentId ?? 1,
+                    TaskType = "WAREHOUSE_OPERATIONS",
+                    AssignedByUserId = "1",
+                    AssignedToUserId = currentUserIdStr,
+                    IsGeneralTask = false,
+                    Priority = "High",
+                    Status = "In Progress",
+                    DueDate = DateTime.Today.AddDays(2),
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.HierarchicalTasks.Add(sampleTask);
+                await _context.SaveChangesAsync();
+                tasks.Add(sampleTask);
             }
 
-            if (!tasks.Any())
+            // Populate navigation properties for display
+            var userIds = tasks
+                .SelectMany(t => new[] { t.AssignedToUserId, t.AssignedByUserId })
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Distinct()
+                .ToList();
+
+            var users = await _context.Users
+                .Include(u => u.Role)
+                .Where(u => userIds.Contains(u.UserId.ToString()) || userIds.Contains(u.UserName))
+                .ToListAsync();
+
+            foreach (var t in tasks)
             {
-                // Seed initial tasks for demo/testing
-                var sampleTasks = new List<ESSTask>
+                var toUser = users.FirstOrDefault(u => u.UserId.ToString() == t.AssignedToUserId || u.UserName == t.AssignedToUserId);
+                if (toUser != null)
                 {
-                    new ESSTask
+                    t.AssignedToUser = new ApplicationUser
                     {
-                        UserId = userId,
-                        TaskTitle = "Reconcile GSTR-2B with Purchase Register",
-                        Description = "Cross-match supplier GST invoices against inward goods receipts for September closing.",
-                        DueDate = DateTime.Today.AddDays(2),
-                        Status = "In Progress"
-                    },
-                    new ESSTask
+                        UserId = toUser.UserId,
+                        FullName = toUser.FullName,
+                        UserName = toUser.UserName,
+                        Email = toUser.Email,
+                        RoleId = toUser.RoleId,
+                        Role = toUser.Role,
+                        DepartmentId = toUser.DepartmentId,
+                        Department = toUser.Department
+                    };
+                }
+                var byUser = users.FirstOrDefault(u => u.UserId.ToString() == t.AssignedByUserId || u.UserName == t.AssignedByUserId);
+                if (byUser != null)
+                {
+                    t.AssignedByUser = new ApplicationUser
                     {
-                        UserId = userId,
-                        TaskTitle = "Monthly Bank Statement Reconciliation",
-                        Description = "Clear 4 pending NEFT inbound entries and verify bank charges against HDFC statement.",
-                        DueDate = DateTime.Today.AddDays(1),
-                        Status = "In Progress"
-                    },
-                    new ESSTask
-                    {
-                        UserId = userId,
-                        TaskTitle = "Vendor Bill Verification & 3-Way Match",
-                        Description = "Verify invoice rates against approved PO #PO-2026-0041 and Warehouse GRN receipts.",
-                        DueDate = DateTime.Today.AddDays(5),
-                        Status = "Pending"
-                    },
-                    new ESSTask
-                    {
-                        UserId = userId,
-                        TaskTitle = "Petty Cash Imprest Audit & Vouchers",
-                        Description = "Review administrative petty cash receipts and replenishment vouchers for Head Office.",
-                        DueDate = DateTime.Today.AddDays(7),
-                        Status = "Completed"
-                    }
-                };
-                await _context.ESSTasks.AddRangeAsync(sampleTasks);
-                await _context.SaveChangesAsync();
-                tasks = sampleTasks;
+                        UserId = byUser.UserId,
+                        FullName = byUser.FullName,
+                        UserName = byUser.UserName,
+                        Email = byUser.Email,
+                        RoleId = byUser.RoleId,
+                        Role = byUser.Role,
+                        DepartmentId = byUser.DepartmentId,
+                        Department = byUser.Department
+                    };
+                }
             }
 
             return View(tasks);
@@ -143,8 +165,25 @@ namespace ERP_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStatus(int TaskId, string Status)
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.TryParse(userIdClaim, out int id) ? id : 1;
+            var currentUser = await _context.Users.FindAsync(currentUserId);
+            var currentUserIdStr = currentUserId.ToString();
+
+            // 1. Update HierarchicalTask if found
+            var hierTask = await _context.HierarchicalTasks.FindAsync(TaskId);
+            if (hierTask != null && (hierTask.AssignedToUserId == currentUserIdStr || 
+                                     (currentUser != null && hierTask.AssignedToUserId == currentUser.UserName) || 
+                                     (hierTask.IsGeneralTask && currentUser != null && hierTask.DepartmentId == currentUser.DepartmentId)))
+            {
+                hierTask.Status = Status;
+                hierTask.ProgressPercentage = Status == "Completed" ? 100 : (Status == "In Progress" ? 50 : 0);
+                _context.HierarchicalTasks.Update(hierTask);
+            }
+
+            // 2. Update ESSTask if found
             var task = await _context.ESSTasks.FindAsync(TaskId);
-            if (task != null && task.UserId == GetCurrentUserId())
+            if (task != null && task.UserId == currentUserId)
             {
                 task.Status = Status;
                 _context.ESSTasks.Update(task);
@@ -159,10 +198,10 @@ namespace ERP_System.Controllers
                         _context.DepartmentTasks.Update(depTask);
                     }
                 }
-
-                await _context.SaveChangesAsync();
             }
-            return RedirectToAction(nameof(StatusUpdate));
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Assigned));
         }
     }
 }

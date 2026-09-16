@@ -1,0 +1,433 @@
+@model ERP_System.Models.AuditorGeneralLedgerViewModel
+
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "General Ledger (Read-Only Audit)";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+    var totalEntries = Model.Vouchers?.Count ?? 0;
+}
+
+<style>
+    .ledger-page {
+        background: #f7f9fc;
+        min-height: calc(100vh - 70px);
+        padding: 28px 0;
+    }
+
+    .ledger-header-card,
+    .ledger-summary-card,
+    .ledger-filter-card,
+    .ledger-content-card {
+        background: #ffffff;
+        border: 1px solid #e9eef5;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(30, 55, 90, 0.05);
+    }
+
+    /* Page Header */
+    .ledger-header-card {
+        padding: 26px 28px;
+    }
+
+    .ledger-icon-box {
+        width: 52px;
+        height: 52px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .ledger-page-title {
+        color: #172b4d;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .ledger-page-subtitle {
+        color: #7b8798;
+        font-size: 0.88rem;
+        margin-bottom: 0;
+        line-height: 1.5;
+    }
+
+    .ledger-lock-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        padding: 6px 14px;
+        border-radius: 50px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+
+    /* Equilibrium Banner */
+    .equilibrium-card {
+        border-radius: 16px;
+        padding: 20px 24px;
+        border: 1px solid transparent;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        margin-bottom: 24px;
+    }
+
+    .equilibrium-card.balanced {
+        background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+        border-color: #bbf7d0;
+    }
+
+    .equilibrium-card.unbalanced {
+        background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+        border-color: #fecaca;
+    }
+
+    .equilibrium-stat {
+        background: rgba(255, 255, 255, 0.75);
+        border-radius: 12px;
+        padding: 12px 18px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    /* Filter Card */
+    .ledger-filter-card {
+        padding: 18px 24px;
+        margin-bottom: 24px;
+    }
+
+    /* Table Styles */
+    .ledger-table {
+        margin-bottom: 0;
+        vertical-align: middle;
+    }
+
+    .ledger-table thead th {
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 14px 18px;
+        white-space: nowrap;
+    }
+
+    .ledger-table tbody td {
+        padding: 16px 18px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+        font-size: 0.85rem;
+    }
+
+    .ledger-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .ledger-badge-posted {
+        background: #dcfce7;
+        color: #15803d;
+        font-weight: 600;
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 50px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .ledger-empty-state {
+        padding: 60px 20px;
+        text-align: center;
+    }
+
+    .ledger-empty-icon {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin-bottom: 16px;
+    }
+</style>
+
+<div class="ledger-page">
+    <div class="container-fluid px-4">
+
+        <!-- =========================================
+             1. PAGE HEADER (READ-ONLY AUDITOR)
+             ========================================= -->
+        <div class="ledger-header-card mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="ledger-icon-box">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <div>
+                        <h1 class="ledger-page-title">
+                            General Ledger (Read-Only)
+                        </h1>
+                        <p class="ledger-page-subtitle">
+                            Independent compliance inspection of double-entry ledger vouchers, account heads, and journal balance equilibrium.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="ledger-lock-pill">
+                        <i class="fa-solid fa-lock text-primary"></i>
+                        Read-Only Audit Access
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-semibold" style="font-size: 0.78rem;">
+                        <i class="fa-solid fa-shield-halved me-1"></i> Compliance View
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================
+             2. TRIAL BALANCE EQUILIBRIUM BANNER
+             ========================================= -->
+        <div class="equilibrium-card @(Model.IsEquilibrium ? "balanced" : "unbalanced") mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-lg-5">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="fs-2 @(Model.IsEquilibrium ? "text-success" : "text-danger")">
+                            <i class="fa-solid @(Model.IsEquilibrium ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark">
+                                @(Model.IsEquilibrium ? "Trial Balance Equilibrium Maintained" : "Trial Balance Variance Detected")
+                            </h5>
+                            <p class="small text-muted mb-0">
+                                @(Model.IsEquilibrium 
+                                    ? "Total debits match total credits across all posted vouchers. No accounting imbalance observed."
+                                    : "Debit and Credit sums differ by " + string.Format("₹ {0:N2}", Model.Variance) + ". Requires immediate journal audit.")
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="row g-2 justify-content-lg-end">
+                        <div class="col-sm-4">
+                            <div class="equilibrium-stat text-center">
+                                <span class="text-muted small d-block">Total Debits</span>
+                                <span class="fs-6 fw-bold text-primary font-monospace">
+                                    ₹@Model.TotalDebit.ToString("N2", inCulture)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="equilibrium-stat text-center">
+                                <span class="text-muted small d-block">Total Credits</span>
+                                <span class="fs-6 fw-bold text-success font-monospace">
+                                    ₹@Model.TotalCredit.ToString("N2", inCulture)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="equilibrium-stat text-center">
+                                <span class="text-muted small d-block">Net Variance</span>
+                                <span class="fs-6 fw-bold @(Model.IsEquilibrium ? "text-success" : "text-danger") font-monospace">
+                                    ₹@Model.Variance.ToString("N2", inCulture)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================
+             3. FILTER & SEARCH TOOLBAR
+             ========================================= -->
+        <div class="ledger-filter-card mb-4">
+            <form method="get" action="@Url.Action("GeneralLedger", "Auditor")" class="row g-3 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text"
+                               name="search"
+                               value="@Model.SearchQuery"
+                               class="form-control border-start-0"
+                               placeholder="Search voucher #, debit or credit account, narration..." />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted">
+                            <i class="fa-solid fa-calendar-quarter me-1"></i> Period
+                        </span>
+                        <select name="quarter" class="form-select">
+                            <option value="All" selected="@(Model.SelectedQuarter == "All")">Full Fiscal Year (All)</option>
+                            <option value="Q1" selected="@(Model.SelectedQuarter == "Q1")">Q1 (Jan - Mar)</option>
+                            <option value="Q2" selected="@(Model.SelectedQuarter == "Q2")">Q2 (Apr - Jun)</option>
+                            <option value="Q3" selected="@(Model.SelectedQuarter == "Q3")">Q3 (Jul - Sep)</option>
+                            <option value="Q4" selected="@(Model.SelectedQuarter == "Q4")">Q4 (Oct - Dec)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fa-solid fa-filter me-1"></i> Apply Filter
+                    </button>
+                    @if (!string.IsNullOrEmpty(Model.SearchQuery) || Model.SelectedQuarter != "All")
+                    {
+                        <a href="@Url.Action("GeneralLedger", "Auditor")" class="btn btn-outline-secondary" title="Reset Filters">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+
+        <!-- =========================================
+             4. GENERAL LEDGER TABLE (ZERO EDIT BUTTONS)
+             ========================================= -->
+        <div class="ledger-content-card">
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light" style="border-top-left-radius: 18px; border-top-right-radius: 18px;">
+                <span class="fw-bold text-dark small text-uppercase" style="letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-list-check text-primary me-2"></i> Ledger Entries Snapshot
+                </span>
+                <span class="text-muted small">
+                    <i class="fa-solid fa-lock text-secondary me-1"></i> Strictly Read-Only Mode
+                </span>
+            </div>
+
+            <div class="p-0">
+                @if (Model.Vouchers != null && Model.Vouchers.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table ledger-table">
+                            <thead>
+                                <tr>
+                                    <th>Posting Date</th>
+                                    <th>Voucher Number</th>
+                                    <th>Type</th>
+                                    <th>Debit Account Head</th>
+                                    <th>Credit Account Head</th>
+                                    <th class="text-end">Debit (₹)</th>
+                                    <th class="text-end">Credit (₹)</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Verification</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var v in Model.Vouchers)
+                                {
+                                    <tr>
+                                        <!-- Posting Date -->
+                                        <td class="text-nowrap">
+                                            <span class="fw-semibold text-dark">
+                                                @v.VoucherDate.ToString("dd MMM yyyy")
+                                            </span>
+                                        </td>
+
+                                        <!-- Voucher Number -->
+                                        <td>
+                                            <span class="badge bg-light text-dark border font-monospace px-2 py-1">
+                                                @v.VoucherNumber
+                                            </span>
+                                        </td>
+
+                                        <!-- Voucher Type -->
+                                        <td>
+                                            <span class="badge bg-secondary-subtle text-secondary small">
+                                                @v.VoucherType
+                                            </span>
+                                        </td>
+
+                                        <!-- Debit Account -->
+                                        <td>
+                                            <div class="fw-semibold text-dark">
+                                                @v.DebitAccount
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(v.Narration))
+                                            {
+                                                <small class="text-muted text-truncate d-block" style="max-width: 250px;">
+                                                    @v.Narration
+                                                </small>
+                                            }
+                                        </td>
+
+                                        <!-- Credit Account -->
+                                        <td>
+                                            <span class="fw-semibold text-dark">
+                                                @v.CreditAccount
+                                            </span>
+                                        </td>
+
+                                        <!-- Debit Amount -->
+                                        <td class="text-end text-nowrap font-monospace text-primary fw-bold">
+                                            ₹@v.Amount.ToString("N2", inCulture)
+                                        </td>
+
+                                        <!-- Credit Amount -->
+                                        <td class="text-end text-nowrap font-monospace text-success fw-bold">
+                                            ₹@v.Amount.ToString("N2", inCulture)
+                                        </td>
+
+                                        <!-- Status -->
+                                        <td>
+                                            <span class="ledger-badge-posted">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                                @(string.IsNullOrEmpty(v.Status) ? "Posted" : v.Status)
+                                            </span>
+                                        </td>
+
+                                        <!-- Read-Only Audit Indicator -->
+                                        <td class="text-end text-nowrap">
+                                            <span class="badge bg-light text-muted border px-2 py-1 small">
+                                                <i class="fa-solid fa-shield-check text-success me-1"></i> Verified
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="ledger-empty-state">
+                        <div class="ledger-empty-icon">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-2">No General Ledger Entries Found</h5>
+                        <p class="text-muted small mb-0">
+                            No journal voucher records matched your search query or quarter filter.
+                        </p>
+                    </div>
+                }
+            </div>
+
+            <!-- Card Footer -->
+            <div class="p-3 border-top d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 bg-light" style="border-bottom-left-radius: 18px; border-bottom-right-radius: 18px;">
+                <span class="text-muted small">
+                    Showing @totalEntries posted general ledger vouchers
+                </span>
+                <span class="text-muted small">
+                    <i class="fa-solid fa-shield-halved me-1"></i>
+                    Financial records locked against auditor modification
+                </span>
+            </div>
+        </div>
+
+    </div>
+</div>

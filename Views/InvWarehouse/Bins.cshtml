@@ -1,9 +1,40 @@
+@model IEnumerable<ERP_System.Models.BinRackMaster>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Bin & Rack Master";
+
+    var bins = Model?.ToList() ?? new List<ERP_System.Models.BinRackMaster>();
+    var totalBins = ViewBag.TotalBins ?? bins.Count;
+    var availableBins = ViewBag.AvailableBins ?? bins.Count(b => b.Status == "Available");
+    var fullBins = ViewBag.FullBins ?? bins.Count(b => b.Status == "Full");
+    var maintenanceBins = ViewBag.MaintenanceBins ?? bins.Count(b => b.Status == "Maintenance");
+    var totalCapacity = ViewBag.TotalVolumeCapacity ?? bins.Sum(b => b.MaxCapacityVolume);
+    var totalOccupied = ViewBag.TotalVolumeOccupied ?? bins.Sum(b => b.CurrentOccupancyVolume);
+
+    var warehouses = ViewBag.Warehouses as List<ERP_System.Models.WarehouseLocation> ?? new List<ERP_System.Models.WarehouseLocation>();
+    var catalogItems = ViewBag.CatalogItems as List<ERP_System.Models.CatalogItem> ?? new List<ERP_System.Models.CatalogItem>();
+    var selectedWarehouseId = ViewBag.SelectedWarehouseId as int?;
+    var selectedStatus = ViewBag.SelectedStatus as string;
 }
 
 <div class="container-fluid py-4 px-3 px-md-4 bin-rack-page">
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
     <!-- Page Header -->
     <div class="bin-rack-header-card mb-4">
@@ -23,6 +54,9 @@
                                     Inventory Dashboard
                                 </a>
                             </li>
+                            <li class="breadcrumb-item">
+                                <a href="/InvWarehouse/Locations">Warehouses</a>
+                            </li>
                             <li class="breadcrumb-item active" aria-current="page">
                                 Bin &amp; Racks
                             </li>
@@ -34,18 +68,22 @@
                     </h2>
 
                     <p class="bin-rack-page-subtitle mb-0">
-                        Organize warehouse storage areas, rack positions, bin levels, and available capacity.
+                        Organize warehouse storage grids, rack coordinates, bin volume utilization, and inventory allocation.
                     </p>
                 </div>
             </div>
 
             <div class="d-flex flex-wrap gap-2">
-                <a href="/InventoryDashboard" class="btn bin-rack-dashboard-btn">
-                    <i class="fa-solid fa-chart-pie me-2"></i>
-                    Dashboard
+                <a href="/InvWarehouse/Locations" class="btn bin-rack-dashboard-btn">
+                    <i class="fa-solid fa-warehouse me-2"></i>
+                    Warehouses
                 </a>
 
-                <button type="button" class="btn bin-rack-primary-btn">
+                <button type="button"
+                        class="btn bin-rack-primary-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#binModal"
+                        onclick="resetBinModal()">
                     <i class="fa-solid fa-plus me-2"></i>
                     Add Rack / Bin
                 </button>
@@ -57,13 +95,13 @@
     <!-- Summary Cards -->
     <div class="row g-3 mb-4">
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
             <div class="bin-rack-summary-card">
                 <div>
-                    <span class="bin-rack-summary-label">TOTAL STORAGE POSITIONS</span>
-                    <h3 class="bin-rack-summary-value">2</h3>
+                    <span class="bin-rack-summary-label">TOTAL STORAGE BINS</span>
+                    <h3 class="bin-rack-summary-value">@totalBins</h3>
                     <span class="bin-rack-summary-description">
-                        Registered rack and bin positions
+                        Registered grid positions
                     </span>
                 </div>
 
@@ -73,13 +111,13 @@
             </div>
         </div>
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
             <div class="bin-rack-summary-card">
                 <div>
                     <span class="bin-rack-summary-label">AVAILABLE POSITIONS</span>
-                    <h3 class="bin-rack-summary-value text-success">1</h3>
+                    <h3 class="bin-rack-summary-value text-success">@availableBins</h3>
                     <span class="bin-rack-summary-description">
-                        Storage positions ready for use
+                        Ready for storage receipt
                     </span>
                 </div>
 
@@ -89,13 +127,13 @@
             </div>
         </div>
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
             <div class="bin-rack-summary-card">
                 <div>
                     <span class="bin-rack-summary-label">FULL POSITIONS</span>
-                    <h3 class="bin-rack-summary-value text-warning">1</h3>
+                    <h3 class="bin-rack-summary-value text-warning">@fullBins</h3>
                     <span class="bin-rack-summary-description">
-                        Positions currently at capacity
+                        At or near capacity
                     </span>
                 </div>
 
@@ -105,9 +143,25 @@
             </div>
         </div>
 
+        <div class="col-12 col-md-3">
+            <div class="bin-rack-summary-card">
+                <div>
+                    <span class="bin-rack-summary-label">OCCUPANCY VOLUME</span>
+                    <h3 class="bin-rack-summary-value text-primary">@totalOccupied / @totalCapacity</h3>
+                    <span class="bin-rack-summary-description">
+                        Total units held / capacity
+                    </span>
+                </div>
+
+                <div class="bin-rack-summary-icon bin-rack-icon-blue">
+                    <i class="fa-solid fa-chart-simple"></i>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Rack and Bin Master -->
+    <!-- Filter & Master Content Card -->
     <div class="bin-rack-content-card">
 
         <div class="bin-rack-content-header">
@@ -124,174 +178,208 @@
                         </h5>
 
                         <p class="bin-rack-section-subtitle mb-0">
-                            View warehouse storage positions and capacity information.
+                            Detailed storage grid positions, allocated products, and real-time fill ratios.
                         </p>
                     </div>
                 </div>
 
-                <div class="bin-rack-record-count">
-                    <i class="fa-solid fa-database me-1"></i>
-                    2 Storage Positions
-                </div>
+                <!-- Filter Controls -->
+                <form method="get" action="/InvWarehouse/Bins" class="d-flex flex-wrap align-items-center gap-2">
+                    <select name="warehouseId" class="form-select form-select-sm" style="min-width: 170px; border-radius: 8px;" onchange="this.form.submit()">
+                        <option value="">All Warehouses</option>
+                        @foreach (var wh in warehouses)
+                        {
+                            <option value="@wh.Id" selected="@(selectedWarehouseId == wh.Id ? "selected" : null)">
+                                @wh.WarehouseName (@wh.WarehouseCode)
+                            </option>
+                        }
+                    </select>
+
+                    <select name="status" class="form-select form-select-sm" style="min-width: 140px; border-radius: 8px;" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="Available" selected="@(selectedStatus == "Available" ? "selected" : null)">Available</option>
+                        <option value="Full" selected="@(selectedStatus == "Full" ? "selected" : null)">Full</option>
+                        <option value="Maintenance" selected="@(selectedStatus == "Maintenance" ? "selected" : null)">Maintenance</option>
+                    </select>
+
+                    @if (selectedWarehouseId.HasValue || !string.IsNullOrEmpty(selectedStatus))
+                    {
+                        <a href="/InvWarehouse/Bins" class="btn btn-sm btn-outline-secondary" title="Reset Filters" style="border-radius: 8px;">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </a>
+                    }
+                </form>
 
             </div>
         </div>
 
         <div class="bin-rack-content-body">
 
-            <div class="table-responsive">
-                <table class="table bin-rack-table align-middle mb-0">
+            @if (bins.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table bin-rack-table align-middle mb-0">
 
-                    <thead>
-                        <tr>
-                            <th class="bin-rack-number-column">#</th>
-                            <th>Warehouse</th>
-                            <th>Rack Code</th>
-                            <th>Bin Level / Row</th>
-                            <th>Capacity Volume</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
+                        <thead>
+                            <tr>
+                                <th class="bin-rack-number-column">#</th>
+                                <th>Warehouse</th>
+                                <th>Rack &amp; Position</th>
+                                <th>Assigned Inventory SKU</th>
+                                <th>Volume Occupancy</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
 
-                    <tbody>
+                        <tbody>
+                            @{
+                                var binIndex = 1;
+                            }
 
-                        <tr>
-                            <td>
-                                <span class="bin-rack-number">01</span>
-                            </td>
+                            @foreach (var b in bins)
+                            {
+                                var pct = b.MaxCapacityVolume > 0 ? (int)Math.Min(100, Math.Round((double)b.CurrentOccupancyVolume / b.MaxCapacityVolume * 100)) : 0;
+                                var barColor = pct >= 90 ? "bg-danger" : pct >= 65 ? "bg-warning" : "bg-success";
 
-                            <td>
-                                <div class="bin-rack-warehouse-wrapper">
-                                    <div class="bin-rack-warehouse-icon">
-                                        <i class="fa-solid fa-warehouse"></i>
-                                    </div>
+                                <tr>
+                                    <td>
+                                        <span class="bin-rack-number">
+                                            @binIndex.ToString("D2")
+                                        </span>
+                                    </td>
 
-                                    <div>
-                                        <div class="bin-rack-warehouse-name">
-                                            Main Central Warehouse
+                                    <td>
+                                        <div class="bin-rack-warehouse-wrapper">
+                                            <div class="bin-rack-warehouse-icon">
+                                                <i class="fa-solid fa-warehouse"></i>
+                                            </div>
+
+                                            <div>
+                                                <div class="bin-rack-warehouse-name">
+                                                    @(b.Warehouse?.WarehouseName ?? "Unassigned Warehouse")
+                                                </div>
+
+                                                <div class="bin-rack-warehouse-subtitle">
+                                                    @(b.Warehouse?.WarehouseCode ?? "N/A")
+                                                </div>
+                                            </div>
                                         </div>
+                                    </td>
 
-                                        <div class="bin-rack-warehouse-subtitle">
-                                            Primary storage facility
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 font-monospace fw-bold" style="font-size: 12px;">
+                                                <i class="fa-solid fa-layer-group me-1"></i> @b.RackCode
+                                            </span>
+                                            <span class="badge bg-light text-dark border px-2 py-1 font-monospace" style="font-size: 12px;">
+                                                @b.BinLevel
+                                            </span>
                                         </div>
-                                    </div>
-                                </div>
-                            </td>
+                                    </td>
 
-                            <td>
-                                <span class="bin-rack-code-badge">
-                                    <i class="fa-solid fa-layer-group me-2"></i>
-                                    RACK-A1
-                                </span>
-                            </td>
+                                    <td>
+                                        @if (b.AssignedItem != null)
+                                        {
+                                            <div>
+                                                <div class="fw-semibold text-dark" style="font-size: 13px;">
+                                                    @b.AssignedItem.ItemName
+                                                </div>
+                                                <small class="text-muted font-monospace">
+                                                    SKU: @b.AssignedItem.SKU
+                                                </small>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic" style="font-size: 12px;">
+                                                <i class="fa-solid fa-shuffle me-1"></i> General / Floating Storage
+                                            </span>
+                                        }
+                                    </td>
 
-                            <td>
-                                <div class="bin-rack-bin-code">
-                                    BIN-ROW-3
-                                </div>
-
-                                <div class="bin-rack-cell-subtitle">
-                                    Level 3
-                                </div>
-                            </td>
-
-                            <td>
-                                <div class="bin-rack-capacity">
-                                    <strong>500</strong> Litres
-                                </div>
-
-                                <div class="bin-rack-capacity-bar">
-                                    <div class="bin-rack-capacity-progress bin-rack-progress-green"></div>
-                                </div>
-                            </td>
-
-                            <td>
-                                <span class="bin-rack-status-badge bin-rack-status-available">
-                                    <span class="bin-rack-status-dot"></span>
-                                    Available
-                                </span>
-                            </td>
-
-                            <td class="text-end">
-                                <button type="button"
-                                        class="btn bin-rack-action-btn"
-                                        title="View storage position">
-                                    <i class="fa-solid fa-eye"></i>
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <span class="bin-rack-number">02</span>
-                            </td>
-
-                            <td>
-                                <div class="bin-rack-warehouse-wrapper">
-                                    <div class="bin-rack-warehouse-icon">
-                                        <i class="fa-solid fa-warehouse"></i>
-                                    </div>
-
-                                    <div>
-                                        <div class="bin-rack-warehouse-name">
-                                            Main Central Warehouse
+                                    <td style="min-width: 170px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 11px;">
+                                            <span class="fw-bold text-dark">@b.CurrentOccupancyVolume / @b.MaxCapacityVolume</span>
+                                            <span class="fw-bold @(pct >= 90 ? "text-danger" : pct >= 65 ? "text-warning" : "text-success")">@pct%</span>
                                         </div>
-
-                                        <div class="bin-rack-warehouse-subtitle">
-                                            Primary storage facility
+                                        <div class="progress" style="height: 6px; border-radius: 4px; background-color: #e9ecef;">
+                                            <div class="progress-bar @barColor" role="progressbar" style="width: @pct%;" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
-                                    </div>
-                                </div>
-                            </td>
+                                    </td>
 
-                            <td>
-                                <span class="bin-rack-code-badge">
-                                    <i class="fa-solid fa-layer-group me-2"></i>
-                                    RACK-A2
-                                </span>
-                            </td>
+                                    <td>
+                                        @if (b.Status == "Available")
+                                        {
+                                            <span class="bin-rack-status-badge bin-rack-status-available">
+                                                <span class="bin-rack-status-dot"></span>
+                                                Available
+                                            </span>
+                                        }
+                                        else if (b.Status == "Full")
+                                        {
+                                            <span class="bin-rack-status-badge bin-rack-status-full">
+                                                <span class="bin-rack-status-dot"></span>
+                                                Full
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="bin-rack-status-badge bin-rack-status-maintenance">
+                                                <span class="bin-rack-status-dot"></span>
+                                                Maintenance
+                                            </span>
+                                        }
+                                    </td>
 
-                            <td>
-                                <div class="bin-rack-bin-code">
-                                    BIN-ROW-2
-                                </div>
+                                    <td class="text-end">
+                                        <div class="d-flex justify-content-end gap-1">
+                                            <a href="/InvWarehouse/PrintBinBarcode?id=@b.Id" target="_blank" class="btn btn-sm btn-light text-primary border" title="Print Bin Barcode Label">
+                                                <i class="fa-solid fa-barcode"></i>
+                                            </a>
 
-                                <div class="bin-rack-cell-subtitle">
-                                    Level 2
-                                </div>
-                            </td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-light text-secondary border"
+                                                    title="Edit Position"
+                                                    onclick="editBin(@b.Id, @b.WarehouseId, '@b.RackCode', '@b.BinLevel', '@(b.AssignedCatalogItemId?.ToString() ?? "")', @b.MaxCapacityVolume, @b.CurrentOccupancyVolume, '@b.Status')">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
 
-                            <td>
-                                <div class="bin-rack-capacity">
-                                    <strong>300</strong> Litres
-                                </div>
+                                binIndex++;
+                            }
+                        </tbody>
 
-                                <div class="bin-rack-capacity-bar">
-                                    <div class="bin-rack-capacity-progress bin-rack-progress-orange"></div>
-                                </div>
-                            </td>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="bin-rack-empty-state">
+                    <div class="bin-rack-empty-icon">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
 
-                            <td>
-                                <span class="bin-rack-status-badge bin-rack-status-full">
-                                    <span class="bin-rack-status-dot"></span>
-                                    Full
-                                </span>
-                            </td>
+                    <h5 class="bin-rack-empty-title">
+                        No Racks or Bins Configured
+                    </h5>
 
-                            <td class="text-end">
-                                <button type="button"
-                                        class="btn bin-rack-action-btn"
-                                        title="View storage position">
-                                    <i class="fa-solid fa-eye"></i>
-                                </button>
-                            </td>
-                        </tr>
+                    <p class="bin-rack-empty-description mb-3">
+                        No storage positions matching the selected filters were found.
+                    </p>
 
-                    </tbody>
-
-                </table>
-            </div>
+                    <button type="button"
+                            class="btn bin-rack-primary-btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#binModal"
+                            onclick="resetBinModal()">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        Add First Storage Position
+                    </button>
+                </div>
+            }
 
         </div>
 
@@ -299,11 +387,11 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                 <span>
                     <i class="fa-solid fa-circle-info me-1"></i>
-                    Storage positions are organized by warehouse, rack, and bin level.
+                    Barcode labels can be scanned by barcode scanners during GRN inwards and Outward pickings.
                 </span>
 
                 <span>
-                    Total: <strong>2 Positions</strong>
+                    Showing <strong>@bins.Count</strong> storage positions
                 </span>
             </div>
         </div>
@@ -312,108 +400,283 @@
 
 </div>
 
+<!-- Bin & Rack Modal -->
+<div class="modal fade bin-rack-modal-wrapper"
+     id="binModal"
+     tabindex="-1"
+     aria-labelledby="binModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bin-rack-modal-content">
+
+            <form action="/InvWarehouse/SaveBin" method="post" id="binForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="binId" name="Id" value="0" />
+
+                <div class="bin-rack-modal-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bin-rack-modal-icon">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+
+                        <div>
+                            <h5 class="bin-rack-modal-title mb-1" id="binModalLabel">
+                                Add Storage Position
+                            </h5>
+
+                            <p class="bin-rack-modal-subtitle mb-0">
+                                Configure rack codes, bin rows, and capacity volumes.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+
+                <div class="bin-rack-modal-body">
+
+                    <div class="mb-3">
+                        <label class="bin-rack-form-label" for="binWarehouseId">
+                            Warehouse Facility <span class="text-danger">*</span>
+                        </label>
+                        <select id="binWarehouseId" name="WarehouseId" class="form-select bin-rack-form-control" required>
+                            <option value="">-- Select Warehouse --</option>
+                            @foreach (var wh in warehouses)
+                            {
+                                <option value="@wh.Id">@wh.WarehouseName (@wh.WarehouseCode)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="bin-rack-form-label" for="binRackCode">
+                                Rack Code <span class="text-danger">*</span>
+                            </label>
+                            <div class="bin-rack-input-wrapper">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <input type="text"
+                                       id="binRackCode"
+                                       name="RackCode"
+                                       class="form-control bin-rack-form-control"
+                                       placeholder="e.g. RACK-A1"
+                                       required />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="bin-rack-form-label" for="binLevel">
+                                Bin Level / Shelf <span class="text-danger">*</span>
+                            </label>
+                            <div class="bin-rack-input-wrapper">
+                                <i class="fa-solid fa-table-cells"></i>
+                                <input type="text"
+                                       id="binLevel"
+                                       name="BinLevel"
+                                       class="form-control bin-rack-form-control"
+                                       placeholder="e.g. BIN-ROW-1"
+                                       required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="bin-rack-form-label" for="binItemId">
+                            Dedicated Catalog Item (Optional)
+                        </label>
+                        <select id="binItemId" name="AssignedCatalogItemId" class="form-select bin-rack-form-control">
+                            <option value="">-- General / Any Item --</option>
+                            @foreach (var item in catalogItems)
+                            {
+                                <option value="@item.Id">@item.ItemName (@item.SKU)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="bin-rack-form-label" for="binMaxCap">
+                                Max Capacity Volume (Units) <span class="text-danger">*</span>
+                            </label>
+                            <div class="bin-rack-input-wrapper">
+                                <i class="fa-solid fa-cube"></i>
+                                <input type="number"
+                                       id="binMaxCap"
+                                       name="MaxCapacityVolume"
+                                       class="form-control bin-rack-form-control"
+                                       placeholder="500"
+                                       value="500"
+                                       min="1"
+                                       required />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="bin-rack-form-label" for="binCurOcc">
+                                Current Occupancy (Units)
+                            </label>
+                            <div class="bin-rack-input-wrapper">
+                                <i class="fa-solid fa-boxes-packing"></i>
+                                <input type="number"
+                                       id="binCurOcc"
+                                       name="CurrentOccupancyVolume"
+                                       class="form-control bin-rack-form-control"
+                                       placeholder="0"
+                                       value="0"
+                                       min="0" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="bin-rack-form-label" for="binStatus">
+                            Position Status
+                        </label>
+                        <select id="binStatus" name="Status" class="form-select bin-rack-form-control">
+                            <option value="Available">Available</option>
+                            <option value="Full">Full</option>
+                            <option value="Maintenance">Maintenance</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="bin-rack-modal-footer">
+                    <button type="button"
+                            class="btn bin-rack-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn bin-rack-save-btn">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>
+                        Save Position
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function resetBinModal() {
+        document.getElementById('binModalLabel').innerText = 'Add Storage Position';
+        document.getElementById('binId').value = '0';
+        document.getElementById('binWarehouseId').value = '@(selectedWarehouseId?.ToString() ?? "")';
+        document.getElementById('binRackCode').value = '';
+        document.getElementById('binLevel').value = '';
+        document.getElementById('binItemId').value = '';
+        document.getElementById('binMaxCap').value = '500';
+        document.getElementById('binCurOcc').value = '0';
+        document.getElementById('binStatus').value = 'Available';
+    }
+
+    function editBin(id, whId, rack, level, itemId, maxCap, curOcc, status) {
+        document.getElementById('binModalLabel').innerText = 'Edit Storage Position';
+        document.getElementById('binId').value = id;
+        document.getElementById('binWarehouseId').value = whId;
+        document.getElementById('binRackCode').value = rack;
+        document.getElementById('binLevel').value = level;
+        document.getElementById('binItemId').value = itemId || '';
+        document.getElementById('binMaxCap').value = maxCap || 500;
+        document.getElementById('binCurOcc').value = curOcc || 0;
+        document.getElementById('binStatus').value = status || 'Available';
+
+        var modal = new bootstrap.Modal(document.getElementById('binModal'));
+        modal.show();
+    }
+</script>
+
 <style>
     .bin-rack-page {
-        background: #f4f7fb;
-        min-height: calc(100vh - 80px);
+        color: #2e384d;
+        background-color: #f7f9fc;
     }
 
     .bin-rack-header-card {
-        position: relative;
-        overflow: hidden;
-        padding: 30px;
+        padding: 28px 30px;
         background: #ffffff;
         border: 1px solid #e3e8ef;
-        border-radius: 22px;
-        box-shadow: 0 8px 25px rgba(31, 45, 61, 0.04);
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(31, 45, 61, 0.035);
     }
 
-        .bin-rack-header-card::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #1677ff, #635bff);
-        }
-
     .bin-rack-page-icon {
-        width: 58px;
-        height: 58px;
-        flex-shrink: 0;
+        width: 54px;
+        height: 54px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #ffffff;
-        background: linear-gradient(135deg, #2878f0, #4f46e5);
+        color: #2563eb;
+        background: #edf4ff;
         border-radius: 16px;
-        font-size: 23px;
-        box-shadow: 0 10px 22px rgba(37, 99, 235, 0.2);
+        font-size: 22px;
+        flex-shrink: 0;
     }
 
     .bin-rack-breadcrumb {
         font-size: 13px;
-        color: #8a9ab3;
     }
 
-        .bin-rack-breadcrumb a {
-            color: #71819a;
+        .bin-rack-breadcrumb .breadcrumb-item a {
+            color: #6c7a91;
             text-decoration: none;
-            transition: color 0.2s ease;
+            font-weight: 500;
         }
 
-            .bin-rack-breadcrumb a:hover {
+            .bin-rack-breadcrumb .breadcrumb-item a:hover {
                 color: #2563eb;
             }
 
-        .bin-rack-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
-            color: #b5c0cf;
-            content: "/";
-        }
-
-        .bin-rack-breadcrumb .active {
-            color: #2563eb;
+        .bin-rack-breadcrumb .breadcrumb-item.active {
+            color: #243046;
             font-weight: 600;
         }
 
     .bin-rack-page-title {
-        color: #17233c;
-        font-size: clamp(24px, 3vw, 34px);
+        color: #172338;
+        font-size: 28px;
         font-weight: 750;
-        letter-spacing: -1.2px;
+        letter-spacing: -0.6px;
+        line-height: 1.15;
     }
 
     .bin-rack-page-subtitle {
-        color: #8291a8;
+        color: #728197;
         font-size: 14px;
         line-height: 1.6;
     }
 
     .bin-rack-dashboard-btn,
     .bin-rack-primary-btn {
+        min-height: 44px;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 650;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 42px;
-        padding: 10px 18px;
-        border-radius: 11px;
-        font-size: 13px;
-        font-weight: 650;
         transition: all 0.2s ease;
     }
 
     .bin-rack-dashboard-btn {
-        color: #526177;
+        color: #4b5b76;
         background: #ffffff;
-        border: 1px solid #dce4ee;
+        border: 1px solid #dce3ec;
     }
 
         .bin-rack-dashboard-btn:hover {
-            color: #2563eb;
-            background: #f5f8ff;
-            border-color: #b9cdf5;
-            transform: translateY(-1px);
+            color: #202b3c;
+            background: #f8fafc;
+            border-color: #cbd5e1;
         }
 
     .bin-rack-primary-btn {
@@ -503,8 +766,8 @@
     }
 
     .bin-rack-icon-orange {
-        color: #d97706;
-        background: #fff7e8;
+        color: #f59e0b;
+        background: #fffbeb;
     }
 
     .bin-rack-content-card {
@@ -521,33 +784,26 @@
     }
 
     .bin-rack-section-icon {
-        width: 42px;
-        height: 42px;
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #1685d9;
-        background: #eaf7ff;
+        color: #3b5998;
+        background: #f1f4fa;
         border-radius: 12px;
-        font-size: 17px;
+        font-size: 15px;
     }
 
     .bin-rack-section-title {
-        color: #1c2940;
-        font-size: 17px;
+        color: #1a273e;
+        font-size: 16px;
         font-weight: 750;
-        letter-spacing: -0.3px;
     }
 
     .bin-rack-section-subtitle {
-        color: #9aa9bd;
-        font-size: 12px;
-    }
-
-    .bin-rack-record-count {
-        color: #8291a8;
-        font-size: 12px;
-        font-weight: 600;
+        color: #8c9cb2;
+        font-size: 13px;
     }
 
     .bin-rack-content-body {
@@ -555,269 +811,273 @@
     }
 
     .bin-rack-table {
-        min-width: 1050px;
-        color: #344258;
-        font-size: 13px;
+        margin-bottom: 0;
     }
 
         .bin-rack-table thead th {
-            padding: 17px 25px;
-            color: #687b96;
-            background: #f8fafc;
-            border-bottom: 1px solid #e5eaf1;
+            padding: 16px 20px;
+            color: #6a7c95;
+            background: #fafbfd;
+            border-bottom: 1px solid #edf1f6;
             font-size: 11px;
             font-weight: 750;
-            letter-spacing: 0.55px;
+            letter-spacing: 0.6px;
             text-transform: uppercase;
             white-space: nowrap;
         }
 
         .bin-rack-table tbody td {
-            padding: 18px 25px;
-            border-bottom: 1px solid #edf1f5;
-            vertical-align: middle;
+            padding: 18px 20px;
+            border-bottom: 1px solid #f0f3f7;
+            background: #ffffff;
+            font-size: 13px;
         }
 
-        .bin-rack-table tbody tr:last-child td {
-            border-bottom: none;
+        .bin-rack-table tbody tr:hover td {
+            background: #fbfcfe;
         }
-
-        .bin-rack-table tbody tr {
-            transition: background 0.2s ease;
-        }
-
-            .bin-rack-table tbody tr:hover {
-                background: #f8fbff;
-            }
 
     .bin-rack-number-column {
-        width: 65px;
+        width: 60px;
     }
 
     .bin-rack-number {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 30px;
-        height: 30px;
-        color: #6d7f98;
-        background: #f1f5f9;
-        border-radius: 8px;
-        font-size: 11px;
+        display: inline-block;
+        color: #9aaabf;
+        font-size: 12px;
         font-weight: 700;
     }
 
     .bin-rack-warehouse-wrapper {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 13px;
     }
 
     .bin-rack-warehouse-icon {
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
         color: #2563eb;
         background: #edf4ff;
         border-radius: 11px;
-        font-size: 16px;
+        font-size: 15px;
+        flex-shrink: 0;
     }
 
     .bin-rack-warehouse-name {
-        color: #202d43;
-        font-size: 13px;
+        color: #172439;
+        font-size: 14px;
         font-weight: 750;
-        white-space: nowrap;
+        letter-spacing: -0.2px;
     }
 
-    .bin-rack-warehouse-subtitle,
-    .bin-rack-cell-subtitle {
-        margin-top: 4px;
-        color: #9aa9bd;
-        font-size: 11px;
-    }
-
-    .bin-rack-code-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 8px 11px;
-        color: #2563eb;
-        background: #edf4ff;
-        border: 1px solid #d8e7ff;
-        border-radius: 9px;
+    .bin-rack-warehouse-subtitle {
+        margin-top: 2px;
+        color: #95a5ba;
         font-size: 12px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
-    .bin-rack-bin-code {
-        color: #344258;
-        font-size: 13px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
-    .bin-rack-capacity {
-        color: #71819a;
-        white-space: nowrap;
-    }
-
-        .bin-rack-capacity strong {
-            color: #26344b;
-            font-weight: 750;
-        }
-
-    .bin-rack-capacity-bar {
-        width: 105px;
-        height: 5px;
-        margin-top: 8px;
-        overflow: hidden;
-        background: #edf1f5;
-        border-radius: 99px;
-    }
-
-    .bin-rack-capacity-progress {
-        height: 100%;
-        border-radius: 99px;
-    }
-
-    .bin-rack-progress-green {
-        width: 45%;
-        background: #20b263;
-    }
-
-    .bin-rack-progress-orange {
-        width: 100%;
-        background: #f59e0b;
     }
 
     .bin-rack-status-badge {
         display: inline-flex;
         align-items: center;
         gap: 7px;
-        padding: 7px 12px;
-        border-radius: 999px;
+        padding: 6px 12px;
+        border-radius: 30px;
         font-size: 12px;
-        font-weight: 650;
+        font-weight: 700;
+        line-height: 1;
         white-space: nowrap;
     }
 
-    .bin-rack-status-available {
-        color: #16864e;
-        background: #edfbf3;
-        border: 1px solid #c8f1d9;
-    }
-
-    .bin-rack-status-full {
-        color: #b45309;
-        background: #fff8e8;
-        border: 1px solid #f8df9e;
-    }
-
     .bin-rack-status-dot {
-        width: 6px;
-        height: 6px;
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
     }
 
-    .bin-rack-status-available .bin-rack-status-dot {
-        background: #18a957;
+    .bin-rack-status-available {
+        color: #128a50;
+        background: #eafaf1;
+        border: 1px solid #d4f4e2;
     }
 
-    .bin-rack-status-full .bin-rack-status-dot {
-        background: #f59e0b;
+        .bin-rack-status-available .bin-rack-status-dot {
+            background: #16a05d;
+        }
+
+    .bin-rack-status-full {
+        color: #b45309;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
     }
 
-    .bin-rack-action-btn {
-        width: 34px;
-        height: 34px;
-        display: inline-flex;
+        .bin-rack-status-full .bin-rack-status-dot {
+            background: #f59e0b;
+        }
+
+    .bin-rack-status-maintenance {
+        color: #c92a2a;
+        background: #fff1f1;
+        border: 1px solid #ffdcd9;
+    }
+
+        .bin-rack-status-maintenance .bin-rack-status-dot {
+            background: #dc2626;
+        }
+
+    .bin-rack-content-footer {
+        padding: 16px 25px;
+        color: #8797ad;
+        background: #fafbfd;
+        border-top: 1px solid #edf1f6;
+        font-size: 12px;
+    }
+
+    .bin-rack-empty-state {
+        padding: 55px 25px;
+        text-align: center;
+    }
+
+    .bin-rack-empty-icon {
+        width: 70px;
+        height: 70px;
+        display: flex;
         align-items: center;
         justify-content: center;
-        color: #62738b;
-        background: #ffffff;
-        border: 1px solid #dce4ee;
-        border-radius: 9px;
+        margin: 0 auto 18px;
+        color: #91a1b6;
+        background: #f2f5f9;
+        border-radius: 20px;
+        font-size: 28px;
+    }
+
+    .bin-rack-empty-title {
+        color: #26344b;
+        font-size: 17px;
+        font-weight: 750;
+    }
+
+    .bin-rack-empty-description {
+        color: #98a7ba;
         font-size: 13px;
+    }
+
+    /* Modal */
+    .bin-rack-modal-content {
+        overflow: hidden;
+        border: 1px solid #e3e8ef;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(31, 45, 61, 0.15);
+    }
+
+    .bin-rack-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 24px 25px;
+        background: #ffffff;
+        border-bottom: 1px solid #edf1f5;
+    }
+
+    .bin-rack-modal-icon {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #2563eb;
+        background: #edf4ff;
+        border-radius: 12px;
+        font-size: 18px;
+    }
+
+    .bin-rack-modal-title {
+        color: #1c2940;
+        font-size: 17px;
+        font-weight: 750;
+    }
+
+    .bin-rack-modal-subtitle {
+        color: #9aa9bd;
+        font-size: 12px;
+    }
+
+    .bin-rack-modal-body {
+        padding: 25px;
+        background: #ffffff;
+    }
+
+    .bin-rack-form-label {
+        display: block;
+        margin-bottom: 8px;
+        color: #526177;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .bin-rack-input-wrapper {
+        position: relative;
+    }
+
+        .bin-rack-input-wrapper > i {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            z-index: 2;
+            color: #9aa9bd;
+            font-size: 14px;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+    .bin-rack-form-control {
+        min-height: 44px;
+        padding: 10px 14px;
+        color: #344258;
+        background: #fbfcfe;
+        border: 1px solid #dfe6ef;
+        border-radius: 10px;
+        font-size: 13px;
+        box-shadow: none;
         transition: all 0.2s ease;
     }
 
-        .bin-rack-action-btn:hover {
-            color: #2563eb;
-            background: #f3f7ff;
-            border-color: #b9cdf5;
-        }
+    .bin-rack-input-wrapper .bin-rack-form-control {
+        padding-left: 40px;
+    }
 
-    .bin-rack-content-footer {
-        padding: 15px 25px;
-        color: #99a8bb;
+    .bin-rack-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 18px 25px;
         background: #fbfcfe;
         border-top: 1px solid #edf1f5;
-        font-size: 11px;
     }
 
-        .bin-rack-content-footer strong {
-            color: #65758d;
-        }
-
-    @@media (max-width: 767.98px) {
-        .bin-rack-page
-
-    {
-        padding-top: 20px !important;
-    }
-
-    .bin-rack-header-card {
-        padding: 22px 18px;
-        border-radius: 17px;
-    }
-
-    .bin-rack-page-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 13px;
-        font-size: 19px;
-    }
-
-    .bin-rack-page-title {
-        font-size: 25px;
-    }
-
-    .bin-rack-page-subtitle {
+    .bin-rack-cancel-btn,
+    .bin-rack-save-btn {
+        min-height: 40px;
+        padding: 9px 17px;
+        border-radius: 10px;
         font-size: 13px;
+        font-weight: 650;
+        transition: all 0.2s ease;
     }
 
-    .bin-rack-dashboard-btn,
-    .bin-rack-primary-btn {
-        flex: 1;
-        min-width: 140px;
+    .bin-rack-cancel-btn {
+        color: #62738b;
+        background: #ffffff;
+        border: 1px solid #dce4ee;
     }
 
-    .bin-rack-summary-card {
-        min-height: 125px;
-        padding: 20px;
-    }
-
-    .bin-rack-summary-value {
-        font-size: 24px;
-    }
-
-    .bin-rack-content-header {
-        padding: 20px 18px;
-    }
-
-    .bin-rack-table thead th,
-    .bin-rack-table tbody td {
-        padding-left: 18px;
-        padding-right: 18px;
-    }
-
-    .bin-rack-content-footer {
-        padding: 14px 18px;
-    }
-
+    .bin-rack-save-btn {
+        color: #ffffff;
+        background: linear-gradient(135deg, #2563eb, #315ee8);
+        border: none;
+        box-shadow: 0 6px 15px rgba(37, 99, 235, 0.16);
     }
 </style>

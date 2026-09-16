@@ -1,13 +1,668 @@
+@model IEnumerable<ERP_System.Models.MaterialDispatch>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Material Dispatch (Outward)";
+
+    var dispatches = Model?.ToList() ?? new List<ERP_System.Models.MaterialDispatch>();
+    var totalDispatches = dispatches.Count;
+    var completedDispatches = dispatches.Count(d => d.Status == "Dispatched" || d.Status == "Delivered");
+    var packingDispatches = dispatches.Count(d => d.Status == "Packing" || d.Status == "Picked");
+    var totalUnitsDispatched = dispatches.SelectMany(d => d.LineItems).Sum(li => li.Quantity);
+
+    var warehouses = ViewBag.Warehouses as List<ERP_System.Models.WarehouseLocation> ?? new List<ERP_System.Models.WarehouseLocation>();
+    var catalogItems = ViewBag.CatalogItems as List<ERP_System.Models.CatalogItem> ?? new List<ERP_System.Models.CatalogItem>();
+    var bins = ViewBag.Bins as List<ERP_System.Models.BinRackMaster> ?? new List<ERP_System.Models.BinRackMaster>();
+    var selectedWarehouseId = ViewBag.SelectedWarehouseId as int?;
+    var selectedStatus = ViewBag.SelectedStatus as string;
 }
+
+<div class="container-fluid dispatch-page text-start px-3 px-md-4 py-4">
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Toast Notification for Ajax calls -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+        <div id="dispatchToast" class="toast align-items-center text-bg-primary border-0 rounded-4 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center gap-2" id="dispatchToastMessage">
+                    <i class="fa-solid fa-circle-info"></i> Dispatch updated.
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="dispatch-header-card mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center">
+                    <div class="dispatch-icon-box me-3">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+
+                    <div>
+                        <h4 class="dispatch-page-title">
+                            Material Dispatch (Outward Delivery)
+                        </h4>
+
+                        <p class="dispatch-page-subtitle">
+                            Generate outward delivery challans, verify inventory sufficiency, and trigger automated stock deductions.
+                        </p>
+
+                        <nav aria-label="breadcrumb" class="mt-2">
+                            <ol class="breadcrumb dispatch-breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a href="/InventoryDashboard">Inventory Dashboard</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a href="/InvWarehouse/Locations">Warehouses</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">
+                                    Material Dispatch
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="d-flex justify-content-lg-end gap-2 dispatch-header-actions">
+                    <button type="button"
+                            class="btn dispatch-primary-btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#dispatchModal">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        New Outward Dispatch
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="dispatch-summary-card">
+                <div class="d-flex align-items-center">
+                    <div class="dispatch-summary-icon blue me-3">
+                        <i class="fa-solid fa-truck"></i>
+                    </div>
+
+                    <div>
+                        <p class="dispatch-summary-label">Total Outward Slips</p>
+                        <h5 class="dispatch-summary-value">@totalDispatches</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="dispatch-summary-card">
+                <div class="d-flex align-items-center">
+                    <div class="dispatch-summary-icon green me-3">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                    <div>
+                        <p class="dispatch-summary-label">Dispatched &amp; In-Transit</p>
+                        <h5 class="dispatch-summary-value text-success">@completedDispatches</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="dispatch-summary-card">
+                <div class="d-flex align-items-center">
+                    <div class="dispatch-summary-icon orange me-3">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+
+                    <div>
+                        <p class="dispatch-summary-label">Packing / In Picking</p>
+                        <h5 class="dispatch-summary-value text-warning">@packingDispatches</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="dispatch-summary-card">
+                <div class="d-flex align-items-center">
+                    <div class="dispatch-summary-icon blue me-3">
+                        <i class="fa-solid fa-dolly"></i>
+                    </div>
+
+                    <div>
+                        <p class="dispatch-summary-label">Total Units Outward</p>
+                        <h5 class="dispatch-summary-value text-primary">@totalUnitsDispatched.ToString("N0")</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dispatch Content Card & Filters -->
+    <div class="dispatch-content-card">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h5 class="dispatch-section-title">Outward Dispatch Ledger</h5>
+                <p class="dispatch-section-subtitle">
+                    Recorded outgoing consignments, carrier tracking information, and execution status.
+                </p>
+            </div>
+
+            <!-- Filter Controls -->
+            <form method="get" action="/InvWarehouse/Dispatch" class="d-flex flex-wrap align-items-center gap-2">
+                <select name="warehouseId" class="form-select form-select-sm" style="min-width: 170px; border-radius: 8px;" onchange="this.form.submit()">
+                    <option value="">All Source Warehouses</option>
+                    @foreach (var wh in warehouses)
+                    {
+                        <option value="@wh.Id" selected="@(selectedWarehouseId == wh.Id ? "selected" : null)">
+                            @wh.WarehouseName (@wh.WarehouseCode)
+                        </option>
+                    }
+                </select>
+
+                <select name="status" class="form-select form-select-sm" style="min-width: 140px; border-radius: 8px;" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="Packing" selected="@(selectedStatus == "Packing" ? "selected" : null)">Packing</option>
+                    <option value="Dispatched" selected="@(selectedStatus == "Dispatched" ? "selected" : null)">Dispatched</option>
+                    <option value="Delivered" selected="@(selectedStatus == "Delivered" ? "selected" : null)">Delivered</option>
+                </select>
+
+                @if (selectedWarehouseId.HasValue || !string.IsNullOrEmpty(selectedStatus))
+                {
+                    <a href="/InvWarehouse/Dispatch" class="btn btn-sm btn-outline-secondary" title="Reset Filters" style="border-radius: 8px;">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                }
+            </form>
+        </div>
+
+        <div class="table-responsive dispatch-table-wrapper">
+            <table class="table dispatch-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Dispatch Slip #</th>
+                        <th>Destination Party</th>
+                        <th>Source Facility</th>
+                        <th>Carrier &amp; Tracking</th>
+                        <th>Dispatch Date</th>
+                        <th>Units</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @if (dispatches.Any())
+                    {
+                        @foreach (var d in dispatches)
+                        {
+                            var totalUnits = d.LineItems?.Sum(l => l.Quantity) ?? 0;
+                            var itemsCount = d.LineItems?.Count ?? 0;
+
+                            <tr>
+                                <td>
+                                    <div>
+                                        <span class="dispatch-number font-monospace text-primary">
+                                            @d.DispatchSlipNo
+                                        </span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(d.SalesOrderNumber))
+                                    {
+                                        <small class="text-muted font-monospace" style="font-size: 11px;">
+                                            SO: @d.SalesOrderNumber
+                                        </small>
+                                    }
+                                </td>
+
+                                <td>
+                                    <div class="fw-semibold text-dark">@d.DestinationParty</div>
+                                    @if (!string.IsNullOrEmpty(d.EWayBillNumber))
+                                    {
+                                        <small class="text-muted font-monospace" style="font-size: 11px;">
+                                            EWB: @d.EWayBillNumber
+                                        </small>
+                                    }
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 12px;">
+                                        <i class="fa-solid fa-warehouse me-1 text-primary"></i>
+                                        @(d.SourceWarehouse?.WarehouseName ?? "Central WH")
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <div class="fw-semibold text-dark" style="font-size: 13px;">
+                                        <i class="fa-solid fa-truck me-1 text-secondary"></i> @d.CarrierName
+                                    </div>
+                                    <small class="text-muted font-monospace" style="font-size: 11px;">
+                                        TRK: @d.TrackingNumber
+                                    </small>
+                                </td>
+
+                                <td class="dispatch-muted font-monospace" style="font-size: 12px;">
+                                    @d.DispatchDate.ToString("dd MMM yyyy, HH:mm")
+                                </td>
+
+                                <td>
+                                    <div>
+                                        <span class="fw-bold text-dark">@totalUnits</span>
+                                        <span class="text-muted" style="font-size: 12px;">units</span>
+                                    </div>
+                                    <small class="text-muted" style="font-size: 11px;">@itemsCount item(s)</small>
+                                </td>
+
+                                <td>
+                                    @if (d.Status == "Dispatched" || d.Status == "Delivered")
+                                    {
+                                        <span class="dispatch-status completed">
+                                            @d.Status
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="dispatch-status in-progress">
+                                            @d.Status
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        @if (d.Status != "Dispatched" && d.Status != "Delivered")
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-primary text-white"
+                                                    title="Execute Dispatch (Deduct Stock & Release Bins)"
+                                                    onclick="executeDispatch(@d.Id, '@d.DispatchSlipNo')">
+                                                <i class="fa-solid fa-truck-fast me-1"></i> Execute
+                                            </button>
+                                        }
+
+                                        <a href="/InvWarehouse/PrintChallan?id=@d.Id" target="_blank" class="btn btn-sm btn-light text-primary border" title="Print Delivery Challan">
+                                            <i class="fa-solid fa-print"></i>
+                                        </a>
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-light text-secondary border"
+                                                title="View Line Items"
+                                                onclick="viewDispatchDetails('@d.DispatchSlipNo', '@d.DestinationParty', '@(d.SourceWarehouse?.WarehouseName ?? "")', '@d.CarrierName', '@d.TrackingNumber', '@d.Status', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.LineItems.Select(li => new {
+                                                    item = li.CatalogItem?.ItemName ?? "Item #" + li.CatalogItemId,
+                                                    sku = li.CatalogItem?.SKU ?? "N/A",
+                                                    qty = li.Quantity,
+                                                    bin = li.PickedFromBin != null ? li.PickedFromBin.RackCode + " / " + li.PickedFromBin.BinLevel : "Default Dock"
+                                                }))))">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="dispatch-empty-state">
+                                <div class="dispatch-empty-icon">
+                                    <i class="fa-solid fa-truck-ramp-box"></i>
+                                </div>
+
+                                <div class="fw-semibold text-dark mb-1">
+                                    No Material Dispatches Found
+                                </div>
+
+                                <div class="small text-muted mb-3">
+                                    No outward dispatch records logged matching your search filters.
+                                </div>
+
+                                <button type="button"
+                                        class="btn dispatch-primary-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#dispatchModal">
+                                    <i class="fa-solid fa-plus me-2"></i>
+                                    Create First Dispatch
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- New Outward Dispatch Modal -->
+<div class="modal fade dispatch-modal text-start"
+     id="dispatchModal"
+     tabindex="-1"
+     aria-labelledby="dispatchModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <form action="/InvWarehouse/CreateDispatch" method="post" id="createDispatchForm">
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header bg-light px-4 py-3 border-bottom">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-1" id="dispatchModalLabel">
+                            <i class="fa-solid fa-truck-ramp-box text-primary me-2"></i>
+                            New Outward Material Dispatch
+                        </h5>
+
+                        <small class="text-muted">
+                            Prepare outward delivery orders and assign picking bins.
+                        </small>
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                Source Warehouse Facility <span class="text-danger">*</span>
+                            </label>
+                            <select name="SourceWarehouseId" class="form-select" required>
+                                <option value="">-- Select Source Facility --</option>
+                                @foreach (var wh in warehouses)
+                                {
+                                    <option value="@wh.Id">@wh.WarehouseName (@wh.WarehouseCode)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                Destination Customer / Consignee <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   name="DestinationParty"
+                                   class="form-control"
+                                   placeholder="e.g. Apex Enterprise Systems"
+                                   required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                Logistics Carrier Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   name="CarrierName"
+                                   class="form-control"
+                                   placeholder="e.g. BlueDart Logistics"
+                                   required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                Tracking / Docket Number <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   name="TrackingNumber"
+                                   class="form-control"
+                                   placeholder="e.g. BD-884920194"
+                                   required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                Sales Order # (Optional)
+                            </label>
+                            <input type="text"
+                                   name="SalesOrderNumber"
+                                   class="form-control"
+                                   placeholder="e.g. SO-2026-104" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary" style="font-size: 12px;">
+                                E-Way Bill Number (GST/Transport)
+                            </label>
+                            <input type="text"
+                                   name="EWayBillNumber"
+                                   class="form-control"
+                                   placeholder="e.g. EWB-9920104812" />
+                        </div>
+                    </div>
+
+                    <!-- Line Items Section -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="fa-solid fa-boxes-stacked text-primary me-2"></i> Outward Items to Pick &amp; Pack
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-3" onclick="addDispatchRow()">
+                                <i class="fa-solid fa-plus me-1"></i> Add Item
+                            </button>
+                        </div>
+
+                        <div class="table-responsive border rounded-3">
+                            <table class="table table-sm align-middle mb-0" id="dispatchItemsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 45%;">Catalog Item <span class="text-danger">*</span></th>
+                                        <th style="width: 35%;">Pick From Bin</th>
+                                        <th style="width: 15%;">Quantity</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dispatchItemsBody">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 border-top">
+                    <button type="button"
+                            class="btn btn-secondary rounded-3"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn dispatch-primary-btn">
+                        <i class="fa-solid fa-check me-2"></i>
+                        Register Dispatch
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Dispatch Details Modal -->
+<div class="modal fade" id="dispatchDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header bg-light px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="modalDetailSlipNo">Dispatch Slip Details</h5>
+                    <small class="text-muted" id="modalDetailDispatchSubtitle"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive border rounded-3">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item &amp; SKU</th>
+                                <th>Dispatch Quantity</th>
+                                <th>Picked From Bin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalDispatchDetailBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light px-4 py-3">
+                <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var availableItems = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(catalogItems.Select(c => new { id = c.Id, name = c.ItemName, sku = c.SKU, stock = c.CurrentStock })));
+    var availableBins = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(bins.Select(b => new { id = b.Id, code = b.RackCode + " - " + b.BinLevel + " (" + (b.Warehouse?.WarehouseCode ?? "") + ")" })));
+    var dspRowIndex = 0;
+
+    function addDispatchRow() {
+        var tbody = document.getElementById('dispatchItemsBody');
+        var tr = document.createElement('tr');
+        tr.id = 'dsp-item-' + dspRowIndex;
+
+        var itemOptions = '<option value="">-- Select Product --</option>';
+        availableItems.forEach(function (it) {
+            itemOptions += '<option value="' + it.id + '">' + it.name + ' (' + it.sku + ' | Stock: ' + it.stock + ')</option>';
+        });
+
+        var binOptions = '<option value="">-- Default Dock --</option>';
+        availableBins.forEach(function (b) {
+            binOptions += '<option value="' + b.id + '">' + b.code + '</option>';
+        });
+
+        tr.innerHTML = `
+            <td>
+                <select name="lineItems[${dspRowIndex}].CatalogItemId" class="form-select form-select-sm" required>
+                    ${itemOptions}
+                </select>
+            </td>
+            <td>
+                <select name="lineItems[${dspRowIndex}].PickedFromBinId" class="form-select form-select-sm">
+                    ${binOptions}
+                </select>
+            </td>
+            <td>
+                <input type="number" name="lineItems[${dspRowIndex}].Quantity" class="form-control form-control-sm" min="1" value="1" required />
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeDispatchRow(${dspRowIndex})">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+        dspRowIndex++;
+    }
+
+    function removeDispatchRow(idx) {
+        var row = document.getElementById('dsp-item-' + idx);
+        if (row) {
+            row.remove();
+        }
+    }
+
+    // Initialize with 1 empty row on load
+    document.addEventListener('DOMContentLoaded', function () {
+        addDispatchRow();
+    });
+
+    // Execution Async Trigger
+    function executeDispatch(id, slipNo) {
+        if (!confirm(`Are you sure you want to execute dispatch slip ${slipNo}? This will verify stock sufficiency, deduct items from inventory, increment units sold, and record outward ledger logs.`)) {
+            return;
+        }
+
+        fetch('/InvWarehouse/ExecuteDispatch?id=' + id, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showDispatchToast(data.message);
+                setTimeout(function () {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                alert(data.message || 'Dispatch execution failed. Please verify stock availability.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Request failed. Please check network connection.');
+        });
+    }
+
+    function viewDispatchDetails(slipNo, customer, wh, carrier, tracking, status, items) {
+        document.getElementById('modalDetailSlipNo').innerText = 'Dispatch: ' + slipNo;
+        document.getElementById('modalDetailDispatchSubtitle').innerText = `Customer: ${customer} | Facility: ${wh} | Carrier: ${carrier} (${tracking}) | Status: ${status}`;
+
+        var tbody = document.getElementById('modalDispatchDetailBody');
+        tbody.innerHTML = '';
+
+        if (items && items.length > 0) {
+            items.forEach(function (it) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="fw-bold">${it.item}</div>
+                        <small class="text-muted font-monospace">${it.sku}</small>
+                    </td>
+                    <td><span class="badge bg-primary px-2 py-1">${it.qty} Units</span></td>
+                    <td><span class="badge bg-light text-dark border">${it.bin}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No line items logged.</td></tr>';
+        }
+
+        var modal = new bootstrap.Modal(document.getElementById('dispatchDetailsModal'));
+        modal.show();
+    }
+
+    function showDispatchToast(msg) {
+        var el = document.getElementById('dispatchToast');
+        document.getElementById('dispatchToastMessage').innerHTML = '<i class="fa-solid fa-circle-check me-2"></i> ' + msg;
+        var toast = new bootstrap.Toast(el);
+        toast.show();
+    }
+</script>
 
 <style>
     .dispatch-page {
         background: #f7f9fc;
         min-height: calc(100vh - 70px);
-        padding: 28px 0;
     }
 
     .dispatch-header-card,
@@ -65,19 +720,36 @@
                 font-weight: 500;
             }
 
+    .dispatch-primary-btn {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 18px;
+        font-size: 0.84rem;
+        font-weight: 600;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.20);
+        transition: all 0.2s ease;
+    }
+
+        .dispatch-primary-btn:hover {
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28);
+        }
+
     .dispatch-summary-card {
-        height: 100%;
-        padding: 20px;
+        padding: 22px;
     }
 
     .dispatch-summary-icon {
-        width: 42px;
-        height: 42px;
+        width: 44px;
+        height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 12px;
-        font-size: 17px;
+        font-size: 18px;
     }
 
         .dispatch-summary-icon.blue {
@@ -133,8 +805,8 @@
     }
 
     .dispatch-table {
-        min-width: 900px;
         margin-bottom: 0;
+        min-width: 720px;
     }
 
         .dispatch-table thead th {
@@ -169,16 +841,6 @@
         font-weight: 700;
     }
 
-    .dispatch-code {
-        display: inline-block;
-        padding: 5px 8px;
-        border-radius: 7px;
-        background: #f1f5f9;
-        color: #475467;
-        font-size: 0.76rem;
-        font-weight: 600;
-    }
-
     .dispatch-muted {
         color: #8a94a6 !important;
     }
@@ -202,242 +864,39 @@
             display: inline-block;
         }
 
-        .dispatch-status.dispatched {
+        .dispatch-status.completed {
             background: #eaf8ef;
             color: #16803c;
         }
 
-            .dispatch-status.dispatched::before {
-                background: #22c55e;
+            .dispatch-status.completed::before {
+                background: #16a34a;
             }
 
-        .dispatch-status.packing {
-            background: #eaf2ff;
-            color: #2563eb;
+        .dispatch-status.in-progress {
+            background: #fff4df;
+            color: #b45309;
         }
 
-            .dispatch-status.packing::before {
-                background: #3b82f6;
+            .dispatch-status.in-progress::before {
+                background: #f59e0b;
             }
 
-    .dispatch-record-count {
-        background: #f1f5f9;
-        color: #667085;
-        border-radius: 30px;
-        padding: 7px 12px;
-        font-size: 0.72rem;
-        font-weight: 600;
+    .dispatch-empty-state {
+        text-align: center;
+        padding: 50px 20px;
     }
 
-    @@media (max-width: 767.98px) {
-        .dispatch-page
-
-    {
-        padding: 18px 0;
-    }
-
-    .dispatch-header-card {
-        padding: 20px;
-    }
-
-    .dispatch-content-card {
-        padding: 16px;
-    }
-
-    .dispatch-page-title {
-        font-size: 1.2rem;
-    }
-
-    .dispatch-summary-card {
-        padding: 16px;
-    }
-
+    .dispatch-empty-icon {
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: #f2f5f9;
+        color: #98a2b3;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 12px;
     }
 </style>
-
-<div class="container-fluid dispatch-page text-start">
-    <div class="container-fluid px-0">
-
-        <!-- Page Header -->
-        <div class="dispatch-header-card mb-4">
-            <div class="row align-items-center g-3">
-                <div class="col-lg-8">
-                    <div class="d-flex align-items-center">
-                        <div class="dispatch-icon-box me-3">
-                            <i class="fa-solid fa-truck-ramp-box"></i>
-                        </div>
-
-                        <div>
-                            <h4 class="dispatch-page-title">
-                                Material Dispatch (Outward)
-                            </h4>
-
-                            <p class="dispatch-page-subtitle">
-                                Monitor outgoing material dispatches and delivery information.
-                            </p>
-
-                            <nav aria-label="breadcrumb" class="mt-2">
-                                <ol class="breadcrumb dispatch-breadcrumb">
-                                    <li class="breadcrumb-item">
-                                        <a href="/InventoryDashboard">Inventory Dashboard</a>
-                                    </li>
-                                    <li class="breadcrumb-item active" aria-current="page">
-                                        Material Dispatch
-                                    </li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="row g-4 mb-4">
-            <div class="col-xl-4 col-md-4">
-                <div class="dispatch-summary-card">
-                    <div class="d-flex align-items-center">
-                        <div class="dispatch-summary-icon blue me-3">
-                            <i class="fa-solid fa-truck"></i>
-                        </div>
-
-                        <div>
-                            <p class="dispatch-summary-label">Total Dispatches</p>
-                            <h5 class="dispatch-summary-value">2</h5>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-4">
-                <div class="dispatch-summary-card">
-                    <div class="d-flex align-items-center">
-                        <div class="dispatch-summary-icon green me-3">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-
-                        <div>
-                            <p class="dispatch-summary-label">Dispatched</p>
-                            <h5 class="dispatch-summary-value">1</h5>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-4">
-                <div class="dispatch-summary-card">
-                    <div class="d-flex align-items-center">
-                        <div class="dispatch-summary-icon orange me-3">
-                            <i class="fa-solid fa-box-open"></i>
-                        </div>
-
-                        <div>
-                            <p class="dispatch-summary-label">In Packing</p>
-                            <h5 class="dispatch-summary-value">1</h5>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dispatch Listing -->
-        <div class="dispatch-content-card">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-                <div>
-                    <h5 class="dispatch-section-title">
-                        Outward Dispatch Transactions
-                    </h5>
-
-                    <p class="dispatch-section-subtitle">
-                        View dispatch slips, destination parties, carriers, and delivery status.
-                    </p>
-                </div>
-
-                <div class="mt-3 mt-md-0">
-                    <span class="dispatch-record-count">
-                        <i class="fa-solid fa-list-check me-1"></i>
-                        2 Records
-                    </span>
-                </div>
-            </div>
-
-            <div class="table-responsive dispatch-table-wrapper">
-                <table class="table dispatch-table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Dispatch Slip No</th>
-                            <th>Destination Party</th>
-                            <th>Carrier Name</th>
-                            <th>Tracking Number</th>
-                            <th>Dispatch Date</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr>
-                            <td>
-                                <span class="dispatch-number">
-                                    DSP-2026-9041
-                                </span>
-                            </td>
-
-                            <td>
-                                Rahul Enterprises
-                            </td>
-
-                            <td>
-                                BlueDart Logistics
-                            </td>
-
-                            <td>
-                                <code class="dispatch-code">BD-6042189</code>
-                            </td>
-
-                            <td class="dispatch-muted">
-                                18 Aug 2026
-                            </td>
-
-                            <td>
-                                <span class="dispatch-status dispatched">
-                                    Dispatched
-                                </span>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <span class="dispatch-number">
-                                    DSP-2026-9042
-                                </span>
-                            </td>
-
-                            <td>
-                                Mehta Logistics
-                            </td>
-
-                            <td>
-                                DHL Express
-                            </td>
-
-                            <td>
-                                <code class="dispatch-code">DHL-8041920</code>
-                            </td>
-
-                            <td class="dispatch-muted">
-                                20 Aug 2026
-                            </td>
-
-                            <td>
-                                <span class="dispatch-status packing">
-                                    Packing
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-</div>

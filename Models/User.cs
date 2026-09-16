@@ -73,6 +73,9 @@ namespace ERP_System.Models
         [ForeignKey("RoleId")]
         public Role? Role { get; set; }
 
+        [NotMapped]
+        public string RoleName => Role?.RoleName ?? "Staff";
+
         [ForeignKey("BranchId")]
         public Branch? Branch { get; set; }
 
