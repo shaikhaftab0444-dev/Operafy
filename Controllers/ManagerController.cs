@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using ERP_System.Models;
 using ERP_System.Data;
+using ERP_System.Services;
 using System.Threading.Tasks;
 using System.IO;
 using System.Security.Claims;
@@ -101,6 +102,17 @@ namespace ERP_System.Controllers
 
             string reviewerName = User.Identity?.Name ?? "Manager";
 
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.TryParse(userIdClaim, out int cid) ? cid : 1;
+            var currentUser = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+            bool isSuperOrAdmin = User.IsInRole("Super Admin") || User.IsInRole("Admin") || (currentUser?.Role?.RoleName == "Super Admin") || (currentUser?.Role?.RoleName == "Admin");
+
+            List<int>? subordinateUserIds = null;
+            if (!isSuperOrAdmin && currentUser != null)
+            {
+                subordinateUserIds = await _context.GetSubordinateUserIntIdsAsync(currentUser);
+            }
+
             if (targetCategory.Equals("Leave", StringComparison.OrdinalIgnoreCase) ||
                 targetCategory.Equals("Leaves", StringComparison.OrdinalIgnoreCase) ||
                 targetCategory.Contains("Leave", StringComparison.OrdinalIgnoreCase))
@@ -108,6 +120,11 @@ namespace ERP_System.Controllers
                 var leave = await _context.LeaveRequests.FindAsync(targetId);
                 if (leave != null)
                 {
+                    if (!isSuperOrAdmin && subordinateUserIds != null && !subordinateUserIds.Contains(leave.UserId))
+                    {
+                        return Json(new { success = false, message = "Access Denied: You can only approve requests from your direct subordinates." });
+                    }
+
                     leave.Status = finalStatus;
                     leave.ManagerStatus = finalStatus;
                     leave.ManagerRemarks = targetRemarks;
@@ -124,6 +141,11 @@ namespace ERP_System.Controllers
                 var claim = await _context.ExpenseClaims.FindAsync(targetId);
                 if (claim != null)
                 {
+                    if (!isSuperOrAdmin && subordinateUserIds != null && !subordinateUserIds.Contains(claim.UserId))
+                    {
+                        return Json(new { success = false, message = "Access Denied: You can only approve requests from your direct subordinates." });
+                    }
+
                     claim.Status = finalStatus;
                     claim.ManagerStatus = finalStatus;
                     claim.ManagerRemarks = targetRemarks;
@@ -138,6 +160,10 @@ namespace ERP_System.Controllers
                 var reg = await _context.AttendanceRegularizations.FindAsync(targetId);
                 if (reg != null)
                 {
+                    if (!isSuperOrAdmin && subordinateUserIds != null && !subordinateUserIds.Contains(reg.UserId))
+                    {
+                        return Json(new { success = false, message = "Access Denied: You can only approve requests from your direct subordinates." });
+                    }
                     reg.Status = finalStatus;
                     reg.ManagerStatus = finalStatus;
                     reg.ManagerRemarks = targetRemarks;
@@ -428,16 +454,7 @@ namespace ERP_System.Controllers
             }
             else
             {
-                teamUsers = allUsers.Where(u => u.UserId != currentUserId && (
-                    u.ReportingManagerId == currentUserId.ToString() ||
-                    (!string.IsNullOrEmpty(currentUser?.FullName) && u.ReportingManagerName == currentUser.FullName) ||
-                    (currentUser?.DepartmentId != null && u.DepartmentId == currentUser.DepartmentId)
-                )).ToList();
-
-                if (!teamUsers.Any())
-                {
-                    teamUsers = allUsers.Where(u => u.UserId != currentUserId && u.Role?.RoleName != "Super Admin" && u.Role?.RoleName != "Admin").Take(10).ToList();
-                }
+                teamUsers = await _context.GetSubordinateUsersAsync(currentUser!);
             }
 
             var teamUserIds = teamUsers.Select(u => u.UserId).ToList();
@@ -599,16 +616,7 @@ namespace ERP_System.Controllers
             }
             else
             {
-                subordinateIds = allUsers.Where(u => u.UserId != currentUserId && (
-                    u.ReportingManagerId == currentUserId.ToString() ||
-                    (!string.IsNullOrEmpty(currentUser?.FullName) && u.ReportingManagerName == currentUser.FullName) ||
-                    (currentUser?.DepartmentId != null && u.DepartmentId == currentUser.DepartmentId)
-                )).Select(u => u.UserId).ToList();
-
-                if (!subordinateIds.Any())
-                {
-                    subordinateIds = allUsers.Where(u => u.UserId != currentUserId).Select(u => u.UserId).ToList();
-                }
+                subordinateIds = await _context.GetSubordinateUserIntIdsAsync(currentUser!);
             }
 
             var pendingLeaves = await _context.ESSLeaveApplications

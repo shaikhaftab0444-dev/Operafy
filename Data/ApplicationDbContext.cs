@@ -116,6 +116,7 @@ namespace ERP_System.Data
         // Auditor Command Center DbSets
         public DbSet<SystemAuditTrail> SystemAuditTrails { get; set; }
         public DbSet<AuditFlaggedItem> AuditFlaggedItems { get; set; }
+        public DbSet<SystemMutationLog> SystemMutationLogs { get; set; }
 
         // Accountant Hub DbSets
         public DbSet<JournalVoucher> JournalVouchers { get; set; }
@@ -127,12 +128,183 @@ namespace ERP_System.Data
         public DbSet<ProcurementCatalogItem> ProcurementCatalogItems { get; set; }
         public DbSet<PurchaseRequisition> PurchaseRequisitions { get; set; }
 
+        // Product & Catalog Master DbSets
+        public DbSet<ProductCategory> ProductCategories { get; set; }
+        public DbSet<ProductSubCategory> ProductSubCategories { get; set; }
+        public DbSet<UnitOfMeasure> UnitsOfMeasure { get; set; }
+        public DbSet<UomConversion> UomConversions { get; set; }
+        public DbSet<CatalogItem> CatalogItems { get; set; }
+
+        // Warehouse Operations DbSets
+        public DbSet<WarehouseLocation> WarehouseLocations { get; set; }
+        public DbSet<BinRackMaster> BinRackMasters { get; set; }
+        public DbSet<GoodsReceiptNote> GoodsReceiptNotes { get; set; }
+        public DbSet<GrnLineItem> GrnLineItems { get; set; }
+        public DbSet<MaterialDispatch> MaterialDispatches { get; set; }
+        public DbSet<DispatchLineItem> DispatchLineItems { get; set; }
+        public DbSet<StockMovementLog> StockMovementLogs { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             // Configure default schema to match your database
             modelBuilder.HasDefaultSchema("AITStudent");
+
+            // Product & Catalog Master Mappings
+            modelBuilder.Entity<ProductCategory>(entity =>
+            {
+                entity.ToTable("erp_ProductCategories");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.DefaultGstRate).HasColumnType("decimal(18,2)");
+            });
+
+            modelBuilder.Entity<ProductSubCategory>(entity =>
+            {
+                entity.ToTable("erp_ProductSubCategories");
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.Category)
+                      .WithMany(c => c.SubCategories)
+                      .HasForeignKey(e => e.CategoryId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<UnitOfMeasure>(entity =>
+            {
+                entity.ToTable("erp_UnitsOfMeasure");
+                entity.HasKey(e => e.Id);
+            });
+
+            modelBuilder.Entity<UomConversion>(entity =>
+            {
+                entity.ToTable("erp_UomConversions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ConversionFactor).HasColumnType("decimal(18,4)");
+                entity.HasOne(e => e.FromUom)
+                      .WithMany()
+                      .HasForeignKey(e => e.FromUomId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.ToUom)
+                      .WithMany()
+                      .HasForeignKey(e => e.ToUomId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CatalogItem>(entity =>
+            {
+                entity.ToTable("erp_CatalogItems");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PurchasePrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SellingPrice).HasColumnType("decimal(18,2)");
+                entity.HasOne(e => e.Category)
+                      .WithMany(c => c.Items)
+                      .HasForeignKey(e => e.CategoryId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.SubCategory)
+                      .WithMany(s => s.Items)
+                      .HasForeignKey(e => e.SubCategoryId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Uom)
+                      .WithMany()
+                      .HasForeignKey(e => e.UomId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Warehouse Operations Mappings
+            modelBuilder.Entity<WarehouseLocation>(entity =>
+            {
+                entity.ToTable("erp_WarehouseLocations");
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.Supervisor)
+                      .WithMany()
+                      .HasForeignKey(e => e.SupervisorId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<BinRackMaster>(entity =>
+            {
+                entity.ToTable("erp_BinRackMasters");
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.Warehouse)
+                      .WithMany(w => w.StoragePositions)
+                      .HasForeignKey(e => e.WarehouseId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.AssignedItem)
+                      .WithMany()
+                      .HasForeignKey(e => e.AssignedCatalogItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<GoodsReceiptNote>(entity =>
+            {
+                entity.ToTable("erp_GoodsReceiptNotes");
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.DestinationWarehouse)
+                      .WithMany()
+                      .HasForeignKey(e => e.DestinationWarehouseId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.ReceivedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.ReceivedById)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<GrnLineItem>(entity =>
+            {
+                entity.ToTable("erp_GrnLineItems");
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.Grn)
+                      .WithMany(g => g.LineItems)
+                      .HasForeignKey(e => e.GrnId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.CatalogItem)
+                      .WithMany()
+                      .HasForeignKey(e => e.CatalogItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.TargetBin)
+                      .WithMany()
+                      .HasForeignKey(e => e.TargetBinId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<MaterialDispatch>(entity =>
+            {
+                entity.ToTable("erp_MaterialDispatches");
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.SourceWarehouse)
+                      .WithMany()
+                      .HasForeignKey(e => e.SourceWarehouseId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<DispatchLineItem>(entity =>
+            {
+                entity.ToTable("erp_DispatchLineItems");
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.Dispatch)
+                      .WithMany(d => d.LineItems)
+                      .HasForeignKey(e => e.DispatchId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.CatalogItem)
+                      .WithMany()
+                      .HasForeignKey(e => e.CatalogItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.PickedFromBin)
+                      .WithMany()
+                      .HasForeignKey(e => e.PickedFromBinId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<StockMovementLog>(entity =>
+            {
+                entity.ToTable("erp_StockMovementLogs");
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.InventoryItem)
+                      .WithMany()
+                      .HasForeignKey(e => e.InventoryItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
 
             // Map entities to table names
             modelBuilder.Entity<ProcurementCatalogItem>().ToTable("erp_ProcurementCatalogItems");
@@ -216,6 +388,7 @@ namespace ERP_System.Data
             modelBuilder.Entity<HierarchicalTask>().ToTable("erp_HierarchicalTasks");
             modelBuilder.Entity<JournalVoucher>().ToTable("erp_JournalVouchers");
             modelBuilder.Entity<BankReconciliationItem>().ToTable("erp_BankReconciliations");
+            modelBuilder.Entity<SystemMutationLog>().ToTable("SystemMutationLogs");
 
             // Seed Admin User (Using Identity Password Hasher)
             var hasher = new PasswordHasher<User>();

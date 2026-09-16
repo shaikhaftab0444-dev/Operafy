@@ -13,6 +13,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<ERP_System.Helpers.ICurrencyService, ERP_System.Helpers.CurrencyService>();
+builder.Services.AddScoped<ERP_System.Services.IHierarchyService, ERP_System.Services.HierarchyService>();
 
 // Add SignalR to Services
 builder.Services.AddSignalR(options => {
@@ -144,6 +145,9 @@ using (var scope = app.Services.CreateScope())
                     DiscrepancyAmount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
                     Severity NVARCHAR(50) NOT NULL DEFAULT 'Medium',
                     Status NVARCHAR(50) NOT NULL DEFAULT 'Pending Review',
+                    ResolutionNotes NVARCHAR(MAX) NULL,
+                    AuditedByUserId NVARCHAR(100) NULL,
+                    ResolvedAt DATETIME NULL,
                     FlaggedByUserId NVARCHAR(100) NULL,
                     FlaggedOn DATETIME NOT NULL DEFAULT GETUTCDATE()
                 );

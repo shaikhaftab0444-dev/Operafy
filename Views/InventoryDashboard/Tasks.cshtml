@@ -40,6 +40,10 @@
         background: radial-gradient(circle at 5% 0%, rgba(37, 99, 235, 0.055), transparent 25%), radial-gradient(circle at 95% 10%, rgba(124, 58, 237, 0.045), transparent 25%), var(--wh-bg);
     }
 
+    .bg-purple {
+        background-color: #7c3aed !important;
+    }
+
     .warehouse-shell {
         max-width: 1600px;
         margin: 0 auto;
@@ -1445,25 +1449,24 @@
 
                                     <!-- STAFF -->
                                     <td>
-
-                                        <div class="warehouse-staff">
-
-                                            <div class="warehouse-staff-avatar">
-                                                @staffInitial
+                                        @if (task.IsGeneralTask)
+                                        {
+                                            <span class="badge bg-purple text-white px-2 py-1"><i class="fa fa-bullhorn me-1"></i> General Team Task</span>
+                                        }
+                                        else
+                                        {
+                                            <div class="warehouse-staff">
+                                                <div class="warehouse-staff-avatar">
+                                                    @staffInitial
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-light text-dark border"><i class="fa fa-user me-1"></i> Assigned to: @(task.AssignedToUser?.FullName ?? execName)</span>
+                                                    <span class="warehouse-staff-label">
+                                                        Assigned operator
+                                                    </span>
+                                                </div>
                                             </div>
-
-                                            <div>
-                                                <span class="warehouse-staff-name">
-                                                    @execName
-                                                </span>
-
-                                                <span class="warehouse-staff-label">
-                                                    Assigned operator
-                                                </span>
-                                            </div>
-
-                                        </div>
-
+                                        }
                                     </td>
 
                                     <!-- PRIORITY -->
@@ -1557,13 +1560,62 @@
             </div>
 
             <!-- FORM -->
-            <form action="@Url.Action("AssignTask", "InventoryDashboard")" method="post">
+            <form action="@Url.Action("AssignWarehouseTask", "InventoryDashboard")" method="post">
 
                 @Html.AntiForgeryToken()
 
                 <div class="warehouse-modal-body">
 
                     <div class="row g-3">
+
+                        <!-- OPERATIONAL TEMPLATE -->
+                        <div class="col-md-6">
+
+                            <div class="warehouse-form-group">
+
+                                <label class="warehouse-form-label">
+                                    <i class="fa-solid fa-layer-group text-primary"></i>
+                                    Operational Template
+                                </label>
+
+                                <select name="operationalTemplate" id="opTemplateSelect" class="form-select warehouse-form-select">
+                                    <option value="Custom Task" selected>Custom Warehouse Task</option>
+                                    <option value="Stock Audit / Cycle Count">Stock Audit / Cycle Count</option>
+                                    <option value="Bin Replenishment">Bin Replenishment & Put-Away</option>
+                                    <option value="Inward Unloading (GRN)">Inward Unloading (GRN)</option>
+                                    <option value="Order Packing">Order Picking & Packing</option>
+                                    <option value="Quarantine Inspection">Quarantine / QA Inspection</option>
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <!-- TARGET RACK / BIN LOCATION -->
+                        <div class="col-md-6">
+
+                            <div class="warehouse-form-group">
+
+                                <label class="warehouse-form-label">
+                                    <i class="fa-solid fa-boxes-stacked text-primary"></i>
+                                    Target Location / Bin
+                                </label>
+
+                                <div class="warehouse-input-wrap">
+
+                                    <i class="fa-solid fa-location-dot warehouse-input-icon"></i>
+
+                                    <input type="text"
+                                           name="targetLocation"
+                                           id="rackLocationInput"
+                                           class="form-control warehouse-form-control warehouse-input-with-icon"
+                                           placeholder="e.g. WH-01 / Rack B-04 / Bin 12" />
+
+                                </div>
+
+                            </div>
+
+                        </div>
 
                         <!-- TASK TITLE -->
                         <div class="col-12">
@@ -1581,7 +1633,8 @@
                                     <i class="fa-solid fa-pen warehouse-input-icon"></i>
 
                                     <input type="text"
-                                           name="Title"
+                                           name="taskTitle"
+                                           id="taskTitleInput"
                                            class="form-control warehouse-form-control warehouse-input-with-icon"
                                            required
                                            placeholder="e.g. Conduct Physical Stock Audit for Bin A-12" />
@@ -1602,74 +1655,81 @@
                                     Description / Instructions
                                 </label>
 
-                                <textarea name="Description"
+                                <textarea name="description"
+                                          id="taskDescInput"
                                           class="form-control warehouse-form-control"
                                           rows="3"
-                                          placeholder="Verify batch barcodes and update scrap count..."></textarea>
+                                          placeholder="Verify batch barcodes, check SKU quantities, and record notes..."></textarea>
 
                             </div>
 
                         </div>
 
-                        <!-- ASSIGN TO -->
-                        <div class="col-md-6">
+                        <!-- Assignment Scope Toggle -->
+                        <div class="col-12">
+                            <div class="p-2 bg-light rounded border">
+                                <label class="form-label fw-bold d-block mb-2 text-dark" style="font-size: 0.85rem;">
+                                    <i class="fa-solid fa-users-gear me-1 text-primary"></i> Assignment Mode
+                                </label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="assignmentScope" id="scopeIndividual" value="Individual" checked onchange="toggleAssignmentScope()">
+                                    <label class="btn btn-outline-primary btn-sm py-2" for="scopeIndividual">
+                                        <i class="fa-solid fa-user me-1"></i> Specific Employee
+                                    </label>
 
+                                    <input type="radio" class="btn-check" name="assignmentScope" id="scopeGeneral" value="General" onchange="toggleAssignmentScope()">
+                                    <label class="btn btn-outline-primary btn-sm py-2" for="scopeGeneral">
+                                        <i class="fa-solid fa-bullhorn me-1"></i> General Team Task (All Staff)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Subordinate Select (Shows/Hides based on scope) -->
+                        <div class="col-md-6" id="subordinateSelectContainer">
                             <div class="warehouse-form-group">
-
                                 <label class="warehouse-form-label">
                                     <i class="fa-solid fa-user-check text-primary"></i>
-                                    Assign To Staff Member
+                                    Assign To Subordinate
+                                    <span class="text-danger">*</span>
                                 </label>
-
-                                <select name="AssignedToUserId"
-                                        class="form-select warehouse-form-select">
-
-                                    <option value="">
-                                        -- All Warehouse Staff --
-                                    </option>
-
-                                    @foreach (var m in teamMembers)
+                                <select name="assignedToUserId" id="assignedToUserId" class="form-select warehouse-form-select" required>
+                                    <option value="">-- Select Warehouse Staff --</option>
+                                    @foreach (var staff in (ViewBag.AvailableSubordinates as List<ERP_System.Models.User> ?? teamMembers))
                                     {
-                                        <option value="@m.UserId">
-                                            @m.FullName
-                                        </option>
+                                        <option value="@staff.Id">@staff.FullName (@staff.RoleName)</option>
                                     }
-
                                 </select>
-
                             </div>
+                        </div>
 
+                        <!-- General Task Info Banner (Hidden by default) -->
+                        <div class="col-md-6 d-none" id="generalTaskBanner">
+                            <div class="warehouse-form-group">
+                                <label class="warehouse-form-label">
+                                    <i class="fa-solid fa-bullhorn text-primary"></i>
+                                    Audience
+                                </label>
+                                <div class="alert alert-info py-2 px-3 mb-0 small border-0 d-flex align-items-center" style="min-height: 43px; border-radius: 11px;">
+                                    <span><i class="fa-solid fa-circle-info me-1"></i> Visible to all @((ViewBag.AvailableSubordinates as List<ERP_System.Models.User> ?? teamMembers).Count) warehouse team members.</span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- PRIORITY -->
                         <div class="col-md-6">
-
                             <div class="warehouse-form-group">
-
                                 <label class="warehouse-form-label">
                                     <i class="fa-solid fa-flag text-primary"></i>
                                     Priority
                                 </label>
-
-                                <select name="Priority"
-                                        class="form-select warehouse-form-select">
-
-                                    <option value="Low">
-                                        Low
-                                    </option>
-
-                                    <option value="Medium" selected>
-                                        Medium
-                                    </option>
-
-                                    <option value="High">
-                                        High
-                                    </option>
-
+                                <select name="priority" class="form-select warehouse-form-select">
+                                    <option value="Low">Low</option>
+                                    <option value="Medium" selected>Medium</option>
+                                    <option value="High">High</option>
+                                    <option value="Critical">Critical</option>
                                 </select>
-
                             </div>
-
                         </div>
 
                         <!-- DUE DATE -->
@@ -1687,7 +1747,7 @@
                                     <i class="fa-regular fa-calendar warehouse-input-icon"></i>
 
                                     <input type="date"
-                                           name="DueDate"
+                                           name="dueDate"
                                            class="form-control warehouse-form-control warehouse-input-with-icon"
                                            value="@DateTime.Today.AddDays(7).ToString("yyyy-MM-dd")" />
 
@@ -1724,3 +1784,57 @@
 
     </div>
 </div>
+
+<script>
+    function toggleAssignmentScope() {
+        const isGeneral = document.getElementById('scopeGeneral')?.checked;
+        const subContainer = document.getElementById('subordinateSelectContainer');
+        const genBanner = document.getElementById('generalTaskBanner');
+        const userSelect = document.getElementById('assignedToUserId');
+
+        if (isGeneral) {
+            subContainer?.classList.add('d-none');
+            genBanner?.classList.remove('d-none');
+            userSelect?.removeAttribute('required');
+            if (userSelect) userSelect.value = '';
+        } else {
+            subContainer?.classList.remove('d-none');
+            genBanner?.classList.add('d-none');
+            userSelect?.setAttribute('required', 'required');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const opTemplate = document.getElementById('opTemplateSelect');
+        const titleInput = document.getElementById('taskTitleInput');
+        const descInput = document.getElementById('taskDescInput');
+        const locInput = document.getElementById('rackLocationInput');
+
+        if (opTemplate && titleInput && descInput) {
+            opTemplate.addEventListener('change', function () {
+                const val = this.value;
+                if (val === 'Stock Audit / Cycle Count') {
+                    titleInput.value = 'Stock Audit & Cycle Count Verification';
+                    descInput.value = 'Perform barcode scan and physical count across target rack bins. Flag any variance immediately.';
+                    if (locInput && !locInput.value) locInput.value = 'WH-01 / Rack A-01 / Bin 01-10';
+                } else if (val === 'Bin Replenishment') {
+                    titleInput.value = 'Forward Picking Bin Replenishment';
+                    descInput.value = 'Transfer reserve pallet stock to forward picking bins to replenish stock levels for order fulfillment.';
+                    if (locInput && !locInput.value) locInput.value = 'WH-01 / Rack B-03 / Bin 04';
+                } else if (val === 'Inward Unloading (GRN)') {
+                    titleInput.value = 'Inward Shipment Unloading & GRN Inspection';
+                    descInput.value = 'Unload supplier consignment, inspect cartons for transit seal integrity, and affix GRN labels.';
+                    if (locInput && !locInput.value) locInput.value = 'Dock Receiving Bay 2';
+                } else if (val === 'Order Packing') {
+                    titleInput.value = 'Dispatch Order Picking & Packing';
+                    descInput.value = 'Pick outbound items per picking manifest, verify packing slips, and stage in dispatch holding zone.';
+                    if (locInput && !locInput.value) locInput.value = 'Packing Station 3';
+                } else if (val === 'Quarantine Inspection') {
+                    titleInput.value = 'Quarantine & Damaged Goods Inspection';
+                    descInput.value = 'Inspect quarantined return pallets, document defects, and record salvageable units in the inventory ledger.';
+                    if (locInput && !locInput.value) locInput.value = 'WH-01 / QA Holding Zone';
+                }
+            });
+        }
+    });
+</script>

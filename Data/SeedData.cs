@@ -723,6 +723,8 @@ namespace ERP_System.Data
                         TaskType NVARCHAR(100) NOT NULL DEFAULT 'MANAGER_TO_EMPLOYEE',
                         AssignedByUserId NVARCHAR(150) NULL,
                         AssignedToUserId NVARCHAR(150) NULL,
+                        IsGeneralTask BIT NOT NULL DEFAULT 0,
+                        TargetWarehouseLocation NVARCHAR(250) NULL,
                         Priority NVARCHAR(50) NOT NULL DEFAULT 'Medium',
                         Status NVARCHAR(50) NOT NULL DEFAULT 'Pending',
                         ProgressPercentage INT NOT NULL DEFAULT 0,
@@ -738,6 +740,10 @@ namespace ERP_System.Data
                         ALTER TABLE AITStudent.erp_HierarchicalTasks ADD TaskType NVARCHAR(100) NOT NULL DEFAULT 'MANAGER_TO_EMPLOYEE';
                     IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'ProgressPercentage')
                         ALTER TABLE AITStudent.erp_HierarchicalTasks ADD ProgressPercentage INT NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'IsGeneralTask')
+                        ALTER TABLE AITStudent.erp_HierarchicalTasks ADD IsGeneralTask BIT NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_HierarchicalTasks') AND name = 'TargetWarehouseLocation')
+                        ALTER TABLE AITStudent.erp_HierarchicalTasks ADD TargetWarehouseLocation NVARCHAR(250) NULL;
                 END";
             await context.Database.ExecuteSqlRawAsync(createSalesTablesSql);
 
@@ -911,6 +917,774 @@ namespace ERP_System.Data
                     new InvScrapWriteOff { ScrapNo = "SCR-3041", ItemName = "Broken Dell Keyboard", QtyScrapped = 5, Reason = "Liquid damage during handling", WriteOffDate = DateTime.Today.AddDays(-4) },
                     new InvScrapWriteOff { ScrapNo = "SCR-3042", ItemName = "Defective Logistics Box", QtyScrapped = 12, Reason = "Crushed during unloading", WriteOffDate = DateTime.Today.AddDays(-1) }
                 });
+            }
+
+            // Ensure Product & Catalog Master tables exist in AITStudent schema
+            string createCatalogTablesSql = @"
+                IF OBJECT_ID('AITStudent.erp_ProductCategories', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_ProductCategories (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        Name NVARCHAR(200) NOT NULL,
+                        HsnCode NVARCHAR(50) NULL,
+                        DefaultGstRate DECIMAL(18,2) NOT NULL DEFAULT 18.0,
+                        IsActive BIT NOT NULL DEFAULT 1
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_ProductSubCategories', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_ProductSubCategories (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        CategoryId INT NOT NULL,
+                        Name NVARCHAR(200) NOT NULL,
+                        Description NVARCHAR(500) NULL,
+                        IsActive BIT NOT NULL DEFAULT 1
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_UnitsOfMeasure', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_UnitsOfMeasure (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        Code NVARCHAR(20) NOT NULL,
+                        Description NVARCHAR(200) NOT NULL,
+                        IsBaseUnit BIT NOT NULL DEFAULT 1,
+                        AllowDecimals BIT NOT NULL DEFAULT 0,
+                        OfficialGstUomCode NVARCHAR(20) NULL,
+                        IsActive BIT NOT NULL DEFAULT 1
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_UomConversions', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_UomConversions (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        FromUomId INT NOT NULL,
+                        ToUomId INT NOT NULL,
+                        ConversionFactor DECIMAL(18,4) NOT NULL
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_CatalogItems', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_CatalogItems (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        SKU NVARCHAR(100) NOT NULL,
+                        Barcode NVARCHAR(100) NOT NULL,
+                        ItemName NVARCHAR(250) NOT NULL,
+                        CategoryId INT NOT NULL,
+                        SubCategoryId INT NULL,
+                        UomId INT NOT NULL,
+                        PurchasePrice DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        SellingPrice DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        CurrentStock INT NOT NULL DEFAULT 0,
+                        MinimumReorderLevel INT NOT NULL DEFAULT 10,
+                        BranchLocation NVARCHAR(150) NOT NULL DEFAULT 'Head Office',
+                        BinLocation NVARCHAR(100) NULL,
+                        UnitsSold INT NOT NULL DEFAULT 0,
+                        IsActive BIT NOT NULL DEFAULT 1,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END;
+            ";
+            await context.Database.ExecuteSqlRawAsync(createCatalogTablesSql);
+
+            // Seed Categories if empty
+            if (!await context.ProductCategories.AnyAsync())
+            {
+                var catElectronics = new ProductCategory { Name = "Electronics", HsnCode = "8471", DefaultGstRate = 18.0m, IsActive = true };
+                var catOffice = new ProductCategory { Name = "Office Supplies", HsnCode = "4820", DefaultGstRate = 12.0m, IsActive = true };
+                var catNetwork = new ProductCategory { Name = "Networking & Comms", HsnCode = "8517", DefaultGstRate = 18.0m, IsActive = true };
+                var catHardware = new ProductCategory { Name = "Hardware & Tools", HsnCode = "8205", DefaultGstRate = 18.0m, IsActive = true };
+
+                await context.ProductCategories.AddRangeAsync(catElectronics, catOffice, catNetwork, catHardware);
+                await context.SaveChangesAsync();
+
+                // Sub-Categories
+                var subLaptops = new ProductSubCategory { CategoryId = catElectronics.Id, Name = "Laptops & Workstations", Description = "Enterprise laptops, ultrabooks and desktops", IsActive = true };
+                var subAccessories = new ProductSubCategory { CategoryId = catElectronics.Id, Name = "Computer Accessories", Description = "Keyboards, mice, webcams and hubs", IsActive = true };
+                var subStorage = new ProductSubCategory { CategoryId = catElectronics.Id, Name = "Storage & Memory", Description = "SSDs, external hard drives, USB flash sticks", IsActive = true };
+                var subPaper = new ProductSubCategory { CategoryId = catOffice.Id, Name = "Paper & Notebooks", Description = "A4 copier paper reams, spiral pads", IsActive = true };
+                var subDesk = new ProductSubCategory { CategoryId = catOffice.Id, Name = "Desk Accessories", Description = "Organizers, trays, staplers, tape dispensers", IsActive = true };
+                var subCables = new ProductSubCategory { CategoryId = catNetwork.Id, Name = "Cables & Adapters", Description = "Ethernet Cat6, HDMI cables, patch cords", IsActive = true };
+
+                await context.ProductSubCategories.AddRangeAsync(subLaptops, subAccessories, subStorage, subPaper, subDesk, subCables);
+                await context.SaveChangesAsync();
+            }
+
+            // Seed UOMs if empty
+            if (!await context.UnitsOfMeasure.AnyAsync())
+            {
+                var uomPcs = new UnitOfMeasure { Code = "PCS", Description = "Pieces / Individual Units", IsBaseUnit = true, AllowDecimals = false, OfficialGstUomCode = "NOS", IsActive = true };
+                var uomKg = new UnitOfMeasure { Code = "KG", Description = "Kilograms (Weight)", IsBaseUnit = true, AllowDecimals = true, OfficialGstUomCode = "KGS", IsActive = true };
+                var uomBox = new UnitOfMeasure { Code = "BOX", Description = "Carton Box Packaging", IsBaseUnit = false, AllowDecimals = false, OfficialGstUomCode = "BOX", IsActive = true };
+                var uomLtr = new UnitOfMeasure { Code = "LTR", Description = "Litres (Liquid Volume)", IsBaseUnit = true, AllowDecimals = true, OfficialGstUomCode = "LTR", IsActive = true };
+                var uomSet = new UnitOfMeasure { Code = "SET", Description = "Complete Functional Set", IsBaseUnit = false, AllowDecimals = false, OfficialGstUomCode = "SET", IsActive = true };
+                var uomMtr = new UnitOfMeasure { Code = "MTR", Description = "Meters (Linear Length)", IsBaseUnit = true, AllowDecimals = true, OfficialGstUomCode = "MTR", IsActive = true };
+
+                await context.UnitsOfMeasure.AddRangeAsync(uomPcs, uomKg, uomBox, uomLtr, uomSet, uomMtr);
+                await context.SaveChangesAsync();
+
+                // Conversions
+                var convBoxPcs = new UomConversion { FromUomId = uomBox.Id, ToUomId = uomPcs.Id, ConversionFactor = 10.0m };
+                var convSetPcs = new UomConversion { FromUomId = uomSet.Id, ToUomId = uomPcs.Id, ConversionFactor = 5.0m };
+
+                await context.UomConversions.AddRangeAsync(convBoxPcs, convSetPcs);
+                await context.SaveChangesAsync();
+            }
+
+            // Seed Catalog Items if empty
+            if (!await context.CatalogItems.AnyAsync())
+            {
+                var catElec = await context.ProductCategories.FirstOrDefaultAsync(c => c.Name == "Electronics");
+                var catOff = await context.ProductCategories.FirstOrDefaultAsync(c => c.Name == "Office Supplies");
+                var catNet = await context.ProductCategories.FirstOrDefaultAsync(c => c.Name == "Networking & Comms");
+                var uomPcs = await context.UnitsOfMeasure.FirstOrDefaultAsync(u => u.Code == "PCS");
+                var uomBox = await context.UnitsOfMeasure.FirstOrDefaultAsync(u => u.Code == "BOX");
+
+                var subLap = await context.ProductSubCategories.FirstOrDefaultAsync(s => s.Name.Contains("Laptop"));
+                var subAcc = await context.ProductSubCategories.FirstOrDefaultAsync(s => s.Name.Contains("Accessories"));
+                var subPap = await context.ProductSubCategories.FirstOrDefaultAsync(s => s.Name.Contains("Paper"));
+                var subCab = await context.ProductSubCategories.FirstOrDefaultAsync(s => s.Name.Contains("Cables"));
+
+                if (catElec != null && uomPcs != null)
+                {
+                    var items = new List<CatalogItem>
+                    {
+                        new CatalogItem
+                        {
+                            SKU = "SKU-EL-0921",
+                            Barcode = "890123456789",
+                            ItemName = "Dell Latitude 5430 Core i7 Laptop",
+                            CategoryId = catElec.Id,
+                            SubCategoryId = subLap?.Id,
+                            UomId = uomPcs.Id,
+                            PurchasePrice = 58000.00m,
+                            SellingPrice = 72500.00m,
+                            CurrentStock = 6,
+                            MinimumReorderLevel = 15,
+                            BranchLocation = "Head Office",
+                            BinLocation = "Rack A-01",
+                            UnitsSold = 42,
+                            IsActive = true
+                        },
+                        new CatalogItem
+                        {
+                            SKU = "SKU-EL-0102",
+                            Barcode = "890123456790",
+                            ItemName = "Logitech MX Master 3S Wireless Mouse",
+                            CategoryId = catElec.Id,
+                            SubCategoryId = subAcc?.Id,
+                            UomId = uomPcs.Id,
+                            PurchasePrice = 6200.00m,
+                            SellingPrice = 8499.00m,
+                            CurrentStock = 125,
+                            MinimumReorderLevel = 25,
+                            BranchLocation = "Head Office",
+                            BinLocation = "Rack B-03",
+                            UnitsSold = 88,
+                            IsActive = true
+                        },
+                        new CatalogItem
+                        {
+                            SKU = "SKU-EL-0145",
+                            Barcode = "890123456791",
+                            ItemName = "Mechanical Tactile Keyboard RGB",
+                            CategoryId = catElec.Id,
+                            SubCategoryId = subAcc?.Id,
+                            UomId = uomPcs.Id,
+                            PurchasePrice = 2400.00m,
+                            SellingPrice = 3890.00m,
+                            CurrentStock = 18,
+                            MinimumReorderLevel = 20,
+                            BranchLocation = "Head Office",
+                            BinLocation = "Rack B-04",
+                            UnitsSold = 55,
+                            IsActive = true
+                        },
+                        new CatalogItem
+                        {
+                            SKU = "SKU-NW-0088",
+                            Barcode = "890123456792",
+                            ItemName = "Cat6 Shielded Patch Cable 10-Meter",
+                            CategoryId = catNet?.Id ?? catElec.Id,
+                            SubCategoryId = subCab?.Id,
+                            UomId = uomPcs.Id,
+                            PurchasePrice = 320.00m,
+                            SellingPrice = 550.00m,
+                            CurrentStock = 240,
+                            MinimumReorderLevel = 40,
+                            BranchLocation = "Regional Hub",
+                            BinLocation = "Bay 2-B",
+                            UnitsSold = 110,
+                            IsActive = true
+                        },
+                        new CatalogItem
+                        {
+                            SKU = "SKU-OS-0012",
+                            Barcode = "890123456793",
+                            ItemName = "A4 Premium Copier Paper 80GSM (Box of 5)",
+                            CategoryId = catOff?.Id ?? catElec.Id,
+                            SubCategoryId = subPap?.Id,
+                            UomId = uomBox?.Id ?? uomPcs.Id,
+                            PurchasePrice = 1150.00m,
+                            SellingPrice = 1600.00m,
+                            CurrentStock = 4,
+                            MinimumReorderLevel = 12,
+                            BranchLocation = "Head Office",
+                            BinLocation = "Storage Staging A",
+                            UnitsSold = 96,
+                            IsActive = true
+                        },
+                        new CatalogItem
+                        {
+                            SKU = "SKU-EL-0390",
+                            Barcode = "890123456794",
+                            ItemName = "USB-C Multiport Docking Station 4K",
+                            CategoryId = catElec.Id,
+                            SubCategoryId = subAcc?.Id,
+                            UomId = uomPcs.Id,
+                            PurchasePrice = 3400.00m,
+                            SellingPrice = 4999.00m,
+                            CurrentStock = 0,
+                            MinimumReorderLevel = 10,
+                            BranchLocation = "Transit Logistics Hub",
+                            BinLocation = "Dock 4",
+                            UnitsSold = 34,
+                            IsActive = true
+                        }
+                    };
+
+                    await context.CatalogItems.AddRangeAsync(items);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Ensure Warehouse Operations tables exist in AITStudent schema
+            string createWarehouseTablesSql = @"
+                IF OBJECT_ID('AITStudent.erp_WarehouseLocations', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_WarehouseLocations (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        WarehouseCode NVARCHAR(50) NOT NULL,
+                        WarehouseName NVARCHAR(150) NOT NULL,
+                        WarehouseType NVARCHAR(50) NOT NULL DEFAULT 'Finished Goods',
+                        LocationAddress NVARCHAR(300) NOT NULL,
+                        SupervisorUserId NVARCHAR(50) NULL,
+                        SupervisorId INT NULL,
+                        MaxCapacityUnits INT NOT NULL DEFAULT 5000,
+                        IsActive BIT NOT NULL DEFAULT 1
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_BinRackMasters', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_BinRackMasters (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        WarehouseId INT NOT NULL,
+                        RackCode NVARCHAR(50) NOT NULL,
+                        BinLevel NVARCHAR(50) NOT NULL,
+                        AssignedCatalogItemId INT NULL,
+                        MaxCapacityVolume INT NOT NULL DEFAULT 500,
+                        CurrentOccupancyVolume INT NOT NULL DEFAULT 0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Available'
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_GoodsReceiptNotes', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_GoodsReceiptNotes (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        GrnNumber NVARCHAR(50) NOT NULL,
+                        PurchaseOrderNumber NVARCHAR(50) NULL,
+                        SupplierName NVARCHAR(150) NOT NULL,
+                        ReceivedDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        ReceivedByUserId NVARCHAR(50) NULL,
+                        ReceivedById INT NULL,
+                        DestinationWarehouseId INT NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending verification',
+                        Remarks NVARCHAR(1000) NULL
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_GrnLineItems', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_GrnLineItems (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        GrnId INT NOT NULL,
+                        CatalogItemId INT NOT NULL,
+                        OrderedQuantity INT NOT NULL DEFAULT 0,
+                        ReceivedQuantity INT NOT NULL DEFAULT 0,
+                        RejectedQuantity INT NOT NULL DEFAULT 0,
+                        TargetBinId INT NULL,
+                        BatchNumber NVARCHAR(100) NULL
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_MaterialDispatches', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_MaterialDispatches (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        DispatchSlipNo NVARCHAR(50) NOT NULL,
+                        SalesOrderNumber NVARCHAR(50) NULL,
+                        DestinationParty NVARCHAR(150) NOT NULL,
+                        CarrierName NVARCHAR(100) NOT NULL,
+                        TrackingNumber NVARCHAR(100) NOT NULL,
+                        EWayBillNumber NVARCHAR(100) NULL,
+                        DispatchDate DATETIME NOT NULL DEFAULT GETDATE(),
+                        SourceWarehouseId INT NOT NULL,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Packing'
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_DispatchLineItems', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_DispatchLineItems (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        DispatchId INT NOT NULL,
+                        CatalogItemId INT NOT NULL,
+                        Quantity INT NOT NULL DEFAULT 1,
+                        PickedFromBinId INT NULL
+                    );
+                END;
+
+                IF OBJECT_ID('AITStudent.erp_StockMovementLogs', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_StockMovementLogs (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        InventoryItemId INT NOT NULL,
+                        MovementType NVARCHAR(50) NOT NULL,
+                        Quantity INT NOT NULL,
+                        ReferenceDocument NVARCHAR(100) NOT NULL,
+                        HandledByUserId NVARCHAR(100) NULL,
+                        Timestamp DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END;
+            ";
+            await context.Database.ExecuteSqlRawAsync(createWarehouseTablesSql);
+
+            // Seed Warehouse Locations if empty
+            if (!await context.WarehouseLocations.AnyAsync())
+            {
+                var adminUser = await context.Users.FirstOrDefaultAsync();
+                var whMain = new WarehouseLocation
+                {
+                    WarehouseCode = "WH-001",
+                    WarehouseName = "Main Central Warehouse",
+                    WarehouseType = "Finished Goods",
+                    LocationAddress = "Plot 24, Industrial Area, Sector 5, Mumbai",
+                    SupervisorId = adminUser?.UserId,
+                    SupervisorUserId = adminUser?.UserName ?? "admin",
+                    MaxCapacityUnits = 10000,
+                    IsActive = true
+                };
+
+                var whTransit = new WarehouseLocation
+                {
+                    WarehouseCode = "WH-002",
+                    WarehouseName = "Transit Logistics Hub",
+                    WarehouseType = "Transit Hub",
+                    LocationAddress = "Cargo Freight Terminal A, Airport Road, Delhi",
+                    SupervisorId = adminUser?.UserId,
+                    SupervisorUserId = adminUser?.UserName ?? "admin",
+                    MaxCapacityUnits = 6000,
+                    IsActive = true
+                };
+
+                var whCold = new WarehouseLocation
+                {
+                    WarehouseCode = "WH-003",
+                    WarehouseName = "Cold Storage Annex",
+                    WarehouseType = "Cold Storage",
+                    LocationAddress = "Industrial Park Zone 2, Bengaluru",
+                    SupervisorId = adminUser?.UserId,
+                    SupervisorUserId = adminUser?.UserName ?? "admin",
+                    MaxCapacityUnits = 4500,
+                    IsActive = true
+                };
+
+                await context.WarehouseLocations.AddRangeAsync(whMain, whTransit, whCold);
+                await context.SaveChangesAsync();
+            }
+
+            // Seed Bins & Racks if empty
+            if (!await context.BinRackMasters.AnyAsync())
+            {
+                var whMain = await context.WarehouseLocations.FirstOrDefaultAsync(w => w.WarehouseCode == "WH-001");
+                var whTransit = await context.WarehouseLocations.FirstOrDefaultAsync(w => w.WarehouseCode == "WH-002");
+                var catItem1 = await context.CatalogItems.FirstOrDefaultAsync();
+                var catItem2 = await context.CatalogItems.Skip(1).FirstOrDefaultAsync();
+
+                if (whMain != null)
+                {
+                    var bins = new List<BinRackMaster>
+                    {
+                        new BinRackMaster
+                        {
+                            WarehouseId = whMain.Id,
+                            RackCode = "RACK-A1",
+                            BinLevel = "BIN-ROW-1",
+                            AssignedCatalogItemId = catItem1?.Id,
+                            MaxCapacityVolume = 500,
+                            CurrentOccupancyVolume = 240,
+                            Status = "Available"
+                        },
+                        new BinRackMaster
+                        {
+                            WarehouseId = whMain.Id,
+                            RackCode = "RACK-A1",
+                            BinLevel = "BIN-ROW-2",
+                            AssignedCatalogItemId = catItem2?.Id,
+                            MaxCapacityVolume = 500,
+                            CurrentOccupancyVolume = 480,
+                            Status = "Full"
+                        },
+                        new BinRackMaster
+                        {
+                            WarehouseId = whMain.Id,
+                            RackCode = "RACK-B2",
+                            BinLevel = "BIN-ROW-3",
+                            AssignedCatalogItemId = null,
+                            MaxCapacityVolume = 400,
+                            CurrentOccupancyVolume = 0,
+                            Status = "Available"
+                        }
+                    };
+
+                    if (whTransit != null)
+                    {
+                        bins.Add(new BinRackMaster
+                        {
+                            WarehouseId = whTransit.Id,
+                            RackCode = "RACK-C1",
+                            BinLevel = "BIN-ROW-1",
+                            AssignedCatalogItemId = null,
+                            MaxCapacityVolume = 600,
+                            CurrentOccupancyVolume = 150,
+                            Status = "Available"
+                        });
+                    }
+
+                    await context.BinRackMasters.AddRangeAsync(bins);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Seed Sample GRN if empty
+            if (!await context.GoodsReceiptNotes.AnyAsync())
+            {
+                var whMain = await context.WarehouseLocations.FirstOrDefaultAsync(w => w.WarehouseCode == "WH-001");
+                var item1 = await context.CatalogItems.FirstOrDefaultAsync();
+                var item2 = await context.CatalogItems.Skip(1).FirstOrDefaultAsync();
+                var bin1 = await context.BinRackMasters.FirstOrDefaultAsync(b => b.RackCode == "RACK-A1");
+                var adminUser = await context.Users.FirstOrDefaultAsync();
+
+                if (whMain != null && item1 != null)
+                {
+                    var grn1 = new GoodsReceiptNote
+                    {
+                        GrnNumber = "GRN-2026-0001",
+                        PurchaseOrderNumber = "PO-2026-0891",
+                        SupplierName = "Apex Global Components",
+                        ReceivedDate = DateTime.UtcNow.AddDays(-3),
+                        DestinationWarehouseId = whMain.Id,
+                        ReceivedById = adminUser?.UserId,
+                        ReceivedByUserId = adminUser?.UserName ?? "Admin",
+                        Status = "Completed",
+                        Remarks = "All units verified against purchase order specifications."
+                    };
+                    grn1.LineItems.Add(new GrnLineItem
+                    {
+                        CatalogItemId = item1.Id,
+                        OrderedQuantity = 100,
+                        ReceivedQuantity = 100,
+                        RejectedQuantity = 0,
+                        TargetBinId = bin1?.Id,
+                        BatchNumber = "BATCH-2026-A1"
+                    });
+
+                    var grn2 = new GoodsReceiptNote
+                    {
+                        GrnNumber = "GRN-2026-0002",
+                        PurchaseOrderNumber = "PO-2026-0904",
+                        SupplierName = "Techtronics Supplies Corp",
+                        ReceivedDate = DateTime.UtcNow.AddDays(-1),
+                        DestinationWarehouseId = whMain.Id,
+                        ReceivedById = adminUser?.UserId,
+                        ReceivedByUserId = adminUser?.UserName ?? "Admin",
+                        Status = "Pending verification",
+                        Remarks = "Under quality and quantity verification."
+                    };
+                    if (item2 != null)
+                    {
+                        grn2.LineItems.Add(new GrnLineItem
+                        {
+                            CatalogItemId = item2.Id,
+                            OrderedQuantity = 50,
+                            ReceivedQuantity = 50,
+                            RejectedQuantity = 0,
+                            TargetBinId = bin1?.Id,
+                            BatchNumber = "BATCH-2026-B2"
+                        });
+                    }
+
+                    await context.GoodsReceiptNotes.AddRangeAsync(grn1, grn2);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Seed Sample Material Dispatch if empty
+            if (!await context.MaterialDispatches.AnyAsync())
+            {
+                var whMain = await context.WarehouseLocations.FirstOrDefaultAsync(w => w.WarehouseCode == "WH-001");
+                var item1 = await context.CatalogItems.FirstOrDefaultAsync();
+                var item2 = await context.CatalogItems.Skip(1).FirstOrDefaultAsync();
+                var bin1 = await context.BinRackMasters.FirstOrDefaultAsync();
+
+                if (whMain != null && item1 != null)
+                {
+                    var dsp1 = new MaterialDispatch
+                    {
+                        DispatchSlipNo = "DSP-2026-9043",
+                        SalesOrderNumber = "SO-2026-104",
+                        DestinationParty = "Apex Enterprise Systems",
+                        CarrierName = "BlueDart Logistics",
+                        TrackingNumber = "BD-884920194",
+                        EWayBillNumber = "EWB-9920104812",
+                        DispatchDate = DateTime.UtcNow.AddDays(-2),
+                        SourceWarehouseId = whMain.Id,
+                        Status = "Dispatched"
+                    };
+                    dsp1.LineItems.Add(new DispatchLineItem
+                    {
+                        CatalogItemId = item1.Id,
+                        Quantity = 10,
+                        PickedFromBinId = bin1?.Id
+                    });
+
+                    var dsp2 = new MaterialDispatch
+                    {
+                        DispatchSlipNo = "DSP-2026-9044",
+                        SalesOrderNumber = "SO-2026-108",
+                        DestinationParty = "Zenith Tech Solutions",
+                        CarrierName = "FedEx Express",
+                        TrackingNumber = "FX-772910482",
+                        EWayBillNumber = "EWB-3391820491",
+                        DispatchDate = DateTime.UtcNow,
+                        SourceWarehouseId = whMain.Id,
+                        Status = "Packing"
+                    };
+                    if (item2 != null)
+                    {
+                        dsp2.LineItems.Add(new DispatchLineItem
+                        {
+                            CatalogItemId = item2.Id,
+                            Quantity = 5,
+                            PickedFromBinId = bin1?.Id
+                        });
+                    }
+
+                    await context.MaterialDispatches.AddRangeAsync(dsp1, dsp2);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Seed Sample StockMovementLog if empty
+            if (!await context.StockMovementLogs.AnyAsync())
+            {
+                var item1 = await context.CatalogItems.FirstOrDefaultAsync();
+                if (item1 != null)
+                {
+                    var logs = new List<StockMovementLog>
+                    {
+                        new StockMovementLog
+                        {
+                            InventoryItemId = item1.Id,
+                            MovementType = "INWARD",
+                            Quantity = 100,
+                            ReferenceDocument = "GRN-2026-0001",
+                            HandledByUserId = "Admin",
+                            Timestamp = DateTime.UtcNow.AddDays(-3)
+                        },
+                        new StockMovementLog
+                        {
+                            InventoryItemId = item1.Id,
+                            MovementType = "OUTWARD",
+                            Quantity = 10,
+                            ReferenceDocument = "DSP-2026-9043",
+                            HandledByUserId = "Admin",
+                            Timestamp = DateTime.UtcNow.AddDays(-2)
+                        }
+                    };
+                    await context.StockMovementLogs.AddRangeAsync(logs);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Seed Warehouse Personnel Subordinates if missing
+            var whAssocRole = await context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Warehouse Associate");
+            if (whAssocRole == null)
+            {
+                whAssocRole = new Role { RoleName = "Warehouse Associate", Description = "Warehouse floor operations and cycle audits", IsActive = true };
+                await context.Roles.AddAsync(whAssocRole);
+                await context.SaveChangesAsync();
+            }
+
+            var storekeeperRole = await context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Storekeeper");
+            if (storekeeperRole == null)
+            {
+                storekeeperRole = new Role { RoleName = "Storekeeper", Description = "Store inventory and material dispatch clerk", IsActive = true };
+                await context.Roles.AddAsync(storekeeperRole);
+                await context.SaveChangesAsync();
+            }
+
+            var logisticsRole = await context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Logistics Crew");
+            if (logisticsRole == null)
+            {
+                logisticsRole = new Role { RoleName = "Logistics Crew", Description = "Inward GRN receipt and freight logistics", IsActive = true };
+                await context.Roles.AddAsync(logisticsRole);
+                await context.SaveChangesAsync();
+            }
+
+            var invManagerUser = await context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Inventory Manager") 
+                ?? await context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Manager") 
+                ?? await context.Users.FirstOrDefaultAsync();
+
+            var defaultShift = await context.WorkShifts.FirstOrDefaultAsync();
+
+            if (!await context.Users.AnyAsync(u => u.Email == "rajesh.kumar@erp.com"))
+            {
+                var staffUsers = new List<User>
+                {
+                    new User
+                    {
+                        UserCode = "WH-EMP01",
+                        UserName = "rajesh.kumar",
+                        FullName = "Rajesh Kumar",
+                        Email = "rajesh.kumar@erp.com",
+                        PasswordHash = "AQAAAAIAAYagAAAAEOkJcAU1YEZ50GcXjw9Sn+CYrXr+BWC75/EPUpfVliWCv4Alu/+3memoVLfE2G515w==",
+                        RoleId = whAssocRole.RoleId,
+                        DepartmentId = invManagerUser?.DepartmentId ?? 5,
+                        DepartmentName = "Operations & Logistics",
+                        ReportingManagerId = invManagerUser != null ? invManagerUser.UserId.ToString() : "1",
+                        ReportingManagerName = invManagerUser?.FullName ?? "Admin User",
+                        BranchId = 3,
+                        ShiftId = defaultShift?.Id,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddMonths(-6)
+                    },
+                    new User
+                    {
+                        UserCode = "WH-EMP02",
+                        UserName = "vikram.singh",
+                        FullName = "Vikram Singh",
+                        Email = "vikram.singh@erp.com",
+                        PasswordHash = "AQAAAAIAAYagAAAAEOkJcAU1YEZ50GcXjw9Sn+CYrXr+BWC75/EPUpfVliWCv4Alu/+3memoVLfE2G515w==",
+                        RoleId = storekeeperRole.RoleId,
+                        DepartmentId = invManagerUser?.DepartmentId ?? 5,
+                        DepartmentName = "Operations & Logistics",
+                        ReportingManagerId = invManagerUser != null ? invManagerUser.UserId.ToString() : "1",
+                        ReportingManagerName = invManagerUser?.FullName ?? "Admin User",
+                        BranchId = 3,
+                        ShiftId = defaultShift?.Id,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddMonths(-4)
+                    },
+                    new User
+                    {
+                        UserCode = "WH-EMP03",
+                        UserName = "amit.patel",
+                        FullName = "Amit Patel",
+                        Email = "amit.patel@erp.com",
+                        PasswordHash = "AQAAAAIAAYagAAAAEOkJcAU1YEZ50GcXjw9Sn+CYrXr+BWC75/EPUpfVliWCv4Alu/+3memoVLfE2G515w==",
+                        RoleId = logisticsRole.RoleId,
+                        DepartmentId = invManagerUser?.DepartmentId ?? 5,
+                        DepartmentName = "Operations & Logistics",
+                        ReportingManagerId = invManagerUser != null ? invManagerUser.UserId.ToString() : "1",
+                        ReportingManagerName = invManagerUser?.FullName ?? "Admin User",
+                        BranchId = 3,
+                        ShiftId = defaultShift?.Id,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddMonths(-2)
+                    }
+                };
+
+                await context.Users.AddRangeAsync(staffUsers);
+                await context.SaveChangesAsync();
+
+                // Seed sample today attendance for these subordinates
+                var today = DateTime.Today;
+                var sampleAttendance = new List<HRAttendanceLog>
+                {
+                    new HRAttendanceLog
+                    {
+                        UserId = staffUsers[0].UserId,
+                        EmployeeCode = staffUsers[0].UserCode,
+                        EmployeeName = staffUsers[0].FullName,
+                        Date = today,
+                        CheckInTime = today.AddHours(8).AddMinutes(54),
+                        CheckOutTime = today.AddHours(17).AddMinutes(48),
+                        WorkHours = "8h 54m",
+                        PunchSource = "Biometric WH-Gate",
+                        Status = "Present (On Time)",
+                        Remarks = "Shift completed normally"
+                    },
+                    new HRAttendanceLog
+                    {
+                        UserId = staffUsers[1].UserId,
+                        EmployeeCode = staffUsers[1].UserCode,
+                        EmployeeName = staffUsers[1].FullName,
+                        Date = today,
+                        CheckInTime = today.AddHours(9).AddMinutes(24),
+                        CheckOutTime = null,
+                        WorkHours = "Ongoing",
+                        PunchSource = "Biometric WH-Gate",
+                        Status = "Late Check-in",
+                        Remarks = "Transit logistics delay"
+                    },
+                    new HRAttendanceLog
+                    {
+                        UserId = staffUsers[2].UserId,
+                        EmployeeCode = staffUsers[2].UserCode,
+                        EmployeeName = staffUsers[2].FullName,
+                        Date = today,
+                        CheckInTime = today.AddHours(8).AddMinutes(58),
+                        CheckOutTime = null,
+                        WorkHours = "Ongoing",
+                        PunchSource = "Mobile Geo-Fence",
+                        Status = "Present (On Time)",
+                        Remarks = "Field dispatch duty"
+                    }
+                };
+                await context.HRAttendanceLogs.AddRangeAsync(sampleAttendance);
+
+                // Seed sample pending leave and claim for approval testing
+                var sampleLeave = new ESSLeaveApplication
+                {
+                    UserId = staffUsers[0].UserId,
+                    EmployeeName = staffUsers[0].FullName,
+                    LeaveType = "Casual Leave",
+                    StartDate = today.AddDays(2),
+                    EndDate = today.AddDays(3),
+                    TotalDays = 2,
+                    Reason = "Family function in hometown",
+                    Status = "Pending",
+                    CreatedAt = DateTime.UtcNow.AddHours(-3)
+                };
+                var sampleClaim = new ESSExpenseClaim
+                {
+                    UserId = staffUsers[1].UserId,
+                    EmployeeName = staffUsers[1].FullName,
+                    ExpenseType = "Logistics Transit",
+                    ClaimDate = today.AddDays(-1),
+                    Amount = 1850.00m,
+                    Status = "Pending",
+                    CreatedAt = DateTime.UtcNow.AddHours(-5)
+                };
+                await context.ESSLeaveApplications.AddAsync(sampleLeave);
+                await context.ESSExpenseClaims.AddAsync(sampleClaim);
+                await context.SaveChangesAsync();
             }
 
             await context.SaveChangesAsync();
@@ -3287,6 +4061,75 @@ namespace ERP_System.Data
                         }
                     };
                     await context.SystemAuditTrails.AddRangeAsync(sampleLogs);
+                    await context.SaveChangesAsync();
+                }
+
+                if (!await context.SystemMutationLogs.AnyAsync())
+                {
+                    var sampleMutations = new List<SystemMutationLog>
+                    {
+                        new SystemMutationLog
+                        {
+                            EntityName = "GeneralLedger",
+                            RecordId = "JV-2026-014",
+                            ActionType = "UPDATE",
+                            ChangesSummary = "Adjustment entry amount modified from ₹50,000.00 to ₹75,000.00",
+                            OldValuesJson = "{\n  \"VoucherNumber\": \"JV-2026-014\",\n  \"VoucherType\": \"Journal\",\n  \"DebitAccount\": \"Vendor: CloudTech Systems\",\n  \"CreditAccount\": \"HDFC Bank A/c\",\n  \"Amount\": 50000.00,\n  \"Status\": \"Draft\"\n}",
+                            NewValuesJson = "{\n  \"VoucherNumber\": \"JV-2026-014\",\n  \"VoucherType\": \"Journal\",\n  \"DebitAccount\": \"Vendor: CloudTech Systems\",\n  \"CreditAccount\": \"HDFC Bank A/c\",\n  \"Amount\": 75000.00,\n  \"Status\": \"Posted\"\n}",
+                            PerformedByUserId = "1",
+                            IpAddress = "192.168.1.105",
+                            Timestamp = DateTime.UtcNow.AddHours(-2)
+                        },
+                        new SystemMutationLog
+                        {
+                            EntityName = "PurchaseOrder",
+                            RecordId = "PO-9021",
+                            ActionType = "FORCE_OVERRIDE",
+                            ChangesSummary = "Approval cap overridden past ceiling limit: ₹1,85,000 to ₹2,10,000",
+                            OldValuesJson = "{\n  \"OrderNumber\": \"PO-9021\",\n  \"Supplier\": \"Apex Global Logistics\",\n  \"TotalAmount\": 185000.00,\n  \"ApprovalStatus\": \"Pending\"\n}",
+                            NewValuesJson = "{\n  \"OrderNumber\": \"PO-9021\",\n  \"Supplier\": \"Apex Global Logistics\",\n  \"TotalAmount\": 210000.00,\n  \"ApprovalStatus\": \"Approved (Override)\"\n}",
+                            PerformedByUserId = "1",
+                            IpAddress = "192.168.1.112",
+                            Timestamp = DateTime.UtcNow.AddHours(-4)
+                        },
+                        new SystemMutationLog
+                        {
+                            EntityName = "Employee",
+                            RecordId = "EMP-004",
+                            ActionType = "UPDATE",
+                            ChangesSummary = "Designation updated from 'Inventory Clerk' to 'Senior Inventory Analyst'",
+                            OldValuesJson = "{\n  \"EmployeeId\": 4,\n  \"FullName\": \"Pooja Patel\",\n  \"Designation\": \"Inventory Clerk\",\n  \"Salary\": 35000.00\n}",
+                            NewValuesJson = "{\n  \"EmployeeId\": 4,\n  \"FullName\": \"Pooja Patel\",\n  \"Designation\": \"Senior Inventory Analyst\",\n  \"Salary\": 45000.00\n}",
+                            PerformedByUserId = "1",
+                            IpAddress = "192.168.1.140",
+                            Timestamp = DateTime.UtcNow.AddHours(-7)
+                        },
+                        new SystemMutationLog
+                        {
+                            EntityName = "SalesInvoice",
+                            RecordId = "INV-2026-081",
+                            ActionType = "UPDATE",
+                            ChangesSummary = "Payment terms and due date extended from 15 days to 45 days",
+                            OldValuesJson = "{\n  \"InvoiceNumber\": \"INV-2026-081\",\n  \"Customer\": \"Zenith Technologies\",\n  \"PaymentTerms\": \"Net 15\",\n  \"DueDate\": \"2026-06-15\"\n}",
+                            NewValuesJson = "{\n  \"InvoiceNumber\": \"INV-2026-081\",\n  \"Customer\": \"Zenith Technologies\",\n  \"PaymentTerms\": \"Net 45\",\n  \"DueDate\": \"2026-07-15\"\n}",
+                            PerformedByUserId = "1",
+                            IpAddress = "192.168.1.102",
+                            Timestamp = DateTime.UtcNow.AddDays(-1)
+                        },
+                        new SystemMutationLog
+                        {
+                            EntityName = "VendorMaster",
+                            RecordId = "VND-9082",
+                            ActionType = "APPROVAL",
+                            ChangesSummary = "Vendor credit limit raised from ₹5,00,000.00 to ₹10,00,000.00",
+                            OldValuesJson = "{\n  \"VendorCode\": \"VND-9082\",\n  \"Name\": \"Reliable Logistics Pvt Ltd\",\n  \"CreditLimit\": 500000.00,\n  \"Status\": \"Standard\"\n}",
+                            NewValuesJson = "{\n  \"VendorCode\": \"VND-9082\",\n  \"Name\": \"Reliable Logistics Pvt Ltd\",\n  \"CreditLimit\": 1000000.00,\n  \"Status\": \"Preferred\"\n}",
+                            PerformedByUserId = "1",
+                            IpAddress = "192.168.1.119",
+                            Timestamp = DateTime.UtcNow.AddDays(-2)
+                        }
+                    };
+                    await context.SystemMutationLogs.AddRangeAsync(sampleMutations);
                     await context.SaveChangesAsync();
                 }
             }

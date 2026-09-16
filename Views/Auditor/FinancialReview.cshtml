@@ -6,10 +6,10 @@
 
     var inCulture = new System.Globalization.CultureInfo("en-IN");
 
-    var totalVouchers = Model?.Count ?? 0;
-    var pendingVouchers = Model?.Count(x => x.Status == "Pending Review") ?? 0;
-    var clearedVouchers = Model?.Count(x => x.Status == "Cleared") ?? 0;
-    var escalatedVouchers = Model?.Count(x => x.Status == "Escalated") ?? 0;
+    var totalVouchers = (int)(ViewBag.TotalVouchers ?? (Model?.Count ?? 0));
+    var pendingVouchers = (int)(ViewBag.PendingCount ?? (Model?.Count(x => x.Status == "Pending Review" || x.Status == "Pending") ?? 0));
+    var clearedVouchers = (int)(ViewBag.ClearedCount ?? (Model?.Count(x => x.Status == "Cleared") ?? 0));
+    var escalatedVouchers = (int)(ViewBag.EscalatedCount ?? (Model?.Count(x => x.Status == "Escalated") ?? 0));
 }
 
 <style>
@@ -942,188 +942,138 @@
                                         </td>
 
 
-                                        <!-- Description -->
+                                        <!-- Description & 3-Way Match Link -->
                                         <td>
-
-                                            <div class="voucher-description">
+                                            <div class="voucher-description mb-1">
                                                 @item.Description
                                             </div>
-
+                                            <div>
+                                                <a href="javascript:void(0)" class="btn btn-sm btn-link p-0 text-decoration-none fw-semibold text-primary" style="font-size: 0.78rem;"
+                                                   onclick="inspectThreeWayMatch('@item.Id', '@item.ReferenceNumber', '@item.VendorName', '@item.PoNumber', @item.PoExpectedAmount, '@item.GrnNumber', @item.GrnReceivedAmount, @item.VendorClaimedAmount, @item.DiscrepancyAmount, '@item.Status')">
+                                                    <i class="fa-solid fa-scale-balanced me-1"></i> Inspect 3-Way Match
+                                                </a>
+                                            </div>
+                                            @if (item.Status != "Pending Review" && !string.IsNullOrEmpty(item.ResolutionNotes))
+                                            {
+                                                <div class="text-muted small mt-1" style="font-size: 0.72rem;">
+                                                    <i class="fa-solid fa-comment-dots me-1"></i> @item.ResolutionNotes
+                                                    @if (item.ResolvedAt.HasValue)
+                                                    {
+                                                        <span class="text-secondary ms-1">(@item.ResolvedAt.Value.ToString("dd MMM, HH:mm"))</span>
+                                                    }
+                                                </div>
+                                            }
                                         </td>
-
 
                                         <!-- Discrepancy Amount -->
                                         <td>
-
                                             <span class="voucher-amount">
                                                 ₹@item.DiscrepancyAmount.ToString("N2", inCulture)
                                             </span>
-
                                         </td>
-
 
                                         <!-- Risk Level -->
                                         <td>
-
                                             @if (item.Severity == "High")
                                             {
-
-                                                <span class="voucher-risk high">
-                                                    High Risk
-                                                </span>
-
+                                                <span class="voucher-risk high">High Risk</span>
                                             }
                                             else if (item.Severity == "Medium")
                                             {
-
-                                                <span class="voucher-risk medium">
-                                                    Medium Risk
-                                                </span>
-
+                                                <span class="voucher-risk medium">Medium Risk</span>
                                             }
                                             else
                                             {
-
-                                                <span class="voucher-risk low">
-                                                    Low Risk
-                                                </span>
-
+                                                <span class="voucher-risk low">Low Risk</span>
                                             }
-
                                         </td>
-
 
                                         <!-- Status -->
                                         <td>
-
                                             @if (item.Status == "Cleared")
                                             {
-
-                                                <span class="voucher-status cleared">
-                                                    Cleared
-                                                </span>
-
+                                                <span class="voucher-status cleared">Cleared</span>
                                             }
                                             else if (item.Status == "Escalated")
                                             {
-
-                                                <span class="voucher-status escalated">
-                                                    Escalated
-                                                </span>
-
+                                                <span class="voucher-status escalated">Escalated</span>
                                             }
                                             else
                                             {
-
-                                                <span class="voucher-status pending">
-                                                    Pending Review
-                                                </span>
-
+                                                <span class="voucher-status pending">Pending Review</span>
                                             }
-
                                         </td>
-
 
                                         <!-- Logged On -->
                                         <td>
-
                                             <span class="voucher-date">
                                                 @item.FlaggedOn.ToString("dd MMM yyyy, HH:mm")
                                             </span>
-
                                         </td>
 
-
                                         <!-- Verification Actions -->
-                                        <td class="text-end">
-
+                                        <td class="text-end text-nowrap">
                                             @if (item.Status == "Pending Review")
                                             {
-
                                                 <button type="button"
                                                         class="btn voucher-action-btn voucher-pass-btn me-1"
-                                                        onclick="resolveVoucher(@item.Id, 'Cleared')">
-
+                                                        onclick="handleFlagAction(@item.Id, 'Cleared')">
                                                     <i class="fa-solid fa-check me-1"></i>
                                                     Pass Voucher
-
                                                 </button>
 
                                                 <button type="button"
                                                         class="btn voucher-action-btn voucher-escalate-btn"
-                                                        onclick="resolveVoucher(@item.Id, 'Escalated')">
-
+                                                        onclick="handleFlagAction(@item.Id, 'Escalated')">
                                                     <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>
                                                     Escalate
-
                                                 </button>
-
                                             }
                                             else
                                             {
-
                                                 <span class="voucher-completed-badge">
-                                                    <i class="fa-solid fa-check-double"></i>
-                                                    Audit Completed
+                                                    <i class="fa-solid fa-check-double me-1"></i>
+                                                    @(item.Status == "Cleared" ? "Signed Off (" + item.AuditedByUserName + ")" : "Escalated to Head")
                                                 </span>
-
                                             }
-
                                         </td>
 
                                     </tr>
-
                                 }
 
                             </tbody>
-
                         </table>
-
                     </div>
-
                 }
                 else
                 {
-
                     <!-- Empty State -->
-
                     <div class="voucher-empty-state">
-
                         <div class="voucher-empty-icon">
                             <i class="fa-solid fa-circle-check"></i>
                         </div>
-
                         <h5 class="voucher-empty-title">
                             No Financial Discrepancies Found
                         </h5>
-
                         <p class="voucher-empty-description">
                             No financial discrepancies are currently flagged. All financial vouchers match General Ledger entries.
                         </p>
-
                     </div>
-
                 }
 
             </div>
 
-
             <!-- Card Footer -->
             <div class="voucher-card-footer">
-
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-
                     <span class="voucher-footer-text">
                         Showing @totalVouchers financial voucher records
                     </span>
-
                     <span class="voucher-footer-text">
                         <i class="fa-solid fa-shield-halved me-1"></i>
                         Financial audit verification records
                     </span>
-
                 </div>
-
             </div>
 
         </div>
@@ -1131,55 +1081,192 @@
     </div>
 </div>
 
+<!-- =========================================================
+     3-WAY MATCH INSPECTION MODAL
+     ========================================================= -->
+<div class="modal fade" id="threeWayMatchModal" tabindex="-1" aria-labelledby="threeWayMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-dark text-white px-4 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-success bg-opacity-25 p-2 text-success">
+                        <i class="fa-solid fa-scale-balanced fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="threeWayMatchModalLabel">
+                            3-Way Match Verification Analysis
+                        </h5>
+                        <small class="text-muted" style="font-size: 0.78rem;">
+                            Reconciliation across Purchase Order, Goods Receipt Note, and Vendor Invoice
+                        </small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- Meta summary -->
+                <div class="card border-0 shadow-sm p-3 mb-4 bg-white" style="border-radius: 12px;">
+                    <div class="row g-2 small">
+                        <div class="col-md-6">
+                            <span class="text-muted">Vendor Party:</span>
+                            <span class="fw-bold text-dark ms-1" id="twVendorName">-</span>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <span class="text-muted">Voucher Ref:</span>
+                            <span class="badge bg-light text-dark border font-monospace ms-1" id="twVoucherRef">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Pillars Comparison Cards -->
+                <div class="row g-3 mb-4">
+                    <!-- Column 1: PO Expected -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm text-center p-3" style="border-radius: 12px; border-top: 4px solid #2563eb !important;">
+                            <div class="text-muted small text-uppercase fw-semibold mb-1">1. Purchase Order</div>
+                            <div class="badge bg-primary-subtle text-primary mb-2 font-monospace" id="twPoNumber">PO-9021</div>
+                            <div class="text-muted small mb-1">Expected Amount</div>
+                            <div class="fs-5 fw-bold text-dark" id="twPoAmount">₹ 0.00</div>
+                            <div class="small text-success mt-2">
+                                <i class="fa-solid fa-check me-1"></i> Authorized PO
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: GRN Received -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm text-center p-3" style="border-radius: 12px; border-top: 4px solid #059669 !important;">
+                            <div class="text-muted small text-uppercase fw-semibold mb-1">2. Goods Receipt (GRN)</div>
+                            <div class="badge bg-success-subtle text-success mb-2 font-monospace" id="twGrnNumber">GRN-4500</div>
+                            <div class="text-muted small mb-1">Received Value</div>
+                            <div class="fs-5 fw-bold text-dark" id="twGrnAmount">₹ 0.00</div>
+                            <div class="small text-success mt-2">
+                                <i class="fa-solid fa-warehouse me-1"></i> Physically Verified
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Vendor Invoice -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm text-center p-3" style="border-radius: 12px; border-top: 4px solid #dc2626 !important;">
+                            <div class="text-muted small text-uppercase fw-semibold mb-1">3. Vendor Claim</div>
+                            <div class="badge bg-danger-subtle text-danger mb-2 font-monospace" id="twInvoiceRef">INV-081</div>
+                            <div class="text-muted small mb-1">Billed Amount</div>
+                            <div class="fs-5 fw-bold text-danger" id="twVendorAmount">₹ 0.00</div>
+                            <div class="small text-danger mt-2">
+                                <i class="fa-solid fa-circle-exclamation me-1"></i> Discrepancy Found
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Variance Callout Banner -->
+                <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center gap-3 mb-0" style="border-radius: 12px;">
+                    <div class="fs-3 text-warning">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark">Audit Discrepancy Variance: <span class="text-danger" id="twVarianceAmount">₹ 0.00</span></div>
+                        <div class="small text-muted" id="twVarianceExplanation">
+                            The vendor invoiced amount exceeds the physical goods receipt valuation. Authorization required before disbursement sign-off.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white border-top px-4 py-3 d-flex justify-content-between align-items-center">
+                <input type="hidden" id="twFlagId" value="" />
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                <div class="d-flex gap-2" id="twModalActions">
+                    <button type="button" class="btn btn-outline-danger px-3" onclick="modalAction('Escalated')">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Escalate Discrepancy
+                    </button>
+                    <button type="button" class="btn btn-success px-4" onclick="modalAction('Cleared')">
+                        <i class="fa-solid fa-check me-1"></i> Pass & Clear Voucher
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- =========================================
-     EXISTING VOUCHER RESOLUTION FUNCTIONALITY
+     VOUCHER RESOLUTION & 3-WAY MATCH JAVASCRIPT
      ========================================= -->
-
 <script>
-    async function resolveVoucher(id, status) {
+    const inCultureFormat = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
 
-        if (!confirm(`Mark voucher #${id} as "${status}"?`)) return;
+    function inspectThreeWayMatch(flagId, refNo, vendor, poNo, poAmt, grnNo, grnAmt, vendorAmt, varianceAmt, status) {
+        document.getElementById('twFlagId').value = flagId;
+        document.getElementById('twVendorName').innerText = vendor || 'Registered Vendor';
+        document.getElementById('twVoucherRef').innerText = refNo;
+        document.getElementById('twPoNumber').innerText = poNo;
+        document.getElementById('twPoAmount').innerText = inCultureFormat.format(poAmt);
+        document.getElementById('twGrnNumber').innerText = grnNo;
+        document.getElementById('twGrnAmount').innerText = inCultureFormat.format(grnAmt);
+        document.getElementById('twInvoiceRef').innerText = refNo;
+        document.getElementById('twVendorAmount').innerText = inCultureFormat.format(vendorAmt);
+        document.getElementById('twVarianceAmount').innerText = inCultureFormat.format(varianceAmt);
+
+        const explanation = varianceAmt > 0 
+            ? `Vendor billed amount is higher than verified goods receipt by ${inCultureFormat.format(varianceAmt)}. Verification check flagged.`
+            : `All three tiers are in full reconciliation equilibrium.`;
+        document.getElementById('twVarianceExplanation').innerText = explanation;
+
+        const actionArea = document.getElementById('twModalActions');
+        if (status === 'Pending Review') {
+            actionArea.style.display = 'flex';
+        } else {
+            actionArea.style.display = 'none';
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('threeWayMatchModal'));
+        modal.show();
+    }
+
+    async function handleFlagAction(id, decision) {
+        const promptMsg = decision === 'Cleared'
+            ? `Confirm passing voucher #${id}. Enter optional resolution notes:`
+            : `Confirm escalating discrepancy #${id} to Chief Compliance Officer. Enter reason:`;
+
+        const notes = prompt(promptMsg, decision === 'Cleared' ? '3-Way Match verified against GRN/PO variance tolerance.' : 'Discrepancy exceeds permissible threshold.');
+        if (notes === null) return; // User cancelled prompt
 
         try {
-
-            const res = await fetch('/Auditor/ResolveAuditFlag', {
-
+            const res = await fetch('/Auditor/UpdateFlagStatus', {
                 method: 'POST',
-
                 headers: {
                     'Content-Type': 'application/json'
                 },
-
                 body: JSON.stringify({
                     flagId: id,
-                    newStatus: status,
-                    auditNote: 'Financial Voucher verification completed'
+                    decision: decision,
+                    resolutionNotes: notes
                 })
-
             });
 
             const data = await res.json();
-
             if (data.success) {
-
-                alert(data.message);
-
+                alert(data.message || `Voucher marked as ${decision}.`);
                 location.reload();
-
             } else {
-
                 alert(data.message || "Failed to update voucher status.");
-
             }
-
         } catch (e) {
-
             console.error(e);
-
-            alert("Server error occurred while updating voucher.");
-
+            alert("Network error communicating with audit server.");
         }
+    }
 
+    function modalAction(decision) {
+        const flagId = parseInt(document.getElementById('twFlagId').value);
+        if (flagId > 0) {
+            handleFlagAction(flagId, decision);
+        }
+    }
+
+    // Alias for any existing button
+    function resolveVoucher(id, status) {
+        handleFlagAction(id, status);
     }
 </script>
