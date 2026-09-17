@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ERP_System.Models
@@ -20,6 +20,7 @@ namespace ERP_System.Models
         public bool IsStarred { get; set; } = false;
         public bool IsTrash { get; set; } = false;
         public string Priority { get; set; } = "Normal"; // High, Normal, Low
+        public string? AttachmentUrl { get; set; }
     }
 
     public class InboxViewModel

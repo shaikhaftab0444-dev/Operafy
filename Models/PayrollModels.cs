@@ -121,6 +121,9 @@ namespace ERP_System.Models
         [Key]
         public int BonusId { get; set; }
 
+        [NotMapped]
+        public int Id { get => BonusId; set => BonusId = value; }
+
         [Required]
         public int UserId { get; set; }
 
@@ -131,11 +134,17 @@ namespace ERP_System.Models
         [StringLength(100)]
         public string Type { get; set; } = "Performance Bonus"; // "Performance Bonus", "Festival Bonus", "Annual Bonus", "Sales Incentive", "Project Incentive", "Custom Incentive"
 
+        [NotMapped]
+        public string IncentiveType { get => Type; set => Type = value; }
+
         [Column(TypeName = "decimal(18, 2)")]
         public decimal Amount { get; set; }
 
         [StringLength(500)]
         public string? Reason { get; set; }
+
+        [NotMapped]
+        public string? ReasonOrDescription { get => Reason; set => Reason = value; }
 
         [Required]
         [StringLength(50)]
@@ -147,12 +156,18 @@ namespace ERP_System.Models
 
         [Required]
         [StringLength(50)]
-        public string Status { get; set; } = "Draft"; // "Draft", "Submitted", "Approved", "Included in Payroll", "Paid"
+        public string Status { get; set; } = "Approved"; // "Draft", "Submitted", "Approved", "Paid in Payroll", "Paid"
 
         public int? ApprovedByUserId { get; set; }
         public DateTime? ApprovedAt { get; set; }
 
+        [NotMapped]
+        public int? AwardedByUserId { get => ApprovedByUserId; set => ApprovedByUserId = value; }
+
         public int? PayrollRunId { get; set; }
+
+        [ForeignKey("PayrollRunId")]
+        public virtual PayrollRun? PayrollRun { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
@@ -163,6 +178,9 @@ namespace ERP_System.Models
     {
         [Key]
         public int PayrollRunId { get; set; }
+
+        [NotMapped]
+        public int Id { get => PayrollRunId; set => PayrollRunId = value; }
 
         [Required]
         [StringLength(50)]
@@ -179,11 +197,17 @@ namespace ERP_System.Models
         [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalGrossSalary { get; set; }
 
+        [NotMapped]
+        public decimal TotalGrossPay { get => TotalGrossSalary; set => TotalGrossSalary = value; }
+
         [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalDeductions { get; set; }
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalNetSalary { get; set; }
+
+        [NotMapped]
+        public decimal TotalNetPaid { get => TotalNetSalary; set => TotalNetSalary = value; }
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalEmployerPF { get; set; }
@@ -194,9 +218,17 @@ namespace ERP_System.Models
         [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalCTC { get; set; }
 
+        [NotMapped]
+        public decimal EmployerCTC { get => TotalCTC; set => TotalCTC = value; }
+
         [Required]
         [StringLength(50)]
-        public string Status { get; set; } = "Draft"; // "Draft", "Calculated", "Under Review", "Approved", "Locked", "Paid", "Cancelled"
+        public string Status { get; set; } = "Draft"; // "Draft", "Calculated", "Under Review", "Approved", "Paid & Closed", "Paid", "Cancelled"
+
+        // Bank linkage for payout
+        public int? CompanyBankAccountId { get; set; }
+        [ForeignKey("CompanyBankAccountId")]
+        public virtual CompanyBankAccount? CompanyBankAccount { get; set; }
 
         public int? ProcessedByUserId { get; set; }
         public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
@@ -206,11 +238,15 @@ namespace ERP_System.Models
 
         public int? PaidByUserId { get; set; }
         public DateTime? PaidAt { get; set; }
+        public DateTime? DisbursedAt { get; set; }
 
         [StringLength(500)]
         public string? Remarks { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+
+        public virtual ICollection<Payslip> Payslips { get; set; } = new List<Payslip>();
+        public virtual ICollection<SalarySlip> SalarySlips { get; set; } = new List<SalarySlip>();
     }
 }

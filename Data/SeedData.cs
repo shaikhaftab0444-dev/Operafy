@@ -3780,6 +3780,75 @@ namespace ERP_System.Data
                         CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
                         UpdatedAt DATETIME NULL
                     );
+                END
+
+                -- Ensure CompanyBankAccountId & DisbursedAt columns exist on erp_PayrollRuns
+                IF NOT EXISTS(SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_PayrollRuns') AND name = 'CompanyBankAccountId')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_PayrollRuns ADD CompanyBankAccountId INT NULL;
+                END
+
+                IF NOT EXISTS(SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_PayrollRuns') AND name = 'DisbursedAt')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_PayrollRuns ADD DisbursedAt DATETIME NULL;
+                END
+
+                -- Ensure SalarySlips table exists
+                IF OBJECT_ID('AITStudent.SalarySlips', 'U') IS NULL AND OBJECT_ID('dbo.SalarySlips', 'U') IS NULL AND OBJECT_ID('SalarySlips', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE SalarySlips (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        PayrollRunId INT NOT NULL,
+                        UserId INT NOT NULL,
+                        Month INT NOT NULL,
+                        Year INT NOT NULL,
+                        MonthName NVARCHAR(50) NOT NULL,
+                        WorkingDays INT NOT NULL DEFAULT 30,
+                        PaidDays INT NOT NULL DEFAULT 30,
+                        BasicSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Hra DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Allowances DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        GrossSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        PfDeduction DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        PtDeduction DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TdsDeduction DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalDeductions DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        NetSalary DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Draft',
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                -- Ensure InternalMessages table exists
+                IF OBJECT_ID('AITStudent.InternalMessages', 'U') IS NULL AND OBJECT_ID('dbo.InternalMessages', 'U') IS NULL AND OBJECT_ID('InternalMessages', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE InternalMessages (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        SenderUserId INT NOT NULL,
+                        RecipientUserId INT NOT NULL,
+                        Subject NVARCHAR(250) NOT NULL,
+                        Body NVARCHAR(MAX) NOT NULL,
+                        Folder NVARCHAR(50) NOT NULL DEFAULT 'Inbox',
+                        Category NVARCHAR(100) NOT NULL DEFAULT 'Payroll & Audit',
+                        IsRead BIT NOT NULL DEFAULT 0,
+                        AttachmentUrl NVARCHAR(500) NULL,
+                        SentAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END
+
+                -- Ensure SystemNotifications table exists
+                IF OBJECT_ID('AITStudent.SystemNotifications', 'U') IS NULL AND OBJECT_ID('dbo.SystemNotifications', 'U') IS NULL AND OBJECT_ID('SystemNotifications', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE SystemNotifications (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        Title NVARCHAR(200) NOT NULL,
+                        Message NVARCHAR(500) NOT NULL,
+                        Category NVARCHAR(50) NOT NULL DEFAULT 'HR',
+                        TargetUrl NVARCHAR(500) NOT NULL DEFAULT '/HRPayroll/DownloadPayslipPdf',
+                        IsRead BIT NOT NULL DEFAULT 0,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
                 END";
 
             await context.Database.ExecuteSqlRawAsync(sqlScript);

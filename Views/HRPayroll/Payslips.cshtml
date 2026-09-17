@@ -1242,24 +1242,14 @@
 
                                             @if (isManagement)
                                             {
-                                                <form asp-action="EmailPayslip"
-                                                      method="post"
-                                                      class="d-inline">
+                                                <button type="button"
+                                                        class="payslip-action email-action"
+                                                        id="dispatch-btn-@slip.PayslipId"
+                                                        onclick="dispatchPayslip(@slip.PayslipId, '@(slip.User?.FullName?.Replace("'", "\\'"))', '@slip.PayPeriod')"
+                                                        title="Dispatch Payslip Notification">
 
-                                                    @Html.AntiForgeryToken()
-
-                                                    <input type="hidden"
-                                                           name="id"
-                                                           value="@slip.PayslipId" />
-
-                                                    <button type="submit"
-                                                            class="payslip-action email-action"
-                                                            title="Send Email Notification">
-
-                                                        <i class="fa-solid fa-paper-plane"></i>
-                                                    </button>
-
-                                                </form>
+                                                    <i class="fa-solid fa-paper-plane"></i>
+                                                </button>
                                             }
 
                                         </div>
@@ -1434,6 +1424,82 @@
 
 
     // =========================================================
+    // DISPATCH PAYSLIP NOTIFICATION (AJAX)
+    // =========================================================
+    function dispatchPayslip(slipId, empName, period) {
+        if (!slipId) return;
+
+        const btn = document.getElementById('dispatch-btn-' + slipId);
+        const originalHtml = btn ? btn.innerHTML : '';
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        }
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+        const formData = new FormData();
+        formData.append('slipId', slipId);
+        formData.append('__RequestVerificationToken', token);
+
+        fetch('/HRPayroll/SendPayslipNotification', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+
+            if (data.success) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(data.message || `Payslip dispatched to ${empName}!`, 'Dispatched');
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Dispatched Successfully',
+                        text: data.message,
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    alert(data.message);
+                }
+
+                if (btn) {
+                    btn.classList.remove('email-action');
+                    btn.classList.add('view-action');
+                    btn.title = 'Dispatched';
+                }
+            } else {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(data.message || 'Failed to dispatch payslip notification.', 'Error');
+                } else {
+                    alert(data.message || 'Failed to dispatch notification.');
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Error dispatching payslip:', err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+            if (typeof toastr !== 'undefined') {
+                toastr.error('An unexpected network error occurred.', 'Dispatch Error');
+            } else {
+                alert('Network error while dispatching payslip notification.');
+            }
+        });
+    }
+
+    // =========================================================
     // AUTO-HIDE SUCCESS ALERT
     // =========================================================
 
@@ -1455,3 +1521,7 @@
         }
     });
 </script>
+
+<form id="payslipVerificationForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
