@@ -114,8 +114,8 @@ namespace ERP_System.Controllers
                 targetList = targets.Select(t => new SalesTargetItemVM
                 {
                     ExecutiveName = t.ExecutiveUser?.FullName ?? "Sales Executive",
-                    Target = t.TargetAmount ?? 0m,
-                    Achieved = t.AchievedAmount ?? 0m
+                    Target = t.TargetAmount,
+                    Achieved = t.AchievedAmount
                 }).ToList();
             }
             else

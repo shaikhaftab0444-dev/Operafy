@@ -38,7 +38,7 @@ namespace ERP_System.Controllers
             {
                 var user = await _context.Users
                     .Include(u => u.Role)
-                    .FirstOrDefaultAsync(u => u.Email == model.Email);
+                    .FirstOrDefaultAsync(u => u.Email == model.Email || u.UserName == model.Email);
 
                 if (user != null)
                 {
@@ -83,6 +83,14 @@ namespace ERP_System.Controllers
                         if (roleName == "Finance Manager")
                         {
                             return RedirectToAction("Index", "Finance");
+                        }
+                        if (roleName == "Sales Manager")
+                        {
+                            return RedirectToAction("Index", "SalesManagerDashboard");
+                        }
+                        if (roleName == "Sales Executive")
+                        {
+                            return RedirectToAction("Index", "SalesDashboard");
                         }
 
                         return RedirectToAction("Index", "Dashboard");
