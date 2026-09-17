@@ -5,6 +5,29 @@
     var inCulture = new System.Globalization.CultureInfo("en-IN");
     var now = DateTime.Now;
     var activeMonthName = now.ToString("MMMM yyyy");
+
+    decimal totalRevenue = ViewBag.TotalRevenue ?? Model?.TotalTeamSalesRevenue ?? 0m;
+    int activeReps = ViewBag.ActiveReps ?? Model?.ActiveSalesRepsCount ?? 0;
+    decimal avgSales = ViewBag.AvgSales ?? Model?.AverageSalesPerRep ?? 0m;
+    decimal targetAchievedPct = ViewBag.TargetAchievedPct ?? Model?.TeamTargetAchievementPercent ?? 0m;
+    decimal goalAmount = ViewBag.GoalAmount ?? Model?.GoalAmount ?? 15000000m;
+
+    var pipelineStages = (Dictionary<string, (int Count, decimal Value)>?)ViewBag.PipelineStages 
+        ?? Model?.PipelineStages 
+        ?? new Dictionary<string, (int Count, decimal Value)>
+        {
+            { "New", (0, 0m) },
+            { "Qualified", (0, 0m) },
+            { "Quotation Sent", (0, 0m) },
+            { "Negotiation", (0, 0m) },
+            { "Closed Won", (0, 0m) }
+        };
+
+    var pendingApprovals = (IEnumerable<dynamic>?)ViewBag.PendingApprovals ?? Model?.PendingApprovals;
+    var leaderboard = (IEnumerable<dynamic>?)ViewBag.Leaderboard ?? Model?.Leaderboard;
+    var recentInvoices = (IEnumerable<dynamic>?)ViewBag.RecentInvoices ?? Model?.RecentInvoices;
+    var repUsers = (IEnumerable<dynamic>?)ViewBag.RepUsers ?? Model?.RepUsers;
+    string selectedDateRange = ViewBag.DateRange ?? Model?.DateRange ?? "Q3 2026";
 }
 
 <style>
@@ -99,37 +122,84 @@
     }
 
     /* Card Background Colors */
-    .bg-kpi-blue {
-        background-color: #3b82f6;
-    }
-
-    .bg-kpi-indigo {
-        background-color: #6366f1;
-    }
-
-    .bg-kpi-purple {
-        background-color: #a855f7;
-    }
-
-    .bg-kpi-green {
-        background-color: #10b981;
-    }
+    .bg-kpi-blue { background-color: #3b82f6; }
+    .bg-kpi-indigo { background-color: #6366f1; }
+    .bg-kpi-purple { background-color: #a855f7; }
+    .bg-kpi-green { background-color: #10b981; }
 
     .detail-card {
         background: #ffffff;
-        border: 1px solid var(--border-warm);
+        border: 1px solid var(--border-warm, #e5e7eb);
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         padding: 1.5rem;
         height: 100%;
         text-align: left;
     }
+
+    /* Visual Pipeline Funnel Styling */
+    .funnel-container {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.75rem;
+    }
+
+    @@media (max-width: 992px) {
+        .funnel-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .funnel-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .funnel-stage-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .funnel-stage-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    .funnel-stage-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+
+    .stage-new::before { background-color: #3b82f6; }
+    .stage-qualified::before { background-color: #06b6d4; }
+    .stage-quotesent::before { background-color: #f59e0b; }
+    .stage-negotiation::before { background-color: #8b5cf6; }
+    .stage-won::before { background-color: #10b981; }
+
+    .rep-clickable-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    .rep-clickable-row:hover {
+        background-color: #f8fafc !important;
+    }
 </style>
 
-<!-- Header & Context Area -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
+<!-- Header & Top Filter Bar with Quick Actions -->
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4 text-start">
     <div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Dashboard</h4>
+        <h4 class="fw-bold mb-1" style="color: var(--text-color, #1e293b);">Dashboard</h4>
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0 small">
                 <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
@@ -138,14 +208,33 @@
         </nav>
     </div>
     
-    <div class="d-flex flex-column flex-sm-row gap-2">
-        <div class="px-3 py-2 bg-white border rounded-3 text-start small shadow-sm">
-            <div class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Active Role</div>
-            <div class="fw-bold text-dark"><i class="fa-solid fa-crown me-1.5 text-primary"></i>@Model.CurrentUserRole</div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- Date Filter Dropdown -->
+        <div class="d-flex align-items-center bg-white border rounded-3 px-2 py-1 shadow-sm">
+            <i class="fa fa-calendar-alt text-muted me-2 small"></i>
+            <select id="dateFilterSelect" class="form-select form-select-sm border-0 shadow-none py-1 fw-semibold text-dark" style="width: auto; cursor: pointer;" onchange="onDateRangeChange(this.value)">
+                <option value="September 2026" selected="@(selectedDateRange == "September 2026")">September 2026</option>
+                <option value="Q3 2026" selected="@(selectedDateRange == "Q3 2026" || string.IsNullOrEmpty(selectedDateRange))">Q3 2026</option>
+                <option value="FY 2026-27" selected="@(selectedDateRange == "FY 2026-27")">FY 2026-27</option>
+                <option value="Custom Range" selected="@(selectedDateRange == "Custom Range")">Custom Range</option>
+            </select>
         </div>
-        <div class="px-3 py-2 bg-white border rounded-3 text-start small shadow-sm">
-            <div class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Management Scope</div>
-            <div class="fw-bold text-dark"><i class="fa-solid fa-building me-1.5 text-info"></i>@Model.CurrentCompany</div>
+
+        <!-- Quick Action Buttons -->
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newLeadModal">
+            <i class="fa fa-plus me-1"></i> Add Lead
+        </button>
+        <button class="btn btn-sm btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#assignTargetModal">
+            <i class="fa fa-bullseye me-1"></i> Assign Target
+        </button>
+
+        <div class="px-3 py-1.5 bg-white border rounded-3 text-start small shadow-sm d-none d-xl-block">
+            <div class="text-muted fw-semibold" style="font-size: 0.7rem; text-transform: uppercase;">Active Role</div>
+            <div class="fw-bold text-dark"><i class="fa-solid fa-crown me-1.5 text-primary"></i>@(Model?.CurrentUserRole ?? "Sales Manager")</div>
+        </div>
+        <div class="px-3 py-1.5 bg-white border rounded-3 text-start small shadow-sm d-none d-xl-block">
+            <div class="text-muted fw-semibold" style="font-size: 0.7rem; text-transform: uppercase;">Management Scope</div>
+            <div class="fw-bold text-dark"><i class="fa-solid fa-building me-1.5 text-info"></i>@(Model?.CurrentCompany ?? "Head Office")</div>
         </div>
     </div>
 </div>
@@ -159,7 +248,7 @@
             <span class="card-left-year">@activeMonthName.Split(' ')[1]</span>
         </div>
         <div class="card-right-block">
-            <h4 class="card-val" style="font-size: clamp(1.1rem, 2vw, 1.4rem); white-space: nowrap;">₹@Model.TotalTeamSalesRevenue.ToString("N0", inCulture)</h4>
+            <h4 class="card-val" style="font-size: clamp(1.1rem, 2vw, 1.4rem); white-space: nowrap;">₹@totalRevenue.ToString("N0", inCulture)</h4>
             <span class="card-label">Total Team Revenue</span>
         </div>
     </div>
@@ -170,7 +259,7 @@
             <i class="fa-solid fa-users card-left-icon"></i>
         </div>
         <div class="card-right-block">
-            <h4 class="card-val">@Model.ActiveSalesRepsCount</h4>
+            <h4 class="card-val">@activeReps</h4>
             <span class="card-label">Active Sales Reps</span>
         </div>
     </div>
@@ -181,7 +270,7 @@
             <i class="fa-solid fa-money-bill-trend-up card-left-icon"></i>
         </div>
         <div class="card-right-block">
-            <h4 class="card-val">₹@Model.AverageSalesPerRep.ToString("N0", inCulture)</h4>
+            <h4 class="card-val">₹@avgSales.ToString("N0", inCulture)</h4>
             <span class="card-label">Avg. Sales / Representative</span>
         </div>
     </div>
@@ -192,8 +281,80 @@
             <i class="fa-solid fa-bullseye card-left-icon"></i>
         </div>
         <div class="card-right-block">
-            <h4 class="card-val">@Model.TeamTargetAchievementPercent%</h4>
+            <h4 class="card-val">@targetAchievedPct%</h4>
             <span class="card-label">Team Target Achieved</span>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Pipeline Funnel Widget -->
+<div class="bg-white border rounded-3 p-4 shadow-sm mb-4 text-start">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h6 class="fw-bold mb-0 text-dark">
+                <i class="fa-solid fa-filter text-primary me-2"></i>Sales Pipeline Funnel
+            </h6>
+            <small class="text-muted">Real-time team deal velocity and stage distribution</small>
+        </div>
+        <span class="badge bg-primary-subtle text-primary fw-semibold px-2.5 py-1">
+            Total Active Stages: 5
+        </span>
+    </div>
+
+    <div class="funnel-container">
+        <!-- Stage 1: New -->
+        <div class="funnel-stage-card stage-new">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-primary-subtle text-primary fw-bold" style="font-size: 0.72rem;">STAGE 1</span>
+                <span class="fw-bold text-dark small">@pipelineStages["New"].Count Deals</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">New</h6>
+            <div class="text-primary fw-bold fs-6">₹@pipelineStages["New"].Value.ToString("N0", inCulture)</div>
+            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["New"].Count Deals (₹@pipelineStages["New"].Value.ToString("N0"))</small>
+        </div>
+
+        <!-- Stage 2: Qualified -->
+        <div class="funnel-stage-card stage-qualified">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-info-subtle text-info fw-bold" style="font-size: 0.72rem;">STAGE 2</span>
+                <span class="fw-bold text-dark small">@pipelineStages["Qualified"].Count Deals</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">Qualified</h6>
+            <div class="text-info fw-bold fs-6">₹@pipelineStages["Qualified"].Value.ToString("N0", inCulture)</div>
+            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["Qualified"].Count Deals (₹@pipelineStages["Qualified"].Value.ToString("N0"))</small>
+        </div>
+
+        <!-- Stage 3: Quotation Sent -->
+        <div class="funnel-stage-card stage-quotesent">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-warning-subtle text-warning fw-bold" style="font-size: 0.72rem;">STAGE 3</span>
+                <span class="fw-bold text-dark small">@pipelineStages["Quotation Sent"].Count Deals</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">Quotation Sent</h6>
+            <div class="text-warning fw-bold fs-6">₹@pipelineStages["Quotation Sent"].Value.ToString("N0", inCulture)</div>
+            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["Quotation Sent"].Count Deals</small>
+        </div>
+
+        <!-- Stage 4: Negotiation -->
+        <div class="funnel-stage-card stage-negotiation">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-purple-subtle text-purple fw-bold" style="font-size: 0.72rem; color: #8b5cf6;">STAGE 4</span>
+                <span class="fw-bold text-dark small">@pipelineStages["Negotiation"].Count Deals</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">Negotiation</h6>
+            <div class="text-purple fw-bold fs-6" style="color: #8b5cf6;">₹@pipelineStages["Negotiation"].Value.ToString("N0", inCulture)</div>
+            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["Negotiation"].Count Deals</small>
+        </div>
+
+        <!-- Stage 5: Closed Won -->
+        <div class="funnel-stage-card stage-won">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-success-subtle text-success fw-bold" style="font-size: 0.72rem;">CLOSED</span>
+                <span class="fw-bold text-dark small">@pipelineStages["Closed Won"].Count Deals</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">Closed Won</h6>
+            <div class="text-success fw-bold fs-6">₹@pipelineStages["Closed Won"].Value.ToString("N0", inCulture)</div>
+            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["Closed Won"].Count Deals</small>
         </div>
     </div>
 </div>
@@ -202,16 +363,84 @@
 <div class="bg-white border rounded-3 p-4 shadow-sm mb-4 text-start">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-chart-bar text-primary me-2"></i>Q3 2026 Team Target Projection</h6>
-        <span class="small fw-semibold text-muted">Goal: ₹1.5 Crore</span>
+        <span class="small fw-semibold text-muted">Goal: ₹@goalAmount.ToString("N0", inCulture)</span>
     </div>
     <div class="progress" style="height: 12px;">
-        <div class="progress-bar bg-success progress-bar-striped" role="progressbar" style="width: @Model.TeamTargetAchievementPercent%;" aria-valuenow="@Model.TeamTargetAchievementPercent" aria-valuemin="0" aria-valuemax="100"></div>
+        <div class="progress-bar bg-success progress-bar-striped" role="progressbar" style="width: @Math.Min(100m, targetAchievedPct)%;" aria-valuenow="@targetAchievedPct" aria-valuemin="0" aria-valuemax="100"></div>
     </div>
 </div>
 
+<!-- Pending Quotation & Discount Approvals Table Card -->
+@if (pendingApprovals != null && pendingApprovals.Any())
+{
+    <div class="bg-white border border-warning rounded-3 p-4 shadow-sm mb-4 text-start">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1 text-dark">
+                    <i class="fa-solid fa-stamp text-warning me-2"></i>Pending Quotation & Discount Approvals
+                </h5>
+                <span class="small text-muted">Quotations with requested discount rates exceeding policy threshold (>10%) requiring manager review.</span>
+            </div>
+            <span class="badge bg-warning text-dark px-3 py-1.5 fw-bold rounded-pill">
+                @pendingApprovals.Count() Pending Review
+            </span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Quote #</th>
+                        <th>Customer Name</th>
+                        <th>Subtotal</th>
+                        <th>Discount %</th>
+                        <th>Total Amount</th>
+                        <th>Requested By</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in pendingApprovals)
+                    {
+                        <tr>
+                            <td class="fw-bold text-primary">@item.QuotationNumber</td>
+                            <td class="fw-semibold text-dark">@item.CustomerName</td>
+                            <td>₹@item.SubTotal.ToString("N0", inCulture)</td>
+                            <td>
+                                <span class="badge bg-danger-subtle text-danger fw-bold px-2 py-1">
+                                    <i class="fa fa-arrow-down me-1"></i>@item.DiscountPercentage%
+                                </span>
+                            </td>
+                            <td class="fw-bold text-dark">₹@item.TotalAmount.ToString("N0", inCulture)</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-light border text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                        @((item.CreatedByUser?.FullName ?? "Rep").Substring(0, 1))
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold text-dark">@(item.CreatedByUser?.FullName ?? item.CreatedByUser?.UserName ?? "Sales Rep")</div>
+                                        <small class="text-muted">@(item.CreatedByUser?.Email ?? "")</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-success px-2 py-1" onclick="submitQuoteReview(@item.Id, 'Approved')">
+                                    <i class="fa fa-check me-1"></i> Approve
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger px-2 py-1 ms-1" onclick="submitQuoteReview(@item.Id, 'Rejected')">
+                                    <i class="fa fa-times me-1"></i> Reject
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
 <!-- Details Grid -->
 <div class="row g-4 mb-5">
-    <!-- Left Column: Recent Invoices -->
+    <!-- Left Column: Recent Team Invoices -->
     <div class="col-lg-7">
         <div class="detail-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -230,7 +459,24 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if (Model.RecentTeamTransactions != null && Model.RecentTeamTransactions.Any())
+                        @if (recentInvoices != null && recentInvoices.Any())
+                        {
+                            @foreach (var inv in recentInvoices)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-dark">@inv.InvoiceNumber</td>
+                                    <td>@inv.CustomerName</td>
+                                    <td class="text-muted">@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                    <td class="fw-bold">₹@inv.TotalAmount.ToString("N0", inCulture)</td>
+                                    <td>
+                                        <span class="badge rounded-pill @(inv.Status == "Paid" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning") px-2.5 py-1">
+                                            @inv.Status
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else if (Model?.RecentTeamTransactions != null && Model.RecentTeamTransactions.Any())
                         {
                             @foreach (var sales in Model.RecentTeamTransactions)
                             {
@@ -259,7 +505,7 @@
         </div>
     </div>
 
-    <!-- Right Column: Top Performing Reps -->
+    <!-- Right Column: Top Performing Reps (Leaderboard with Drill-down) -->
     <div class="col-lg-5">
         <div class="detail-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -270,30 +516,333 @@
                 <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                     <thead class="table-light">
                         <tr>
-                            <th>Sales Rep</th>
-                            <th>Monthly Revenue</th>
+                            <th>Sales Rep (Click to Drill Down)</th>
+                            <th>Revenue</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td class="fw-bold text-dark">Amit Verma</td>
-                            <td>₹12,45,000</td>
-                            <td><span class="badge bg-success-subtle text-success px-2 py-0.5 small">Active</span></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-dark">Neha Sharma</td>
-                            <td>₹10,50,000</td>
-                            <td><span class="badge bg-success-subtle text-success px-2 py-0.5 small">Active</span></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-dark">Rohan Das</td>
-                            <td>₹8,20,000</td>
-                            <td><span class="badge bg-success-subtle text-success px-2 py-0.5 small">Active</span></td>
-                        </tr>
+                        @if (leaderboard != null && leaderboard.Any())
+                        {
+                            @foreach (var item in leaderboard)
+                            {
+                                <tr class="rep-clickable-row" onclick="openRepDrilldown('@item.RepId')" title="Click to view @item.Name performance drilldown">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                @(string.IsNullOrEmpty(item.Name) ? "R" : item.Name.Substring(0, 1))
+                                            </div>
+                                            <div>
+                                                <a href="javascript:void(0)" class="fw-bold text-dark text-decoration-none">@item.Name</a>
+                                                <div class="small text-muted">@item.DealsClosed closed deals</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="fw-bold text-success">₹@item.Revenue.ToString("N0", inCulture)</td>
+                                    <td>
+                                        <span class="badge @(item.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-muted") px-2 py-0.5 small">
+                                            @(item.IsActive ? "Active" : "Inactive")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">No sales representatives assigned.</td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Rep Drilldown Modal -->
+<div class="modal fade" id="repDrilldownModal" tabindex="-1" aria-labelledby="repDrilldownModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header border-bottom-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="repDrilldownModalLabel">
+                        <i class="fa-solid fa-user-tie text-primary me-2"></i>Sales Representative Performance
+                    </h5>
+                    <p class="text-muted small mb-0">Direct subordinate live conversion and operational metrics</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <!-- Rep Profile Strip -->
+                <div class="d-flex align-items-center p-3 bg-light rounded-3 mb-3 border">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3 fw-bold fs-4" style="width: 48px; height: 48px;">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark" id="repModalName">Sales Executive</h6>
+                        <small class="text-muted" id="repModalEmail">rep@erp.com</small>
+                    </div>
+                </div>
+
+                <!-- 2x2 Metric Cards Grid -->
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="border rounded-3 p-3 bg-white text-start shadow-sm">
+                            <div class="text-muted small fw-semibold">Deals Closed / Total</div>
+                            <h5 class="fw-bold text-dark mb-0 mt-1" id="repModalWon">0 / 0</h5>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded-3 p-3 bg-white text-start shadow-sm">
+                            <div class="text-muted small fw-semibold">Total Revenue</div>
+                            <h5 class="fw-bold text-success mb-0 mt-1" id="repModalRevenue">₹ 0</h5>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="border rounded-3 p-3 bg-white text-start shadow-sm">
+                            <div class="text-muted small fw-semibold">Active Open Pipeline Value</div>
+                            <h5 class="fw-bold text-primary mb-0 mt-1" id="repModalPipeline">₹ 0</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Action: Add Lead Modal -->
+<div class="modal fade" id="newLeadModal" tabindex="-1" aria-labelledby="newLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="newLeadModalLabel"><i class="fa fa-plus-circle text-primary me-2"></i>Create New Sales Lead</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="newLeadForm" onsubmit="submitNewLead(event)">
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Opportunity / Deal Title *</label>
+                        <input type="text" class="form-control" name="leadTitle" required placeholder="e.g. Enterprise Cloud ERP Setup" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Customer / Organization Name *</label>
+                        <input type="text" class="form-control" name="customerName" required placeholder="e.g. Acme Industries Ltd" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Contact Email</label>
+                            <input type="email" class="form-control" name="contactEmail" placeholder="contact@acme.com" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Contact Phone</label>
+                            <input type="text" class="form-control" name="contactPhone" placeholder="+91 98765 43210" />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Estimated Deal Value (₹) *</label>
+                            <input type="number" step="1000" class="form-control" name="estimatedDealValue" required placeholder="500000" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Initial Stage</label>
+                            <select class="form-select" name="stage">
+                                <option value="New">New (20%)</option>
+                                <option value="Qualified">Qualified (40%)</option>
+                                <option value="Quotation Sent">Quotation Sent (60%)</option>
+                                <option value="Negotiation">Negotiation (80%)</option>
+                                <option value="Closed Won">Closed Won (100%)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Assign to Sales Representative *</label>
+                        <select class="form-select" name="assignedToUserId" required>
+                            @if (repUsers != null && repUsers.Any())
+                            {
+                                @foreach (var rep in repUsers)
+                                {
+                                    <option value="@rep.Id">@(rep.FullName ?? rep.UserName) (@rep.UserCode)</option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="1">Primary Executive</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="fa fa-save me-1"></i> Save Opportunity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Action: Assign Target Modal -->
+<div class="modal fade" id="assignTargetModal" tabindex="-1" aria-labelledby="assignTargetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="assignTargetModalLabel"><i class="fa fa-bullseye text-primary me-2"></i>Assign Sales Target</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assignTargetForm" onsubmit="submitAssignTarget(event)">
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Sales Representative *</label>
+                        <select class="form-select" name="salesRepUserId" required>
+                            @if (repUsers != null && repUsers.Any())
+                            {
+                                @foreach (var rep in repUsers)
+                                {
+                                    <option value="@rep.Id">@(rep.FullName ?? rep.UserName) (@rep.UserCode)</option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="1">Primary Executive</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Fiscal Quarter *</label>
+                        <select class="form-select" name="fiscalQuarter" required>
+                            <option value="Q3-2026" selected>Q3-2026 (Oct - Dec 2026)</option>
+                            <option value="Q4-2026">Q4-2026 (Jan - Mar 2027)</option>
+                            <option value="Q1-2027">Q1-2027 (Apr - Jun 2027)</option>
+                            <option value="Q2-2027">Q2-2027 (Jul - Sep 2027)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Target Amount (₹) *</label>
+                        <input type="number" step="50000" class="form-control" name="targetAmount" required placeholder="5000000" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="fa fa-check-circle me-1"></i> Confirm Target</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Review & Sign-Off Quotation Discount
+        async function submitQuoteReview(id, decision) {
+            const remarks = prompt(`Enter remarks for ${decision.toLowerCase()} this quotation discount:`, decision === 'Approved' ? 'Discount within permissible margin.' : 'Discount exceeds acceptable threshold.');
+            if (remarks === null) return;
+
+            const formData = new URLSearchParams();
+            formData.append('quotationId', id);
+            formData.append('decision', decision);
+            formData.append('remarks', remarks);
+
+            const res = await fetch('/SalesManagerDashboard/ReviewQuotation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message || 'Action failed.');
+            }
+        }
+
+        // Rep Drilldown JSON Modal Trigger
+        async function openRepDrilldown(repId) {
+            try {
+                const res = await fetch(`/SalesManagerDashboard/GetRepDetails?repId=${encodeURIComponent(repId)}`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('repModalName').innerText = data.name;
+                    document.getElementById('repModalEmail').innerText = data.email || 'N/A';
+                    document.getElementById('repModalWon').innerText = `${data.wonDeals} / ${data.totalDeals}`;
+                    document.getElementById('repModalRevenue').innerText = `₹ ${Number(data.totalRevenue).toLocaleString('en-IN')}`;
+                    document.getElementById('repModalPipeline').innerText = `₹ ${Number(data.activePipeline).toLocaleString('en-IN')}`;
+                    new bootstrap.Modal(document.getElementById('repDrilldownModal')).show();
+                } else {
+                    alert(data.message || 'Unable to retrieve representative data.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error connecting to drilldown service.');
+            }
+        }
+
+        // Top Filter Bar Change
+        function onDateRangeChange(val) {
+            window.location.href = `/SalesManagerDashboard?dateRange=${encodeURIComponent(val)}`;
+        }
+
+        // Quick Action: Add Lead submission
+        async function submitNewLead(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const searchParams = new URLSearchParams();
+            for (const pair of formData) {
+                searchParams.append(pair[0], pair[1]);
+            }
+
+            try {
+                const res = await fetch('/SalesManagerDashboard/AddLead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: searchParams.toString()
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message || 'Failed to create lead.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error creating lead.');
+            }
+        }
+
+        // Quick Action: Assign Target submission
+        async function submitAssignTarget(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const searchParams = new URLSearchParams();
+            for (const pair of formData) {
+                searchParams.append(pair[0], pair[1]);
+            }
+
+            try {
+                const res = await fetch('/SalesManagerDashboard/AssignTarget', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: searchParams.toString()
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message || 'Failed to assign target.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error assigning target.');
+            }
+        }
+    </script>
+}
+

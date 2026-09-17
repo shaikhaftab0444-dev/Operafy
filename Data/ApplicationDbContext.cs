@@ -83,6 +83,9 @@ namespace ERP_System.Data
         public DbSet<ESSSupportTicket> SupportTickets { get { return ESSSupportTickets; } set { ESSSupportTickets = value; } }
         public DbSet<HRAttendanceLog> AttendanceLogs { get { return HRAttendanceLogs; } set { HRAttendanceLogs = value; } }
         public DbSet<SalesTarget> SalesTargets { get; set; }
+        public DbSet<SalesLead> SalesLeads { get; set; }
+        public DbSet<SalesQuotation> SalesQuotations { get; set; }
+        public DbSet<SalesInvoice> SalesInvoices { get; set; }
         public DbSet<HierarchicalTask> HierarchicalTasks { get; set; }
         public DbSet<DepartmentTask> DepartmentTasks { get; set; }
         public DbSet<WorkShift> WorkShifts { get; set; }
@@ -151,6 +154,9 @@ namespace ERP_System.Data
 
             // Configure default schema to match your database
             modelBuilder.HasDefaultSchema("AITStudent");
+
+            // Explicitly ignore ApplicationUser so EF Core treats User as a standalone entity without TPH Discriminator
+            modelBuilder.Ignore<ApplicationUser>();
 
             // Product & Catalog Master Mappings
             modelBuilder.Entity<ProductCategory>(entity =>
@@ -310,7 +316,11 @@ namespace ERP_System.Data
             modelBuilder.Entity<ProcurementCatalogItem>().ToTable("erp_ProcurementCatalogItems");
             modelBuilder.Entity<PurchaseRequisition>().ToTable("erp_PurchaseRequisitions");
             modelBuilder.Entity<Role>().ToTable("erp_Roles");
-            modelBuilder.Entity<User>().ToTable("erp_Users");
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.ToTable("erp_Users");
+                entity.HasNoDiscriminator();
+            });
             modelBuilder.Entity<Transaction>().ToTable("erp_Transactions");
             modelBuilder.Entity<Product>().ToTable("erp_Products");
             modelBuilder.Entity<ActivityLog>().ToTable("erp_ActivityLogs");
@@ -385,6 +395,9 @@ namespace ERP_System.Data
             });
 
             modelBuilder.Entity<SalesTarget>().ToTable("erp_SalesTargets");
+            modelBuilder.Entity<SalesLead>().ToTable("erp_SalesLeads");
+            modelBuilder.Entity<SalesQuotation>().ToTable("erp_SalesQuotations");
+            modelBuilder.Entity<SalesInvoice>().ToTable("erp_SalesInvoices");
             modelBuilder.Entity<HierarchicalTask>().ToTable("erp_HierarchicalTasks");
             modelBuilder.Entity<JournalVoucher>().ToTable("erp_JournalVouchers");
             modelBuilder.Entity<BankReconciliationItem>().ToTable("erp_BankReconciliations");

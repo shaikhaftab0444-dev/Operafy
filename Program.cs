@@ -41,7 +41,7 @@ using (var scope = app.Services.CreateScope())
 
         // Safe automatic raw SQL schema patch BEFORE any LINQ queries execute
         string schemaPatchSql = @"
-            -- 1. Ensure ShiftId and JoiningDate exist on erp_Users in AITStudent schema
+            -- 1. Ensure ShiftId, JoiningDate, and Discriminator exist on erp_Users in AITStudent schema
             IF OBJECT_ID('AITStudent.erp_Users', 'U') IS NOT NULL
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'ShiftId')
@@ -51,6 +51,10 @@ using (var scope = app.Services.CreateScope())
                 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'JoiningDate')
                 BEGIN
                     ALTER TABLE AITStudent.erp_Users ADD JoiningDate DATETIME NULL;
+                END
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Users') AND name = 'Discriminator')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_Users ADD Discriminator NVARCHAR(50) NOT NULL DEFAULT 'User';
                 END
             END
             ELSE IF OBJECT_ID('erp_Users', 'U') IS NOT NULL
@@ -63,6 +67,10 @@ using (var scope = app.Services.CreateScope())
                 BEGIN
                     ALTER TABLE erp_Users ADD JoiningDate DATETIME NULL;
                 END
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_Users') AND name = 'Discriminator')
+                BEGIN
+                    ALTER TABLE erp_Users ADD Discriminator NVARCHAR(50) NOT NULL DEFAULT 'User';
+                END
             END
 
             -- AspNetUsers fallback
@@ -71,6 +79,10 @@ using (var scope = app.Services.CreateScope())
                 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AspNetUsers') AND name = 'ShiftId')
                 BEGIN
                     ALTER TABLE AspNetUsers ADD ShiftId INT NULL;
+                END
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AspNetUsers') AND name = 'Discriminator')
+                BEGIN
+                    ALTER TABLE AspNetUsers ADD Discriminator NVARCHAR(50) NOT NULL DEFAULT 'User';
                 END
             END
 

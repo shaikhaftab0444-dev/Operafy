@@ -272,6 +272,74 @@ namespace ERP_System.Data
                     );
                 END";
 
+            // Ensure erp_SalesLeads table exists
+            string createSalesLeadsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesLeads', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesLeads (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        LeadTitle NVARCHAR(200) NOT NULL DEFAULT '',
+                        CustomerName NVARCHAR(200) NOT NULL DEFAULT '',
+                        ContactEmail NVARCHAR(100) NOT NULL DEFAULT '',
+                        ContactPhone NVARCHAR(50) NOT NULL DEFAULT '',
+                        EstimatedDealValue DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Stage NVARCHAR(50) NOT NULL DEFAULT 'New',
+                        WinProbability INT NOT NULL DEFAULT 20,
+                        AssignedToUserId NVARCHAR(100) NOT NULL DEFAULT '',
+                        AssignedToUserUserId INT NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                        ExpectedCloseDate DATETIME NULL
+                    );
+                END";
+
+            // Ensure erp_SalesQuotations table exists
+            string createSalesQuotationsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesQuotations', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesQuotations (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        QuotationNumber NVARCHAR(100) NOT NULL DEFAULT '',
+                        CustomerName NVARCHAR(200) NOT NULL DEFAULT '',
+                        SubTotal DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        DiscountPercentage DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        RequiresManagerApproval BIT NOT NULL DEFAULT 0,
+                        ApprovalStatus NVARCHAR(50) NOT NULL DEFAULT 'Approved',
+                        ApprovalRemarks NVARCHAR(MAX) NULL,
+                        CreatedByUserId NVARCHAR(100) NOT NULL DEFAULT '',
+                        CreatedByUserUserId INT NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                    );
+                END";
+
+            // Ensure erp_SalesInvoices table exists
+            string createSalesInvoicesSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesInvoices', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesInvoices (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        InvoiceNumber NVARCHAR(100) NOT NULL DEFAULT '',
+                        CustomerName NVARCHAR(200) NOT NULL DEFAULT '',
+                        TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Paid',
+                        CreatedByUserId NVARCHAR(100) NOT NULL DEFAULT '',
+                        CreatedByUserUserId INT NULL,
+                        InvoiceDate DATETIME NOT NULL DEFAULT GETUTCDATE()
+                    );
+                END";
+
+            // Ensure updated erp_SalesTargets schema columns
+            string patchSalesTargetsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesTargets', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesTargets') AND name = 'SalesRepUserId')
+                        ALTER TABLE AITStudent.erp_SalesTargets ADD SalesRepUserId NVARCHAR(100) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesTargets') AND name = 'SalesRepUserUserId')
+                        ALTER TABLE AITStudent.erp_SalesTargets ADD SalesRepUserUserId INT NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesTargets') AND name = 'FiscalQuarter')
+                        ALTER TABLE AITStudent.erp_SalesTargets ADD FiscalQuarter NVARCHAR(50) NOT NULL DEFAULT 'Q3-2026';
+                END";
+
             // Execute scripts
             await context.Database.ExecuteSqlRawAsync(createLeadsSql);
             await context.Database.ExecuteSqlRawAsync(createQuotationsSql);
@@ -279,6 +347,10 @@ namespace ERP_System.Data
             await context.Database.ExecuteSqlRawAsync(createTargetsSql);
             await context.Database.ExecuteSqlRawAsync(createReturnsSql);
             await context.Database.ExecuteSqlRawAsync(createReceiptsSql);
+            await context.Database.ExecuteSqlRawAsync(createSalesLeadsSql);
+            await context.Database.ExecuteSqlRawAsync(createSalesQuotationsSql);
+            await context.Database.ExecuteSqlRawAsync(createSalesInvoicesSql);
+            await context.Database.ExecuteSqlRawAsync(patchSalesTargetsSql);
 
             // Seed initial records if empty
             if (!await context.Leads.AnyAsync())
@@ -301,6 +373,178 @@ namespace ERP_System.Data
                     new SalesOrder { OrderNumber = "SO-2026-0411", CustomerName = "Mehta Logistics", TotalAmount = 425000m, Status = "Invoiced", OrderDate = DateTime.Today.AddDays(-5), PaymentTerms = "Immediate" },
                     new SalesOrder { OrderNumber = "SO-2026-0410", CustomerName = "Apex Industrial Supply", TotalAmount = 215000m, Status = "Confirmed", OrderDate = DateTime.Today.AddDays(-8), PaymentTerms = "Net 30" },
                     new SalesOrder { OrderNumber = "SO-2026-0409", CustomerName = "TechCorp Solutions", TotalAmount = 540000m, Status = "Invoiced", OrderDate = DateTime.Today.AddDays(-12), PaymentTerms = "Net 60" }
+                });
+            }
+
+            // Seed Sales Subordinates (Executives reporting to Sales Manager / Admin)
+            var salesRole = await context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Sales Executive");
+            if (salesRole == null)
+            {
+                salesRole = new Role { RoleName = "Sales Executive", Description = "Field & Inbound Sales Executive" };
+                await context.Roles.AddAsync(salesRole);
+                await context.SaveChangesAsync();
+            }
+
+            var adminUser = await context.Users.FirstOrDefaultAsync(u => u.UserId == 1);
+            var managerIdStr = adminUser != null ? adminUser.UserId.ToString() : "1";
+            var managerDeptId = adminUser?.DepartmentId ?? 1;
+
+            if (!await context.Users.AnyAsync(u => u.Email == "amit.verma@erp.com"))
+            {
+                var rep1 = new User
+                {
+                    UserCode = "REP-001",
+                    UserName = "amit.verma",
+                    FullName = "Amit Verma",
+                    Email = "amit.verma@erp.com",
+                    PasswordHash = "AQAAAAIAAYagAAAAEOkJcAU1YEZ50GcXjw9Sn+CYrXr+BWC75/EPUpfVliWCv4Alu/+3memoVLfE2G515w==",
+                    RoleId = salesRole.RoleId,
+                    DepartmentId = managerDeptId,
+                    DepartmentName = "Sales & Marketing",
+                    ReportingManagerId = managerIdStr,
+                    ReportingManagerName = adminUser?.FullName ?? "Sales Manager",
+                    BranchId = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddMonths(-6)
+                };
+                var rep2 = new User
+                {
+                    UserCode = "REP-002",
+                    UserName = "neha.sharma",
+                    FullName = "Neha Sharma",
+                    Email = "neha.sharma@erp.com",
+                    PasswordHash = "AQAAAAIAAYagAAAAEOkJcAU1YEZ50GcXjw9Sn+CYrXr+BWC75/EPUpfVliWCv4Alu/+3memoVLfE2G515w==",
+                    RoleId = salesRole.RoleId,
+                    DepartmentId = managerDeptId,
+                    DepartmentName = "Sales & Marketing",
+                    ReportingManagerId = managerIdStr,
+                    ReportingManagerName = adminUser?.FullName ?? "Sales Manager",
+                    BranchId = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddMonths(-4)
+                };
+                var rep3 = new User
+                {
+                    UserCode = "REP-003",
+                    UserName = "rohan.das",
+                    FullName = "Rohan Das",
+                    Email = "rohan.das@erp.com",
+                    PasswordHash = "AQAAAAIAAYagAAAAEOkJcAU1YEZ50GcXjw9Sn+CYrXr+BWC75/EPUpfVliWCv4Alu/+3memoVLfE2G515w==",
+                    RoleId = salesRole.RoleId,
+                    DepartmentId = managerDeptId,
+                    DepartmentName = "Sales & Marketing",
+                    ReportingManagerId = managerIdStr,
+                    ReportingManagerName = adminUser?.FullName ?? "Sales Manager",
+                    BranchId = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddMonths(-2)
+                };
+
+                await context.Users.AddRangeAsync(rep1, rep2, rep3);
+                await context.SaveChangesAsync();
+            }
+
+            // Retrieve rep user IDs for foreign keys & relations
+            var reps = await context.Users.Where(u => u.Email == "amit.verma@erp.com" || u.Email == "neha.sharma@erp.com" || u.Email == "rohan.das@erp.com").ToListAsync();
+            var repAmit = reps.FirstOrDefault(u => u.Email == "amit.verma@erp.com");
+            var repNeha = reps.FirstOrDefault(u => u.Email == "neha.sharma@erp.com");
+            var repRohan = reps.FirstOrDefault(u => u.Email == "rohan.das@erp.com");
+
+            string r1Id = repAmit != null ? repAmit.UserId.ToString() : "1";
+            int? r1Uid = repAmit?.UserId;
+            string r2Id = repNeha != null ? repNeha.UserId.ToString() : "1";
+            int? r2Uid = repNeha?.UserId;
+            string r3Id = repRohan != null ? repRohan.UserId.ToString() : "1";
+            int? r3Uid = repRohan?.UserId;
+
+            // Seed Sales Leads across 5 funnel stages
+            if (!await context.SalesLeads.AnyAsync())
+            {
+                await context.SalesLeads.AddRangeAsync(new List<SalesLead>
+                {
+                    new SalesLead { LeadTitle = "Enterprise Cloud ERP Modernization", CustomerName = "Apex Infotech Pvt Ltd", ContactEmail = "contact@apexinfo.in", ContactPhone = "+91 98111 22334", EstimatedDealValue = 1800000m, Stage = "New", WinProbability = 20, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedAt = DateTime.UtcNow.AddDays(-2), ExpectedCloseDate = DateTime.UtcNow.AddDays(45) },
+                    new SalesLead { LeadTitle = "Supply Chain Warehouse Management", CustomerName = "BlueDart Logistics Corp", ContactEmail = "procure@bluedart.com", ContactPhone = "+91 98222 33445", EstimatedDealValue = 2400000m, Stage = "New", WinProbability = 20, AssignedToUserId = r2Id, AssignedToUserUserId = r2Uid, CreatedAt = DateTime.UtcNow.AddDays(-3), ExpectedCloseDate = DateTime.UtcNow.AddDays(50) },
+                    new SalesLead { LeadTitle = "HRMS & Automated Biometrics Setup", CustomerName = "Zenith Healthcare Ltd", ContactEmail = "it@zenithhealth.org", ContactPhone = "+91 98333 44556", EstimatedDealValue = 1250000m, Stage = "Qualified", WinProbability = 40, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedAt = DateTime.UtcNow.AddDays(-6), ExpectedCloseDate = DateTime.UtcNow.AddDays(30) },
+                    new SalesLead { LeadTitle = "Financial Accounting & Tax Hub", CustomerName = "Mahindra Finance Group", ContactEmail = "accounts@mfg.in", ContactPhone = "+91 98444 55667", EstimatedDealValue = 3100000m, Stage = "Qualified", WinProbability = 40, AssignedToUserId = r3Id, AssignedToUserUserId = r3Uid, CreatedAt = DateTime.UtcNow.AddDays(-8), ExpectedCloseDate = DateTime.UtcNow.AddDays(35) },
+                    new SalesLead { LeadTitle = "Multi-Branch POS System", CustomerName = "Reliance Fresh Express", ContactEmail = "retail@relfresh.com", ContactPhone = "+91 98555 66778", EstimatedDealValue = 1450000m, Stage = "Quotation Sent", WinProbability = 60, AssignedToUserId = r2Id, AssignedToUserUserId = r2Uid, CreatedAt = DateTime.UtcNow.AddDays(-10), ExpectedCloseDate = DateTime.UtcNow.AddDays(20) },
+                    new SalesLead { LeadTitle = "Manufacturing BOM Automation", CustomerName = "Bajaj Auto Components", ContactEmail = "orders@bajajcomponents.in", ContactPhone = "+91 98666 77889", EstimatedDealValue = 2200000m, Stage = "Negotiation", WinProbability = 80, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedAt = DateTime.UtcNow.AddDays(-14), ExpectedCloseDate = DateTime.UtcNow.AddDays(15) },
+                    new SalesLead { LeadTitle = "Omni-Channel Customer CRM", CustomerName = "Tata Consumer Products", ContactEmail = "crm@tataconsumer.com", ContactPhone = "+91 98777 88990", EstimatedDealValue = 2750000m, Stage = "Negotiation", WinProbability = 80, AssignedToUserId = r3Id, AssignedToUserUserId = r3Uid, CreatedAt = DateTime.UtcNow.AddDays(-16), ExpectedCloseDate = DateTime.UtcNow.AddDays(10) },
+                    new SalesLead { LeadTitle = "Enterprise Global License Agreement", CustomerName = "Wipro Technologies", ContactEmail = "vendor@wipro.com", ContactPhone = "+91 98888 99001", EstimatedDealValue = 4200000m, Stage = "Closed Won", WinProbability = 100, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedAt = DateTime.UtcNow.AddDays(-25), ExpectedCloseDate = DateTime.UtcNow.AddDays(-5) },
+                    new SalesLead { LeadTitle = "Integrated Logistics Cloud", CustomerName = "Gati Logistics", ContactEmail = "info@gati.in", ContactPhone = "+91 98999 00112", EstimatedDealValue = 1950000m, Stage = "Closed Won", WinProbability = 100, AssignedToUserId = r2Id, AssignedToUserUserId = r2Uid, CreatedAt = DateTime.UtcNow.AddDays(-30), ExpectedCloseDate = DateTime.UtcNow.AddDays(-10) }
+                });
+            }
+
+            // Seed Sales Quotations with Pending Approvals (Discount > 10%)
+            if (!await context.SalesQuotations.AnyAsync())
+            {
+                await context.SalesQuotations.AddRangeAsync(new List<SalesQuotation>
+                {
+                    new SalesQuotation
+                    {
+                        QuotationNumber = "QT-2026-0042",
+                        CustomerName = "Zenith Infotech Ltd",
+                        SubTotal = 1500000m,
+                        DiscountPercentage = 15.00m,
+                        TotalAmount = 1275000m,
+                        RequiresManagerApproval = true,
+                        ApprovalStatus = "Pending Review",
+                        ApprovalRemarks = "Client requested 15% enterprise volume rebate on annual license upfront payment.",
+                        CreatedByUserId = r1Id,
+                        CreatedByUserUserId = r1Uid,
+                        CreatedAt = DateTime.UtcNow.AddHours(-4)
+                    },
+                    new SalesQuotation
+                    {
+                        QuotationNumber = "QT-2026-0045",
+                        CustomerName = "Paramount Global Logistics",
+                        SubTotal = 2200000m,
+                        DiscountPercentage = 12.50m,
+                        TotalAmount = 1925000m,
+                        RequiresManagerApproval = true,
+                        ApprovalStatus = "Pending Review",
+                        ApprovalRemarks = "Multi-year renewal pricing concession requested for nationwide deployment.",
+                        CreatedByUserId = r2Id,
+                        CreatedByUserUserId = r2Uid,
+                        CreatedAt = DateTime.UtcNow.AddHours(-18)
+                    },
+                    new SalesQuotation
+                    {
+                        QuotationNumber = "QT-2026-0038",
+                        CustomerName = "Apex Retailers Ltd",
+                        SubTotal = 800000m,
+                        DiscountPercentage = 5.00m,
+                        TotalAmount = 760000m,
+                        RequiresManagerApproval = false,
+                        ApprovalStatus = "Approved",
+                        ApprovalRemarks = "Standard partner rate applied.",
+                        CreatedByUserId = r3Id,
+                        CreatedByUserUserId = r3Uid,
+                        CreatedAt = DateTime.UtcNow.AddDays(-4)
+                    }
+                });
+            }
+
+            // Seed Sales Invoices (Closed & Paid)
+            if (!await context.SalesInvoices.AnyAsync())
+            {
+                await context.SalesInvoices.AddRangeAsync(new List<SalesInvoice>
+                {
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0810", CustomerName = "Tata Steel Logistics", TotalAmount = 1245000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddDays(-2) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0815", CustomerName = "Infosys Campus B", TotalAmount = 1050000m, Status = "Paid", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddDays(-4) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0820", CustomerName = "L&T Construction", TotalAmount = 820000m, Status = "Paid", CreatedByUserId = r3Id, CreatedByUserUserId = r3Uid, InvoiceDate = DateTime.UtcNow.AddDays(-7) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0825", CustomerName = "Reliance Retail Hub", TotalAmount = 950000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddDays(-11) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0830", CustomerName = "Adani Ports Automation", TotalAmount = 780000m, Status = "Paid", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddDays(-15) }
+                });
+            }
+
+            // Seed Sales Targets for Q3-2026
+            if (!await context.SalesTargets.AnyAsync(t => t.FiscalQuarter == "Q3-2026"))
+            {
+                await context.SalesTargets.AddRangeAsync(new List<SalesTarget>
+                {
+                    new SalesTarget { SalesRepUserId = r1Id, SalesRepUserUserId = r1Uid, FiscalQuarter = "Q3-2026", TargetAmount = 5000000m, AchievedAmount = 2195000m, ExecutiveUserId = r1Id, Month = 9, Year = 2026 },
+                    new SalesTarget { SalesRepUserId = r2Id, SalesRepUserUserId = r2Uid, FiscalQuarter = "Q3-2026", TargetAmount = 5000000m, AchievedAmount = 1830000m, ExecutiveUserId = r2Id, Month = 9, Year = 2026 },
+                    new SalesTarget { SalesRepUserId = r3Id, SalesRepUserUserId = r3Uid, FiscalQuarter = "Q3-2026", TargetAmount = 5000000m, AchievedAmount = 820000m, ExecutiveUserId = r3Id, Month = 9, Year = 2026 }
                 });
             }
 
