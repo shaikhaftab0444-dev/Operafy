@@ -66,12 +66,68 @@ namespace ERP_System.Controllers
             );
         }
 
+        private async Task SyncDatabaseMessagesAsync((string name, string email, string role, int id) currentUser)
+        {
+            try
+            {
+                var dbMessages = await _context.InternalMessages
+                    .Include(m => m.Sender)
+                        .ThenInclude(s => s!.Role)
+                    .Include(m => m.Recipient)
+                        .ThenInclude(r => r!.Role)
+                    .OrderByDescending(m => m.SentAt)
+                    .Take(100)
+                    .ToListAsync();
+
+                lock (_lock)
+                {
+                    if (_messageStore == null) _messageStore = new List<MessageItem>();
+
+                    foreach (var dbMsg in dbMessages)
+                    {
+                        int mappedId = 10000 + dbMsg.Id;
+                        var existing = _messageStore.FirstOrDefault(m => m.MessageId == mappedId || (m.Subject == dbMsg.Subject && m.SentAt == dbMsg.SentAt));
+                        if (existing == null)
+                        {
+                            var item = new MessageItem
+                            {
+                                MessageId = mappedId,
+                                SenderName = dbMsg.Sender?.FullName ?? dbMsg.Sender?.UserName ?? "HR / Payroll Operations",
+                                SenderEmail = dbMsg.Sender?.Email ?? "hr@erp.com",
+                                SenderRole = dbMsg.Sender?.Role?.RoleName ?? "HR",
+                                SenderAvatar = dbMsg.Sender?.ProfilePhoto ?? "/profile_images/admin-avatar.jpg",
+                                RecipientName = dbMsg.Recipient?.FullName ?? dbMsg.Recipient?.UserName ?? "Employee",
+                                RecipientEmail = dbMsg.Recipient?.Email ?? "employee@erp.com",
+                                Subject = dbMsg.Subject,
+                                BodyContent = dbMsg.Body,
+                                Category = !string.IsNullOrEmpty(dbMsg.Category) ? dbMsg.Category : "Payroll & Audit",
+                                SentAt = dbMsg.SentAt,
+                                IsRead = dbMsg.IsRead,
+                                IsStarred = false,
+                                IsTrash = (dbMsg.Folder == "Trash"),
+                                Priority = "Normal",
+                                AttachmentUrl = dbMsg.AttachmentUrl
+                            };
+
+                            _messageStore.Add(item);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Graceful fallback if database read fails
+            }
+        }
+
         // GET: /Inbox
         [HttpGet]
         public async Task<IActionResult> Index(string? folder, int? id, string? search)
         {
             string currentFolder = string.IsNullOrWhiteSpace(folder) ? "inbox" : folder.ToLower();
             var currentUser = await GetCurrentUserAsync();
+
+            await SyncDatabaseMessagesAsync(currentUser);
 
             List<MessageItem> all;
             lock (_lock)
@@ -81,13 +137,14 @@ namespace ERP_System.Controllers
 
             // Helper matches
             bool IsRecipient(MessageItem m) =>
-                m.RecipientEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase) ||
-                m.RecipientName.Equals(currentUser.name, StringComparison.OrdinalIgnoreCase) ||
-                m.RecipientName.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase);
+                (!string.IsNullOrEmpty(m.RecipientEmail) && m.RecipientEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(m.RecipientName) && m.RecipientName.Equals(currentUser.name, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(m.RecipientName) && m.RecipientName.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase));
 
             bool IsSender(MessageItem m) =>
-                m.SenderEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase) ||
-                m.SenderName.Equals(currentUser.name, StringComparison.OrdinalIgnoreCase);
+                (!string.IsNullOrEmpty(m.SenderEmail) && m.SenderEmail.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(m.SenderName) && m.SenderName.Equals(currentUser.name, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(m.SenderName) && m.SenderName.Equals(currentUser.email, StringComparison.OrdinalIgnoreCase));
 
             // Filter by folder for current user ID
             IEnumerable<MessageItem> filtered = currentFolder switch

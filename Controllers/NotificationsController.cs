@@ -376,6 +376,38 @@ namespace ERP_System.Controllers
         {
             try
             {
+                var sysNotifs = await _context.SystemNotifications
+                    .Include(n => n.User)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(10)
+                    .ToListAsync();
+
+                lock (_lock)
+                {
+                    if (_notificationStore == null) _notificationStore = new List<NotificationItem>();
+                    foreach (var sn in sysNotifs)
+                    {
+                        if (!_notificationStore.Any(n => n.Title == sn.Title && n.Description == sn.Message && n.CreatedAt == sn.CreatedAt))
+                        {
+                            int maxId = _notificationStore.Any() ? _notificationStore.Max(n => n.NotificationId) + 1 : 1;
+                            _notificationStore.Insert(0, new NotificationItem
+                            {
+                                NotificationId = maxId,
+                                Title = sn.Title,
+                                Description = sn.Message,
+                                Category = string.IsNullOrEmpty(sn.Category) ? "HR" : sn.Category,
+                                CreatedAt = sn.CreatedAt,
+                                IsRead = sn.IsRead,
+                                IconClass = "fa-file-invoice-dollar",
+                                ColorClass = "text-success",
+                                BgColorClass = "bg-success-subtle",
+                                TargetUrl = !string.IsNullOrEmpty(sn.TargetUrl) ? sn.TargetUrl : "/HRPayroll/Payslips",
+                                TargetEmail = sn.User?.Email ?? ""
+                            });
+                        }
+                    }
+                }
+
                 var logs = await _context.ActivityLogs.OrderByDescending(a => a.CreatedAt).Take(5).ToListAsync();
                 lock (_lock)
                 {

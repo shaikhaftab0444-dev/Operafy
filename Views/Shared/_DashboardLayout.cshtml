@@ -1489,6 +1489,12 @@
                                 <i class="fa fa-book-open me-2"></i> General Ledger (Read-Only)
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(currentController == "HRPayroll" && currentAction == "StatutoryCompliance" ? "active" : "")" 
+                               href="/HRPayroll/StatutoryCompliance">
+                                <i class="fa fa-building-shield me-2"></i> Statutory Compliance (PF/ESI/TDS)
+                            </a>
+                        </li>
                     </ul>
 
                     <!-- AUDITOR PERSONAL SELF-SERVICE (ESS) -->
@@ -1696,6 +1702,13 @@
                         <div>
                             <i class="fa-solid fa-stamp menu-icon me-2"></i>
                             <span>Taxation & Compliance</span>
+                        </div>
+                    </a>
+
+                    <a href="/HRPayroll/StatutoryCompliance" class="menu-link nav-link @(currentController == "HRPayroll" && currentAction == "StatutoryCompliance" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-building-shield menu-icon me-2"></i>
+                            <span>Statutory Compliance (PF/ESI/TDS)</span>
                         </div>
                     </a>
 
@@ -1944,6 +1957,12 @@
                         <div>
                             <i class="fa-solid fa-calendar-days menu-icon"></i>
                             <span>Company Holiday Calendar</span>
+                        </div>
+                    </a>
+                    <a href="/HRPayroll/StatutoryCompliance" class="menu-link @(currentController == "HRPayroll" && currentAction == "StatutoryCompliance" ? "active" : "")">
+                        <div>
+                            <i class="fa-solid fa-building-shield menu-icon"></i>
+                            <span>Statutory Compliance (PF/ESI/TDS)</span>
                         </div>
                     </a>
 
@@ -2701,9 +2720,10 @@
                         data.notifications.forEach(function (n) {
                             var unreadTag = !n.isRead ? '<span class="badge bg-primary rounded-pill ms-1" style="font-size:0.55rem;">NEW</span>' : '';
                             var borderStyle = !n.isRead ? 'border-left: 3px solid #3b82f6; background-color: #f8fafc;' : '';
+                            var targetAttr = (n.targetUrl && (n.targetUrl.toLowerCase().includes('pdf') || n.targetUrl.toLowerCase().includes('download'))) ? 'target="_blank"' : 'target="_self"';
                             html += `
-                                <a href="${n.targetUrl || '/Notifications'}" class="text-decoration-none d-block p-2 rounded mb-1 hover-bg" style="${borderStyle}">
-                                    <div class="d-flex align-items-center justify-content-between">
+                                <a href="${n.targetUrl || '/Notifications'}" ${targetAttr} class="text-decoration-none d-block p-2 rounded mb-1 hover-bg" style="${borderStyle}">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
                                         <span class="fw-bold d-block text-dark small"><i class="fa-solid ${n.iconClass || 'fa-bell'} ${n.colorClass || 'text-primary'} me-1.5"></i>${escapeHtmlNotif(n.title)} ${unreadTag}</span>
                                         <span class="text-muted extra-small" style="font-size: 0.7rem;">${n.timeAgo}</span>
                                     </div>
@@ -2721,7 +2741,33 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             pollRealtimeUserNotifications();
-            setInterval(pollRealtimeUserNotifications, 3000);
+            setInterval(pollRealtimeUserNotifications, 5000);
+
+            // Real-time SignalR Hub Connection for Notifications & Distribution
+            if (typeof signalR !== 'undefined') {
+                const hubConn = new signalR.HubConnectionBuilder()
+                    .withUrl("/erpNotificationHub")
+                    .withAutomaticReconnect([0, 2000, 5000, 10000])
+                    .build();
+
+                hubConn.on("ReceivePayslipIssuedAlert", function (data) {
+                    console.log("[SignalR] Received Payslip Issued Alert:", data);
+                    if (typeof toastr !== 'undefined') {
+                        toastr.info(data.message || `Payslip for ${data.payPeriod} issued!`, "Payslip Distribution", {
+                            timeOut: 6000,
+                            closeButton: true,
+                            progressBar: true
+                        });
+                    }
+                    pollRealtimeUserNotifications();
+                });
+
+                hubConn.start().then(function () {
+                    console.log("[SignalR] Layout connected to /erpNotificationHub");
+                }).catch(function (err) {
+                    console.warn("[SignalR] Connection error:", err.toString());
+                });
+            }
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)

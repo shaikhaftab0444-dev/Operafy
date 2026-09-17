@@ -97,8 +97,14 @@ namespace ERP_System.Data
         public DbSet<PayrollComponent> PayrollComponents { get; set; }
         public DbSet<StatutoryConfiguration> StatutoryConfigurations { get; set; }
         public DbSet<StatutoryFilingLog> StatutoryFilingLogs { get; set; }
+        public DbSet<StatutoryReturnFiling> StatutoryReturnFilings { get; set; }
+        public DbSet<StatutoryRuleConfig> StatutoryRuleConfigs { get; set; }
+        public DbSet<BankTransaction> BankTransactions { get; set; }
         public DbSet<BonusIncentive> BonusIncentives { get; set; }
         public DbSet<PayrollRun> PayrollRuns { get; set; }
+        public DbSet<SalarySlip> SalarySlips { get; set; }
+        public DbSet<InternalMessage> InternalMessages { get; set; }
+        public DbSet<SystemNotification> SystemNotifications { get; set; }
 
         // ATS & Recruitment DbSets
         public DbSet<JobOpening> JobOpenings { get; set; }

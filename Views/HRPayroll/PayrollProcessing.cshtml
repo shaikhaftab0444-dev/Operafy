@@ -1,18 +1,18 @@
+@model List<ERP_System.Models.PayrollRun>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Monthly Payroll Processing";
-    var runs = ViewBag.PayrollRuns as List<ERP_System.Models.PayrollRun> ?? new List<ERP_System.Models.PayrollRun>();
+    var runs = Model ?? ViewBag.PayrollRuns as List<ERP_System.Models.PayrollRun> ?? new List<ERP_System.Models.PayrollRun>();
 
-    var activeEmployeesCount = ViewBag.ActiveEmployeesCount ?? 0;
-    var draftRunsCount = ViewBag.DraftRunsCount ?? 0;
-    var paidRuns = runs.Where(r => r.Status == "Paid").ToList();
-    var totalNetPaid = paidRuns.Sum(r => r.TotalNetSalary);
+    var activeEmployeesCount = ViewBag.EligibleEmployees ?? ViewBag.ActiveEmployeesCount ?? 0;
+    var draftRunsCount = ViewBag.PendingApproval ?? ViewBag.DraftRunsCount ?? 0;
+    var totalNetPaid = ViewBag.TotalNetPaid ?? runs.Where(r => r.Status == "Paid & Closed" || r.Status == "Paid").Sum(r => r.TotalNetSalary);
+    var bankAccounts = ViewBag.CompanyBanks as List<ERP_System.Models.CompanyBankAccount> ?? ViewBag.BankAccounts as List<ERP_System.Models.CompanyBankAccount> ?? new List<ERP_System.Models.CompanyBankAccount>();
 }
 
 <style>
     /* =========================================================
            MONTHLY PAYROLL PROCESSING - PREMIUM RESPONSIVE UI
-           FUNCTIONAL CODE IS NOT CHANGED
         ========================================================== */
 
     .payroll-page {
@@ -359,10 +359,6 @@
         white-space: nowrap;
     }
 
-    /* IMPORTANT:
-           Table scrolls correctly instead of cutting the action buttons.
-        */
-
     .payroll-history-card .table-responsive {
         width: 100%;
         overflow-x: auto;
@@ -387,7 +383,7 @@
 
     .payroll-table {
         width: max-content;
-        min-width: 1280px;
+        min-width: 1360px;
         margin: 0;
         font-size: .82rem;
     }
@@ -406,7 +402,7 @@
         }
 
             .payroll-table thead th:last-child {
-                min-width: 285px;
+                min-width: 290px;
                 padding-right: 20px;
             }
 
@@ -418,7 +414,7 @@
         }
 
             .payroll-table tbody td:last-child {
-                min-width: 285px;
+                min-width: 290px;
                 padding-right: 20px;
             }
 
@@ -498,105 +494,68 @@
         white-space: nowrap;
     }
 
-    .employee-count {
-        color: #334155;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
     .status-pill {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 7px 10px;
+        padding: 6px 12px;
         border-radius: 50px;
-        font-size: .7rem;
+        font-size: .73rem;
         font-weight: 700;
         white-space: nowrap;
     }
 
     .status-paid {
-        color: #15803d;
         background: #f0fdf4;
+        color: #16a34a;
         border: 1px solid #bbf7d0;
     }
 
     .status-approved {
-        color: #1d4ed8;
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-    }
-
-    .status-locked {
-        color: #475569;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-    }
-
-    .status-review {
-        color: #0e7490;
         background: #ecfeff;
+        color: #0891b2;
         border: 1px solid #a5f3fc;
     }
 
-    .status-draft {
-        color: #b45309;
-        background: #fffbeb;
-        border: 1px solid #fde68a;
+    .status-review {
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
     }
 
-    /* FIXED WORKFLOW ACTION BUTTON AREA */
+    .status-draft {
+        background: #fff7ed;
+        color: #d97706;
+        border: 1px solid #fed7aa;
+    }
+
+    .payroll-action-btn {
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: .74rem;
+        padding: 6px 13px;
+        transition: transform .15s ease;
+    }
+
+        .payroll-action-btn:hover {
+            transform: translateY(-2px);
+        }
 
     .action-wrap {
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        flex-wrap: nowrap;
         gap: 8px;
-        min-width: 265px;
-        width: max-content;
-        margin-left: auto;
-    }
-
-        .action-wrap form {
-            display: inline-flex;
-            flex: 0 0 auto;
-            margin: 0;
-        }
-
-    .payroll-action-btn {
-        min-height: 36px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-        padding: 0 12px;
-        font-size: .72rem;
-        font-weight: 700;
-        white-space: nowrap;
-        transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
-    }
-
-        .payroll-action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 7px 14px rgba(15,23,42,.08);
-        }
-
-    /* ================= EMPTY STATE ================= */
-
-    .payroll-empty-state {
-        padding: 55px 20px !important;
-        white-space: normal !important;
     }
 
     .empty-icon {
-        width: 68px;
-        height: 68px;
-        display: flex;
+        width: 60px;
+        height: 60px;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 15px;
-        border-radius: 22px;
+        margin-bottom: 14px;
+        border-radius: 20px;
         color: var(--payroll-primary);
         background: #eff6ff;
         font-size: 1.5rem;
@@ -845,7 +804,7 @@
         }
 
     .details-table {
-        min-width: 800px;
+        min-width: 900px;
         margin: 0;
         font-size: .8rem;
     }
@@ -940,7 +899,7 @@
 
     @@media (max-width: 1199.98px) {
         .payroll-table {
-            min-width: 1260px;
+            min-width: 1300px;
         }
     }
 
@@ -966,7 +925,7 @@
         }
 
         .payroll-table {
-            min-width: 1240px;
+            min-width: 1260px;
         }
     }
 
@@ -1179,7 +1138,7 @@
 
                     <p class="payroll-subtitle">
                         Process employee salaries, calculate statutory deductions, verify payroll records,
-                        approve the pay run and complete salary disbursement from one secure workflow.
+                        approve the pay run and complete salary disbursement with live bank integration and ESS publication.
                     </p>
 
                     <div class="payroll-engine-badge">
@@ -1270,7 +1229,7 @@
                     <div>
                         <div class="stat-label">Total Net Paid</div>
                         <h3 class="stat-value stat-success">
-                            ₹@totalNetPaid.ToString("N0")
+                            ₹@(((decimal)totalNetPaid).ToString("N0"))
                         </h3>
                     </div>
 
@@ -1281,7 +1240,7 @@
 
                 <div class="stat-footer">
                     <i class="fa-solid fa-circle-check"></i>
-                    Completed and paid payroll runs
+                    Completed and disbursed payroll runs
                 </div>
             </div>
         </div>
@@ -1321,6 +1280,7 @@
                         <th>Deductions</th>
                         <th>Net Paid</th>
                         <th>Employer CTC</th>
+                        <th>Disbursed Via</th>
                         <th>Status</th>
                         <th class="text-end">Workflow Actions</th>
                     </tr>
@@ -1330,7 +1290,7 @@
                     @if (!runs.Any())
                     {
                         <tr>
-                            <td colspan="9" class="text-center payroll-empty-state">
+                            <td colspan="10" class="text-center payroll-empty-state py-5">
                                 <div class="empty-icon">
                                     <i class="fa-solid fa-calculator"></i>
                                 </div>
@@ -1373,7 +1333,7 @@
                                 </td>
 
                                 <td>
-                                    <span class="employee-count">
+                                    <span class="fw-bold text-dark">
                                         @r.TotalEmployees Employee@(r.TotalEmployees == 1 ? "" : "s")
                                     </span>
                                 </td>
@@ -1403,7 +1363,20 @@
                                 </td>
 
                                 <td>
-                                    @if (r.Status == "Paid")
+                                    @if (r.CompanyBankAccount != null)
+                                    {
+                                        <span class="badge bg-light text-primary border px-2 py-1" style="font-size: 0.72rem;">
+                                            <i class="fa-solid fa-building-columns me-1"></i>@r.CompanyBankAccount.BankName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    @if (r.Status == "Paid & Closed" || r.Status == "Paid")
                                     {
                                         <span class="status-pill status-paid">
                                             <i class="fa-solid fa-circle-check"></i>
@@ -1435,7 +1408,7 @@
                                     {
                                         <span class="status-pill status-draft">
                                             <i class="fa-solid fa-hourglass-half"></i>
-                                            Draft
+                                            @(string.IsNullOrEmpty(r.Status) ? "Draft" : r.Status)
                                         </span>
                                     }
                                 </td>
@@ -1445,7 +1418,7 @@
 
                                         <button type="button"
                                                 class="btn btn-outline-primary payroll-action-btn"
-                                                onclick="viewPayrollRunDetails(@r.PayrollRunId)">
+                                                onclick="inspectPayroll(@r.PayrollRunId)">
                                             <i class="fa-solid fa-eye me-1"></i>
                                             Inspect
                                         </button>
@@ -1465,14 +1438,14 @@
 
                                                 <button type="submit"
                                                         class="btn btn-outline-info payroll-action-btn"
-                                                        title="Submit for HR Review">
+                                                        title="Submit for HR & Finance Review">
                                                     <i class="fa-solid fa-paper-plane me-1"></i>
                                                     Review
                                                 </button>
                                             </form>
                                         }
 
-                                        else if (r.Status == "Under Review")
+                                        @if (r.Status == "Under Review")
                                         {
                                             <form asp-action="UpdatePayrollRunStatus" method="post" class="d-inline">
                                                 @Html.AntiForgeryToken()
@@ -1487,33 +1460,29 @@
 
                                                 <button type="submit"
                                                         class="btn btn-outline-success payroll-action-btn"
-                                                        title="Approve Payroll">
+                                                        title="Approve Payroll Cycle">
                                                     <i class="fa-solid fa-check me-1"></i>
                                                     Approve
                                                 </button>
                                             </form>
                                         }
 
-                                        else if (r.Status == "Approved")
+                                        @if (r.Status == "Approved" || r.Status == "Under Review")
                                         {
-                                            <form asp-action="UpdatePayrollRunStatus" method="post" class="d-inline">
-                                                @Html.AntiForgeryToken()
+                                            <button type="button"
+                                                    class="btn btn-success payroll-action-btn"
+                                                    onclick="openDisburseModal(@r.PayrollRunId, '@r.PayPeriod', '@r.TotalNetSalary.ToString("N2")', @r.TotalEmployees)"
+                                                    title="Disburse via Company Bank & Release Payslips to ESS">
+                                                <i class="fa-solid fa-money-bill-wave me-1"></i>
+                                                Disburse & Pay
+                                            </button>
+                                        }
 
-                                                <input type="hidden"
-                                                       name="runId"
-                                                       value="@r.PayrollRunId" />
-
-                                                <input type="hidden"
-                                                       name="newStatus"
-                                                       value="Paid" />
-
-                                                <button type="submit"
-                                                        class="btn btn-success payroll-action-btn"
-                                                        title="Disburse Salary and Mark Paid">
-                                                    <i class="fa-solid fa-money-bill-wave me-1"></i>
-                                                    Mark Paid
-                                                </button>
-                                            </form>
+                                        @if (r.Status == "Paid & Closed" || r.Status == "Paid")
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle py-2 px-2" style="font-size:0.75rem;">
+                                                <i class="fa-solid fa-check-double me-1"></i>Published to ESS
+                                            </span>
                                         }
 
                                     </div>
@@ -1726,7 +1695,7 @@
                     </h5>
 
                     <p class="payroll-modal-subtitle">
-                        Employee-level salary and payslip information.
+                        Employee-level salary, statutory deductions, and payslip details.
                     </p>
                 </div>
 
@@ -1758,6 +1727,100 @@
     </div>
 </div>
 
+<div class="modal fade payroll-modal"
+     id="disburseModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="payroll-modal-header" style="background: linear-gradient(135deg, #064e3b, #059669);">
+                <div>
+                    <h5 class="payroll-modal-title">
+                        <i class="fa-solid fa-money-bill-transfer me-2"></i>
+                        Authorize Salary Disbursement
+                    </h5>
+                    <p class="payroll-modal-subtitle">
+                        Debit company bank account and auto-publish payslips to Employee ESS.
+                    </p>
+                </div>
+                <button type="button"
+                        class="btn-close btn-close-white position-relative"
+                        style="z-index:2;"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+            </div>
+
+            <form asp-action="DisbursePayroll" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="runId" id="disburseRunId" />
+
+                <div class="modal-body text-start">
+                    
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Pay Period:</span>
+                            <span class="fw-bold" id="disbursePeriodText">Loading...</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Total Employees:</span>
+                            <span class="fw-bold" id="disburseEmployeesText">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between border-top pt-2">
+                            <span class="fw-bold text-dark">Total Net Payout:</span>
+                            <span class="fw-bold text-success fs-5" id="disburseAmountText">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="payroll-form-label">
+                            Disbursement Company Bank Account <span class="required">*</span>
+                        </label>
+                        <select name="companyBankAccountId" class="form-select" required>
+                            @if (bankAccounts.Any())
+                            {
+                                foreach (var bank in bankAccounts)
+                                {
+                                    <option value="@bank.Id">
+                                        @bank.BankName — A/C: @bank.AccountNumber (Balance: ₹@bank.CurrentBalance.ToString("N2"))
+                                    </option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="" disabled selected>No Company Bank Accounts Configured</option>
+                            }
+                        </select>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="fa-solid fa-shield-halved text-success me-1"></i>
+                            Direct debit will be logged in Finance General Ledger transactions.
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 mb-0 small border-0 bg-info-subtle text-info-emphasis rounded-3">
+                        <i class="fa-solid fa-bullhorn me-1"></i>
+                        Upon authorization, salary slips will be marked <strong>Paid</strong> and immediately visible to staff in their ESS self-service portals.
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border modal-cancel-btn" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success fw-bold px-4 modal-submit-btn" style="background: linear-gradient(135deg, #16a34a, #15803d);">
+                        <i class="fa-solid fa-paper-plane me-2"></i>
+                        Confirm & Disburse Payout
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
 <script>
     function updatePayPeriodString() {
         const monthSelect = document.getElementById('selectMonth');
@@ -1768,128 +1831,91 @@
             monthName + " " + yearName;
     }
 
-    function formatCurrency(value) {
-        const number = Number(value || 0);
-
-        return "₹" + number.toLocaleString("en-IN", {
-            maximumFractionDigits: 0
-        });
-    }
-
     function escapeHtml(value) {
         if (value === null || value === undefined) {
             return "";
         }
-
         const div = document.createElement("div");
         div.textContent = value;
         return div.innerHTML;
     }
 
+    function openDisburseModal(runId, period, amount, employees) {
+        document.getElementById('disburseRunId').value = runId;
+        document.getElementById('disbursePeriodText').innerText = period || 'Current Period';
+        document.getElementById('disburseAmountText').innerText = '₹' + amount;
+        document.getElementById('disburseEmployeesText').innerText = employees || '0';
+        
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('disburseModal'));
+        modal.show();
+    }
+
+    function inspectPayroll(runId) {
+        viewPayrollRunDetails(runId);
+    }
+
     function viewPayrollRunDetails(runId) {
-
-        const modalElement =
-            document.getElementById('runDetailsModal');
-
-        const modal =
-            bootstrap.Modal.getOrCreateInstance(modalElement);
-
-        const contentDiv =
-            document.getElementById('runDetailsContent');
+        const modalElement = document.getElementById('runDetailsModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const contentDiv = document.getElementById('runDetailsContent');
 
         contentDiv.innerHTML = `
             <div class="loading-state">
-                <div class="spinner-border text-primary loading-spinner"
-                     role="status">
-                </div>
-
-                <div class="loading-text">
-                    Loading payroll details...
-                </div>
+                <div class="spinner-border text-primary loading-spinner" role="status"></div>
+                <div class="loading-text">Loading payroll breakdown details...</div>
             </div>
         `;
 
         modal.show();
 
-        fetch('/HRPayroll/GetPayrollRunDetails/' + runId)
+        fetch('/HRPayroll/GetPayrollBreakdown?runId=' + runId)
             .then(res => {
-
                 if (!res.ok) {
                     throw new Error("Failed to load payroll details.");
                 }
-
                 return res.json();
             })
             .then(data => {
-
-                const payslips = data.payslips || [];
+                const slips = data.slips || data.payslips || [];
 
                 let html = `
                     <div class="details-summary">
-
                         <div class="row g-3">
-
                             <div class="col-6 col-lg-3">
                                 <div class="detail-summary-item">
-                                    <span class="detail-summary-label">
-                                        Pay Period
-                                    </span>
-
-                                    <span class="detail-summary-value">
-                                        ${escapeHtml(data.payPeriod)}
-                                    </span>
+                                    <span class="detail-summary-label">Pay Period</span>
+                                    <span class="detail-summary-value">${escapeHtml(data.payPeriod)}</span>
                                 </div>
                             </div>
-
                             <div class="col-6 col-lg-3">
                                 <div class="detail-summary-item">
-                                    <span class="detail-summary-label">
-                                        Employees
-                                    </span>
-
-                                    <span class="detail-summary-value">
-                                        ${data.totalEmployees || 0}
-                                    </span>
+                                    <span class="detail-summary-label">Staff Count</span>
+                                    <span class="detail-summary-value">${data.totalEmployees || slips.length || 0} Staff</span>
                                 </div>
                             </div>
-
                             <div class="col-6 col-lg-3">
                                 <div class="detail-summary-item">
-                                    <span class="detail-summary-label">
-                                        Gross Salary
-                                    </span>
-
-                                    <span class="detail-summary-value">
-                                        ${formatCurrency(data.totalGrossSalary)}
-                                    </span>
+                                    <span class="detail-summary-label">Gross Salary</span>
+                                    <span class="detail-summary-value">₹${data.grossSalary || data.totalGrossSalary || '0.00'}</span>
                                 </div>
                             </div>
-
                             <div class="col-6 col-lg-3">
                                 <div class="detail-summary-item">
-                                    <span class="detail-summary-label">
-                                        Net Payout
-                                    </span>
-
-                                    <span class="detail-summary-value success">
-                                        ${formatCurrency(data.totalNetSalary)}
-                                    </span>
+                                    <span class="detail-summary-label">Net Payout</span>
+                                    <span class="detail-summary-value success">₹${data.netPayout || data.totalNetSalary || '0.00'}</span>
                                 </div>
                             </div>
-
                         </div>
-
                     </div>
 
                     <div class="details-table-wrap">
                         <div class="table-responsive">
-
                             <table class="table details-table align-middle">
-
                                 <thead>
                                     <tr>
                                         <th>Employee</th>
-                                        <th>Basic Salary</th>
+                                        <th>Department</th>
+                                        <th>Basic Pay</th>
                                         <th>HRA</th>
                                         <th>Gross Salary</th>
                                         <th>Deductions</th>
@@ -1897,68 +1923,44 @@
                                         <th>Status</th>
                                     </tr>
                                 </thead>
-
                                 <tbody>
                 `;
 
-                if (payslips.length === 0) {
-
+                if (slips.length === 0) {
                     html += `
                         <tr>
-                            <td colspan="7"
-                                class="text-center py-5 text-muted">
-                                <i class="fa-solid fa-file-circle-xmark d-block mb-2"
-                                   style="font-size:1.5rem;"></i>
-
-                                No payslip details found.
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-file-circle-xmark d-block mb-2" style="font-size:1.5rem;"></i>
+                                No payslip records found for this run.
                             </td>
                         </tr>
                     `;
-                }
-                else {
-
-                    payslips.forEach(p => {
+                } else {
+                    slips.forEach(s => {
+                        const isPaid = (s.status === 'Paid' || s.status === 'Paid & Closed');
+                        const statusBadgeClass = isPaid ? 'status-paid' : 'status-draft';
+                        const statusIcon = isPaid ? 'fa-circle-check' : 'fa-hourglass-half';
 
                         html += `
                             <tr>
-
                                 <td>
-                                    <div class="details-employee">
-                                        ${escapeHtml(p.employeeName)}
-                                    </div>
-
-                                    <div class="details-user-code">
-                                        ${escapeHtml(p.userCode)}
-                                    </div>
+                                    <div class="details-employee">${escapeHtml(s.employeeName)}</div>
+                                    <div class="details-user-code">${escapeHtml(s.employeeCode || '')}</div>
                                 </td>
-
                                 <td>
-                                    ${formatCurrency(p.basicSalary)}
+                                    <span class="badge bg-light text-secondary border">${escapeHtml(s.department || 'General')}</span>
                                 </td>
-
+                                <td>₹${s.basic || '0.00'}</td>
+                                <td>₹${s.hra || '0.00'}</td>
+                                <td class="fw-bold">₹${s.gross || '0.00'}</td>
+                                <td class="text-danger fw-semibold">₹${s.deductions || '0.00'}</td>
+                                <td class="text-success fw-bold fs-6">₹${s.net || '0.00'}</td>
                                 <td>
-                                    ${formatCurrency(p.hra)}
-                                </td>
-
-                                <td class="fw-bold">
-                                    ${formatCurrency(p.grossSalary)}
-                                </td>
-
-                                <td class="text-danger fw-semibold">
-                                    ${formatCurrency(p.totalDeductions)}
-                                </td>
-
-                                <td class="text-success fw-bold">
-                                    ${formatCurrency(p.netSalary)}
-                                </td>
-
-                                <td>
-                                    <span class="status-pill status-paid">
-                                        <i class="fa-solid fa-circle-check"></i>
-                                        ${escapeHtml(p.status)}
+                                    <span class="status-pill ${statusBadgeClass}">
+                                        <i class="fa-solid ${statusIcon}"></i>
+                                        ${escapeHtml(s.status || 'Draft')}
                                     </span>
                                 </td>
-
                             </tr>
                         `;
                     });
@@ -1966,9 +1968,7 @@
 
                 html += `
                                 </tbody>
-
                             </table>
-
                         </div>
                     </div>
                 `;
@@ -1976,35 +1976,39 @@
                 contentDiv.innerHTML = html;
             })
             .catch(error => {
-
                 console.error(error);
-
                 contentDiv.innerHTML = `
                     <div class="text-center py-5">
-
-                        <div class="empty-icon"
-                             style="background:#fef2f2;color:#dc2626;">
+                        <div class="empty-icon" style="background:#fef2f2;color:#dc2626;">
                             <i class="fa-solid fa-triangle-exclamation"></i>
                         </div>
-
-                        <div class="empty-title">
-                            Unable to Load Payroll Details
-                        </div>
-
-                        <p class="empty-text mb-3">
-                            Something went wrong while loading this payroll run.
-                        </p>
-
-                        <button type="button"
-                                class="btn btn-outline-primary btn-sm rounded-pill px-3"
-                                onclick="viewPayrollRunDetails(${runId})">
-
-                            <i class="fa-solid fa-rotate-right me-1"></i>
-                            Try Again
+                        <div class="empty-title">Unable to Load Payroll Details</div>
+                        <p class="empty-text mb-3">Something went wrong while loading this payroll run.</p>
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="viewPayrollRunDetails(${runId})">
+                            <i class="fa-solid fa-rotate-right me-1"></i> Try Again
                         </button>
-
                     </div>
                 `;
             });
     }
+
+    // Connect to SignalR Payroll Hub for real-time updates
+    document.addEventListener("DOMContentLoaded", function () {
+        if (typeof signalR !== "undefined") {
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/payrollHub")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("ReceivePayrollRunUpdated", function (data) {
+                console.log("Payroll run updated in real-time:", data);
+            });
+
+            connection.on("ReceiveSalaryDisbursed", function (data) {
+                console.log("Salary disbursed in real-time:", data);
+            });
+
+            connection.start().catch(err => console.debug("SignalR connection skipped:", err));
+        }
+    });
 </script>

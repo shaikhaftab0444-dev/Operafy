@@ -258,6 +258,94 @@ using (var scope = app.Services.CreateScope())
                 ('Employee State Insurance', 'ESI', 'Deduction', 'Fully Deductible', 'Percentage of Gross', 0.75, 'No Limit', 'Monthly', 1, GETUTCDATE()),
                 ('Professional Tax', 'PT', 'Deduction', 'Fully Deductible', 'Fixed Amount', 200.00, '200', 'Monthly', 1, GETUTCDATE());
             END
+
+            -- 6. Ensure StatutoryRuleConfigs table exists
+            IF OBJECT_ID('StatutoryRuleConfigs', 'U') IS NULL AND OBJECT_ID('AITStudent.StatutoryRuleConfigs', 'U') IS NULL
+            BEGIN
+                CREATE TABLE StatutoryRuleConfigs (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    RuleKey NVARCHAR(50) NOT NULL,
+                    EmployerRate DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    EmployeeRate DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    WageCeiling DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    StandardDeduction DECIMAL(18,2) NOT NULL DEFAULT 75000.00,
+                    ActiveRegime NVARCHAR(50) NOT NULL DEFAULT 'New Tax Regime',
+                    UpdatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                );
+
+                INSERT INTO StatutoryRuleConfigs (RuleKey, EmployerRate, EmployeeRate, WageCeiling, StandardDeduction, ActiveRegime, UpdatedAt)
+                VALUES
+                ('PF', 12.00, 12.00, 15000.00, 0.00, 'New Tax Regime', GETUTCDATE()),
+                ('ESI', 3.25, 0.75, 21000.00, 0.00, 'New Tax Regime', GETUTCDATE()),
+                ('TDS', 0.00, 0.00, 0.00, 75000.00, 'New Tax Regime', GETUTCDATE());
+            END
+
+            -- 7. Ensure StatutoryReturnFilings table exists
+            IF OBJECT_ID('StatutoryReturnFilings', 'U') IS NULL AND OBJECT_ID('AITStudent.StatutoryReturnFilings', 'U') IS NULL
+            BEGIN
+                CREATE TABLE StatutoryReturnFilings (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    ComplianceReturn NVARCHAR(100) NOT NULL,
+                    Frequency NVARCHAR(50) NOT NULL DEFAULT 'Monthly',
+                    FilingPeriod NVARCHAR(50) NOT NULL,
+                    DueDate DATETIME NOT NULL,
+                    FilingDate DATETIME NOT NULL DEFAULT GETDATE(),
+                    ReceiptOrChallanNumber NVARCHAR(100) NOT NULL,
+                    ChallanAmountPaid DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    CompanyBankAccountId INT NULL,
+                    Status NVARCHAR(50) NOT NULL DEFAULT 'Filed',
+                    LoggedByUserId NVARCHAR(100) NULL,
+                    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                );
+            END
+
+            -- 8. Ensure BankTransactions table exists
+            IF OBJECT_ID('BankTransactions', 'U') IS NULL AND OBJECT_ID('AITStudent.BankTransactions', 'U') IS NULL
+            BEGIN
+                CREATE TABLE BankTransactions (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    CompanyBankAccountId INT NOT NULL,
+                    TransactionDate DATETIME NOT NULL DEFAULT GETDATE(),
+                    Description NVARCHAR(500) NOT NULL,
+                    DebitAmount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    CreditAmount DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    BalanceAfter DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                    Category NVARCHAR(100) NOT NULL DEFAULT 'General',
+                    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                );
+            END
+
+            -- 9. Ensure InternalMessages table exists
+            IF OBJECT_ID('InternalMessages', 'U') IS NULL AND OBJECT_ID('AITStudent.InternalMessages', 'U') IS NULL
+            BEGIN
+                CREATE TABLE InternalMessages (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    SenderUserId INT NOT NULL,
+                    RecipientUserId INT NOT NULL,
+                    Subject NVARCHAR(250) NOT NULL,
+                    Body NVARCHAR(MAX) NOT NULL,
+                    Folder NVARCHAR(50) NOT NULL DEFAULT 'Inbox',
+                    Category NVARCHAR(100) NOT NULL DEFAULT 'Payroll & Audit',
+                    IsRead BIT NOT NULL DEFAULT 0,
+                    AttachmentUrl NVARCHAR(500) NULL,
+                    SentAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                );
+            END
+
+            -- 10. Ensure SystemNotifications table exists
+            IF OBJECT_ID('SystemNotifications', 'U') IS NULL AND OBJECT_ID('AITStudent.SystemNotifications', 'U') IS NULL
+            BEGIN
+                CREATE TABLE SystemNotifications (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    UserId INT NOT NULL,
+                    Title NVARCHAR(200) NOT NULL,
+                    Message NVARCHAR(500) NOT NULL,
+                    Category NVARCHAR(50) NOT NULL DEFAULT 'HR',
+                    TargetUrl NVARCHAR(500) NOT NULL DEFAULT '/HRPayroll/DownloadPayslipPdf',
+                    IsRead BIT NOT NULL DEFAULT 0,
+                    CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                );
+            END
         ";
         await context.Database.ExecuteSqlRawAsync(schemaPatchSql);
 

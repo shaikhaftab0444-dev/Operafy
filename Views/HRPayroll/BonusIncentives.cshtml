@@ -845,46 +845,62 @@
 
 
     <!-- =====================================================
-         BONUS & INCENTIVE TRACKER
+         BONUS & INCENTIVE TRACKER & FILTER BAR
     ====================================================== -->
 
     <div class="bonus-table-card">
 
-        <!-- TABLE HEADER -->
-
+        <!-- TABLE HEADER & FILTERS -->
         <div class="bonus-table-header">
-
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-
-                <div>
+            <div class="row align-items-center g-3">
+                <div class="col-lg-5">
                     <h6 class="bonus-section-title">
                         <i class="fa-solid fa-list-check text-primary me-2"></i>
                         Bonus & Incentive Tracker
                     </h6>
-
                     <p class="bonus-section-subtitle">
-                        Review, approve and manage employee bonus and incentive records.
+                        Review, approve and manage employee bonus and incentive records linked to payroll.
                     </p>
                 </div>
 
-                <div class="bonus-record-badge">
-                    <i class="fa-solid fa-database me-1"></i>
-                    @totalRecords Records
+                <div class="col-lg-7">
+                    <form method="get" asp-action="BonusIncentives" class="d-flex flex-wrap align-items-center justify-content-lg-end gap-2">
+                        <div class="input-group input-group-sm" style="max-width: 250px;">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa fa-search text-muted"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0" placeholder="Search staff, code, type..." value="@ViewBag.SearchTerm" />
+                        </div>
+
+                        <select name="status" class="form-select form-select-sm" style="max-width: 170px;" onchange="this.form.submit()">
+                            <option value="All" selected="@(ViewBag.SelectedStatus == "All" || string.IsNullOrEmpty(ViewBag.SelectedStatus))">All Statuses</option>
+                            <option value="Approved" selected="@(ViewBag.SelectedStatus == "Approved")">Approved</option>
+                            <option value="Pending" selected="@(ViewBag.SelectedStatus == "Pending" || ViewBag.SelectedStatus == "Draft")">Pending / Draft</option>
+                            <option value="Paid in Payroll" selected="@(ViewBag.SelectedStatus == "Paid in Payroll" || ViewBag.SelectedStatus == "Paid")">Paid in Payroll</option>
+                        </select>
+
+                        <button type="submit" class="btn btn-sm btn-outline-primary fw-bold">
+                            <i class="fa-solid fa-filter me-1"></i> Filter
+                        </button>
+
+                        @if (!string.IsNullOrEmpty(ViewBag.SearchTerm) || (ViewBag.SelectedStatus != null && ViewBag.SelectedStatus != "All"))
+                        {
+                            <a href="/HRPayroll/BonusIncentives" class="btn btn-sm btn-outline-secondary" title="Clear Filters">
+                                <i class="fa-solid fa-xmark"></i>
+                            </a>
+                        }
+
+                        <div class="bonus-record-badge ms-lg-2">
+                            <i class="fa-solid fa-database me-1"></i>
+                            @totalRecords Records
+                        </div>
+                    </form>
                 </div>
-
             </div>
-
         </div>
 
-
         <!-- TABLE -->
-
         <div class="table-responsive">
-
             <table class="table bonus-table table-hover align-middle">
-
                 <thead>
-
                     <tr>
                         <th>Employee</th>
                         <th>Incentive Type</th>
@@ -895,29 +911,22 @@
                         <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
-
                     @if (Model == null || !Model.Any())
                     {
                         <tr>
-                            <td colspan="8"
-                                class="text-center bonus-empty">
-
+                            <td colspan="8" class="text-center bonus-empty py-5">
                                 <div class="bonus-empty-icon">
                                     <i class="fa-solid fa-gift"></i>
                                 </div>
-
                                 <div class="fw-bold text-dark mb-1">
-                                    No Bonus or Incentive Records Yet
+                                    No Bonus or Incentive Records Found
                                 </div>
-
                                 <div class="text-muted small">
-                                    Create a new reward record to start tracking employee incentives.
+                                    Award a new incentive or adjust filter criteria to view records.
                                 </div>
-
                             </td>
                         </tr>
                     }
@@ -926,88 +935,65 @@
                         @foreach (var item in Model)
                         {
                             <tr>
-
                                 <!-- EMPLOYEE -->
-
                                 <td>
-
                                     <div class="bonus-employee">
-
                                         <div class="bonus-avatar">
-                                            <i class="fa-solid fa-user"></i>
+                                            @(item.User?.FullName?.Length >= 2 ? item.User.FullName.Substring(0, 2).ToUpper() : "ST")
                                         </div>
-
                                         <div>
-
                                             <div class="bonus-employee-name">
                                                 @(item.User?.FullName ?? "N/A")
                                             </div>
-
                                             <div class="bonus-employee-code">
-                                                @(item.User?.UserCode ?? "No Code")
+                                                @(item.User?.UserCode ?? item.User?.UserName ?? "EMP") &bull; @(item.User?.Department != null ? item.User.Department.DepartmentName : "General")
                                             </div>
-
                                         </div>
-
                                     </div>
-
                                 </td>
 
-
                                 <!-- TYPE -->
-
                                 <td>
                                     <span class="bonus-type-badge">
-                                        <i class="fa-solid fa-star"></i>
+                                        <i class="fa-solid fa-star me-1 text-warning"></i>
                                         @item.Type
                                     </span>
                                 </td>
 
-
                                 <!-- AMOUNT -->
-
                                 <td>
-                                    <span class="bonus-amount">
+                                    <span class="bonus-amount text-success fw-bold">
                                         ₹@item.Amount.ToString("N0")
                                     </span>
                                 </td>
 
-
                                 <!-- PERFORMANCE PERIOD -->
-
                                 <td class="text-dark fw-semibold">
                                     @item.PerformancePeriod
                                 </td>
 
-
                                 <!-- PAYOUT MONTH -->
-
                                 <td>
                                     <span class="bonus-period-badge">
-                                        <i class="fa-solid fa-calendar me-1"></i>
+                                        <i class="fa-solid fa-calendar me-1 text-primary"></i>
                                         @item.PayoutMonth
                                     </span>
                                 </td>
 
-
                                 <!-- REASON -->
-
                                 <td>
-                                    <div class="bonus-reason">
+                                    <div class="bonus-reason text-muted small" style="max-width: 250px;">
                                         @(item.Reason ?? "No description provided")
                                     </div>
                                 </td>
 
-
                                 <!-- STATUS -->
-
                                 <td>
-
-                                    @if (item.Status == "Paid" || item.Status == "Included in Payroll")
+                                    @if (item.Status == "Paid" || item.Status == "Paid in Payroll" || item.Status == "Included in Payroll")
                                     {
                                         <span class="bonus-status status-paid">
                                             <i class="fa-solid fa-circle-check"></i>
-                                            @item.Status
+                                            @(item.Status == "Paid" ? "Paid in Payroll" : item.Status)
                                         </span>
                                     }
                                     else if (item.Status == "Approved")
@@ -1021,327 +1007,182 @@
                                     {
                                         <span class="bonus-status status-pending">
                                             <i class="fa-solid fa-clock"></i>
-                                            @item.Status
+                                            @(string.IsNullOrEmpty(item.Status) ? "Draft" : item.Status)
                                         </span>
                                     }
-
                                 </td>
-
 
                                 <!-- ACTIONS -->
-
                                 <td class="text-end">
-
                                     <div class="d-flex justify-content-end align-items-center gap-2">
-
-                                        @if (item.Status == "Draft" || item.Status == "Submitted")
+                                        @if (item.Status == "Draft" || item.Status == "Submitted" || item.Status == "Pending")
                                         {
-                                            <form asp-action="ApproveBonusIncentive"
-                                                  method="post"
-                                                  class="d-inline">
-
+                                            <form asp-action="ApproveBonusIncentive" method="post" class="d-inline">
                                                 @Html.AntiForgeryToken()
-
-                                                <input type="hidden"
-                                                       name="id"
-                                                       value="@item.BonusId" />
-
-                                                <button type="submit"
-                                                        class="btn btn-sm bonus-approve-btn"
-                                                        title="Approve Bonus">
-
-                                                    <i class="fa-solid fa-check me-1"></i>
-                                                    Approve
-
+                                                <input type="hidden" name="id" value="@item.BonusId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-success bonus-approve-btn" title="Approve for Payroll">
+                                                    <i class="fa-solid fa-check me-1"></i> Approve
                                                 </button>
-
                                             </form>
                                         }
 
-
-                                        @if (item.Status != "Included in Payroll"
-                                                                        && item.Status != "Paid")
+                                        @if (item.Status != "Included in Payroll" && item.Status != "Paid" && item.Status != "Paid in Payroll")
                                         {
-                                            <form asp-action="DeleteBonusIncentive"
-                                                  method="post"
-                                                  class="d-inline"
-                                                  onsubmit="return confirm('Are you sure you want to delete this bonus record?');">
-
+                                            <form asp-action="DeleteBonus" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this bonus record?');">
                                                 @Html.AntiForgeryToken()
-
-                                                <input type="hidden"
-                                                       name="id"
-                                                       value="@item.BonusId" />
-
-                                                <button type="submit"
-                                                        class="btn bonus-delete-btn"
-                                                        title="Delete Bonus Record">
-
+                                                <input type="hidden" name="id" value="@item.BonusId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger bonus-delete-btn" title="Delete Bonus Record">
                                                     <i class="fa-solid fa-trash"></i>
-
                                                 </button>
-
                                             </form>
                                         }
-
                                     </div>
-
                                 </td>
-
                             </tr>
                         }
                     }
-
                 </tbody>
-
             </table>
-
         </div>
-
     </div>
 
 </div>
-
 
 <!-- =========================================================
-     AWARD BONUS MODAL
+     AWARD BONUS OR INCENTIVE MODAL WITH 2000+ AJAX LIVE-SEARCH
 ========================================================== -->
-
-<div class="modal fade"
-     id="awardBonusModal"
-     tabindex="-1"
-     aria-hidden="true">
-
-    <div class="modal-dialog modal-lg modal-dialog-centered bonus-modal">
-
-        <div class="modal-content">
-
-            <!-- MODAL HEADER -->
-
-            <div class="bonus-modal-header">
-
-                <div>
-
-                    <h5 class="bonus-modal-title">
-                        <i class="fa-solid fa-gift me-2"></i>
-                        Award Bonus or Incentive
-                    </h5>
-
-                    <p class="bonus-modal-subtitle">
-                        Create a new employee reward or performance incentive record.
-                    </p>
-
-                </div>
-
-                <button type="button"
-                        class="btn-close btn-close-white position-relative"
-                        style="z-index:2;"
-                        data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-
-            </div>
-
-
-            <form asp-action="SaveBonusIncentive"
-                  method="post">
-
+<div class="modal fade" id="awardBonusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="AwardBonus" asp-controller="HRPayroll" method="post">
                 @Html.AntiForgeryToken()
-
-
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="fa fa-gift text-primary me-2"></i>Award Bonus or Incentive</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
                 <div class="modal-body text-start">
-
-                    <!-- INFORMATION -->
-
-                    <div class="bonus-info-strip">
-
-                        <div class="bonus-info-icon">
-                            <i class="fa-solid fa-circle-info"></i>
-                        </div>
-
-                        <div class="bonus-info-text">
-                            Enter the employee reward details carefully.
-                            Approved incentives can later be included in the payroll payout process.
-                        </div>
-
+                    <div class="alert alert-light border small text-muted mb-3">
+                        <i class="fa fa-info-circle text-primary me-1"></i> Approved incentives will be automatically included in the employee's payout during the selected monthly payroll run.
                     </div>
 
-
-                    <div class="row g-3">
-
-
-                        <!-- EMPLOYEE -->
-
-                        <div class="col-md-6">
-
-                            <label class="bonus-form-label">
-                                Select Employee
-                                <span class="text-danger">*</span>
-                            </label>
-
-                            <select name="UserId"
-                                    class="form-select"
-                                    required>
-
-                                <option value="">
-                                    -- Choose Employee --
-                                </option>
-
-                                @foreach (var emp in employees)
-                                {
-                                    <option value="@emp.UserId">
-                                        @emp.FullName (@emp.UserCode)
-                                    </option>
-                                }
-
-                            </select>
-
+                    <!-- 2000+ Staff Debounced Search Picker -->
+                    <div class="mb-3 position-relative">
+                        <label class="form-label small fw-semibold">Select Employee <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fa fa-search text-muted"></i></span>
+                            <input type="text" id="bonusStaffSearchInput" class="form-control" 
+                                   placeholder="Type employee name, code, or email..." 
+                                   autocomplete="off" oninput="triggerBonusStaffSearch(this.value)" required />
                         </div>
-
-
-                        <!-- TYPE -->
-
-                        <div class="col-md-6">
-
-                            <label class="bonus-form-label">
-                                Incentive Type
-                                <span class="text-danger">*</span>
-                            </label>
-
-                            <select name="Type"
-                                    class="form-select"
-                                    required>
-
-                                <option value="Sales Incentive">
-                                    Sales Incentive / Commission
-                                </option>
-
-                                <option value="Performance Bonus">
-                                    Performance Bonus
-                                </option>
-
-                                <option value="Festival Bonus">
-                                    Festival Bonus
-                                </option>
-
-                                <option value="Annual Bonus">
-                                    Annual Bonus
-                                </option>
-
-                                <option value="Project Incentive">
-                                    Project Incentive
-                                </option>
-
-                                <option value="Custom Incentive">
-                                    Custom Incentive
-                                </option>
-
-                            </select>
-
-                        </div>
-
-
-                        <!-- AMOUNT -->
-
-                        <div class="col-md-6">
-
-                            <label class="bonus-form-label">
-                                Award Amount (₹)
-                                <span class="text-danger">*</span>
-                            </label>
-
-                            <input type="number"
-                                   step="100"
-                                   name="Amount"
-                                   class="form-control bonus-form-control"
-                                   required
-                                   placeholder="e.g. 15000">
-
-                        </div>
-
-
-                        <!-- PERFORMANCE PERIOD -->
-
-                        <div class="col-md-6">
-
-                            <label class="bonus-form-label">
-                                Performance Period
-                            </label>
-
-                            <input type="text"
-                                   name="PerformancePeriod"
-                                   class="form-control bonus-form-control"
-                                   required
-                                   value="August 2026"
-                                   placeholder="e.g. Q2 2026">
-
-                        </div>
-
-
-                        <!-- PAYOUT MONTH -->
-
-                        <div class="col-md-6">
-
-                            <label class="bonus-form-label">
-                                Payout Month
-                                <span class="text-danger">*</span>
-                            </label>
-
-                            <input type="text"
-                                   name="PayoutMonth"
-                                   class="form-control bonus-form-control"
-                                   required
-                                   value="August 2026"
-                                   placeholder="e.g. August 2026">
-
-                        </div>
-
-
-                        <!-- REASON -->
-
-                        <div class="col-md-6">
-
-                            <label class="bonus-form-label">
-                                Reason / Description
-                            </label>
-
-                            <input type="text"
-                                   name="Reason"
-                                   class="form-control bonus-form-control"
-                                   placeholder="e.g. Top Sales Performer">
-
-                        </div>
-
+                        <input type="hidden" name="userId" id="bonusSelectedUserId" required />
+                        <div id="bonusStaffSearchResults" class="list-group position-absolute w-100 shadow-lg d-none mt-1" 
+                             style="z-index: 1070; max-height: 200px; overflow-y: auto;"></div>
                     </div>
 
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Incentive Type <span class="text-danger">*</span></label>
+                            <select name="incentiveType" class="form-select form-select-sm" required>
+                                <option value="Sales Incentive / Commission">Sales Incentive / Commission</option>
+                                <option value="Performance Bonus" selected>Performance Bonus</option>
+                                <option value="Festival / Annual Bonus">Festival / Annual Bonus</option>
+                                <option value="Spot Award / Recognition">Spot Award / Recognition</option>
+                                <option value="Retention Bonus">Retention Bonus</option>
+                                <option value="Project Incentive">Project Incentive</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Award Amount (₹) <span class="text-danger">*</span></label>
+                            <input type="number" step="100" min="100" name="amount" class="form-control form-control-sm" placeholder="e.g. 15000" required />
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Performance Period <span class="text-danger">*</span></label>
+                            <select name="performancePeriod" class="form-select form-select-sm" required>
+                                <option value="August 2026">August 2026</option>
+                                <option value="September 2026" selected>September 2026</option>
+                                <option value="October 2026">October 2026</option>
+                                <option value="Q2 2026 (Jul-Sep)">Q2 2026 (Jul-Sep)</option>
+                                <option value="Q3 2026 (Oct-Dec)">Q3 2026 (Oct-Dec)</option>
+                                <option value="Annual FY 2026-27">Annual FY 2026-27</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Payout Month <span class="text-danger">*</span></label>
+                            <select name="payoutMonth" class="form-select form-select-sm" required>
+                                <option value="August 2026">August 2026</option>
+                                <option value="September 2026" selected>September 2026</option>
+                                <option value="October 2026">October 2026</option>
+                                <option value="November 2026">November 2026</option>
+                                <option value="December 2026">December 2026</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Reason / Description</label>
+                        <input type="text" name="reasonOrDescription" class="form-control form-control-sm" placeholder="e.g. Top performer in Sales Drive" />
+                    </div>
                 </div>
-
-
-                <!-- MODAL FOOTER -->
-
-                <div class="modal-footer">
-
-                    <button type="button"
-                            class="btn btn-light border bonus-cancel-btn"
-                            data-bs-dismiss="modal">
-
-                        Cancel
-
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold">
+                        <i class="fa-solid fa-award me-1"></i> Award Bonus
                     </button>
-
-                    <button type="submit"
-                            class="btn btn-primary bonus-save-btn">
-
-                        <i class="fa-solid fa-award me-1"></i>
-                        Award Bonus
-
-                    </button>
-
                 </div>
-
             </form>
-
         </div>
-
     </div>
-
 </div>
+
+<script>
+    let bonusSearchTimer;
+    function triggerBonusStaffSearch(query) {
+        clearTimeout(bonusSearchTimer);
+        const results = document.getElementById('bonusStaffSearchResults');
+        if (!query || query.trim().length < 2) {
+            results.classList.add('d-none');
+            return;
+        }
+
+        bonusSearchTimer = setTimeout(() => {
+            fetch(`/HRPayroll/SearchEmployees?q=${encodeURIComponent(query.trim())}`)
+                .then(r => r.json())
+                .then(data => {
+                    results.innerHTML = '';
+                    if (!data || data.length === 0) {
+                        results.innerHTML = '<div class="list-group-item text-muted small">No employee found</div>';
+                    } else {
+                        data.forEach(item => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'list-group-item list-group-item-action text-start small py-2';
+                            const label = item.text || `${item.name} (${item.code || 'EMP'}) - ${item.department || ''}`;
+                            btn.innerHTML = `<i class="fa fa-user text-primary me-2"></i> ${label}`;
+                            btn.onclick = () => {
+                                document.getElementById('bonusStaffSearchInput').value = `${item.name || item.text} (${item.code || ''})`;
+                                document.getElementById('bonusSelectedUserId').value = item.id;
+                                results.classList.add('d-none');
+                            };
+                            results.appendChild(btn);
+                        });
+                    }
+                    results.classList.remove('d-none');
+                })
+                .catch(err => {
+                    console.error("Staff search error:", err);
+                });
+        }, 300);
+    }
+
+    // Hide search results dropdown on outside click
+    document.addEventListener('click', function(e) {
+        const results = document.getElementById('bonusStaffSearchResults');
+        const input = document.getElementById('bonusStaffSearchInput');
+        if (results && !results.contains(e.target) && e.target !== input) {
+            results.classList.add('d-none');
+        }
+    });
+</script>

@@ -1,13 +1,22 @@
+@model List<ERP_System.Models.StatutoryReturnFiling>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Statutory Compliance (PF / ESI / TDS)";
 
-    var pfConfig = ViewBag.PFConfig as ERP_System.Models.StatutoryConfiguration;
-    var esiConfig = ViewBag.ESIConfig as ERP_System.Models.StatutoryConfiguration;
-    var tdsConfig = ViewBag.TDSConfig as ERP_System.Models.StatutoryConfiguration;
+    var filings = Model ?? (ViewBag.Filings as List<ERP_System.Models.StatutoryReturnFiling>) 
+        ?? new List<ERP_System.Models.StatutoryReturnFiling>();
 
-    var filings = ViewBag.Filings as List<ERP_System.Models.StatutoryFilingLog>
-        ?? new List<ERP_System.Models.StatutoryFilingLog>();
+    var bankAccounts = ViewBag.BankAccounts as List<ERP_System.Models.CompanyBankAccount> 
+        ?? new List<ERP_System.Models.CompanyBankAccount>();
+
+    var pfRule = ViewBag.PfRule as ERP_System.Models.StatutoryRuleConfig 
+        ?? new ERP_System.Models.StatutoryRuleConfig { RuleKey = "PF", EmployerRate = 12.00m, EmployeeRate = 12.00m, WageCeiling = 15000.00m };
+
+    var esiRule = ViewBag.EsiRule as ERP_System.Models.StatutoryRuleConfig 
+        ?? new ERP_System.Models.StatutoryRuleConfig { RuleKey = "ESI", EmployerRate = 3.25m, EmployeeRate = 0.75m, WageCeiling = 21000.00m };
+
+    var tdsRule = ViewBag.TdsRule as ERP_System.Models.StatutoryRuleConfig 
+        ?? new ERP_System.Models.StatutoryRuleConfig { RuleKey = "TDS", StandardDeduction = 75000.00m, ActiveRegime = "New Tax Regime" };
 }
 
 <style>
@@ -522,6 +531,24 @@
         background: #f1f5f9;
         border: 1px solid #e2e8f0;
         font-size: .73rem;
+        font-weight: 600;
+    }
+
+    .bank-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 9px;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 0.74rem;
+        font-weight: 600;
+    }
+
+    .amount-text {
+        font-weight: 700;
+        color: #0f172a;
     }
 
     .empty-state {
@@ -719,9 +746,9 @@
                     </div>
 
                     <div>
-                        <h4 class="hero-title">Statutory Compliance & Settings</h4>
+                        <h4 class="hero-title">Statutory Compliance & Bank Ledger</h4>
                         <p class="hero-description">
-                            Manage PF, ESI and TDS rules with centralized compliance filing records.
+                            Manage PF, ESI, TDS statutory rules, log return filings with direct Company Bank Account debits and General Ledger entries.
                         </p>
                     </div>
                 </div>
@@ -742,9 +769,9 @@
 
             <button class="btn btn-log-filing"
                     data-bs-toggle="modal"
-                    data-bs-target="#addFilingModal">
+                    data-bs-target="#logFilingModal">
                 <i class="fa-solid fa-file-circle-plus me-2"></i>
-                Log Filing Receipt
+                Log Statutory Return Filing
             </button>
         </div>
     </div>
@@ -757,9 +784,9 @@
         <div>
             <h6>
                 <i class="fa-solid fa-sliders text-primary me-2"></i>
-                Compliance Configuration
+                Statutory Rule Configuration
             </h6>
-            <p>Review and manage the statutory rules currently applied to payroll.</p>
+            <p>Review and update the active statutory contribution percentages and deduction thresholds.</p>
         </div>
     </div>
 
@@ -778,7 +805,7 @@
 
                         <div>
                             <div class="type-title">Provident Fund</div>
-                            <div class="type-subtitle">PF / EPF Configuration</div>
+                            <div class="type-subtitle">PF / EPF Contribution</div>
                         </div>
                     </div>
 
@@ -790,11 +817,11 @@
                 </div>
 
                 <div class="rate-box pf-rate-box">
-                    <div class="rate-label">Contribution Rate</div>
+                    <div class="rate-label">Contribution Rate (Employer | Employee)</div>
                     <div class="rate-value">
-                        @(pfConfig?.EmployerRate ?? 0)%
+                        @pfRule.EmployerRate%
                         <span class="rate-separator">|</span>
-                        @(pfConfig?.EmployeeRate ?? 0)%
+                        @pfRule.EmployeeRate%
                     </div>
                 </div>
 
@@ -805,7 +832,7 @@
 
                     <div class="info-content">
                         <span class="info-label">Employer Contribution</span>
-                        <span class="info-value">@(pfConfig?.EmployerRate ?? 0)%</span>
+                        <span class="info-value">@pfRule.EmployerRate%</span>
                     </div>
                 </div>
 
@@ -816,7 +843,7 @@
 
                     <div class="info-content">
                         <span class="info-label">Employee Contribution</span>
-                        <span class="info-value">@(pfConfig?.EmployeeRate ?? 0)%</span>
+                        <span class="info-value">@pfRule.EmployeeRate%</span>
                     </div>
                 </div>
 
@@ -826,9 +853,9 @@
                     </div>
 
                     <div class="info-content">
-                        <span class="info-label">Basic Wage Ceiling</span>
+                        <span class="info-label">Basic Wage Ceiling Limit</span>
                         <span class="info-value">
-                            ₹@((pfConfig?.WageCeilingLimit ?? 0).ToString("N0")) / month
+                            ₹@pfRule.WageCeiling.ToString("N0") / month
                         </span>
                     </div>
                 </div>
@@ -839,8 +866,8 @@
                     </div>
 
                     <div class="info-content">
-                        <span class="info-label">Maximum Employee Deduction</span>
-                        <span class="info-value">₹1,800 / month</span>
+                        <span class="info-label">Maximum Monthly PF Cap</span>
+                        <span class="info-value">₹@((pfRule.WageCeiling * pfRule.EmployeeRate / 100m).ToString("N0")) / month</span>
                     </div>
                 </div>
 
@@ -872,11 +899,11 @@
                 </div>
 
                 <div class="rate-box esi-rate-box">
-                    <div class="rate-label">Contribution Rate</div>
+                    <div class="rate-label">Contribution Rate (Employer | Employee)</div>
                     <div class="rate-value">
-                        @(esiConfig?.EmployerRate ?? 0)%
+                        @esiRule.EmployerRate%
                         <span class="rate-separator">|</span>
-                        @(esiConfig?.EmployeeRate ?? 0)%
+                        @esiRule.EmployeeRate%
                     </div>
                 </div>
 
@@ -887,7 +914,7 @@
 
                     <div class="info-content">
                         <span class="info-label">Employer Contribution</span>
-                        <span class="info-value">@(esiConfig?.EmployerRate ?? 0)%</span>
+                        <span class="info-value">@esiRule.EmployerRate%</span>
                     </div>
                 </div>
 
@@ -898,7 +925,7 @@
 
                     <div class="info-content">
                         <span class="info-label">Employee Contribution</span>
-                        <span class="info-value">@(esiConfig?.EmployeeRate ?? 0)%</span>
+                        <span class="info-value">@esiRule.EmployeeRate%</span>
                     </div>
                 </div>
 
@@ -910,7 +937,7 @@
                     <div class="info-content">
                         <span class="info-label">Gross Salary Eligibility Limit</span>
                         <span class="info-value">
-                            ≤ ₹@((esiConfig?.WageCeilingLimit ?? 0).ToString("N0")) / month
+                            ≤ ₹@esiRule.WageCeiling.ToString("N0") / month
                         </span>
                     </div>
                 </div>
@@ -921,8 +948,8 @@
                     </div>
 
                     <div class="info-content">
-                        <span class="info-label">Eligibility</span>
-                        <span class="info-value">Eligible based on configured wage limit</span>
+                        <span class="info-label">Coverage Status</span>
+                        <span class="info-value">Active for staff with gross ≤ ₹@esiRule.WageCeiling.ToString("N0")</span>
                     </div>
                 </div>
 
@@ -956,7 +983,7 @@
                 <div class="rate-box tds-rate-box">
                     <div class="rate-label">Active Tax Regime</div>
                     <div class="rate-value">
-                        @(tdsConfig?.DefaultTaxRegime ?? "New Tax Regime")
+                        @(string.IsNullOrEmpty(tdsRule.ActiveRegime) ? "New Tax Regime" : tdsRule.ActiveRegime)
                     </div>
                 </div>
 
@@ -979,7 +1006,7 @@
                     <div class="info-content">
                         <span class="info-label">Standard Deduction</span>
                         <span class="info-value">
-                            ₹@((tdsConfig?.StandardDeductionAnnual ?? 0).ToString("N0")) / year
+                            ₹@tdsRule.StandardDeduction.ToString("N0") / year
                         </span>
                     </div>
                 </div>
@@ -990,9 +1017,9 @@
                     </div>
 
                     <div class="info-content">
-                        <span class="info-label">Tax Regime</span>
+                        <span class="info-label">Default Regime</span>
                         <span class="info-value">
-                            @(tdsConfig?.DefaultTaxRegime ?? "New Tax Regime")
+                            @(string.IsNullOrEmpty(tdsRule.ActiveRegime) ? "New Tax Regime" : tdsRule.ActiveRegime)
                         </span>
                     </div>
                 </div>
@@ -1027,9 +1054,9 @@
                 </div>
 
                 <div>
-                    <h6 class="filing-title">Statutory Return Filings</h6>
+                    <h6 class="filing-title">Statutory Return Filings & Bank Debits</h6>
                     <div class="filing-subtitle">
-                        Track filing receipts, challans and completed compliance returns.
+                        Track filing receipts, challan payments, debited company bank accounts, and completed compliance returns.
                     </div>
                 </div>
             </div>
@@ -1052,7 +1079,9 @@
                         <th>Filing Period</th>
                         <th>Due Date</th>
                         <th>Filing Date</th>
-                        <th>Receipt Number</th>
+                        <th>Receipt / Challan #</th>
+                        <th>Challan Amount</th>
+                        <th>Debited Bank Account</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -1062,7 +1091,7 @@
                     @if (!filings.Any())
                     {
                         <tr>
-                            <td colspan="7" class="empty-state">
+                            <td colspan="9" class="empty-state">
 
                                 <div class="empty-icon">
                                     <i class="fa-solid fa-folder-open"></i>
@@ -1073,7 +1102,7 @@
                                 </div>
 
                                 <p class="empty-text">
-                                    Add your first PF, ESI, TDS or other statutory filing receipt.
+                                    Log your first PF, ESI, TDS or Professional Tax statutory filing receipt with automated bank account debiting.
                                 </p>
 
                             </td>
@@ -1090,7 +1119,7 @@
                                         <div class="return-icon">
                                             <i class="fa-solid fa-file-circle-check"></i>
                                         </div>
-                                        <span>@f.ComplianceAct</span>
+                                        <span>@f.ComplianceReturn</span>
                                     </div>
                                 </td>
 
@@ -1102,7 +1131,7 @@
                                 </td>
 
                                 <td class="fw-semibold">
-                                    @f.Period
+                                    @f.FilingPeriod
                                 </td>
 
                                 <td>
@@ -1121,8 +1150,28 @@
 
                                 <td>
                                     <code class="receipt-code">
-                                        @f.ReceiptNumber
+                                        @f.ReceiptOrChallanNumber
                                     </code>
+                                </td>
+
+                                <td>
+                                    <span class="amount-text">
+                                        ₹@f.ChallanAmountPaid.ToString("N2")
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @if (f.CompanyBankAccount != null)
+                                    {
+                                        <span class="bank-badge">
+                                            <i class="fa-solid fa-building-columns text-primary"></i>
+                                            @f.CompanyBankAccount.BankName (@(f.CompanyBankAccount.AccountNumber.Length > 4 ? ".." + f.CompanyBankAccount.AccountNumber.Substring(f.CompanyBankAccount.AccountNumber.Length - 4) : f.CompanyBankAccount.AccountNumber))
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Direct / Non-Linked</span>
+                                    }
                                 </td>
 
                                 <td>
@@ -1177,11 +1226,13 @@
             </div>
 
 
-            <form asp-action="UpdateStatutoryConfig" method="post">
+            <form asp-action="UpdateRuleConfig" method="post">
 
                 @Html.AntiForgeryToken()
 
-                <input type="hidden" name="ruleType" value="PF" />
+                <input type="hidden" name="ruleKey" value="PF" />
+                <input type="hidden" name="standardDeduction" value="0" />
+                <input type="hidden" name="activeRegime" value="" />
 
                 <div class="modal-body">
 
@@ -1195,7 +1246,7 @@
                                step="0.01"
                                name="employeeRate"
                                class="form-control"
-                               value="@(pfConfig?.EmployeeRate ?? 12.00m)"
+                               value="@pfRule.EmployeeRate"
                                required>
                     </div>
 
@@ -1210,7 +1261,7 @@
                                step="0.01"
                                name="employerRate"
                                class="form-control"
-                               value="@(pfConfig?.EmployerRate ?? 12.00m)"
+                               value="@pfRule.EmployerRate"
                                required>
                     </div>
 
@@ -1223,9 +1274,9 @@
 
                         <input type="number"
                                step="100"
-                               name="wageCeilingLimit"
+                               name="wageCeiling"
                                class="form-control"
-                               value="@(pfConfig?.WageCeilingLimit ?? 15000.00m)"
+                               value="@pfRule.WageCeiling"
                                required>
                     </div>
 
@@ -1289,11 +1340,13 @@
             </div>
 
 
-            <form asp-action="UpdateStatutoryConfig" method="post">
+            <form asp-action="UpdateRuleConfig" method="post">
 
                 @Html.AntiForgeryToken()
 
-                <input type="hidden" name="ruleType" value="ESI" />
+                <input type="hidden" name="ruleKey" value="ESI" />
+                <input type="hidden" name="standardDeduction" value="0" />
+                <input type="hidden" name="activeRegime" value="" />
 
                 <div class="modal-body">
 
@@ -1308,7 +1361,7 @@
                                step="0.01"
                                name="employeeRate"
                                class="form-control"
-                               value="@(esiConfig?.EmployeeRate ?? 0.75m)"
+                               value="@esiRule.EmployeeRate"
                                required>
 
                     </div>
@@ -1325,7 +1378,7 @@
                                step="0.01"
                                name="employerRate"
                                class="form-control"
-                               value="@(esiConfig?.EmployerRate ?? 3.25m)"
+                               value="@esiRule.EmployerRate"
                                required>
 
                     </div>
@@ -1340,9 +1393,9 @@
 
                         <input type="number"
                                step="100"
-                               name="wageCeilingLimit"
+                               name="wageCeiling"
                                class="form-control"
-                               value="@(esiConfig?.WageCeilingLimit ?? 21000.00m)"
+                               value="@esiRule.WageCeiling"
                                required>
 
                     </div>
@@ -1407,11 +1460,14 @@
             </div>
 
 
-            <form asp-action="UpdateStatutoryConfig" method="post">
+            <form asp-action="UpdateRuleConfig" method="post">
 
                 @Html.AntiForgeryToken()
 
-                <input type="hidden" name="ruleType" value="TDS" />
+                <input type="hidden" name="ruleKey" value="TDS" />
+                <input type="hidden" name="employerRate" value="0" />
+                <input type="hidden" name="employeeRate" value="0" />
+                <input type="hidden" name="wageCeiling" value="0" />
 
                 <div class="modal-body">
 
@@ -1422,9 +1478,9 @@
                             Default Tax Regime
                         </label>
 
-                        <select name="defaultTaxRegime" class="form-select">
+                        <select name="activeRegime" class="form-select">
 
-                            @if (tdsConfig?.DefaultTaxRegime == "Old Tax Regime")
+                            @if (tdsRule.ActiveRegime == "Old Tax Regime")
                             {
                                 <option value="New Tax Regime">
                                     New Tax Regime (Section 115BAC)
@@ -1459,9 +1515,9 @@
 
                         <input type="number"
                                step="1000"
-                               name="standardDeductionAnnual"
+                               name="standardDeduction"
                                class="form-control"
-                               value="@(tdsConfig?.StandardDeductionAnnual ?? 75000.00m)"
+                               value="@tdsRule.StandardDeduction"
                                required>
 
                     </div>
@@ -1495,11 +1551,11 @@
 
 
 <!-- =========================================================
-     ADD FILING MODAL
+     LOG FILING RECEIPT MODAL (LINKED WITH COMPANY BANK ACCOUNT)
 ========================================================= -->
-<div class="modal fade statutory-modal" id="addFilingModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade statutory-modal" id="logFilingModal" tabindex="-1" aria-hidden="true">
 
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
 
         <div class="modal-content">
 
@@ -1512,9 +1568,9 @@
                     </div>
 
                     <div>
-                        <h5>Log Statutory Return Filing</h5>
+                        <h5>Log Statutory Return Filing & Challan Payment</h5>
                         <div class="modal-subtitle">
-                            Add a filing receipt or challan to the compliance register
+                            Record compliance filing and automatically debit company bank account ledger
                         </div>
                     </div>
 
@@ -1528,7 +1584,7 @@
             </div>
 
 
-            <form asp-action="AddFilingRecord" method="post">
+            <form asp-action="LogFilingReceipt" method="post">
 
                 @Html.AntiForgeryToken()
 
@@ -1540,27 +1596,27 @@
 
                             <label class="form-label">
                                 <i class="fa-solid fa-building-columns modal-field-icon"></i>
-                                Compliance Return
+                                Compliance Return <span class="text-danger">*</span>
                             </label>
 
-                            <select name="ComplianceAct"
+                            <select name="complianceReturn"
                                     class="form-select"
                                     required>
 
-                                <option value="Provident Fund ECR Filing">
-                                    PF ECR Monthly Return
+                                <option value="Provident Fund ECR Monthly Return">
+                                    Provident Fund (PF) ECR Monthly Return
                                 </option>
 
-                                <option value="ESI Monthly Return">
-                                    ESI Monthly Return
+                                <option value="ESI Monthly Return (Challan)">
+                                    ESI Monthly Return & Challan
                                 </option>
 
-                                <option value="TDS Quarter Return (Form 24Q)">
+                                <option value="TDS Form 24Q (Salary TDS)">
                                     TDS Form 24Q Quarterly Return
                                 </option>
 
-                                <option value="Professional Tax Return">
-                                    Professional Tax Monthly Return
+                                <option value="Professional Tax Monthly Return">
+                                    Professional Tax (PT) Return
                                 </option>
 
                             </select>
@@ -1575,7 +1631,7 @@
                                 Frequency
                             </label>
 
-                            <select name="Frequency" class="form-select">
+                            <select name="frequency" class="form-select">
 
                                 <option value="Monthly">Monthly</option>
                                 <option value="Quarterly">Quarterly</option>
@@ -1590,14 +1646,14 @@
 
                             <label class="form-label">
                                 <i class="fa-solid fa-calendar-days modal-field-icon"></i>
-                                Filing Period
+                                Filing Period <span class="text-danger">*</span>
                             </label>
 
                             <input type="text"
-                                   name="Period"
+                                   name="filingPeriod"
                                    class="form-control"
                                    required
-                                   placeholder="e.g. August 2026 or Q2 2026">
+                                   placeholder="e.g. August 2026 or Q2 FY 2026-27">
 
                         </div>
 
@@ -1606,11 +1662,11 @@
 
                             <label class="form-label">
                                 <i class="fa-solid fa-calendar-check modal-field-icon"></i>
-                                Due Date
+                                Due Date <span class="text-danger">*</span>
                             </label>
 
                             <input type="date"
-                                   name="DueDate"
+                                   name="dueDate"
                                    class="form-control"
                                    required
                                    value="@DateTime.Today.AddDays(15).ToString("yyyy-MM-dd")">
@@ -1618,19 +1674,57 @@
                         </div>
 
 
-                        <div class="col-12">
+                        <div class="col-md-6">
 
                             <label class="form-label">
                                 <i class="fa-solid fa-hashtag modal-field-icon"></i>
-                                Receipt / Challan Number
-                                <span class="text-danger">*</span>
+                                Receipt / Challan / BSR Number <span class="text-danger">*</span>
                             </label>
 
                             <input type="text"
-                                   name="ReceiptNumber"
+                                   name="receiptOrChallanNumber"
                                    class="form-control"
                                    required
-                                   placeholder="e.g. PF-8839201">
+                                   placeholder="e.g. PF-8839201 or CRN-99281">
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                <i class="fa-solid fa-indian-rupee-sign modal-field-icon"></i>
+                                Challan Amount Paid (₹) <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="number"
+                                   step="0.01"
+                                   min="0"
+                                   name="challanAmountPaid"
+                                   class="form-control"
+                                   required
+                                   placeholder="0.00">
+
+                        </div>
+
+
+                        <div class="col-12">
+
+                            <label class="form-label">
+                                <i class="fa-solid fa-building-columns modal-field-icon"></i>
+                                Company Bank Account for Challan Debit
+                            </label>
+
+                            <select name="companyBankAccountId" class="form-select">
+                                <option value="">-- No Direct Bank Debit / Manual Cash / Outside ERP --</option>
+                                @foreach (var b in bankAccounts)
+                                {
+                                    <option value="@b.Id">
+                                        @b.BankName - @b.AccountNumber (Available Bal: ₹@b.CurrentBalance.ToString("N2")) @(b.IsPrimaryAccount ? "★ Primary" : "")
+                                    </option>
+                                }
+                            </select>
+                            <small class="text-muted">Selecting an account will automatically deduct the amount from company funds and log a general ledger bank transaction entry.</small>
 
                         </div>
 
@@ -1650,7 +1744,7 @@
                     <button type="submit"
                             class="btn btn-modal-save">
                         <i class="fa-solid fa-floppy-disk me-1"></i>
-                        Save Filing Receipt
+                        Record Filing & Debit Bank
                     </button>
 
                 </div>
@@ -1662,3 +1756,27 @@
     </div>
 
 </div>
+
+@section Scripts {
+    <script>
+        // Connect to SignalR Payroll Hub for real-time compliance updates
+        document.addEventListener("DOMContentLoaded", function () {
+            if (typeof signalR !== "undefined") {
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/payrollHub")
+                    .withAutomaticReconnect()
+                    .build();
+
+                connection.on("ReceiveStatutoryRuleUpdated", function (data) {
+                    console.log("Statutory rule updated in real-time:", data);
+                });
+
+                connection.on("ReceiveStatutoryReturnFiled", function (data) {
+                    console.log("Statutory return filed:", data);
+                });
+
+                connection.start().catch(err => console.debug("SignalR connection skipped:", err));
+            }
+        });
+    </script>
+}
