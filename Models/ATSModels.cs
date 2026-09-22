@@ -96,6 +96,25 @@ namespace ERP_System.Models
 
         // Navigation property for candidate applications
         public List<CandidateApplication> Applications { get; set; } = new List<CandidateApplication>();
+
+        // Convenience / Portal aliases
+        [NotMapped]
+        public int Id { get => JobId; set => JobId = value; }
+
+        [NotMapped]
+        public string Title { get => JobTitle; set => JobTitle = value; }
+
+        [NotMapped]
+        public string Description { get => JobDescription ?? string.Empty; set => JobDescription = value; }
+
+        [NotMapped]
+        public decimal MinSalary { get => MinimumSalary; set => MinimumSalary = value; }
+
+        [NotMapped]
+        public decimal MaxSalary { get => MaximumSalary; set => MaximumSalary = value; }
+
+        [NotMapped]
+        public bool IsActive => Status == "Open";
     }
 
     [Table("erp_Candidates")]
@@ -207,6 +226,36 @@ namespace ERP_System.Models
         public List<CandidateStageHistory> StageHistories { get; set; } = new List<CandidateStageHistory>();
         public List<InterviewSchedule> Interviews { get; set; } = new List<InterviewSchedule>();
         public List<OfferLetter> Offers { get; set; } = new List<OfferLetter>();
+
+        // Convenience / Portal aliases
+        [NotMapped]
+        public int Id { get => ApplicationId; set => ApplicationId = value; }
+
+        [NotMapped]
+        public int JobOpeningId { get => JobId; set => JobId = value; }
+
+        [NotMapped]
+        public string CandidateName { get => Candidate?.FullName ?? string.Empty; set { if (Candidate != null) Candidate.FullName = value; } }
+
+        [NotMapped]
+        public string Email { get => Candidate?.Email ?? string.Empty; set { if (Candidate != null) Candidate.Email = value; } }
+
+        [NotMapped]
+        public string Phone { get => Candidate?.Phone ?? string.Empty; set { if (Candidate != null) Candidate.Phone = value; } }
+
+        [NotMapped]
+        public string Experience { get => Candidate?.Experience ?? string.Empty; set { if (Candidate != null) Candidate.Experience = value; } }
+
+        [NotMapped]
+        public string ResumePath { get => Candidate?.ResumePath ?? string.Empty; set { if (Candidate != null) Candidate.ResumePath = value; } }
+
+        [NotMapped]
+        public DateTime AppliedDate { get => ApplicationDate; set => ApplicationDate = value; }
+    }
+
+    [NotMapped]
+    public class JobApplication : CandidateApplication
+    {
     }
 
     [Table("erp_CandidateStageHistories")]

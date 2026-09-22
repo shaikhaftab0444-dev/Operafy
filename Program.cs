@@ -12,8 +12,10 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<ERP_System.Helpers.ICurrencyService, ERP_System.Helpers.CurrencyService>();
 builder.Services.AddScoped<ERP_System.Services.IHierarchyService, ERP_System.Services.HierarchyService>();
+builder.Services.AddScoped<ERP_System.Services.IEmailSenderService, ERP_System.Services.EmailSenderService>();
 
 // Add SignalR to Services
 builder.Services.AddSignalR(options => {
@@ -386,7 +388,10 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    ServeUnknownFileTypes = true
+});
 
 app.UseRouting();
 
