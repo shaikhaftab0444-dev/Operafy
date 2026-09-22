@@ -1,420 +1,1918 @@
 @model IEnumerable<ERP_System.Models.Customer>
+
 @{
     ViewData["Title"] = "Customer Registry";
     Layout = "_DashboardLayout";
 }
 
 <style>
-    .card-cust {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        height: 100%;
-        text-align: left;
+    /* =========================================================
+           CUSTOMER REGISTRY - SCOPED ERP UI
+           ========================================================= */
+
+    .customer-page {
+        --customer-primary: #4f46e5;
+        --customer-primary-dark: #4338ca;
+        --customer-primary-soft: rgba(79, 70, 229, 0.09);
+        --customer-success: #10b981;
+        --customer-success-soft: rgba(16, 185, 129, 0.09);
+        --customer-warning: #f59e0b;
+        --customer-warning-soft: rgba(245, 158, 11, 0.10);
+        --customer-danger: #ef4444;
+        --customer-danger-soft: rgba(239, 68, 68, 0.09);
+        --customer-info: #0ea5e9;
+        --customer-info-soft: rgba(14, 165, 233, 0.09);
+        --customer-text: #1f2937;
+        --customer-muted: #6b7280;
+        --customer-border: #e7e5e4;
+        --customer-surface: #ffffff;
+        --customer-surface-soft: #fafafa;
+        --customer-bg: #f8fafc;
     }
 
-    .cust-icon-wrap {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
+    .customer-page {
+        width: 100%;
+        color: var(--customer-text);
+    }
+
+    /* Header */
+    .customer-hero {
+        position: relative;
+        background: linear-gradient(135deg, #ffffff 0%, #fbfbff 55%, #f7f8ff 100%);
+        border: 1px solid var(--customer-border);
+        border-radius: 18px;
+        padding: 1.35rem 1.5rem;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.035);
+    }
+
+        .customer-hero::after {
+            content: "";
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            right: -65px;
+            top: -80px;
+            border-radius: 50%;
+            background: rgba(79, 70, 229, 0.055);
+            pointer-events: none;
+        }
+
+    .customer-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .customer-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--customer-primary);
+        font-size: 0.69rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 0.35rem;
+    }
+
+        .customer-eyebrow i {
+            font-size: 0.58rem;
+        }
+
+    .customer-title {
+        color: var(--customer-text);
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        margin: 0;
+    }
+
+    .customer-subtitle {
+        color: var(--customer-muted);
+        font-size: 0.82rem;
+        margin: 0.3rem 0 0;
+    }
+
+    .customer-breadcrumb {
+        margin-top: 0.55rem;
+    }
+
+        .customer-breadcrumb .breadcrumb {
+            margin-bottom: 0;
+            font-size: 0.74rem;
+        }
+
+        .customer-breadcrumb .breadcrumb-item a {
+            color: var(--customer-primary);
+            font-weight: 600;
+        }
+
+        .customer-breadcrumb .breadcrumb-item.active {
+            color: var(--customer-muted);
+        }
+
+        .customer-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+            color: #b6b3af;
+        }
+
+    .btn-customer-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        background: linear-gradient(135deg, var(--customer-primary), var(--customer-primary-dark));
+        color: #ffffff !important;
+        border: 0;
+        border-radius: 10px;
+        padding: 0.7rem 1rem;
+        min-height: 42px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.18);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .btn-customer-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 9px 20px rgba(79, 70, 229, 0.24);
+        }
+
+        .btn-customer-primary:active {
+            transform: translateY(0);
+        }
+
+    /* Success Alert */
+    .customer-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #16a34a !important;
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        font-size: 0.82rem;
+        box-shadow: 0 3px 12px rgba(22, 163, 74, 0.04);
+    }
+
+        .customer-alert i {
+            font-size: 0.95rem;
+        }
+
+        .customer-alert .btn-close {
+            margin-left: auto;
+            font-size: 0.7rem;
+        }
+
+    /* KPI Cards */
+    .customer-kpi {
+        height: 100%;
+        min-height: 105px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 1.1rem 1.15rem;
+        background: var(--customer-surface);
+        border: 1px solid var(--customer-border);
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(15, 23, 42, 0.035);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+        .customer-kpi::after {
+            content: "";
+            position: absolute;
+            right: -35px;
+            bottom: -55px;
+            width: 115px;
+            height: 115px;
+            border-radius: 50%;
+            background: var(--kpi-soft, var(--customer-primary-soft));
+            pointer-events: none;
+        }
+
+        .customer-kpi:hover {
+            transform: translateY(-3px);
+            border-color: rgba(79, 70, 229, 0.14);
+            box-shadow: 0 9px 24px rgba(15, 23, 42, 0.065);
+        }
+
+        .customer-kpi.total {
+            --kpi-soft: var(--customer-primary-soft);
+        }
+
+        .customer-kpi.active {
+            --kpi-soft: var(--customer-success-soft);
+        }
+
+        .customer-kpi.business {
+            --kpi-soft: var(--customer-warning-soft);
+        }
+
+    .customer-kpi-icon {
+        position: relative;
+        z-index: 1;
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.1rem;
     }
 
-    .cust-icon-total {
-        background-color: rgba(79, 70, 229, 0.08);
-        color: var(--primary-warm);
+    .customer-kpi.total .customer-kpi-icon {
+        color: var(--customer-primary);
+        background: var(--customer-primary-soft);
     }
 
-    .cust-icon-active {
-        background-color: rgba(16, 185, 129, 0.08);
-        color: #10b981;
+    .customer-kpi.active .customer-kpi-icon {
+        color: var(--customer-success);
+        background: var(--customer-success-soft);
     }
 
-    .cust-info {
-        flex-grow: 1;
+    .customer-kpi.business .customer-kpi-icon {
+        color: var(--customer-warning);
+        background: var(--customer-warning-soft);
     }
 
-    .cust-label {
-        font-size: 0.75rem;
-        color: var(--sidebar-color);
-        font-weight: 700;
-        margin-bottom: 2px;
+    .customer-kpi-content {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .customer-kpi-label {
+        color: var(--customer-muted);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        margin-bottom: 0.18rem;
     }
 
-    .cust-val {
-        font-size: 1.4rem;
+    .customer-kpi-value {
+        color: var(--customer-text);
+        font-size: 1.45rem;
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+    }
+
+    .customer-kpi-caption {
+        color: #9ca3af;
+        font-size: 0.7rem;
+        margin-top: 0.18rem;
+    }
+
+    /* Panels */
+    .customer-panel {
+        background: var(--customer-surface);
+        border: 1px solid var(--customer-border);
+        border-radius: 15px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.032);
+    }
+
+    .customer-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 1rem 1.15rem;
+        border-bottom: 1px solid #f0efed;
+    }
+
+    .customer-panel-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--customer-text);
+        font-size: 0.86rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .customer-panel-title-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--customer-primary);
+        background: var(--customer-primary-soft);
+        font-size: 0.75rem;
+    }
+
+    .customer-panel-caption {
+        color: #9ca3af;
+        font-size: 0.7rem;
+    }
+
+    /* Filters */
+    .customer-filter-panel {
+        padding: 1rem 1.15rem;
+    }
+
+    .customer-filter-label {
+        display: block;
+        color: #4b5563;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.4rem;
+    }
+
+    .customer-filter-input,
+    .customer-filter-select {
+        min-height: 42px;
+        border: 1px solid #deddda !important;
+        border-radius: 9px !important;
+        background-color: #ffffff !important;
+        color: var(--customer-text) !important;
+        font-size: 0.8rem !important;
+        box-shadow: none !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .customer-filter-input:focus,
+        .customer-filter-select:focus {
+            border-color: rgba(79, 70, 229, 0.55) !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08) !important;
+        }
+
+    .customer-search-wrap {
+        position: relative;
+    }
+
+        .customer-search-wrap > i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 0.78rem;
+            pointer-events: none;
+        }
+
+        .customer-search-wrap .customer-filter-input {
+            padding-left: 2.2rem;
+        }
+
+    .customer-filter-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-customer-filter {
+        min-height: 42px;
+        border: 0;
+        border-radius: 9px;
+        padding: 0.55rem 1rem;
+        background: linear-gradient(135deg, var(--customer-primary), var(--customer-primary-dark));
+        color: #ffffff;
+        font-size: 0.78rem;
         font-weight: 700;
-        color: var(--text-color);
+        box-shadow: 0 4px 11px rgba(79, 70, 229, 0.14);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .panel-cust {
+        .btn-customer-filter:hover {
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(79, 70, 229, 0.2);
+        }
+
+    .btn-customer-reset {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0.55rem 0.9rem;
+        border: 1px solid #deddda;
+        border-radius: 9px;
         background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
-    }
-
-    .table-cust th {
-        background-color: #fcfbfa !important;
-        font-size: 0.75rem;
-        text-transform: uppercase;
+        color: #6b7280;
+        font-size: 0.78rem;
         font-weight: 700;
-        color: #7c7267;
-        border-bottom: 1px solid var(--border-warm);
-        padding: 0.85rem 1rem;
-        white-space: nowrap;
+        text-decoration: none;
+        transition: all 0.2s ease;
     }
 
-    .table-cust td {
-        font-size: 0.85rem;
-        color: var(--text-color);
-        border-bottom: 1px solid var(--border-warm);
-        padding: 0.85rem 1rem;
-        vertical-align: middle;
+        .btn-customer-reset:hover {
+            color: var(--customer-primary);
+            border-color: rgba(79, 70, 229, 0.25);
+            background: #fafaff;
+        }
+
+    /* Table */
+    .customer-table-panel {
+        overflow: hidden;
     }
 
-    .badge-active {
-        background-color: rgba(16, 185, 129, 0.08);
-        color: #10b981;
-        font-weight: 600;
-        border: 1px solid rgba(16, 185, 129, 0.2);
+    .customer-table-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 1rem 1.15rem;
+        border-bottom: 1px solid #f0efed;
     }
 
-    .badge-inactive {
-        background-color: rgba(239, 68, 68, 0.08);
-        color: #ef4444;
-        font-weight: 600;
-        border: 1px solid rgba(239, 68, 68, 0.2);
+    .customer-record-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.35rem 0.65rem;
+        border-radius: 20px;
+        background: #f8fafc;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
+        font-size: 0.69rem;
+        font-weight: 700;
     }
 
-    .btn-add-customer {
-        background: var(--primary-warm);
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        padding: 0.65rem 1rem;
-        font-weight: 600;
-        font-size: 0.85rem;
-        white-space: nowrap;
-        transition: 0.2s ease;
-        box-shadow: 0 3px 10px rgba(79, 70, 229, 0.12);
+    .customer-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
-    .btn-add-customer:hover {
-        color: #fff;
-        transform: translateY(-1px);
-        opacity: 0.92;
+    .customer-table {
+        width: 100%;
+        min-width: 1120px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
     }
 
-    .action-menu {
-        border: 1px solid var(--border-warm);
-        border-radius: 8px;
-        background: #fff;
-        color: #7c7267;
-        padding: 0.35rem 0.6rem;
-    }
+        .customer-table thead th {
+            background: #fafafa !important;
+            color: #77716a;
+            border-bottom: 1px solid #e7e5e4 !important;
+            padding: 0.8rem 0.9rem;
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.055em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
 
-    .dropdown-menu {
-        border: 1px solid var(--border-warm);
-        border-radius: 10px;
-        padding: 0.45rem;
-        box-shadow: 0 8px 25px rgba(45,37,30,0.12);
-    }
+        .customer-table tbody td {
+            background: #ffffff;
+            color: var(--customer-text);
+            border-bottom: 1px solid #f0efed !important;
+            padding: 0.82rem 0.9rem;
+            font-size: 0.78rem;
+            vertical-align: middle;
+        }
 
-    .dropdown-item {
+        .customer-table tbody tr:last-child td {
+            border-bottom: 0 !important;
+        }
+
+        .customer-table tbody tr {
+            transition: background-color 0.18s ease;
+        }
+
+            .customer-table tbody tr:hover td {
+                background: #fbfbff;
+            }
+
+    .customer-code {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.32rem 0.55rem;
         border-radius: 7px;
-        padding: 0.55rem 0.75rem;
-        font-size: 0.83rem;
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 0.68rem;
+        font-weight: 700;
+        white-space: nowrap;
     }
 
-    .dropdown-item:hover {
-        background: #faf6f0;
+    .customer-name-cell {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 185px;
     }
 
     .customer-avatar {
-        width: 30px;
-        height: 30px;
-        min-width: 30px;
-        border-radius: 50%;
-        background-color: #faf6f0;
-        color: var(--primary-warm);
-        border: 1.5px solid var(--primary-warm);
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.75rem;
+        background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+        color: var(--customer-primary);
+        border: 1px solid rgba(79, 70, 229, 0.14);
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .customer-name {
+        color: #1f2937;
+        font-size: 0.8rem;
+        font-weight: 750;
+        line-height: 1.2;
+    }
+
+    .customer-joined {
+        color: #9ca3af;
+        font-size: 0.65rem;
+        margin-top: 2px;
+    }
+
+    .customer-company {
+        color: #374151;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+
+    .customer-tax {
+        color: #64748b;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 0.69rem;
+        background: #f8fafc;
+        padding: 0.25rem 0.4rem;
+        border-radius: 5px;
+    }
+
+    .customer-contact {
+        line-height: 1.5;
+        white-space: nowrap;
+    }
+
+    .customer-contact-email {
+        color: #374151;
+    }
+
+    .customer-contact-phone {
+        color: #9ca3af;
+        font-size: 0.67rem;
+    }
+
+    .customer-amount {
+        color: #334155;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .customer-balance-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.55rem;
+        border-radius: 7px;
+        font-size: 0.68rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+        .customer-balance-badge.due {
+            background: var(--customer-danger-soft);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.13);
+        }
+
+        .customer-balance-badge.clear {
+            background: var(--customer-success-soft);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.13);
+        }
+
+    .customer-rep {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 0.32rem 0.55rem;
+        border-radius: 7px;
+        background: var(--customer-primary-soft);
+        color: #4f46e5;
+        border: 1px solid rgba(79, 70, 229, 0.1);
+        font-size: 0.68rem;
         font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .customer-unassigned {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #9ca3af;
+        font-size: 0.69rem;
+        white-space: nowrap;
+    }
+
+    .customer-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-width: 76px;
+        padding: 0.32rem 0.62rem;
+        border-radius: 20px;
+        font-size: 0.67rem;
+        font-weight: 800;
+    }
+
+        .customer-status::before {
+            content: "";
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        .customer-status.active {
+            background: var(--customer-success-soft);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.14);
+        }
+
+            .customer-status.active::before {
+                background: #10b981;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            }
+
+        .customer-status.inactive {
+            background: var(--customer-danger-soft);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.14);
+        }
+
+            .customer-status.inactive::before {
+                background: #ef4444;
+                box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+            }
+
+    .customer-action-btn {
+        width: 34px;
+        height: 34px;
+        border: 1px solid #e2e0dd;
+        border-radius: 9px;
+        background: #ffffff;
+        color: #6b7280;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+        .customer-action-btn:hover,
+        .customer-action-btn:focus {
+            color: var(--customer-primary);
+            border-color: rgba(79, 70, 229, 0.25);
+            background: #fafaff;
+            box-shadow: 0 3px 9px rgba(79, 70, 229, 0.08);
+        }
+
+    .customer-dropdown {
+        min-width: 190px;
+        padding: 0.4rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 11px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.13);
+    }
+
+        .customer-dropdown .dropdown-item {
+            display: flex;
+            align-items: center;
+            border-radius: 7px;
+            padding: 0.58rem 0.65rem;
+            color: #4b5563;
+            font-size: 0.76rem;
+            font-weight: 600;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+            .customer-dropdown .dropdown-item:hover {
+                background: #f8fafc;
+                color: #1f2937;
+            }
+
+        .customer-dropdown .dropdown-divider {
+            margin: 0.35rem 0;
+            border-color: #f0efed;
+        }
+
+    .customer-empty {
+        padding: 4rem 1.5rem !important;
+        color: #9ca3af !important;
+    }
+
+    .customer-empty-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 0.85rem;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        color: #94a3b8;
+        font-size: 1.25rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .customer-empty-title {
+        color: #4b5563;
+        font-weight: 750;
+        font-size: 0.86rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .customer-empty-text {
+        color: #9ca3af;
+        font-size: 0.72rem;
+    }
+
+    /* Modal */
+    .customer-modal {
+        border: 0 !important;
+        border-radius: 16px !important;
+        overflow: hidden;
+        box-shadow: 0 22px 65px rgba(15, 23, 42, 0.18) !important;
+    }
+
+    .customer-modal-header {
+        padding: 1rem 1.25rem;
+        background: linear-gradient(135deg, #ffffff, #fafaff);
+        border-bottom: 1px solid #eeeeec;
+    }
+
+    .customer-modal-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .customer-modal-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--customer-primary-soft);
+        color: var(--customer-primary);
+        font-size: 0.85rem;
+    }
+
+    .customer-modal-title {
+        color: #1f2937;
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .customer-modal-subtitle {
+        color: #9ca3af;
+        font-size: 0.67rem;
+        margin: 2px 0 0;
+    }
+
+    .customer-modal-body {
+        padding: 1.35rem !important;
+        background: #ffffff;
+    }
+
+    .customer-form-group {
+        margin-bottom: 0;
+    }
+
+    .customer-form-label {
+        display: block;
+        color: #4b5563;
+        font-size: 0.7rem;
+        font-weight: 750;
+        margin-bottom: 0.38rem;
+    }
+
+        .customer-form-label .required {
+            color: var(--customer-danger);
+        }
+
+    .customer-form-control,
+    .customer-form-select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #deddda !important;
+        border-radius: 9px !important;
+        color: #1f2937 !important;
+        background: #ffffff !important;
+        font-size: 0.78rem !important;
+        box-shadow: none !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .customer-form-control:focus,
+        .customer-form-select:focus {
+            border-color: rgba(79, 70, 229, 0.55) !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08) !important;
+        }
+
+        .customer-form-control::placeholder {
+            color: #b0aca7;
+        }
+
+    .customer-modal-footer {
+        padding: 0.9rem 1.25rem;
+        background: #fafafa;
+        border-top: 1px solid #eeeeec;
+    }
+
+    .btn-customer-secondary {
+        min-height: 40px;
+        border: 1px solid #deddda;
+        border-radius: 9px;
+        padding: 0.5rem 0.9rem;
+        background: #ffffff;
+        color: #6b7280;
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+
+        .btn-customer-secondary:hover {
+            color: #374151;
+            background: #f8fafc;
+        }
+
+    .btn-customer-save {
+        min-height: 40px;
+        border: 0;
+        border-radius: 9px;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, var(--customer-primary), var(--customer-primary-dark));
+        color: #ffffff;
+        font-size: 0.76rem;
+        font-weight: 750;
+        box-shadow: 0 5px 13px rgba(79, 70, 229, 0.15);
+    }
+
+        .btn-customer-save:hover {
+            color: #ffffff;
+            box-shadow: 0 7px 17px rgba(79, 70, 229, 0.22);
+        }
+
+    /* Delete Modal */
+    .customer-delete-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--customer-danger-soft);
+        color: var(--customer-danger);
+        border: 1px solid rgba(239, 68, 68, 0.12);
+    }
+
+    .customer-delete-title {
+        color: #1f2937;
+        font-size: 0.92rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+    }
+
+    .customer-delete-text {
+        color: #4b5563;
+        font-size: 0.78rem;
+        line-height: 1.5;
+    }
+
+    .customer-delete-warning {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #9ca3af;
+        font-size: 0.67rem;
+    }
+
+    .btn-customer-danger {
+        min-height: 40px;
+        border: 0;
+        border-radius: 9px;
+        padding: 0.5rem 0.9rem;
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 0.76rem;
+        font-weight: 750;
+        box-shadow: 0 5px 13px rgba(239, 68, 68, 0.13);
+    }
+
+        .btn-customer-danger:hover {
+            color: #ffffff;
+            background: #dc2626;
+        }
+
+    /* Responsive */
+    @@media (max-width: 991.98px) {
+        .customer-title
+
+    {
+        font-size: 1.35rem;
+    }
+
+    .customer-hero {
+        padding: 1.15rem;
+    }
+
+    .customer-table {
+        min-width: 1080px;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .customer-hero
+
+    {
+        border-radius: 14px;
+        padding: 1rem;
+    }
+
+    .customer-hero .btn-customer-primary {
+        width: 100%;
+    }
+
+    .customer-title {
+        font-size: 1.25rem;
+    }
+
+    .customer-subtitle {
+        font-size: 0.76rem;
+    }
+
+    .customer-kpi {
+        min-height: 92px;
+        padding: 0.9rem;
+    }
+
+    .customer-kpi-icon {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+    }
+
+    .customer-kpi-value {
+        font-size: 1.25rem;
+    }
+
+    .customer-panel-header,
+    .customer-table-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .customer-filter-panel {
+        padding: 0.95rem;
+    }
+
+    .customer-filter-actions {
+        width: 100%;
+    }
+
+        .customer-filter-actions > * {
+            flex: 1;
+        }
+
+    .customer-modal-body {
+        padding: 1rem !important;
+    }
+
+    .customer-modal-footer {
+        padding: 0.8rem 1rem;
+    }
+
+    }
+
+    @@media (max-width: 575.98px) {
+        .customer-breadcrumb
+
+    {
+        display: none;
+    }
+
+    .customer-eyebrow {
+        font-size: 0.61rem;
+    }
+
+    .customer-title {
+        font-size: 1.15rem;
+    }
+
+    .customer-panel {
+        border-radius: 12px;
+    }
+
+    .customer-kpi {
+        border-radius: 12px;
+    }
+
+    .customer-filter-actions {
+        flex-direction: column;
+    }
+
+    .customer-table-head {
+        padding: 0.85rem;
+    }
+
+    .customer-table-wrap {
+        border-radius: 0;
+    }
+
+    .customer-modal .modal-dialog {
+        margin: 0.6rem;
+    }
+
+    }
+
+    /* Reduced Motion */
+    @@media (prefers-reduced-motion: reduce) {
+        .customer-page *, .customer-page *::before, .customer-page *::after
+
+    {
+        scroll-behavior: auto !important;
+        transition: none !important;
+        animation: none !important;
+    }
+
+    }
+
+    /* Print */
+    @@media print {
+        .customer-hero::after, .customer-kpi::after, .btn-customer-primary, .customer-filter-panel, .customer-action-btn, .customer-dropdown, .modal
+
+    {
+        display: none !important;
+    }
+
+    .customer-panel,
+    .customer-kpi,
+    .customer-hero {
+        box-shadow: none !important;
+    }
+
+    .customer-table {
+        min-width: 0 !important;
+    }
+
     }
 </style>
 
-<!-- Header -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
-    <div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Customer Registry</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item">
-                    <a href="/Dashboard" class="text-decoration-none">Dashboard</a>
-                </li>
-                <li class="breadcrumb-item active">Customers</li>
-            </ol>
-        </nav>
-    </div>
+<div class="customer-page">
 
-    <a asp-action="Create" class="btn-add-customer text-decoration-none">
-        <i class="fa-solid fa-user-plus me-2"></i>Add New Customer
-    </a>
-</div>
+    <!-- =========================================================
+         HEADER / HERO
+         ========================================================= -->
+    <div class="customer-hero">
+        <div class="customer-hero-content">
+            <div class="row align-items-center g-3">
 
-<!-- Success Alert -->
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start"
-         role="alert"
-         style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
-        <i class="fa-solid fa-circle-check me-2"></i>
-        @TempData["SuccessMessage"]
+                <div class="col-lg">
+                    <div class="customer-eyebrow">
+                        <i class="fa-solid fa-circle"></i>
+                        Sales & CRM
+                    </div>
 
-        <button type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Close">
-        </button>
-    </div>
-}
+                    <h1 class="customer-title">
+                        Customer Registry
+                    </h1>
 
-<!-- KPI Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-md-6">
-        <div class="card-cust">
-            <div class="cust-icon-wrap cust-icon-total">
-                <i class="fa-solid fa-handshake"></i>
-            </div>
+                    <p class="customer-subtitle">
+                        Manage customer accounts, contacts, credit exposure and sales relationships.
+                    </p>
 
-            <div class="cust-info">
-                <div class="cust-label">Total Customers</div>
-                <div class="cust-val">@ViewBag.TotalCustomers</div>
-            </div>
-        </div>
-    </div>
+                    <div class="customer-breadcrumb">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a href="/Dashboard" class="text-decoration-none">
+                                        Dashboard
+                                    </a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">
+                                    Customers
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
 
-    <div class="col-md-6">
-        <div class="card-cust">
-            <div class="cust-icon-wrap cust-icon-active">
-                <i class="fa-solid fa-circle-check"></i>
-            </div>
+                <div class="col-lg-auto">
+                    <button type="button"
+                            class="btn-customer-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addCustomerModal">
+                        <i class="fa-solid fa-user-plus"></i>
+                        Add New Customer
+                    </button>
+                </div>
 
-            <div class="cust-info">
-                <div class="cust-label">Active Customers</div>
-                <div class="cust-val">@ViewBag.ActiveCustomers</div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Filters -->
-<div class="panel-cust mb-4">
-    <form method="get" asp-action="Index" class="row g-3 align-items-center text-start">
-        <div class="col-md-6">
-            <label class="small fw-bold text-secondary mb-1">
-                Search Customers
-            </label>
+    <!-- =========================================================
+         SUCCESS ALERT
+         ========================================================= -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-dismissible fade show customer-alert mb-4"
+             role="alert">
 
-            <input type="text"
-                   name="searchTerm"
-                   value="@ViewBag.SearchTerm"
-                   class="form-control"
-                   placeholder="Search by name, email, or phone number..."
-                   style="padding: 0.5rem 1rem;" />
-        </div>
+            <i class="fa-solid fa-circle-check"></i>
 
-        <div class="col-md-3">
-            <label class="small fw-bold text-secondary mb-1">
-                Status Filter
-            </label>
+            <span>
+                @TempData["SuccessMessage"]
+            </span>
 
-            <select name="statusFilter"
-                    class="form-select"
-                    style="padding: 0.5rem 1rem;">
-
-                @if (ViewBag.StatusFilter == "All")
-                {
-                    <option value="All" selected>All Customers</option>
-                }
-                else
-                {
-                    <option value="All">All Customers</option>
-                }
-
-                @if (ViewBag.StatusFilter == "Active")
-                {
-                    <option value="Active" selected>Active Only</option>
-                }
-                else
-                {
-                    <option value="Active">Active Only</option>
-                }
-
-                @if (ViewBag.StatusFilter == "Inactive")
-                {
-                    <option value="Inactive" selected>Inactive Only</option>
-                }
-                else
-                {
-                    <option value="Inactive">Inactive Only</option>
-                }
-            </select>
-        </div>
-
-        <div class="col-md-3 align-self-end d-flex gap-2">
-            <button type="submit"
-                    class="btn btn-primary-warm w-100 py-2 fw-bold">
-                <i class="fa-solid fa-filter me-1"></i> Filter
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
             </button>
-
-            <a asp-action="Index"
-               class="btn btn-outline-secondary py-2 fw-bold">
-                Reset
-            </a>
         </div>
-    </form>
-</div>
+    }
 
-<!-- Customers Table -->
-<div class="panel-cust p-0 overflow-hidden">
-    <div class="table-responsive">
-        <table class="table table-hover table-cust mb-0 border-0 text-start">
-            <thead>
-                <tr>
-                    <th class="ps-3 border-0">Customer ID</th>
-                    <th class="border-0">Customer Name</th>
-                    <th class="border-0">Email</th>
-                    <th class="border-0">Phone</th>
-                    <th class="border-0">Date of Birth</th>
-                    <th class="border-0">Joined Date</th>
-                    <th class="border-0 text-center">Status</th>
-                    <th class="border-0 text-center">Actions</th>
-                </tr>
-            </thead>
+    <!-- =========================================================
+         KPI CARDS
+         ========================================================= -->
+    <div class="row g-3 mb-4">
 
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var customer in Model)
+        <div class="col-md-4">
+            <div class="customer-kpi total">
+
+                <div class="customer-kpi-icon">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+
+                <div class="customer-kpi-content">
+                    <div class="customer-kpi-label">
+                        Total Customers
+                    </div>
+
+                    <div class="customer-kpi-value">
+                        @ViewBag.TotalCustomers
+                    </div>
+
+                    <div class="customer-kpi-caption">
+                        Registered customer accounts
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="customer-kpi active">
+
+                <div class="customer-kpi-icon">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+
+                <div class="customer-kpi-content">
+                    <div class="customer-kpi-label">
+                        Active Customers
+                    </div>
+
+                    <div class="customer-kpi-value">
+                        @ViewBag.ActiveCustomers
+                    </div>
+
+                    <div class="customer-kpi-caption">
+                        Currently active accounts
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="customer-kpi business">
+
+                <div class="customer-kpi-icon">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+
+                <div class="customer-kpi-content">
+                    <div class="customer-kpi-label">
+                        Enterprise / B2B
+                    </div>
+
+                    <div class="customer-kpi-value">
+                        @ViewBag.BusinessCustomers
+                    </div>
+
+                    <div class="customer-kpi-caption">
+                        Business customer accounts
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =========================================================
+         FILTER PANEL
+         ========================================================= -->
+    <div class="customer-panel customer-filter-panel mb-4">
+
+        <div class="customer-panel-header p-0 pb-3 mb-3">
+            <div>
+                <h2 class="customer-panel-title">
+                    <span class="customer-panel-title-icon">
+                        <i class="fa-solid fa-sliders"></i>
+                    </span>
+                    Customer Filters
+                </h2>
+
+                <div class="customer-panel-caption mt-1">
+                    Search and refine the customer registry
+                </div>
+            </div>
+        </div>
+
+        <form method="get"
+              asp-action="Index"
+              class="row g-3 align-items-end text-start">
+
+            <div class="col-lg-6 col-md-12">
+                <label class="customer-filter-label">
+                    Search Customers
+                </label>
+
+                <div class="customer-search-wrap">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                    <input type="text"
+                           name="searchTerm"
+                           value="@ViewBag.SearchTerm"
+                           class="form-control customer-filter-input"
+                           placeholder="Search by name, company, GSTIN, email, code..." />
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <label class="customer-filter-label">
+                    Status Filter
+                </label>
+
+                <select name="statusFilter"
+                        class="form-select customer-filter-select">
+
+                    <option value="All"
+                            selected="@(ViewBag.StatusFilter == "All")">
+                        All Customers
+                    </option>
+
+                    <option value="Active"
+                            selected="@(ViewBag.StatusFilter == "Active")">
+                        Active Only
+                    </option>
+
+                    <option value="Inactive"
+                            selected="@(ViewBag.StatusFilter == "Inactive")">
+                        Inactive Only
+                    </option>
+
+                </select>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="customer-filter-actions">
+
+                    <button type="submit"
+                            class="btn-customer-filter flex-grow-1">
+                        <i class="fa-solid fa-filter me-1"></i>
+                        Filter
+                    </button>
+
+                    <a asp-action="Index"
+                       class="btn-customer-reset">
+                        <i class="fa-solid fa-rotate-left me-1"></i>
+                        Reset
+                    </a>
+
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- =========================================================
+         CUSTOMER TABLE
+         ========================================================= -->
+    <div class="customer-panel customer-table-panel">
+
+        <div class="customer-table-head">
+
+            <div>
+                <h2 class="customer-panel-title">
+                    <span class="customer-panel-title-icon">
+                        <i class="fa-solid fa-address-book"></i>
+                    </span>
+                    Customer Accounts
+                </h2>
+
+                <div class="customer-panel-caption mt-1">
+                    Customer profiles and account information
+                </div>
+            </div>
+
+            <div class="customer-record-count">
+                <i class="fa-solid fa-database"></i>
+                Registry
+            </div>
+
+        </div>
+
+        <div class="customer-table-wrap">
+
+            <table class="table customer-table align-middle text-start">
+
+                <thead>
+                    <tr>
+
+                        <th class="ps-3">
+                            Cust Code
+                        </th>
+
+                        <th>
+                            Customer Name
+                        </th>
+
+                        <th>
+                            Company Name
+                        </th>
+
+                        <th>
+                            GSTIN / Tax ID
+                        </th>
+
+                        <th>
+                            Contact
+                        </th>
+
+                        <th>
+                            Credit Limit
+                        </th>
+
+                        <th>
+                            Outstanding
+                        </th>
+
+                        <th>
+                            Assigned Rep
+                        </th>
+
+                        <th class="text-center">
+                            Status
+                        </th>
+
+                        <th class="text-center">
+                            Actions
+                        </th>
+
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @if (Model != null && Model.Any())
                     {
-                        <tr>
-                            <td class="ps-3 fw-bold text-secondary">
-                                CUST#@customer.Id.ToString("D4")
-                            </td>
+                        foreach (var customer in Model)
+                        {
+                            var code = !string.IsNullOrEmpty(customer.CustomerCode)
+                            ? customer.CustomerCode
+                            : $"CUST#{customer.Id:D4}";
 
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="customer-avatar">
-                                        @customer.FirstName.Substring(0, 1).ToUpper()
+                            var initial = !string.IsNullOrEmpty(customer.CustomerName)
+                            ? customer.CustomerName.Substring(0, 1).ToUpper()
+                            : "C";
+
+                            <tr>
+
+                                <!-- Customer Code -->
+                                <td class="ps-3">
+                                    <span class="customer-code">
+                                        @code
+                                    </span>
+                                </td>
+
+                                <!-- Customer -->
+                                <td>
+                                    <div class="customer-name-cell">
+
+                                        <div class="customer-avatar">
+                                            @initial
+                                        </div>
+
+                                        <div>
+                                            <div class="customer-name">
+                                                @customer.CustomerName
+                                            </div>
+
+                                            <div class="customer-joined">
+                                                Joined:
+                                                @(customer.JoinedDate?.ToString("dd MMM yyyy") ?? "-")
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </td>
+
+                                <!-- Company -->
+                                <td>
+                                    <span class="customer-company">
+                                        @(customer.CompanyName ?? "-")
+                                    </span>
+                                </td>
+
+                                <!-- Tax -->
+                                <td>
+                                    <span class="customer-tax">
+                                        @(customer.TaxIdOrGSTIN ?? "-")
+                                    </span>
+                                </td>
+
+                                <!-- Contact -->
+                                <td>
+                                    <div class="customer-contact">
+
+                                        <div class="customer-contact-email">
+                                            <i class="fa-regular fa-envelope me-1 text-muted"></i>
+                                            @customer.Email
+                                        </div>
+
+                                        @if (!string.IsNullOrEmpty(customer.PhoneNumber))
+                                        {
+                                            <div class="customer-contact-phone">
+                                                <i class="fa-solid fa-phone me-1"></i>
+                                                @customer.PhoneNumber
+                                            </div>
+                                        }
+
+                                    </div>
+                                </td>
+
+                                <!-- Credit Limit -->
+                                <td>
+                                    <span class="customer-amount">
+                                        ₹@customer.CreditLimit.ToString("N0")
+                                    </span>
+                                </td>
+
+                                <!-- Outstanding -->
+                                <td>
+
+                                    @if (customer.OutstandingBalance > 0)
+                                    {
+                                        <span class="customer-balance-badge due">
+                                            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>
+                                            ₹@customer.OutstandingBalance.ToString("N2")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="customer-balance-badge clear">
+                                            <i class="fa-solid fa-check me-1"></i>
+                                            ₹0.00
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- Assigned Representative -->
+                                <td>
+
+                                    @if (customer.AssignedRepUser != null)
+                                    {
+                                        <span class="customer-rep">
+                                            <i class="fa-solid fa-user-tie"></i>
+                                            @customer.AssignedRepUser.FullName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="customer-unassigned">
+                                            <i class="fa-solid fa-user-clock"></i>
+                                            Unassigned
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- Status -->
+                                <td class="text-center">
+
+                                    @if (customer.IsActive)
+                                    {
+                                        <span class="customer-status active">
+                                            Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="customer-status inactive">
+                                            Inactive
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="text-center">
+
+                                    <div class="dropdown">
+
+                                        <button class="customer-action-btn"
+                                                type="button"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                aria-label="Customer actions">
+
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+
+                                        </button>
+
+                                        <ul class="dropdown-menu dropdown-menu-end customer-dropdown">
+
+                                            <li>
+                                                <a class="dropdown-item"
+                                                   asp-action="Details"
+                                                   asp-route-id="@customer.Id">
+
+                                                    <i class="fa-regular fa-eye me-2 text-primary"></i>
+                                                    View Profile
+
+                                                </a>
+                                            </li>
+
+                                            <li>
+                                                <a class="dropdown-item"
+                                                   asp-action="Edit"
+                                                   asp-route-id="@customer.Id">
+
+                                                    <i class="fa-solid fa-pen-to-square me-2 text-warning"></i>
+                                                    Edit Customer
+
+                                                </a>
+                                            </li>
+
+                                            <li>
+                                                <hr class="dropdown-divider" />
+                                            </li>
+
+                                            <li>
+                                                <a class="dropdown-item"
+                                                   asp-controller="SalesManagement"
+                                                   asp-action="Leads"
+                                                   asp-route-createForCustomerId="@customer.Id">
+
+                                                    <i class="fa-solid fa-filter me-2 text-info"></i>
+                                                    + New Lead
+
+                                                </a>
+                                            </li>
+
+                                            <li>
+                                                <a class="dropdown-item"
+                                                   asp-controller="SalesManagement"
+                                                   asp-action="Quotations"
+                                                   asp-route-createForCustomerId="@customer.Id">
+
+                                                    <i class="fa-solid fa-file-invoice me-2 text-success"></i>
+                                                    + New Quote
+
+                                                </a>
+                                            </li>
+
+                                            @if (!User.IsInRole("Sales Executive"))
+                                            {
+                                                <li>
+                                                    <hr class="dropdown-divider" />
+                                                </li>
+
+                                                <li>
+                                                    <button type="button"
+                                                            class="dropdown-item text-danger"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#deleteModal"
+                                                            data-customer-id="@customer.Id"
+                                                            data-customer-name="@customer.CustomerName">
+
+                                                        <i class="fa-solid fa-trash me-2"></i>
+                                                        Delete Customer
+
+                                                    </button>
+                                                </li>
+                                            }
+
+                                        </ul>
+
                                     </div>
 
-                                    <span class="fw-bold text-dark">
-                                        @customer.CustomerName
-                                    </span>
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="10"
+                                class="text-center customer-empty">
+
+                                <div class="customer-empty-icon">
+                                    <i class="fa-solid fa-users-slash"></i>
                                 </div>
-                            </td>
 
-                            <td>@customer.Email</td>
-                            <td>@customer.PhoneNumber</td>
-                            <td>@customer.DateOfBirth.ToString("dd MMM yyyy")</td>
-                            <td>
-                                @(customer.JoinedDate?.ToString("dd MMM yyyy") ?? "-")
-                            </td>
-
-                            <td class="text-center">
-                                @if (customer.IsActive)
-                                {
-                                    <span class="badge rounded-pill px-2 py-1 badge-active">
-                                        Active
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge rounded-pill px-2 py-1 badge-inactive">
-                                        Inactive
-                                    </span>
-                                }
-                            </td>
-
-                            <td class="text-center">
-                                <div class="dropdown">
-                                    <button class="action-menu"
-                                            type="button"
-                                            data-bs-toggle="dropdown"
-                                            aria-expanded="false">
-                                        <i class="fa-solid fa-ellipsis"></i>
-                                    </button>
-
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <a class="dropdown-item"
-                                               asp-action="Details"
-                                               asp-route-id="@customer.Id">
-                                                <i class="fa-regular fa-eye me-2 text-primary"></i>
-                                                View Profile
-                                            </a>
-                                        </li>
-
-                                        <li>
-                                            <a class="dropdown-item"
-                                               asp-action="Edit"
-                                               asp-route-id="@customer.Id">
-                                                <i class="fa-solid fa-pen-to-square me-2 text-warning"></i>
-                                                Edit Customer
-                                            </a>
-                                        </li>
-
-                                        <li><hr class="dropdown-divider"></li>
-
-                                        <li>
-                                            <button type="button"
-                                                    class="dropdown-item text-danger"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#deleteModal"
-                                                    data-customer-id="@customer.Id"
-                                                    data-customer-name="@customer.CustomerName">
-                                                <i class="fa-solid fa-trash me-2"></i>
-                                                Delete Customer
-                                            </button>
-                                        </li>
-                                    </ul>
+                                <div class="customer-empty-title">
+                                    No customer records found
                                 </div>
+
+                                <div class="customer-empty-text">
+                                    Try changing your search or filter criteria.
+                                </div>
+
                             </td>
+
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="8"
-                            class="text-center text-muted py-5">
-                            <i class="fa-solid fa-users-slash d-block mb-2 fs-4"></i>
-                            No customer records found.
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+
+                </tbody>
+
+            </table>
+
+        </div>
     </div>
+
 </div>
 
-<!-- Delete Confirmation Modal -->
+<!-- =========================================================
+     ADD CUSTOMER MODAL
+     ========================================================= -->
+<div class="modal fade"
+     id="addCustomerModal"
+     tabindex="-1"
+     aria-labelledby="addCustomerModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content customer-modal">
+
+            <div class="modal-header customer-modal-header">
+
+                <div class="customer-modal-title-wrap">
+
+                    <div class="customer-modal-icon">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </div>
+
+                    <div>
+                        <h5 class="customer-modal-title"
+                            id="addCustomerModalLabel">
+                            Add New Enterprise Customer
+                        </h5>
+
+                        <p class="customer-modal-subtitle">
+                            Create a new customer account in the ERP registry.
+                        </p>
+                    </div>
+
+                </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+            <form asp-action="Create"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body customer-modal-body">
+
+                    <div class="row g-3">
+
+                        <!-- Customer Code -->
+                        <div class="col-md-6">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    Customer Code
+                                </label>
+
+                                <input type="text"
+                                       name="CustomerCode"
+                                       class="form-control customer-form-control"
+                                       placeholder="e.g. CUST-2026-0001 (Auto if blank)" />
+
+                            </div>
+                        </div>
+
+                        <!-- Company -->
+                        <div class="col-md-6">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    Company / Account Name
+                                    <span class="required">*</span>
+                                </label>
+
+                                <input type="text"
+                                       name="CompanyName"
+                                       class="form-control customer-form-control"
+                                       placeholder="e.g. Acme Corporation Pvt Ltd"
+                                       required />
+
+                            </div>
+                        </div>
+
+                        <!-- First Name -->
+                        <div class="col-md-6">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    Contact First Name
+                                    <span class="required">*</span>
+                                </label>
+
+                                <input type="text"
+                                       name="FirstName"
+                                       class="form-control customer-form-control"
+                                       placeholder="e.g. Rajesh"
+                                       required />
+
+                            </div>
+                        </div>
+
+                        <!-- Last Name -->
+                        <div class="col-md-6">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    Contact Last Name
+                                </label>
+
+                                <input type="text"
+                                       name="LastName"
+                                       class="form-control customer-form-control"
+                                       placeholder="e.g. Sharma" />
+
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    Email Address
+                                    <span class="required">*</span>
+                                </label>
+
+                                <input type="email"
+                                       name="Email"
+                                       class="form-control customer-form-control"
+                                       placeholder="corporate@acme.com"
+                                       required />
+
+                            </div>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="col-md-6">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    Phone / Mobile
+                                </label>
+
+                                <input type="text"
+                                       name="PhoneNumber"
+                                       class="form-control customer-form-control"
+                                       placeholder="+91 98765 43210" />
+
+                            </div>
+                        </div>
+
+                        <!-- GST -->
+                        <div class="col-md-6">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    GSTIN / Tax ID
+                                </label>
+
+                                <input type="text"
+                                       name="TaxIdOrGSTIN"
+                                       class="form-control customer-form-control"
+                                       placeholder="27AABCU9603R1ZM" />
+
+                            </div>
+                        </div>
+
+                        <!-- Credit Limit -->
+                        <div class="col-md-6">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    Credit Limit (₹)
+                                </label>
+
+                                <input type="number"
+                                       name="CreditLimit"
+                                       class="form-control customer-form-control"
+                                       value="500000"
+                                       step="1000" />
+
+                            </div>
+                        </div>
+
+                        <!-- Sales Representative -->
+                        <div class="col-md-12">
+                            <div class="customer-form-group">
+
+                                <label class="customer-form-label">
+                                    Assigned Sales Representative
+                                </label>
+
+                                <select name="AssignedRepUserUserId"
+                                        class="form-select customer-form-select">
+
+                                    <option value="">
+                                        -- Select Sales Rep --
+                                    </option>
+
+                                    @if (ViewBag.Users != null)
+                                    {
+                                        foreach (var u in (IEnumerable<ERP_System.Models.User>)ViewBag.Users)
+                                        {
+                                            <option value="@u.UserId">
+                                                @u.FullName (@u.Role)
+                                            </option>
+                                        }
+                                    }
+
+                                </select>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer customer-modal-footer">
+
+                    <button type="button"
+                            class="btn-customer-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn-customer-save">
+
+                        <i class="fa-solid fa-check me-1"></i>
+                        Save Customer
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     DELETE CONFIRMATION MODAL
+     ========================================================= -->
 <div class="modal fade"
      id="deleteModal"
      tabindex="-1"
@@ -422,42 +1920,72 @@
      aria-hidden="true">
 
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
 
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold" id="deleteModalLabel">
-                    Delete Customer
-                </h5>
+        <div class="modal-content customer-modal">
 
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal">
-                </button>
-            </div>
+            <div class="modal-header customer-modal-header">
 
-            <div class="modal-body py-4">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center"
-                         style="width:45px;height:45px;min-width:45px;">
+                <div class="customer-modal-title-wrap">
+
+                    <div class="customer-delete-icon">
                         <i class="fa-solid fa-trash"></i>
                     </div>
 
                     <div>
-                        <p class="mb-1">
+                        <h5 class="customer-modal-title"
+                            id="deleteModalLabel">
+                            Delete Customer
+                        </h5>
+
+                        <p class="customer-modal-subtitle">
+                            Confirm customer account removal.
+                        </p>
+                    </div>
+
+                </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+            <div class="modal-body customer-modal-body">
+
+                <div class="d-flex align-items-start gap-3">
+
+                    <div class="customer-delete-icon">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="customer-delete-title">
+                            Confirm deletion
+                        </div>
+
+                        <p class="customer-delete-text mb-2">
                             Are you sure you want to delete
                             <strong id="deleteCustomerName"></strong>?
                         </p>
 
-                        <small class="text-muted">
+                        <div class="customer-delete-warning">
+                            <i class="fa-solid fa-circle-info"></i>
                             This action cannot be undone.
-                        </small>
+                        </div>
+
                     </div>
+
                 </div>
+
             </div>
 
-            <div class="modal-footer border-top-0">
+            <div class="modal-footer customer-modal-footer">
+
                 <button type="button"
-                        class="btn btn-light"
+                        class="btn-customer-secondary"
                         data-bs-dismiss="modal">
                     Cancel
                 </button>
@@ -472,29 +2000,57 @@
                            name="id" />
 
                     <button type="submit"
-                            class="btn btn-danger">
+                            class="btn-customer-danger">
+
                         <i class="fa-solid fa-trash me-1"></i>
                         Delete Customer
+
                     </button>
+
                 </form>
+
             </div>
 
         </div>
+
     </div>
+
 </div>
 
 @section Scripts {
+
     <script>
         const deleteModal = document.getElementById('deleteModal');
 
-        deleteModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function (event) {
 
-            const customerId = button.getAttribute('data-customer-id');
-            const customerName = button.getAttribute('data-customer-name');
+                const button = event.relatedTarget;
 
-            document.getElementById('deleteCustomerId').value = customerId;
-            document.getElementById('deleteCustomerName').textContent = customerName;
-        });
+                if (!button) {
+                    return;
+                }
+
+                const customerId =
+                    button.getAttribute('data-customer-id');
+
+                const customerName =
+                    button.getAttribute('data-customer-name');
+
+                const customerIdInput =
+                    document.getElementById('deleteCustomerId');
+
+                const customerNameElement =
+                    document.getElementById('deleteCustomerName');
+
+                if (customerIdInput) {
+                    customerIdInput.value = customerId || '';
+                }
+
+                if (customerNameElement) {
+                    customerNameElement.textContent = customerName || '';
+                }
+            });
+        }
     </script>
 }

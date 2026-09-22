@@ -1,60 +1,1231 @@
+```cshtml
+@model ERP_System.Models.CustomerReportsListViewModel
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales By Customer";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-users-line text-primary me-2"></i>Sales by Customer</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item">Sales Reports</li>
-                    <li class="breadcrumb-item active" aria-current="page">Sales by Customer</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-outline-secondary rounded-pill px-3"><i class="fa-solid fa-download me-1.5"></i>Export PDF</button>
-    </div>
+<style>
+    /* =========================================================
+           OPERAFY - SALES BY CUSTOMER REPORT
+           Scoped styling - UI only
+           ========================================================= */
 
-    <!-- Sales By Customer Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Customer Name</th>
-                        <th>Email Address</th>
-                        <th>Invoices Issued</th>
-                        <th>Gross Revenue Generated</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Rahul Enterprises</td>
-                        <td>rahul@enterprises.com</td>
-                        <td>12 Invoices</td>
-                        <td class="fw-bold text-primary">₹5,40,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Mehta Logistics</td>
-                        <td>contact@mehta.com</td>
-                        <td>8 Invoices</td>
-                        <td class="fw-bold text-primary">₹3,20,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Rajesh Corp Ltd</td>
-                        <td>rajesh@corp.in</td>
-                        <td>6 Invoices</td>
-                        <td class="fw-bold text-primary">₹1,50,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span></td>
-                    </tr>
-                </tbody>
-            </table>
+    .sales-customer-report {
+        color: #172033;
+    }
+
+        .sales-customer-report .report-header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e7ebf2;
+            border-radius: 16px;
+            padding: 20px 22px;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
+        }
+
+        .sales-customer-report .report-title-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef4ff;
+            color: #2563eb;
+            font-size: 1.05rem;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .sales-customer-report .report-title {
+            font-size: 1.28rem;
+            letter-spacing: -0.02em;
+            color: #172033;
+        }
+
+        .sales-customer-report .breadcrumb {
+            --bs-breadcrumb-divider-color: #a3adbd;
+        }
+
+        .sales-customer-report .breadcrumb-item {
+            color: #7b8798;
+        }
+
+            .sales-customer-report .breadcrumb-item a {
+                color: #64748b;
+            }
+
+                .sales-customer-report .breadcrumb-item a:hover {
+                    color: #2563eb;
+                }
+
+        .sales-customer-report .report-action-btn {
+            min-height: 40px;
+            border-radius: 10px !important;
+            font-weight: 600;
+            transition: all 0.18s ease;
+        }
+
+            .sales-customer-report .report-action-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 5px 14px rgba(15, 23, 42, 0.08) !important;
+            }
+
+        /* KPI CARDS */
+        .sales-customer-report .kpi-card {
+            position: relative;
+            overflow: hidden;
+            min-height: 142px;
+            border: 1px solid #e7ebf2 !important;
+            border-radius: 15px !important;
+            background: #ffffff;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+            .sales-customer-report .kpi-card::after {
+                content: "";
+                position: absolute;
+                right: -28px;
+                bottom: -38px;
+                width: 105px;
+                height: 105px;
+                border-radius: 50%;
+                background: rgba(37, 99, 235, 0.035);
+                pointer-events: none;
+            }
+
+            .sales-customer-report .kpi-card:hover {
+                transform: translateY(-3px);
+                border-color: #d7deea !important;
+                box-shadow: 0 10px 25px rgba(15, 23, 42, 0.075) !important;
+            }
+
+        .sales-customer-report .kpi-label {
+            color: #687589;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+        }
+
+        .sales-customer-report .kpi-icon {
+            width: 39px;
+            height: 39px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 11px !important;
+            font-size: 0.9rem;
+        }
+
+        .sales-customer-report .kpi-value {
+            font-size: 1.45rem;
+            letter-spacing: -0.025em;
+            line-height: 1.25;
+        }
+
+        .sales-customer-report .kpi-description {
+            color: #8a94a6;
+            font-size: 0.74rem;
+        }
+
+        /* MAIN PANEL */
+        .sales-customer-report .report-panel {
+            background: #ffffff;
+            border: 1px solid #e4e9f1 !important;
+            border-radius: 16px !important;
+            box-shadow: 0 5px 20px rgba(15, 23, 42, 0.045) !important;
+            overflow: hidden;
+        }
+
+        .sales-customer-report .panel-header {
+            padding: 19px 20px;
+            border-bottom: 1px solid #edf0f5;
+            background: #ffffff;
+        }
+
+        .sales-customer-report .panel-title {
+            color: #172033;
+            font-size: 0.94rem;
+            font-weight: 750;
+        }
+
+        .sales-customer-report .panel-subtitle {
+            color: #8993a4;
+            font-size: 0.76rem;
+            margin-top: 3px;
+        }
+
+        .sales-customer-report .analysis-badge {
+            background: #f8fafc;
+            border: 1px solid #e3e8ef;
+            color: #687589;
+            border-radius: 999px;
+            padding: 6px 11px;
+            font-size: 0.72rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        /* TABLE */
+        .sales-customer-report .customer-table {
+            min-width: 1080px;
+            margin-bottom: 0;
+        }
+
+            .sales-customer-report .customer-table thead th {
+                background: #f8fafc;
+                color: #647084;
+                border-bottom: 1px solid #e2e7ef;
+                border-top: 0;
+                padding: 12px 14px;
+                font-size: 0.71rem;
+                font-weight: 750;
+                text-transform: uppercase;
+                letter-spacing: 0.025em;
+                white-space: nowrap;
+            }
+
+            .sales-customer-report .customer-table tbody td {
+                padding: 13px 14px;
+                border-color: #edf0f4;
+                color: #4b5567;
+                vertical-align: middle;
+            }
+
+            .sales-customer-report .customer-table tbody tr {
+                transition: background-color 0.15s ease;
+            }
+
+                .sales-customer-report .customer-table tbody tr:hover {
+                    background: #f8fbff;
+                }
+
+            .sales-customer-report .customer-table tfoot td {
+                padding: 13px 14px;
+                border-top: 1px solid #dfe5ee;
+                font-size: 0.8rem;
+            }
+
+        .sales-customer-report .clickable-row {
+            cursor: pointer;
+        }
+
+        .sales-customer-report .customer-avatar {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #eef4ff, #e4edff);
+            color: #2563eb;
+            border: 1px solid #dbe7ff;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .sales-customer-report .customer-name {
+            color: #1d2738;
+            font-size: 0.83rem;
+            font-weight: 700;
+            line-height: 1.25;
+        }
+
+        .sales-customer-report .customer-code {
+            color: #8a94a6;
+            font-size: 0.7rem;
+            margin-top: 2px;
+        }
+
+        .sales-customer-report .email-text {
+            color: #667286;
+            font-size: 0.78rem;
+            white-space: nowrap;
+        }
+
+        .sales-customer-report .invoice-count {
+            background: #f8fafc;
+            border: 1px solid #e1e6ee;
+            color: #465267;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .sales-customer-report .revenue-value {
+            color: #2563eb;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .sales-customer-report .aov-value {
+            color: #566276;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .sales-customer-report .contribution-wrap {
+            min-width: 160px;
+        }
+
+        .sales-customer-report .contribution-bar {
+            height: 6px;
+            background: #edf1f6;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+            .sales-customer-report .contribution-bar .progress-bar {
+                border-radius: 99px;
+                transition: width 0.5s ease;
+            }
+
+        .sales-customer-report .status-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+
+        .sales-customer-report .invoice-action {
+            min-width: 94px;
+            border-radius: 8px !important;
+            font-size: 0.72rem;
+            font-weight: 700;
+            transition: all 0.16s ease;
+        }
+
+            .sales-customer-report .invoice-action:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 10px rgba(37, 99, 235, 0.12);
+            }
+
+        /* MODAL */
+        .sales-customer-report .customer-modal .modal-content {
+            border-radius: 17px;
+            overflow: hidden;
+            border: 1px solid #e3e8ef !important;
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
+        }
+
+        .sales-customer-report .customer-modal .modal-header {
+            padding: 18px 22px;
+            background: linear-gradient(135deg, #f8fafc, #ffffff);
+            border-bottom: 1px solid #e5e9f0;
+        }
+
+        .sales-customer-report .customer-modal .modal-title {
+            font-size: 1rem;
+            color: #172033;
+        }
+
+        .sales-customer-report .customer-modal .modal-body {
+            background: #ffffff;
+        }
+
+        .sales-customer-report .customer-modal .modal-footer {
+            padding: 14px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e5e9f0;
+        }
+
+        .sales-customer-report .modal-table {
+            min-width: 850px;
+        }
+
+            .sales-customer-report .modal-table thead th {
+                background: #f8fafc;
+                color: #647084;
+                border-bottom: 1px solid #e2e7ef;
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.025em;
+                white-space: nowrap;
+            }
+
+            .sales-customer-report .modal-table tbody td {
+                border-color: #edf0f4;
+                font-size: 0.78rem;
+            }
+
+            .sales-customer-report .modal-table tfoot td {
+                border-top: 1px solid #dfe5ee;
+                font-size: 0.78rem;
+            }
+
+        .sales-customer-report .modal-status {
+            font-size: 0.69rem;
+            font-weight: 700;
+        }
+
+        .sales-customer-report .empty-state {
+            padding: 55px 20px !important;
+        }
+
+        .sales-customer-report .empty-icon {
+            width: 54px;
+            height: 54px;
+            margin: 0 auto 13px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: #94a3b8;
+            font-size: 1.15rem;
+        }
+
+        .sales-customer-report .loading-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            background: #eef4ff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    /* RESPONSIVE */
+    @@media (max-width: 991.98px) {
+        .sales-customer-report .report-header {
+            padding: 17px;
+        }
+
+        .sales-customer-report .panel-header {
+            padding: 16px;
+        }
+
+        .sales-customer-report .analysis-badge {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-customer-report .container-fluid {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+        }
+
+        .sales-customer-report .report-header {
+            border-radius: 13px;
+        }
+
+        .sales-customer-report .report-title {
+            font-size: 1.08rem;
+        }
+
+        .sales-customer-report .report-title-icon {
+            width: 38px;
+            height: 38px;
+        }
+
+        .sales-customer-report .report-actions {
+            width: 100%;
+        }
+
+            .sales-customer-report .report-actions .report-action-btn {
+                flex: 1;
+            }
+
+        .sales-customer-report .kpi-value {
+            font-size: 1.25rem;
+        }
+
+        .sales-customer-report .panel-title {
+            font-size: 0.86rem;
+        }
+
+        .sales-customer-report .customer-table {
+            min-width: 1080px;
+        }
+    }
+
+    /* PRINT */
+    @@media print {
+        #sidebar,
+        .sidebar,
+        .topbar,
+        .navbar,
+        .btn,
+        .breadcrumb,
+        nav,
+        footer,
+        .no-print,
+        .modal,
+        .report-actions {
+            display: none !important;
+        }
+
+        body,
+        .container-fluid,
+        .main-content {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
+            width: 100% !important;
+        }
+
+        .sales-customer-report {
+            width: 100% !important;
+        }
+
+        .print-only-header {
+            display: block !important;
+            border-bottom: 2px solid #0f172a;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+
+        .sales-customer-report .kpi-card,
+        .sales-customer-report .report-panel {
+            box-shadow: none !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+
+        .sales-customer-report .customer-table {
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+
+            .sales-customer-report .customer-table th,
+            .sales-customer-report .customer-table td {
+                padding: 7px 8px !important;
+                font-size: 9px !important;
+            }
+
+        .sales-customer-report .customer-avatar {
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
+        }
+    }
+
+    .print-only-header {
+        display: none;
+    }
+</style>
+
+<div class="sales-customer-report">
+    <div class="container-fluid py-4 text-start">
+
+        <!-- =====================================================
+             PRINT HEADER
+             ===================================================== -->
+        <div class="print-only-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="fw-bold mb-0 text-dark">OPERAFY ENTERPRISE ERP</h3>
+                    <p class="text-muted small mb-0">
+                        Customer Revenue Pareto & Account Contribution Analysis
+                    </p>
+                </div>
+
+                <div class="text-end small text-muted">
+                    <div>
+                        <strong>Generated:</strong>
+                        @DateTime.Now.ToString("dd MMM yyyy HH:mm")
+                    </div>
+                    <div>
+                        <strong>Total Accounts:</strong>
+                        @Model.Customers.Count
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             HEADER
+             ===================================================== -->
+        <div class="report-header d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 no-print">
+
+            <div class="d-flex align-items-center">
+                <div class="report-title-icon">
+                    <i class="fa-solid fa-users-line"></i>
+                </div>
+
+                <div>
+                    <h4 class="report-title fw-bold mb-1">
+                        Sales by Customer
+                    </h4>
+
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0 small">
+                            <li class="breadcrumb-item">
+                                <a href="/SalesDashboard" class="text-decoration-none">
+                                    Sales Management
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                Sales Reports
+                            </li>
+                            <li class="breadcrumb-item active fw-semibold" aria-current="page">
+                                Sales by Customer
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="report-actions d-flex align-items-center gap-2">
+                <button type="button"
+                        onclick="window.print()"
+                        class="btn btn-outline-secondary report-action-btn px-3 shadow-sm">
+                    <i class="fa-solid fa-print me-2"></i>
+                    Export PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             KPI CARDS
+             ===================================================== -->
+        <div class="row g-3 mb-4">
+
+            <!-- Total Revenue -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="kpi-card bg-white p-3 shadow-sm">
+
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="kpi-label">
+                            Total Customer Revenue
+                        </span>
+
+                        <span class="kpi-icon bg-primary-subtle text-primary">
+                            <i class="fa-solid fa-wallet"></i>
+                        </span>
+                    </div>
+
+                    <h3 class="kpi-value fw-bold text-dark mb-1">
+                        @Model.TotalRevenue.ToString("C0", inCulture)
+                    </h3>
+
+                    <span class="kpi-description">
+                        Cumulative enterprise invoicing
+                    </span>
+                </div>
+            </div>
+
+            <!-- Active Accounts -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="kpi-card bg-white p-3 shadow-sm">
+
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="kpi-label">
+                            Active Enterprise Accounts
+                        </span>
+
+                        <span class="kpi-icon bg-success-subtle text-success">
+                            <i class="fa-solid fa-building-user"></i>
+                        </span>
+                    </div>
+
+                    <h3 class="kpi-value fw-bold text-success mb-1">
+                        @Model.TotalActiveCustomers
+                    </h3>
+
+                    <span class="kpi-description">
+                        Verified corporate clients
+                    </span>
+                </div>
+            </div>
+
+            <!-- Invoices -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="kpi-card bg-white p-3 shadow-sm">
+
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="kpi-label">
+                            Invoices Distributed
+                        </span>
+
+                        <span class="kpi-icon bg-info-subtle text-info">
+                            <i class="fa-solid fa-receipt"></i>
+                        </span>
+                    </div>
+
+                    <h3 class="kpi-value fw-bold text-info mb-1">
+                        @Model.TotalInvoices
+                    </h3>
+
+                    <span class="kpi-description">
+                        Tax invoices generated
+                    </span>
+                </div>
+            </div>
+
+            <!-- Top Customer -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="kpi-card bg-white p-3 shadow-sm">
+
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="kpi-label">
+                            Top Enterprise Client
+                        </span>
+
+                        <span class="kpi-icon bg-warning-subtle text-warning">
+                            <i class="fa-solid fa-crown"></i>
+                        </span>
+                    </div>
+
+                    <h3 class="kpi-value fw-bold text-dark text-truncate mb-1"
+                        style="font-size: 1.18rem;"
+                        title="@Model.TopCustomerName">
+                        @Model.TopCustomerName
+                    </h3>
+
+                    <span class="kpi-description text-success fw-semibold">
+                        @Model.TopCustomerRevenue.ToString("C0", inCulture) contributed
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             CUSTOMER REVENUE TABLE
+             ===================================================== -->
+        <div class="report-panel">
+
+            <div class="panel-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div>
+                    <div class="panel-title">
+                        <i class="fa-solid fa-table text-primary me-2"></i>
+                        Customer Revenue Contribution
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Click any customer row or the action button to inspect complete invoice history.
+                    </div>
+                </div>
+
+                <span class="analysis-badge">
+                    <i class="fa-solid fa-chart-pie me-1"></i>
+                    @Model.Customers.Count Accounts Analyzed
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle customer-table"
+                       style="font-size: 0.85rem;">
+
+                    <thead>
+                        <tr>
+                            <th>Customer / Enterprise Account</th>
+                            <th>Email Address</th>
+                            <th class="text-center">Invoices</th>
+                            <th class="text-end">Gross Revenue</th>
+                            <th style="min-width: 180px;">Contribution %</th>
+                            <th class="text-end">Average Order Value</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center no-print">Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @if (Model.Customers.Any())
+                        {
+                            @foreach (var c in Model.Customers)
+                            {
+                                <tr class="clickable-row"
+                                    onclick="loadCustomerInvoices(@c.CustomerId, '@Html.Raw(c.CustomerName.Replace("'", "\\'"))')">
+
+                                    <!-- Customer -->
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+
+                                            <div class="customer-avatar">
+                                                @(c.CustomerName.Length > 1
+                                                                                        ? c.CustomerName.Substring(0, 2).ToUpper()
+                                                                                        : "CU")
+                                    </div>
+
+                                            <div>
+                                                <div class="customer-name">
+                                                    @c.CustomerName
+                                                </div>
+
+                                                <div class="customer-code">
+                                                    @c.CustomerCode
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </td>
+
+                                    <!-- Email -->
+                                    <td>
+                                        <span class="email-text">
+                                            <i class="fa-regular fa-envelope me-1 text-muted"></i>
+                                            @c.Email
+                                        </span>
+                                    </td>
+
+                                    <!-- Invoice Count -->
+                                    <td class="text-center">
+                                        <span class="badge invoice-count rounded-pill px-3 py-2">
+                                            @c.InvoicesCount
+                                        </span>
+                                    </td>
+
+                                    <!-- Revenue -->
+                                    <td class="text-end">
+                                        <span class="revenue-value">
+                                            @c.GrossRevenue.ToString("C2", inCulture)
+                                        </span>
+                                    </td>
+
+                                    <!-- Contribution -->
+                                    <td>
+                                        <div class="contribution-wrap">
+
+                                            <div class="d-flex align-items-center gap-2">
+
+                                                <div class="progress contribution-bar flex-grow-1">
+                                                    <div class="progress-bar @(c.ContributionPercentage > 20
+                                                                                                         ? "bg-success"
+                                                                                                         : c.ContributionPercentage > 10
+                                                                                                             ? "bg-primary"
+                                                                                                             : "bg-info")"
+                                                 role="progressbar"
+                                                 style="width: @Math.Min(100, Math.Max(5, c.ContributionPercentage))%;">
+                                            </div>
+                                        </div>
+
+                                                <span class="small fw-bold text-dark"
+                                                      style="min-width: 48px;">
+                                                    @c.ContributionPercentage%
+                                                </span>
+
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- AOV -->
+                                    <td class="text-end">
+                                        <span class="aov-value">
+                                            @c.AverageOrderValue.ToString("C2", inCulture)
+                                        </span>
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td class="text-center">
+                                        <span class="badge status-badge @(c.Status == "Active"
+                                                                                  ? "bg-success-subtle text-success border-success"
+                                                                                  : "bg-secondary-subtle text-secondary border-secondary") rounded-pill px-3 py-2">
+
+                                    <i class="fa-solid @(c.Status == "Active"
+                                                                                       ? "fa-circle-check"
+                                                                                       : "fa-circle-pause") me-1"
+                                       style="font-size: 0.62rem;"></i>
+
+                                            @c.Status
+                                        </span>
+                                    </td>
+
+                                    <!-- Action -->
+                                    <td class="text-center no-print"
+                                        onclick="event.stopPropagation()">
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary invoice-action px-3 py-2"
+                                                onclick="loadCustomerInvoices(@c.CustomerId, '@Html.Raw(c.CustomerName.Replace("'", "\\'"))')">
+
+                                            <i class="fa-solid fa-list-check me-1"></i>
+                                            Invoices
+                                        </button>
+                                    </td>
+
+                                </tr>
+                                                }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center empty-state">
+
+                                    <div class="empty-icon">
+                                        <i class="fa-solid fa-users-slash"></i>
+                                    </div>
+
+                                    <div class="fw-bold text-dark mb-1">
+                                        No customer transactions found
+                                    </div>
+
+                                    <div class="text-muted small">
+                                        Customer revenue records will appear here once transactions are available.
+                                    </div>
+
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+                    <!-- TOTAL -->
+                    <tfoot>
+                        <tr>
+                            <td class="fw-bold text-dark">
+                                <i class="fa-solid fa-calculator text-muted me-1"></i>
+                                Total
+                            </td>
+
+                            <td class="text-muted">
+                                -
+                            </td>
+
+                            <td class="text-center">
+                                <span class="fw-bold">
+                                    @Model.TotalInvoices
+                                </span>
+                                <span class="text-muted">
+                                    Invoices
+                                </span>
+                            </td>
+
+                            <td class="text-end text-primary fw-bold">
+                                @Model.TotalRevenue.ToString("C2", inCulture)
+                            </td>
+
+                            <td class="fw-bold text-dark">
+                                100.0% Cumulative
+                            </td>
+
+                            <td class="text-end text-secondary">
+                                -
+                            </td>
+
+                            <td class="text-center text-success fw-bold">
+                                @Model.TotalActiveCustomers Active
+                            </td>
+
+                            <td class="no-print text-center">
+                                -
+                            </td>
+                        </tr>
+                    </tfoot>
+
+                </table>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- =========================================================
+     CUSTOMER INVOICES DRILL-DOWN MODAL
+     ========================================================= -->
+<div class="sales-customer-report">
+
+    <div class="modal fade customer-modal"
+         id="customerInvoicesModal"
+         tabindex="-1"
+         aria-labelledby="customerInvoicesModalLabel"
+         aria-hidden="true">
+
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+
+            <div class="modal-content">
+
+                <!-- Modal Header -->
+                <div class="modal-header">
+
+                    <div>
+                        <h5 class="modal-title fw-bold mb-1"
+                            id="customerInvoicesModalLabel">
+
+                            <i class="fa-solid fa-file-invoice-dollar text-primary me-2"></i>
+                            Invoice Breakdown for
+                            <span id="modalCustomerName" class="text-primary"></span>
+                        </h5>
+
+                        <p class="text-muted small mb-0">
+                            Detailed list of billing transactions, order references, and payment statuses.
+                        </p>
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body p-4">
+
+                    <!-- Loading -->
+                    <div id="modalLoadingSpinner"
+                         class="text-center py-5">
+
+                        <div class="loading-icon mx-auto mb-3">
+
+                            <div class="spinner-border text-primary"
+                                 role="status"
+                                 style="width: 1.35rem; height: 1.35rem;">
+
+                                <span class="visually-hidden">
+                                    Loading invoices...
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        <div class="fw-semibold text-dark small">
+                            Loading invoice ledger
+                        </div>
+
+                        <p class="text-muted small mt-1 mb-0">
+                            Fetching transaction records from database...
+                        </p>
+
+                    </div>
+
+                    <!-- Invoice Container -->
+                    <div id="modalInvoicesContainer"
+                         class="d-none">
+
+                        <div class="table-responsive">
+
+                            <table class="table table-hover align-middle modal-table mb-0"
+                                   style="font-size: 0.85rem;">
+
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Linked Order</th>
+                                        <th>Invoice Date</th>
+                                        <th>Due Date</th>
+                                        <th class="text-end">Taxable Value</th>
+                                        <th class="text-end">GST Amount</th>
+                                        <th class="text-end">Total Amount</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="modalInvoicesTableBody">
+                                </tbody>
+
+                                <tfoot>
+                                    <tr>
+
+                                        <td colspan="4">
+                                            <strong>Sum Total</strong>
+                                        </td>
+
+                                        <td class="text-end"
+                                            id="modalTaxableSum">
+                                            ₹0.00
+                                        </td>
+
+                                        <td class="text-end"
+                                            id="modalGstSum">
+                                            ₹0.00
+                                        </td>
+
+                                        <td class="text-end text-primary"
+                                            id="modalTotalSum">
+                                            ₹0.00
+                                        </td>
+
+                                        <td></td>
+
+                                    </tr>
+                                </tfoot>
+
+                            </table>
+
+                        </div>
+                    </div>
+
+                    <!-- No Invoice Alert -->
+                    <div id="modalNoInvoicesAlert"
+                         class="alert alert-info d-none mb-0 border-0 rounded-3">
+
+                        <i class="fa-solid fa-circle-info me-2"></i>
+                        No invoice records found for this account.
+
+                    </div>
+
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary rounded-pill px-4"
+                            data-bs-dismiss="modal">
+
+                        <i class="fa-solid fa-xmark me-1"></i>
+                        Close
+
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadCustomerInvoices(customerId, customerName) {
+
+        // Set selected customer name
+        document.getElementById('modalCustomerName').textContent = customerName;
+
+        // Reset modal state
+        document.getElementById('modalLoadingSpinner').classList.remove('d-none');
+        document.getElementById('modalInvoicesContainer').classList.add('d-none');
+        document.getElementById('modalNoInvoicesAlert').classList.add('d-none');
+
+        // Clear old invoice rows
+        document.getElementById('modalInvoicesTableBody').innerHTML = '';
+
+        // Reset totals
+        document.getElementById('modalTaxableSum').textContent = '₹0.00';
+        document.getElementById('modalGstSum').textContent = '₹0.00';
+        document.getElementById('modalTotalSum').textContent = '₹0.00';
+
+        // Open modal
+        var myModal = new bootstrap.Modal(
+            document.getElementById('customerInvoicesModal')
+        );
+
+        myModal.show();
+
+        // Existing backend endpoint preserved
+        const url = `/SalesReports/GetCustomerInvoices?customerId=${customerId}&customerName=${encodeURIComponent(customerName)}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+
+                document.getElementById('modalLoadingSpinner')
+                    .classList.add('d-none');
+
+                // No records
+                if (!data || data.length === 0) {
+
+                    document.getElementById('modalNoInvoicesAlert')
+                        .classList.remove('d-none');
+
+                    return;
+                }
+
+                // Show invoice table
+                document.getElementById('modalInvoicesContainer')
+                    .classList.remove('d-none');
+
+                const tbody = document.getElementById(
+                    'modalInvoicesTableBody'
+                );
+
+                tbody.innerHTML = '';
+
+                let sumTaxable = 0;
+                let sumGst = 0;
+                let sumTotal = 0;
+
+                data.forEach(inv => {
+
+                    sumTaxable += (inv.taxableValue || 0);
+                    sumGst += (inv.gstAmount || 0);
+                    sumTotal += (inv.totalAmount || 0);
+
+                    const statusClass =
+                        inv.status === 'Paid'
+                            ? 'bg-success-subtle text-success border-success'
+                            : inv.status === 'Overdue'
+                                ? 'bg-danger-subtle text-danger border-danger'
+                                : inv.status === 'Partially Paid'
+                                    ? 'bg-warning-subtle text-warning border-warning'
+                                    : 'bg-info-subtle text-info border-info';
+
+                    const row = `
+                        <tr>
+                            <td class="fw-bold text-dark">
+                                <i class="fa-solid fa-file-invoice text-primary me-1"></i>
+                                ${inv.invoiceNumber}
+                            </td>
+
+                            <td>
+                                <span class="badge bg-light text-secondary border">
+                                    ${inv.linkedOrder}
+                                </span>
+                            </td>
+
+                            <td>
+                                ${inv.invoiceDate}
+                            </td>
+
+                            <td>
+                                ${inv.dueDate}
+                            </td>
+
+                            <td class="text-end">
+                                ₹${Number(inv.taxableValue).toLocaleString('en-IN', {
+                                    minimumFractionDigits: 2
+                                })}
+                            </td>
+
+                            <td class="text-end text-muted">
+                                ₹${Number(inv.gstAmount).toLocaleString('en-IN', {
+                                    minimumFractionDigits: 2
+                                })}
+                            </td>
+
+                            <td class="text-end fw-bold text-primary">
+                                ₹${Number(inv.totalAmount).toLocaleString('en-IN', {
+                                    minimumFractionDigits: 2
+                                })}
+                            </td>
+
+                            <td class="text-center">
+                                <span class="badge ${statusClass} modal-status rounded-pill px-3 py-2">
+                                    ${inv.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+
+                    tbody.insertAdjacentHTML(
+                        'beforeend',
+                        row
+                    );
+                });
+
+                // Update totals
+                document.getElementById('modalTaxableSum').textContent =
+                    '₹' + sumTaxable.toLocaleString('en-IN', {
+                        minimumFractionDigits: 2
+                    });
+
+                document.getElementById('modalGstSum').textContent =
+                    '₹' + sumGst.toLocaleString('en-IN', {
+                        minimumFractionDigits: 2
+                    });
+
+                document.getElementById('modalTotalSum').textContent =
+                    '₹' + sumTotal.toLocaleString('en-IN', {
+                        minimumFractionDigits: 2
+                    });
+            })
+            .catch(err => {
+
+                document.getElementById('modalLoadingSpinner')
+                    .classList.add('d-none');
+
+                const alertBox =
+                    document.getElementById('modalNoInvoicesAlert');
+
+                alertBox.innerHTML =
+                    '<i class="fa-solid fa-triangle-exclamation me-2"></i>' +
+                    'Failed to load invoices: ' +
+                    err;
+
+                alertBox.classList.remove('d-none');
+            });
+    }
+</script>
+```

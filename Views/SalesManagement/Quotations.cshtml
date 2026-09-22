@@ -1,109 +1,1053 @@
-@model IEnumerable<ERP_System.Models.Quotation>
+@model IEnumerable<ERP_System.Models.SalesQuotation>
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Quotations";
+    ViewData["Title"] = "Quotations & Estimates";
     var inCulture = new System.Globalization.CultureInfo("en-IN");
+    var preselectedCust = ViewBag.PreselectedCustomerName as string;
+    bool isSalesExecutive = User.IsInRole("Sales Executive");
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-file-signature text-primary me-2"></i>Quotations</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Quotations</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createQuotationModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Create Quotation
-        </button>
-    </div>
+<style>
+    /* =========================================================
+       SALES QUOTATIONS & ESTIMATES - SCOPED ERP UI
+       ========================================================= */
+    .sales-quotations-page {
+        --sq-primary: #4f46e5;
+        --sq-primary-dark: #4338ca;
+        --sq-primary-soft: #eef2ff;
+        --sq-success: #16a34a;
+        --sq-success-soft: #ecfdf3;
+        --sq-warning: #d97706;
+        --sq-warning-soft: #fffbeb;
+        --sq-danger: #dc2626;
+        --sq-danger-soft: #fef2f2;
+        --sq-info: #0284c7;
+        --sq-info-soft: #eff6ff;
+        --sq-text: #172033;
+        --sq-muted: #64748b;
+        --sq-light-muted: #94a3b8;
+        --sq-border: #e5e7eb;
+        --sq-border-soft: #edf0f4;
+        --sq-page: #f7f9fc;
+        --sq-surface: #ffffff;
+        --sq-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.045);
+        --sq-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+        --sq-radius: 14px;
+        color: var(--sq-text);
+        background: radial-gradient(circle at 100% 0%, rgba(79, 70, 229, 0.04), transparent 28%), linear-gradient(180deg, #f8faff 0%, #f6f8fc 100%);
+        min-height: calc(100vh - 70px);
+        padding-bottom: 40px;
+    }
 
-    <!-- Quotations Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Quote No</th>
-                        <th>Customer</th>
-                        <th>Expiry Date</th>
-                        <th>Estimated Amount</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var quote in Model)
+    .sales-quotations-page * {
+        box-sizing: border-box;
+    }
+
+    .sales-quotations-page .page-shell {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+
+    /* Page Header */
+    .sales-quotations-page .page-header {
+        padding: 12px 0 20px;
+    }
+
+    .sales-quotations-page .breadcrumb-line {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--sq-muted);
+        font-size: 0.8rem;
+    }
+
+    .sales-quotations-page .breadcrumb-line a {
+        color: var(--sq-muted);
+        text-decoration: none;
+        transition: color .2s ease;
+    }
+
+    .sales-quotations-page .breadcrumb-line a:hover {
+        color: var(--sq-primary);
+    }
+
+    .sales-quotations-page .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .sales-quotations-page .title-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .sales-quotations-page .title-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--sq-primary-soft);
+        color: var(--sq-primary);
+        box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.12);
+        font-size: 1.25rem;
+    }
+
+    .sales-quotations-page .page-title {
+        color: var(--sq-text);
+        font-size: clamp(1.4rem, 2vw, 1.75rem);
+        font-weight: 750;
+        letter-spacing: -0.025em;
+        margin: 0;
+    }
+
+    .sales-quotations-page .page-subtitle {
+        color: var(--sq-muted);
+        font-size: 0.85rem;
+        margin: 4px 0 0;
+    }
+
+    .sales-quotations-page .btn-action-primary {
+        background: linear-gradient(135deg, var(--sq-primary), var(--sq-primary-dark));
+        color: #fff;
+        border: none;
+        padding: 9px 18px;
+        border-radius: 10px;
+        font-weight: 650;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+        transition: all 0.2s ease;
+    }
+
+    .sales-quotations-page .btn-action-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+        color: #fff;
+    }
+
+    /* KPI Grid */
+    .sales-quotations-page .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .sales-quotations-page .kpi-card {
+        background: var(--sq-surface);
+        border: 1px solid var(--sq-border);
+        border-radius: var(--sq-radius);
+        padding: 18px 20px;
+        box-shadow: var(--sq-shadow-sm);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .sales-quotations-page .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--sq-shadow);
+    }
+
+    .sales-quotations-page .kpi-info h6 {
+        margin: 0 0 6px;
+        font-size: 0.78rem;
+        font-weight: 650;
+        color: var(--sq-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .sales-quotations-page .kpi-info .kpi-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--sq-text);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+
+    .sales-quotations-page .kpi-icon-bubble {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    /* Table Container Card */
+    .sales-quotations-page .table-card {
+        background: var(--sq-surface);
+        border: 1px solid var(--sq-border);
+        border-radius: var(--sq-radius);
+        box-shadow: var(--sq-shadow-sm);
+        overflow: hidden;
+    }
+
+    .sales-quotations-page .toolbar {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--sq-border-soft);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        background: #fdfdfd;
+    }
+
+    .sales-quotations-page .search-box {
+        position: relative;
+        min-width: 280px;
+        flex: 1;
+        max-width: 420px;
+    }
+
+    .sales-quotations-page .search-box i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--sq-light-muted);
+        font-size: 0.85rem;
+    }
+
+    .sales-quotations-page .search-box input {
+        width: 100%;
+        padding: 9px 14px 9px 38px;
+        border-radius: 9px;
+        border: 1px solid var(--sq-border);
+        font-size: 0.84rem;
+        outline: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .sales-quotations-page .search-box input:focus {
+        border-color: var(--sq-primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    .sales-quotations-page .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sales-quotations-page .filter-select {
+        padding: 8px 14px;
+        border-radius: 9px;
+        border: 1px solid var(--sq-border);
+        font-size: 0.83rem;
+        color: var(--sq-text);
+        background-color: #fff;
+        outline: none;
+        cursor: pointer;
+    }
+
+    /* Table Styles */
+    .sales-quotations-page .table-responsive {
+        margin: 0;
+    }
+
+    .sales-quotations-page .custom-table {
+        width: 100%;
+        margin-bottom: 0;
+        vertical-align: middle;
+        border-collapse: collapse;
+    }
+
+    .sales-quotations-page .custom-table thead th {
+        background: #f8fafc;
+        color: var(--sq-muted);
+        font-size: 0.73rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--sq-border);
+        white-space: nowrap;
+    }
+
+    .sales-quotations-page .custom-table tbody tr {
+        border-bottom: 1px solid var(--sq-border-soft);
+        transition: background-color .15s ease;
+    }
+
+    .sales-quotations-page .custom-table tbody tr:hover {
+        background-color: #fbfcfe;
+    }
+
+    .sales-quotations-page .custom-table tbody td {
+        padding: 14px 18px;
+        font-size: 0.84rem;
+        color: var(--sq-text);
+    }
+
+    .sales-quotations-page .quote-number-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-weight: 700;
+        color: var(--sq-primary);
+        background: var(--sq-primary-soft);
+        padding: 4px 9px;
+        border-radius: 7px;
+        font-size: 0.8rem;
+    }
+
+    .sales-quotations-page .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .sales-quotations-page .badge-approved {
+        background: var(--sq-success-soft);
+        color: var(--sq-success);
+        border: 1px solid #bbf7d0;
+    }
+
+    .sales-quotations-page .badge-pending {
+        background: var(--sq-warning-soft);
+        color: var(--sq-warning);
+        border: 1px solid #fde68a;
+    }
+
+    .sales-quotations-page .badge-draft {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    .sales-quotations-page .badge-rejected {
+        background: var(--sq-danger-soft);
+        color: var(--sq-danger);
+        border: 1px solid #fecaca;
+    }
+
+    .sales-quotations-page .action-btn {
+        border: 1px solid var(--sq-border);
+        background: #fff;
+        color: #475569;
+        padding: 6px 11px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all .15s ease;
+    }
+
+    .sales-quotations-page .action-btn:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+
+    .sales-quotations-page .empty-state {
+        padding: 60px 20px;
+        text-align: center;
+    }
+
+    .sales-quotations-page .empty-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: var(--sq-light-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        margin-bottom: 14px;
+    }
+
+    /* Modal Styling */
+    .modal-content {
+        border-radius: 14px;
+        border: none;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    .modal-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #edf2f7;
+        padding: 16px 22px;
+    }
+
+    .modal-footer {
+        background: #f8fafc;
+        border-top: 1px solid #edf2f7;
+        padding: 14px 22px;
+    }
+
+    @@media (max-width: 1024px) {
+        .sales-quotations-page .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .sales-quotations-page .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+        .sales-quotations-page .toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .sales-quotations-page .search-box {
+            max-width: 100%;
+        }
+    }
+</style>
+
+<div class="sales-quotations-page">
+    <div class="page-shell">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="breadcrumb-line">
+                <a href="/SalesDashboard"><i class="fa-solid fa-house me-1"></i> Dashboard</a>
+                <span>/</span>
+                <a href="/SalesManagement/Quotations">Sales Operations</a>
+                <span>/</span>
+                <span class="text-dark fw-semibold">Quotations & Estimates</span>
+            </div>
+            <div class="title-row">
+                <div class="title-left">
+                    <div class="title-icon">
+                        <i class="fa-solid fa-file-signature"></i>
+                    </div>
+                    <div>
+                        <h1 class="page-title">Quotations & Estimates</h1>
+                        <p class="page-subtitle">Formulate proposals, manage discount thresholds, enforce manager approvals, and convert approved quotes to orders.</p>
+                    </div>
+                </div>
+                <div>
+                    <button type="button" class="btn-action-primary" data-bs-toggle="modal" data-bs-target="#createQuotationModal">
+                        <i class="fa-solid fa-plus"></i> Create Quotation
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h6>Total Quotations</h6>
+                    <div class="kpi-value">@(ViewBag.TotalQuotations ?? Model?.Count() ?? 0)</div>
+                </div>
+                <div class="kpi-icon-bubble" style="background: var(--sq-primary-soft); color: var(--sq-primary);">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h6>Approved Quotes</h6>
+                    <div class="kpi-value" style="color: var(--sq-success);">@(ViewBag.ApprovedQuotations ?? Model?.Count(q => q.ApprovalStatus == "Approved") ?? 0)</div>
+                </div>
+                <div class="kpi-icon-bubble" style="background: var(--sq-success-soft); color: var(--sq-success);">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h6>Pending Approvals</h6>
+                    <div class="kpi-value" style="color: var(--sq-warning);">@(ViewBag.PendingQuotations ?? Model?.Count(q => q.ApprovalStatus == "Pending Review" || q.ApprovalStatus == "Pending Manager" || q.ApprovalStatus == "Draft") ?? 0)</div>
+                </div>
+                <div class="kpi-icon-bubble" style="background: var(--sq-warning-soft); color: var(--sq-warning);">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h6>Pipeline Value</h6>
+                    <div class="kpi-value" style="color: var(--sq-info);">
+                        @(((decimal)(ViewBag.TotalQuoteValue ?? Model?.Sum(q => q.TotalAmount) ?? 0m)).ToString("C0", inCulture))
+                    </div>
+                </div>
+                <div class="kpi-icon-bubble" style="background: var(--sq-info-soft); color: var(--sq-info);">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+            </div>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert" style="border-radius: 12px; background: #ecfdf3; color: #166534;">
+                <i class="fa-solid fa-circle-check fs-5 me-2 text-success"></i>
+                <div>@TempData["SuccessMessage"]</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert" style="border-radius: 12px; background: #fef2f2; color: #991b1b;">
+                <i class="fa-solid fa-triangle-exclamation fs-5 me-2 text-danger"></i>
+                <div>@TempData["ErrorMessage"]</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Table Card -->
+        <div class="table-card">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="quotationSearchInput" placeholder="Search by Quote #, Customer, or Remarks..." />
+                </div>
+                <div class="filter-group">
+                    <select id="statusFilterSelect" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Pending Manager">Pending Manager</option>
+                        <option value="Pending Review">Pending Review</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                    <button type="button" class="action-btn" id="resetFiltersBtn">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <table class="custom-table" id="quotationsTable">
+                    <thead>
+                        <tr>
+                            <th>Quote #</th>
+                            <th>Customer Name</th>
+                            <th>SubTotal</th>
+                            <th>Discount</th>
+                            <th>Total Amount</th>
+                            <th>Approval Status</th>
+                            <th>Created Date</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var quote in Model)
+                            {
+                                var isPending = quote.ApprovalStatus == "Pending Manager" || quote.ApprovalStatus == "Pending Review" || quote.ApprovalStatus == "Draft";
+                                var isApproved = quote.ApprovalStatus == "Approved";
+
+                                <tr data-status="@quote.ApprovalStatus" data-quote="@quote.QuotationNumber" data-customer="@quote.CustomerName" data-remarks="@quote.ApprovalRemarks">
+                                    <td>
+                                        <span class="quote-number-badge">
+                                            <i class="fa-solid fa-file-lines"></i>
+                                            @quote.QuotationNumber
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-dark">@quote.CustomerName</div>
+                                        @if (!string.IsNullOrEmpty(quote.ApprovalRemarks))
+                                        {
+                                            <div class="text-muted small text-truncate" style="max-width: 250px;" title="@quote.ApprovalRemarks">
+                                                <i class="fa-regular fa-comment-dots me-1"></i>@quote.ApprovalRemarks
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>@quote.SubTotal.ToString("C2", inCulture)</td>
+                                    <td>
+                                        @if (quote.DiscountPercentage > 5.0m)
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2" title="Exceeds 5% threshold - Requires Manager Clearance">
+                                                <i class="fa-solid fa-triangle-exclamation me-1"></i>@quote.DiscountPercentage.ToString("0.##")%
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-secondary border py-1 px-2">
+                                                @quote.DiscountPercentage.ToString("0.##")%
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold fs-6" style="color: var(--sq-text);">
+                                            @quote.TotalAmount.ToString("C2", inCulture)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (isApproved)
+                                        {
+                                            <span class="badge-status badge-approved">
+                                                <i class="fa-solid fa-circle-check"></i> Approved
+                                            </span>
+                                        }
+                                        else if (quote.ApprovalStatus == "Pending Manager" || quote.ApprovalStatus == "Pending Review")
+                                        {
+                                            <span class="badge-status badge-pending">
+                                                <i class="fa-solid fa-clock"></i> @quote.ApprovalStatus
+                                            </span>
+                                        }
+                                        else if (quote.ApprovalStatus == "Rejected")
+                                        {
+                                            <span class="badge-status badge-rejected">
+                                                <i class="fa-solid fa-circle-xmark"></i> Rejected
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-status badge-draft">
+                                                <i class="fa-regular fa-file"></i> Draft
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="text-muted small">
+                                            @quote.CreatedAt.ToString("dd MMM yyyy")
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <!-- Preview button -->
+                                            <button type="button" class="action-btn view-preview-btn" 
+                                                    data-quote="@quote.QuotationNumber" 
+                                                    data-customer="@quote.CustomerName" 
+                                                    data-subtotal="@quote.SubTotal.ToString("C2", inCulture)"
+                                                    data-discount="@quote.DiscountPercentage"
+                                                    data-total="@quote.TotalAmount.ToString("C2", inCulture)"
+                                                    data-status="@quote.ApprovalStatus"
+                                                    data-remarks="@quote.ApprovalRemarks"
+                                                    data-date="@quote.CreatedAt.ToString("dd MMM yyyy")"
+                                                    title="View Quotation Preview">
+                                                <i class="fa-regular fa-eye"></i>
+                                            </button>
+
+                                            @if (isApproved)
+                                            {
+                                                <!-- Convert to Sales Order -->
+                                                <form asp-controller="SalesManagement" asp-action="ConvertQuotationToOrder" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="quotationId" value="@quote.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-success fw-semibold" title="Convert to Sales Order" onclick="return confirm('Convert Quotation @quote.QuotationNumber into a confirmed Sales Order?');">
+                                                        <i class="fa-solid fa-cart-arrow-down me-1"></i> Order
+                                                    </button>
+                                                </form>
+
+                                                <!-- Print PDF -->
+                                                <button type="button" class="action-btn print-direct-btn"
+                                                        data-quote="@quote.QuotationNumber"
+                                                        data-customer="@quote.CustomerName"
+                                                        data-subtotal="@quote.SubTotal.ToString("C2", inCulture)"
+                                                        data-discount="@quote.DiscountPercentage"
+                                                        data-total="@quote.TotalAmount.ToString("C2", inCulture)"
+                                                        data-status="@quote.ApprovalStatus"
+                                                        data-date="@quote.CreatedAt.ToString("dd MMM yyyy")"
+                                                        title="Print Quotation">
+                                                    <i class="fa-solid fa-print"></i>
+                                                </button>
+                                            }
+                                            else if (isPending)
+                                            {
+                                                @if (!isSalesExecutive)
+                                                {
+                                                    <!-- Sales Manager / Admin Approve Action -->
+                                                    <form asp-controller="SalesManagement" asp-action="ApproveQuotation" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="quotationId" value="@quote.Id" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary fw-semibold" title="Approve Quotation Policy Exception">
+                                                            <i class="fa-solid fa-check me-1"></i> Approve
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light text-muted border py-1.5 px-2" title="Quotation locked pending Manager approval">
+                                                        <i class="fa-solid fa-lock me-1"></i> Locked
+                                                    </span>
+                                                }
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@quote.QuoteNo</td>
-                                <td>@quote.CustomerName</td>
-                                <td class="text-muted">@quote.ExpiryDate.ToString("dd MMM yyyy")</td>
-                                <td class="fw-bold">₹@quote.EstimatedAmount.ToString("N0", inCulture)</td>
-                                <td>
-                                    @{
-                                        var badgeClass = quote.Status == "Approved" ? "bg-success-subtle text-success" :
-                                                         quote.Status == "Sent" ? "bg-warning-subtle text-warning" :
-                                                         "bg-secondary-subtle text-secondary";
-                                    }
-                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@quote.Status</span>
+                                <td colspan="8">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <i class="fa-solid fa-file-invoice"></i>
+                                        </div>
+                                        <h5 class="fw-bold text-dark">No Quotations Found</h5>
+                                        <p class="text-muted small">No quotation proposals match your current filters or have been created yet.</p>
+                                        <button type="button" class="btn-action-primary mx-auto mt-2" data-bs-toggle="modal" data-bs-target="#createQuotationModal">
+                                            <i class="fa-solid fa-plus"></i> Create First Quotation
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">No quotations found in database.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
+
     </div>
 </div>
 
-<!-- Create Quotation Modal -->
-<div class="modal fade text-start" id="createQuotationModal" tabindex="-1" aria-labelledby="createQuotationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- =========================================================
+     MODAL: CREATE QUOTATION
+     ========================================================= -->
+<div class="modal fade" id="createQuotationModal" tabindex="-1" aria-labelledby="createQuotationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <form action="/SalesManagement/CreateQuotation" method="post">
+            <form asp-controller="SalesManagement" asp-action="CreateQuotation" method="post">
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="createQuotationModalLabel">Create New Quotation</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <div style="width: 36px; height: 36px; border-radius: 9px; background: var(--sq-primary-soft); color: var(--sq-primary); display: flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-plus"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="createQuotationModalLabel">New Quotation Proposal</h5>
+                            <small class="text-muted">Draft a sales proposal and specify customer pricing</small>
+                        </div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Customer Name</label>
-                        <input type="text" name="CustomerName" class="form-control" placeholder="e.g. Rajesh Corp Ltd" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Estimated Amount (INR)</label>
-                        <input type="number" name="EstimatedAmount" class="form-control" placeholder="e.g. 150000" min="0" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Expiry Date</label>
-                        <input type="date" name="ExpiryDate" class="form-control" value="@DateTime.Now.AddDays(10).ToString("yyyy-MM-dd")" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Status</label>
-                        <select name="Status" class="form-select" required>
-                            <option value="Draft">Draft</option>
-                            <option value="Sent">Sent</option>
-                            <option value="Approved">Approved</option>
-                        </select>
+
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small text-muted">Quotation Number (Optional)</label>
+                            <input type="text" name="QuotationNumber" class="form-control form-control-sm" placeholder="Auto-generated (e.g. QTN-5001)" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small text-muted">Customer Name <span class="text-danger">*</span></label>
+                            <input type="text" name="CustomerName" class="form-control form-control-sm" value="@preselectedCust" placeholder="Enter full corporate or client name" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small text-muted">SubTotal Amount (₹) <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-muted">₹</span>
+                                <input type="number" id="modalSubTotal" name="SubTotal" class="form-control" step="0.01" min="0" placeholder="0.00" required />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small text-muted">Discount Rate (%)</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" id="modalDiscount" name="DiscountPercentage" class="form-control" step="0.1" min="0" max="100" value="0.0" />
+                                <span class="input-group-text bg-light text-muted">%</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small text-muted">Total Quoted Amount (₹)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-muted">₹</span>
+                                <input type="number" id="modalTotalAmount" name="TotalAmount" class="form-control bg-light fw-bold text-dark" step="0.01" min="0" readonly placeholder="0.00" />
+                            </div>
+                        </div>
+
+                        <!-- Policy Warning Banner -->
+                        <div class="col-12" id="discountAlertBanner" style="display: none;">
+                            <div class="alert alert-warning border border-warning-subtle d-flex align-items-center gap-2 mb-0 py-2.5 px-3" style="border-radius: 9px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-triangle-exclamation text-warning fs-5"></i>
+                                <div>
+                                    <strong>Discount Threshold Policy:</strong> The requested discount exceeds <strong>5.0%</strong>. This quotation will be submitted with <strong>"Pending Manager"</strong> status and requires administrative clearance before converting into an order.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small text-muted">Remarks & Proposal Notes</label>
+                            <textarea name="ApprovalRemarks" class="form-control form-control-sm" rows="3" placeholder="Specify proposal terms, delivery notes, or special pricing justifications..."></textarea>
+                        </div>
                     </div>
                 </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Quotation</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-4 fw-semibold" style="background: var(--sq-primary); border-color: var(--sq-primary);">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Save Quotation
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- =========================================================
+     MODAL: VIEW / PRINT QUOTATION PREVIEW
+     ========================================================= -->
+<div class="modal fade" id="viewQuotationModal" tabindex="-1" aria-labelledby="viewQuotationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-white border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width: 36px; height: 36px; border-radius: 9px; background: var(--sq-primary-soft); color: var(--sq-primary); display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="viewQuotationModalLabel">Quotation Document</h5>
+                        <small class="text-muted" id="previewQuoteNumber">QTN-0000</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4" id="printableQuotationArea">
+                <!-- Printable document styling -->
+                <div class="p-3 border rounded-3 bg-white">
+                    <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                        <div>
+                            <h4 class="fw-bold mb-1" style="color: var(--sq-primary);">Operafy ERP Systems</h4>
+                            <p class="text-muted small mb-0">Enterprise Sales & Operations Management</p>
+                            <p class="text-muted small mb-0">GSTIN: 27AAAAA0000A1Z5 | Corporate Sales Desk</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary-subtle text-primary border px-3 py-1.5 fs-6 mb-1" id="previewStatusBadge">Approved</span>
+                            <div class="text-muted small" id="previewDate">Date: 22 Sep 2026</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <h6 class="text-muted text-uppercase small fw-bold mb-1">Quotation Issued To:</h6>
+                            <h5 class="fw-bold text-dark mb-1" id="previewCustomerName">Customer Name</h5>
+                            <p class="text-muted small mb-0">Enterprise Account</p>
+                        </div>
+                        <div class="col-sm-6 text-sm-end">
+                            <h6 class="text-muted text-uppercase small fw-bold mb-1">Document Reference:</h6>
+                            <div class="fw-bold fs-6" id="previewRefCode">QTN-5001</div>
+                            <div class="text-muted small">Validity: 30 Days from issue</div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description / Line Item</th>
+                                    <th class="text-end" style="width: 150px;">SubTotal</th>
+                                    <th class="text-end" style="width: 150px;">Discount</th>
+                                    <th class="text-end" style="width: 180px;">Net Quoted Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">Enterprise Supply Order & Licensing</div>
+                                        <small class="text-muted" id="previewRemarks">Standard terms and approved pricing schedule.</small>
+                                    </td>
+                                    <td class="text-end" id="previewSubTotal">₹0.00</td>
+                                    <td class="text-end" id="previewDiscountRate">0%</td>
+                                    <td class="text-end fw-bold text-dark fs-6" id="previewTotal">₹0.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row justify-content-end">
+                        <div class="col-md-5">
+                            <div class="d-flex justify-content-between py-1 border-bottom">
+                                <span class="text-muted small">SubTotal:</span>
+                                <span class="fw-semibold text-dark" id="previewSubTotalRow">₹0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-1 border-bottom">
+                                <span class="text-muted small">Discount Applied:</span>
+                                <span class="fw-semibold text-danger" id="previewDiscountRow">0%</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-2">
+                                <span class="fw-bold text-dark">Grand Total:</span>
+                                <span class="fw-bold fs-5 text-primary" id="previewTotalRow">₹0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-sm btn-primary px-3 fw-semibold" id="printModalBtn">
+                    <i class="fa-solid fa-print me-1"></i> Print / Export PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Live Search & Filtering
+            const searchInput = document.getElementById('quotationSearchInput');
+            const statusFilter = document.getElementById('statusFilterSelect');
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            const table = document.getElementById('quotationsTable');
+            const rows = table.querySelectorAll('tbody tr[data-status]');
+
+            function filterRows() {
+                const query = (searchInput.value || '').toLowerCase().trim();
+                const status = (statusFilter.value || '').trim();
+
+                rows.forEach(function (row) {
+                    const rowStatus = row.getAttribute('data-status') || '';
+                    const quote = (row.getAttribute('data-quote') || '').toLowerCase();
+                    const customer = (row.getAttribute('data-customer') || '').toLowerCase();
+                    const remarks = (row.getAttribute('data-remarks') || '').toLowerCase();
+
+                    const matchesQuery = !query || quote.includes(query) || customer.includes(query) || remarks.includes(query);
+                    const matchesStatus = !status || rowStatus.toLowerCase() === status.toLowerCase();
+
+                    if (matchesQuery && matchesStatus) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+
+            if (searchInput) searchInput.addEventListener('input', filterRows);
+            if (statusFilter) statusFilter.addEventListener('change', filterRows);
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function () {
+                    if (searchInput) searchInput.value = '';
+                    if (statusFilter) statusFilter.value = '';
+                    filterRows();
+                });
+            }
+
+            // Calculation & Discount Policy Trigger in Modal
+            const subTotalInput = document.getElementById('modalSubTotal');
+            const discountInput = document.getElementById('modalDiscount');
+            const totalAmountInput = document.getElementById('modalTotalAmount');
+            const banner = document.getElementById('discountAlertBanner');
+
+            function recalculate() {
+                const sub = parseFloat(subTotalInput.value) || 0;
+                const disc = parseFloat(discountInput.value) || 0;
+
+                const net = sub - (sub * (disc / 100));
+                totalAmountInput.value = net > 0 ? net.toFixed(2) : '0.00';
+
+                if (disc > 5.0) {
+                    banner.style.display = 'block';
+                } else {
+                    banner.style.display = 'none';
+                }
+            }
+
+            if (subTotalInput) subTotalInput.addEventListener('input', recalculate);
+            if (discountInput) discountInput.addEventListener('input', recalculate);
+
+            // Preview Modal Handling
+            const previewModal = new bootstrap.Modal(document.getElementById('viewQuotationModal'));
+            document.querySelectorAll('.view-preview-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const quote = this.getAttribute('data-quote');
+                    const customer = this.getAttribute('data-customer');
+                    const subtotal = this.getAttribute('data-subtotal');
+                    const discount = this.getAttribute('data-discount');
+                    const total = this.getAttribute('data-total');
+                    const status = this.getAttribute('data-status');
+                    const remarks = this.getAttribute('data-remarks');
+                    const date = this.getAttribute('data-date');
+
+                    document.getElementById('previewQuoteNumber').textContent = quote;
+                    document.getElementById('previewRefCode').textContent = quote;
+                    document.getElementById('previewCustomerName').textContent = customer;
+                    document.getElementById('previewSubTotal').textContent = subtotal;
+                    document.getElementById('previewSubTotalRow').textContent = subtotal;
+                    document.getElementById('previewDiscountRate').textContent = discount + '%';
+                    document.getElementById('previewDiscountRow').textContent = discount + '%';
+                    document.getElementById('previewTotal').textContent = total;
+                    document.getElementById('previewTotalRow').textContent = total;
+                    document.getElementById('previewDate').textContent = 'Date: ' + date;
+                    document.getElementById('previewStatusBadge').textContent = status;
+
+                    if (remarks && remarks.trim().length > 0) {
+                        document.getElementById('previewRemarks').textContent = remarks;
+                    } else {
+                        document.getElementById('previewRemarks').textContent = 'Standard terms and approved pricing schedule.';
+                    }
+
+                    previewModal.show();
+                });
+            });
+
+            // Print triggers
+            const printModalBtn = document.getElementById('printModalBtn');
+            if (printModalBtn) {
+                printModalBtn.addEventListener('click', function () {
+                    const printContent = document.getElementById('printableQuotationArea').innerHTML;
+                    const win = window.open('', '', 'height=700,width=900');
+                    win.document.write('<html><head><title>Quotation Print</title>');
+                    win.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />');
+                    win.document.write('</head><body class="p-4">');
+                    win.document.write(printContent);
+                    win.document.write('</body></html>');
+                    win.document.close();
+                    win.focus();
+                    setTimeout(function () { win.print(); }, 400);
+                });
+            }
+
+            document.querySelectorAll('.print-direct-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const quote = this.getAttribute('data-quote');
+                    const customer = this.getAttribute('data-customer');
+                    const subtotal = this.getAttribute('data-subtotal');
+                    const discount = this.getAttribute('data-discount');
+                    const total = this.getAttribute('data-total');
+                    const status = this.getAttribute('data-status');
+                    const date = this.getAttribute('data-date');
+
+                    const win = window.open('', '', 'height=700,width=900');
+                    win.document.write('<html><head><title>Quotation ' + quote + '</title>');
+                    win.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />');
+                    win.document.write('</head><body class="p-4">');
+                    win.document.write('<div class="border p-4 rounded"><div class="d-flex justify-content-between mb-4 border-bottom pb-3"><div><h3 class="fw-bold text-primary">Operafy ERP Systems</h3><p class="text-muted mb-0">Quotation Proposal Reference: ' + quote + '</p></div><div class="text-end"><span class="badge bg-success fs-6">' + status + '</span><div class="text-muted mt-1">' + date + '</div></div></div>');
+                    win.document.write('<h5>Issued To: ' + customer + '</h5><table class="table table-bordered mt-3"><thead><tr><th>Description</th><th>SubTotal</th><th>Discount</th><th>Grand Total</th></tr></thead><tbody><tr><td>Standard Enterprise Proposal</td><td>' + subtotal + '</td><td>' + discount + '%</td><td class="fw-bold">' + total + '</td></tr></tbody></table></div>');
+                    win.document.write('</body></html>');
+                    win.document.close();
+                    win.focus();
+                    setTimeout(function () { win.print(); }, 400);
+                });
+            });
+
+            @if (!string.IsNullOrEmpty(preselectedCust))
+            {
+                <text>
+                const createModal = new bootstrap.Modal(document.getElementById('createQuotationModal'));
+                createModal.show();
+                </text>
+            }
+        });
+    </script>
+}

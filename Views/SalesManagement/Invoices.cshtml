@@ -1,0 +1,1798 @@
+
+@model IEnumerable<ERP_System.Models.SalesInvoice>
+
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Sales Invoices Ledger";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+}
+
+<style>
+    /* =========================================================
+           SALES INVOICE LEDGER - SCOPED ERP UI
+           ========================================================= */
+
+    .sales-invoice-page {
+        --invoice-primary: #2563eb;
+        --invoice-primary-dark: #1d4ed8;
+        --invoice-success: #16a34a;
+        --invoice-warning: #d97706;
+        --invoice-danger: #dc2626;
+        --invoice-purple: #7c3aed;
+        --invoice-text: #172033;
+        --invoice-muted: #64748b;
+        --invoice-border: #e5eaf1;
+        --invoice-surface: #ffffff;
+        --invoice-soft: #f6f8fb;
+        --invoice-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
+        --invoice-shadow-hover: 0 16px 36px rgba(15, 23, 42, 0.09);
+        color: var(--invoice-text);
+    }
+
+        .sales-invoice-page * {
+            box-sizing: border-box;
+        }
+
+    /* Hero */
+    .invoice-hero {
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(circle at 90% 15%, rgba(37, 99, 235, 0.09), transparent 28%), radial-gradient(circle at 70% 100%, rgba(124, 58, 237, 0.06), transparent 30%), #ffffff;
+        border: 1px solid var(--invoice-border);
+        border-radius: 22px;
+        padding: 26px 28px;
+        margin-bottom: 22px;
+        box-shadow: var(--invoice-shadow);
+    }
+
+        .invoice-hero::after {
+            content: "";
+            position: absolute;
+            right: -80px;
+            top: -90px;
+            width: 230px;
+            height: 230px;
+            border-radius: 50%;
+            border: 28px solid rgba(37, 99, 235, 0.035);
+            pointer-events: none;
+        }
+
+    .invoice-hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .invoice-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .invoice-title-icon {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        background: linear-gradient(145deg, #eff6ff, #dbeafe);
+        color: var(--invoice-primary);
+        font-size: 21px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+    }
+
+    .invoice-eyebrow {
+        color: var(--invoice-primary);
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .invoice-page-title {
+        color: var(--invoice-text);
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        font-weight: 800;
+        letter-spacing: -.025em;
+        margin: 0;
+    }
+
+    .invoice-page-subtitle {
+        color: var(--invoice-muted);
+        margin: 6px 0 0;
+        font-size: .9rem;
+    }
+
+    .invoice-breadcrumb {
+        margin-top: 13px;
+    }
+
+        .invoice-breadcrumb .breadcrumb {
+            margin: 0;
+            font-size: .78rem;
+        }
+
+        .invoice-breadcrumb a {
+            color: var(--invoice-primary);
+            font-weight: 600;
+        }
+
+    .invoice-actions {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        position: relative;
+        z-index: 3;
+    }
+
+    .invoice-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 42px;
+        padding: 0 15px;
+        border-radius: 11px;
+        font-size: .82rem;
+        font-weight: 700;
+        transition: all .2s ease;
+        white-space: nowrap;
+    }
+
+        .invoice-action-btn:hover {
+            transform: translateY(-1px);
+        }
+
+    .invoice-primary-btn {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border: 1px solid #1d4ed8;
+        color: #fff;
+        box-shadow: 0 7px 16px rgba(37, 99, 235, .17);
+    }
+
+        .invoice-primary-btn:hover {
+            color: #fff;
+            box-shadow: 0 10px 22px rgba(37, 99, 235, .23);
+        }
+
+    .invoice-outline-btn {
+        background: #fff;
+        color: #334155;
+        border: 1px solid #dbe2ea;
+    }
+
+        .invoice-outline-btn:hover {
+            background: #f8fafc;
+            color: var(--invoice-primary);
+            border-color: #bfdbfe;
+        }
+
+    /* Alerts */
+    .invoice-success-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #16a34a !important;
+        border-radius: 13px;
+        padding: 12px 15px;
+        box-shadow: 0 5px 18px rgba(22, 163, 74, .05);
+    }
+
+    /* KPI cards */
+    .invoice-kpi-grid {
+        margin-bottom: 22px;
+    }
+
+    .invoice-kpi {
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        background: var(--invoice-surface);
+        border: 1px solid var(--invoice-border);
+        border-radius: 17px;
+        padding: 18px;
+        box-shadow: var(--invoice-shadow);
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+        .invoice-kpi:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--invoice-shadow-hover);
+            border-color: #d7dee8;
+        }
+
+        .invoice-kpi::after {
+            content: "";
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            right: -28px;
+            bottom: -32px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .035);
+        }
+
+    .invoice-kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .invoice-kpi-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 17px;
+    }
+
+    .invoice-kpi-blue .invoice-kpi-icon {
+        color: #2563eb;
+        background: #eff6ff;
+    }
+
+    .invoice-kpi-green .invoice-kpi-icon {
+        color: #16a34a;
+        background: #f0fdf4;
+    }
+
+    .invoice-kpi-orange .invoice-kpi-icon {
+        color: #d97706;
+        background: #fffbeb;
+    }
+
+    .invoice-kpi-red .invoice-kpi-icon {
+        color: #dc2626;
+        background: #fef2f2;
+    }
+
+    .invoice-kpi-label {
+        color: #64748b;
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .075em;
+        text-transform: uppercase;
+        margin-bottom: 7px;
+    }
+
+    .invoice-kpi-value {
+        color: #111827;
+        font-size: 1.35rem;
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -.025em;
+        margin: 0;
+    }
+
+    .invoice-kpi-meta {
+        color: #94a3b8;
+        font-size: .72rem;
+        margin-top: 7px;
+    }
+
+    /* Filter panel */
+    .invoice-filter-card {
+        background: #fff;
+        border: 1px solid var(--invoice-border);
+        border-radius: 17px;
+        padding: 18px;
+        margin-bottom: 22px;
+        box-shadow: var(--invoice-shadow);
+    }
+
+    .invoice-section-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 14px;
+    }
+
+    .invoice-section-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #1e293b;
+        font-size: .92rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+        .invoice-section-title i {
+            color: var(--invoice-primary);
+        }
+
+    .invoice-filter-label {
+        display: block;
+        color: #64748b;
+        font-size: .72rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .invoice-filter-card .input-group-text {
+        background: #f8fafc;
+        border-color: #dfe5ec;
+        color: #64748b;
+        border-radius: 11px 0 0 11px;
+    }
+
+    .invoice-filter-card .form-control,
+    .invoice-filter-card .form-select {
+        min-height: 43px;
+        border-color: #dfe5ec;
+        border-radius: 11px;
+        color: #334155;
+        font-size: .84rem;
+        box-shadow: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .invoice-filter-card .input-group .form-control {
+        border-radius: 0 11px 11px 0;
+    }
+
+    .invoice-filter-card .form-control:focus,
+    .invoice-filter-card .form-select:focus {
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .09);
+    }
+
+    .invoice-filter-submit {
+        min-height: 43px;
+        border: 0;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        font-size: .82rem;
+        font-weight: 800;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, .14);
+        transition: all .2s ease;
+    }
+
+        .invoice-filter-submit:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 9px 18px rgba(37, 99, 235, .2);
+        }
+
+    .invoice-reset-btn {
+        min-height: 43px;
+        border-radius: 11px;
+        font-size: .82rem;
+        font-weight: 700;
+        border-color: #dfe5ec;
+        color: #64748b;
+    }
+
+        .invoice-reset-btn:hover {
+            background: #f8fafc;
+            color: #334155;
+        }
+
+    /* Table shell */
+    .invoice-table-card {
+        background: #fff;
+        border: 1px solid var(--invoice-border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: var(--invoice-shadow);
+    }
+
+    .invoice-table-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--invoice-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+    }
+
+    .invoice-table-title {
+        color: #1e293b;
+        font-size: .95rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .invoice-table-caption {
+        color: #94a3b8;
+        font-size: .74rem;
+        margin-top: 3px;
+    }
+
+    .invoice-record-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: .72rem;
+        font-weight: 700;
+    }
+
+    .invoice-table-wrap {
+        overflow-x: auto;
+    }
+
+    .invoice-table {
+        min-width: 1180px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .invoice-table thead th {
+            background: #f8fafc;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+            border-top: 0;
+            padding: 13px 14px;
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .055em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .invoice-table tbody td {
+            color: #475569;
+            border-bottom: 1px solid #eef2f6;
+            padding: 15px 14px;
+            font-size: .8rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .invoice-table tbody tr {
+            transition: background .18s ease;
+        }
+
+            .invoice-table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+            .invoice-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .invoice-number {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #1e40af;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        border-radius: 8px;
+        padding: 5px 8px;
+        font-size: .72rem;
+        font-weight: 800;
+    }
+
+    .invoice-order-number {
+        display: inline-flex;
+        align-items: center;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: .7rem;
+        font-weight: 700;
+    }
+
+    .invoice-direct {
+        color: #94a3b8;
+        font-size: .74rem;
+        font-style: italic;
+    }
+
+    .invoice-customer {
+        color: #1e293b;
+        font-weight: 750;
+        max-width: 185px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .invoice-company {
+        display: block;
+        color: #94a3b8;
+        font-size: .7rem;
+        margin-top: 3px;
+        max-width: 185px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .invoice-date {
+        color: #64748b;
+        font-size: .75rem;
+    }
+
+    .invoice-due-date {
+        font-size: .75rem;
+        font-weight: 600;
+    }
+
+    .invoice-overdue-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: 5px;
+        padding: 3px 6px;
+        border-radius: 5px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        font-size: .57rem;
+        font-weight: 900;
+        letter-spacing: .03em;
+    }
+
+    .invoice-amount {
+        color: #475569;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .invoice-total {
+        color: #111827;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Status */
+    .invoice-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 9px;
+        font-size: .67rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+        .invoice-status::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+    .invoice-status-paid {
+        color: #15803d;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+    }
+
+    .invoice-status-partial {
+        color: #0284c7;
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+    }
+
+    .invoice-status-pending {
+        color: #b45309;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+    }
+
+    .invoice-status-overdue {
+        color: #dc2626;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+    }
+
+    /* Action buttons */
+    .invoice-actions-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .invoice-icon-btn,
+    .invoice-action-small {
+        min-height: 31px;
+        border-radius: 8px;
+        font-size: .69rem;
+        font-weight: 700;
+        transition: all .18s ease;
+    }
+
+        .invoice-icon-btn:hover,
+        .invoice-action-small:hover {
+            transform: translateY(-1px);
+        }
+
+    .invoice-view-btn {
+        color: #2563eb;
+        border-color: #bfdbfe;
+        background: #eff6ff;
+    }
+
+        .invoice-view-btn:hover {
+            color: #1d4ed8;
+            background: #dbeafe;
+            border-color: #93c5fd;
+        }
+
+    .invoice-pdf-btn {
+        color: #475569;
+        border-color: #dbe2ea;
+        background: #fff;
+    }
+
+        .invoice-pdf-btn:hover {
+            color: #1e293b;
+            background: #f8fafc;
+        }
+
+    .invoice-reminder-btn {
+        color: #fff;
+        background: #dc2626;
+        border-color: #dc2626;
+    }
+
+        .invoice-reminder-btn:hover {
+            color: #fff;
+            background: #b91c1c;
+            border-color: #b91c1c;
+        }
+
+    /* Empty state */
+    .invoice-empty-state {
+        padding: 65px 20px !important;
+        white-space: normal !important;
+    }
+
+    .invoice-empty-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 22px;
+    }
+
+    .invoice-empty-title {
+        color: #334155;
+        font-size: .95rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .invoice-empty-text {
+        color: #94a3b8;
+        font-size: .77rem;
+    }
+
+    /* Modal */
+    .invoice-modal .modal-content {
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, .16);
+    }
+
+    .invoice-modal .modal-header {
+        background: linear-gradient(135deg, #f8fafc, #ffffff);
+        border-bottom: 1px solid #e5eaf1;
+        padding: 17px 20px;
+    }
+
+    .invoice-modal-title {
+        color: #1e293b;
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+        .invoice-modal-title i {
+            color: var(--invoice-primary);
+        }
+
+    .invoice-receipt {
+        background: #fff;
+        border: 1px solid #e5eaf1;
+        border-radius: 15px;
+        padding: 20px;
+    }
+
+    .invoice-receipt-brand {
+        color: #1d4ed8;
+        font-size: 1.35rem;
+        font-weight: 900;
+        letter-spacing: -.03em;
+    }
+
+    .invoice-receipt-subtitle {
+        color: #64748b;
+        font-size: .7rem;
+        margin-top: 3px;
+    }
+
+    .invoice-receipt-meta {
+        color: #64748b;
+        font-size: .72rem;
+    }
+
+        .invoice-receipt-meta strong {
+            color: #1e293b;
+        }
+
+    .invoice-receipt-label {
+        color: #94a3b8;
+        font-size: .63rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .invoice-receipt-customer {
+        color: #1e293b;
+        font-size: .92rem;
+        font-weight: 800;
+    }
+
+    .invoice-receipt .table {
+        font-size: .76rem;
+    }
+
+        .invoice-receipt .table th {
+            background: #f8fafc;
+            color: #64748b;
+            border-color: #e5eaf1;
+            font-size: .65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .invoice-receipt .table td {
+            border-color: #e5eaf1;
+            color: #475569;
+        }
+
+    .invoice-total-panel {
+        background: linear-gradient(135deg, #f8fafc, #eff6ff);
+        border: 1px solid #dbeafe;
+        border-radius: 13px;
+        padding: 14px 16px;
+    }
+
+    .invoice-total-label {
+        color: #64748b;
+        font-size: .65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .invoice-total-value {
+        color: #1d4ed8;
+        font-size: 1.45rem;
+        font-weight: 900;
+    }
+
+    .invoice-modal .modal-footer {
+        background: #fafbfc;
+        border-top: 1px solid #e5eaf1;
+        padding: 13px 18px;
+    }
+
+        .invoice-modal .modal-footer .btn {
+            border-radius: 9px;
+            font-size: .78rem;
+            font-weight: 700;
+        }
+
+    /* Responsive */
+    @@media (max-width: 991.98px) {
+        .invoice-title-row
+
+    {
+        flex-direction: column;
+    }
+
+    .invoice-actions {
+        width: 100%;
+    }
+
+    .invoice-action-btn {
+        flex: 1;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-invoice-page
+
+    {
+        padding-top: 1rem !important;
+    }
+
+    .invoice-hero {
+        padding: 20px;
+        border-radius: 17px;
+    }
+
+    .invoice-actions {
+        flex-direction: column;
+    }
+
+    .invoice-action-btn {
+        width: 100%;
+    }
+
+    .invoice-filter-card {
+        padding: 14px;
+    }
+
+    .invoice-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 15px;
+    }
+
+    .invoice-table-card {
+        border-radius: 15px;
+    }
+
+    .invoice-receipt {
+        padding: 14px;
+    }
+
+        .invoice-receipt .row > div {
+            margin-bottom: 14px;
+        }
+
+        .invoice-receipt .text-end {
+            text-align: left !important;
+        }
+
+    .invoice-total-panel {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 8px;
+    }
+
+    }
+
+    @@media (max-width: 575.98px) {
+        .invoice-page-title
+
+    {
+        font-size: 1.25rem;
+    }
+
+    .invoice-page-subtitle {
+        font-size: .78rem;
+    }
+
+    .invoice-kpi {
+        padding: 15px;
+    }
+
+    .invoice-kpi-value {
+        font-size: 1.18rem;
+    }
+
+    .invoice-modal .modal-dialog {
+        margin: 10px;
+    }
+
+    }
+
+    @@media print {
+        body *
+
+    {
+        visibility: hidden !important;
+    }
+
+    #invoiceReceiptContent,
+    #invoiceReceiptContent * {
+        visibility: visible !important;
+    }
+
+    #invoiceReceiptContent {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .invoice-receipt {
+        border: 0 !important;
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .invoice-kpi, .invoice-action-btn, .invoice-filter-submit, .invoice-icon-btn, .invoice-action-small, .invoice-table tbody tr
+
+    {
+        transition: none !important;
+    }
+
+    }
+</style>
+
+<div class="container-fluid py-4 text-start sales-invoice-page">
+
+    <!-- =====================================================
+         PAGE HERO
+         ===================================================== -->
+    <div class="invoice-hero">
+        <div class="invoice-hero-content">
+            <div class="invoice-title-row">
+
+                <div class="d-flex align-items-start gap-3">
+                    <div class="invoice-title-icon">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+
+                    <div>
+                        <div class="invoice-eyebrow">Sales & Receivables</div>
+
+                        <h1 class="invoice-page-title">
+                            Sales Invoices Ledger
+                        </h1>
+
+                        <p class="invoice-page-subtitle">
+                            Monitor issued invoices, collections, outstanding balances and overdue receivables.
+                        </p>
+
+                        <div class="invoice-breadcrumb">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item">
+                                        <a href="/Dashboard" class="text-decoration-none">
+                                            <i class="fa-solid fa-house me-1"></i>Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="breadcrumb-item active" aria-current="page">
+                                        Invoices
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="invoice-actions">
+                    <a href="/SalesManagement/Orders"
+                       class="btn invoice-action-btn invoice-outline-btn">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span>Sales Orders</span>
+                    </a>
+
+                    <a href="/SalesManagement/Receivables"
+                       class="btn invoice-action-btn invoice-primary-btn">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                        <span>Payment Receivables</span>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         SUCCESS MESSAGE
+         ===================================================== -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="invoice-success-alert alert alert-dismissible fade show mb-4"
+             role="alert">
+
+            <i class="fa-solid fa-circle-check"></i>
+
+            <div class="flex-grow-1">
+                @TempData["SuccessMessage"]
+            </div>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- =====================================================
+         KPI SUMMARY
+         ===================================================== -->
+    <div class="row g-3 invoice-kpi-grid">
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="invoice-kpi invoice-kpi-blue">
+                <div class="invoice-kpi-top">
+                    <div>
+                        <div class="invoice-kpi-label">Total Invoiced</div>
+                        <h3 class="invoice-kpi-value">
+                            ₹@(((decimal)(ViewBag.TotalInvoiced ?? 0m)).ToString("N0"))
+                        </h3>
+                        <div class="invoice-kpi-meta">
+                            Overall invoice value
+                        </div>
+                    </div>
+
+                    <div class="invoice-kpi-icon">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="invoice-kpi invoice-kpi-green">
+                <div class="invoice-kpi-top">
+                    <div>
+                        <div class="invoice-kpi-label">Paid Collections</div>
+                        <h3 class="invoice-kpi-value">
+                            ₹@(((decimal)(ViewBag.PaidInvoices ?? 0m)).ToString("N0"))
+                        </h3>
+                        <div class="invoice-kpi-meta">
+                            Successfully collected
+                        </div>
+                    </div>
+
+                    <div class="invoice-kpi-icon">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="invoice-kpi invoice-kpi-orange">
+                <div class="invoice-kpi-top">
+                    <div>
+                        <div class="invoice-kpi-label">Pending Balance</div>
+                        <h3 class="invoice-kpi-value">
+                            ₹@(((decimal)(ViewBag.PendingInvoices ?? 0m)).ToString("N0"))
+                        </h3>
+                        <div class="invoice-kpi-meta">
+                            Awaiting customer payment
+                        </div>
+                    </div>
+
+                    <div class="invoice-kpi-icon">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="invoice-kpi invoice-kpi-red">
+                <div class="invoice-kpi-top">
+                    <div>
+                        <div class="invoice-kpi-label">Overdue Invoices</div>
+                        <h3 class="invoice-kpi-value">
+                            ₹@(((decimal)(ViewBag.OverdueInvoices ?? 0m)).ToString("N0"))
+                        </h3>
+                        <div class="invoice-kpi-meta">
+                            Requires collection follow-up
+                        </div>
+                    </div>
+
+                    <div class="invoice-kpi-icon">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+         FILTERS
+         ===================================================== -->
+    <div class="invoice-filter-card">
+
+        <div class="invoice-section-heading">
+            <h2 class="invoice-section-title">
+                <i class="fa-solid fa-sliders"></i>
+                Invoice Filters
+            </h2>
+
+            <span class="invoice-record-pill">
+                <i class="fa-solid fa-filter"></i>
+                Refine ledger
+            </span>
+        </div>
+
+        <form method="get" asp-action="Invoices" class="row g-3 align-items-end">
+
+            <div class="col-12 col-lg-6">
+                <label class="invoice-filter-label">
+                    Search invoices
+                </label>
+
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+
+                    <input type="text"
+                           name="search"
+                           value="@ViewBag.SearchTerm"
+                           class="form-control"
+                           placeholder="Search by invoice #, order #, or customer name..." />
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-3">
+                <label class="invoice-filter-label">
+                    Payment status
+                </label>
+
+                <select name="status" class="form-select">
+                    <option value="All" selected="@(ViewBag.StatusFilter == "All")">
+                        All Statuses
+                    </option>
+
+                    <option value="Paid" selected="@(ViewBag.StatusFilter == "Paid")">
+                        Paid
+                    </option>
+
+                    <option value="Pending" selected="@(ViewBag.StatusFilter == "Pending")">
+                        Pending
+                    </option>
+
+                    <option value="Partially Paid" selected="@(ViewBag.StatusFilter == "Partially Paid")">
+                        Partially Paid
+                    </option>
+
+                    <option value="Overdue" selected="@(ViewBag.StatusFilter == "Overdue")">
+                        Overdue
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="d-flex gap-2">
+                    <button type="submit"
+                            class="btn invoice-filter-submit flex-grow-1">
+                        <i class="fa-solid fa-filter me-1"></i>
+                        Filter
+                    </button>
+
+                    <a asp-action="Invoices"
+                       class="btn btn-outline-secondary invoice-reset-btn">
+                        <i class="fa-solid fa-rotate-left me-1"></i>
+                        Reset
+                    </a>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- =====================================================
+         INVOICE LEDGER
+         ===================================================== -->
+    <div class="invoice-table-card">
+
+        <div class="invoice-table-header">
+
+            <div>
+                <h2 class="invoice-table-title">
+                    <i class="fa-solid fa-list-check text-primary me-2"></i>
+                    Invoice Ledger
+                </h2>
+
+                <div class="invoice-table-caption">
+                    Detailed record of issued sales invoices and payment status.
+                </div>
+            </div>
+
+            <div class="invoice-record-pill">
+                <i class="fa-solid fa-database"></i>
+                @((Model?.Count() ?? 0)) Records
+            </div>
+
+        </div>
+
+        <div class="invoice-table-wrap">
+
+            <table class="table invoice-table align-middle mb-0">
+
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Linked Order #</th>
+                        <th>Customer</th>
+                        <th>Invoice Date</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Taxable Value</th>
+                        <th class="text-end">GST (18%)</th>
+                        <th class="text-end">Grand Total</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var inv in Model)
+                        {
+                            var badgeClass =
+                            inv.Status == "Paid"
+                            ? "invoice-status-paid"
+                            : inv.Status == "Partially Paid"
+                            ? "invoice-status-partial"
+                            : inv.Status == "Pending"
+                            ? "invoice-status-pending"
+                            : "invoice-status-overdue";
+
+                            var taxable =
+                            inv.TaxableValue > 0
+                            ? inv.TaxableValue
+                            : Math.Round(inv.GrandTotal / 1.18m, 2);
+
+                            var gst =
+                            inv.GstAmount > 0
+                            ? inv.GstAmount
+                            : Math.Round(inv.GrandTotal - taxable, 2);
+
+                            var isOverdue =
+                            inv.DueDate.Date < DateTime.Today &&
+                            inv.Status != "Paid";
+
+                            <tr>
+
+                                <!-- Invoice Number -->
+                                <td>
+                                    <span class="invoice-number">
+                                        <i class="fa-regular fa-file-lines"></i>
+                                        @inv.InvoiceNumber
+                                    </span>
+                                </td>
+
+                                <!-- Linked Order -->
+                                <td>
+                                    @{
+                                        var orderNo =
+                                        inv.SalesOrder?.OrderNumber ??
+                                        (!string.IsNullOrEmpty(inv.LinkedOrderNumber)
+                                        ? inv.LinkedOrderNumber
+                                        : "Direct");
+                                    }
+
+                                    @if (orderNo != "Direct")
+                                    {
+                                        <span class="invoice-order-number">
+                                            <i class="fa-solid fa-link me-1 text-primary"></i>
+                                            @orderNo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="invoice-direct">
+                                            Direct invoice
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Customer -->
+                                <td>
+                                    <div class="invoice-customer">
+                                        @(inv.Customer?.CustomerName ?? inv.CustomerName)
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(inv.Customer?.CompanyName))
+                                    {
+                                        <span class="invoice-company">
+                                            <i class="fa-regular fa-building me-1"></i>
+                                            @inv.Customer.CompanyName
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Invoice Date -->
+                                <td>
+                                    <span class="invoice-date">
+                                        <i class="fa-regular fa-calendar me-1"></i>
+                                        @inv.InvoiceDate.ToString("dd MMM yyyy")
+                                    </span>
+                                </td>
+
+                                <!-- Due Date -->
+                                <td>
+                                    <span class="@(isOverdue ? "text-danger fw-bold" : "invoice-due-date text-muted")">
+                                        @inv.DueDate.ToString("dd MMM yyyy")
+                                    </span>
+
+                                    @if (isOverdue)
+                                    {
+                                        <span class="invoice-overdue-label">
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                            OVERDUE
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Taxable -->
+                                <td class="text-end">
+                                    <span class="invoice-amount">
+                                        ₹@taxable.ToString("N2")
+                                    </span>
+                                </td>
+
+                                <!-- GST -->
+                                <td class="text-end">
+                                    <span class="invoice-amount">
+                                        ₹@gst.ToString("N2")
+                                    </span>
+                                </td>
+
+                                <!-- Grand Total -->
+                                <td class="text-end">
+                                    <span class="invoice-total">
+                                        ₹@inv.GrandTotal.ToString("N2")
+                                    </span>
+                                </td>
+
+                                <!-- Status -->
+                                <td class="text-center">
+                                    <span class="invoice-status @badgeClass">
+                                        @inv.Status
+                                    </span>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="text-center">
+
+                                    <div class="invoice-actions-cell">
+
+                                        <button type="button"
+                                                class="btn invoice-icon-btn invoice-view-btn px-2 py-1"
+                                                title="View Receipt"
+                                                onclick="viewReceiptModal('@inv.InvoiceNumber', '@(inv.Customer?.CustomerName ?? inv.CustomerName)', '@orderNo', '₹@taxable.ToString("N2")', '₹@gst.ToString("N2")', '₹@inv.GrandTotal.ToString("N2")', '@inv.Status', '@inv.InvoiceDate.ToString("dd MMM yyyy")', '@inv.DueDate.ToString("dd MMM yyyy")')">
+                                            <i class="fa-regular fa-eye me-1"></i>
+                                            View
+                                        </button>
+
+                                        <button type="button"
+                                                class="btn invoice-icon-btn invoice-pdf-btn px-2 py-1"
+                                                title="Download PDF"
+                                                onclick="downloadPdfModal('@inv.InvoiceNumber', '@(inv.Customer?.CustomerName ?? inv.CustomerName)', '₹@taxable.ToString("N2")', '₹@gst.ToString("N2")', '₹@inv.GrandTotal.ToString("N2")', '@inv.InvoiceDate.ToString("dd MMM yyyy")')">
+                                            <i class="fa-solid fa-download me-1"></i>
+                                            PDF
+                                        </button>
+
+                                        @if (inv.Status == "Overdue")
+                                        {
+                                            <button type="button"
+                                                    class="btn invoice-action-small invoice-reminder-btn px-2 py-1"
+                                                    title="Send Payment Reminder"
+                                                    onclick="sendInvoiceReminder('@inv.InvoiceNumber', '@(inv.Customer?.CustomerName ?? inv.CustomerName)')">
+                                                <i class="fa-solid fa-bell me-1"></i>
+                                                Remind
+                                            </button>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="10" class="invoice-empty-state text-center">
+
+                                <div class="invoice-empty-icon">
+                                    <i class="fa-regular fa-file-lines"></i>
+                                </div>
+
+                                <div class="invoice-empty-title">
+                                    No sales invoices found
+                                </div>
+
+                                <div class="invoice-empty-text">
+                                    No invoices match the current search or filter criteria.
+                                </div>
+
+                            </td>
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- =========================================================
+     RECEIPT MODAL
+     ========================================================= -->
+<div class="modal fade text-start invoice-modal"
+     id="invoiceReceiptModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title invoice-modal-title">
+                    <i class="fa-solid fa-file-invoice-dollar me-2"></i>
+                    Tax Invoice & Receipt Details
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
+            </div>
+
+            <div class="modal-body p-3 p-md-4"
+                 id="invoiceReceiptContent">
+
+                <div class="invoice-receipt">
+
+                    <!-- Receipt Header -->
+                    <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+
+                        <div>
+                            <div class="invoice-receipt-brand">
+                                OPERAFY ERP
+                            </div>
+
+                            <div class="invoice-receipt-subtitle">
+                                Enterprise Resource Planning & Sales Operations
+                            </div>
+
+                            <div class="invoice-receipt-meta mt-1">
+                                GSTIN: <strong>27AABCU9603R1ZM</strong>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+
+                            <div class="invoice-receipt-label">
+                                Invoice Number
+                            </div>
+
+                            <h5 class="fw-bold mb-1 text-dark"
+                                id="modalInvoiceNum">
+                                INV-0000
+                            </h5>
+
+                            <div class="invoice-receipt-meta">
+                                Date:
+                                <span id="modalInvoiceDate">--</span>
+                            </div>
+
+                            <div class="invoice-receipt-meta">
+                                Due:
+                                <span id="modalDueDate">--</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Customer Information -->
+                    <div class="row mb-4">
+
+                        <div class="col-md-6">
+
+                            <div class="invoice-receipt-label">
+                                Billed To
+                            </div>
+
+                            <div class="invoice-receipt-customer"
+                                 id="modalCustomerName">
+                                --
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6 text-md-end">
+
+                            <div class="invoice-receipt-label">
+                                Linked Sales Order
+                            </div>
+
+                            <div class="fw-semibold text-secondary"
+                                 id="modalLinkedOrder">
+                                --
+                            </div>
+
+                            <div class="mt-2">
+
+                                <span class="invoice-receipt-label d-inline-block me-1 mb-0">
+                                    Payment Status
+                                </span>
+
+                                <span class="badge bg-primary-subtle text-primary"
+                                      id="modalStatus">
+                                    --
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Amount Details -->
+                    <div class="table-responsive border rounded-3 mb-4">
+
+                        <table class="table table-bordered mb-0">
+
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Taxable Value</th>
+                                    <th class="text-end">GST Amount</th>
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr>
+
+                                    <td>
+                                        <div class="fw-semibold text-dark">
+                                            Commercial Sales Order Fulfillment
+                                        </div>
+
+                                        <div class="small text-muted">
+                                            Inventory items and associated sales charges
+                                        </div>
+                                    </td>
+
+                                    <td class="text-end"
+                                        id="modalTaxable">
+                                        ₹0.00
+                                    </td>
+
+                                    <td class="text-end"
+                                        id="modalGst">
+                                        ₹0.00
+                                    </td>
+
+                                    <td class="text-end fw-bold text-dark"
+                                        id="modalGrandTotal">
+                                        ₹0.00
+                                    </td>
+
+                                </tr>
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    <!-- Grand Total -->
+                    <div class="invoice-total-panel d-flex justify-content-between align-items-center">
+
+                        <div>
+                            <div class="invoice-total-label">
+                                Payment Terms
+                            </div>
+
+                            <div class="small text-muted mt-1">
+                                Payment is due within standard credit cycle.
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+
+                            <div class="invoice-total-label">
+                                Grand Total Due
+                            </div>
+
+                            <div class="invoice-total-value"
+                                 id="modalGrandTotalLarge">
+                                ₹0.00
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Close
+                </button>
+
+                <button type="button"
+                        class="btn btn-primary"
+                        onclick="window.print()">
+                    <i class="fa-solid fa-print me-1"></i>
+                    Print Receipt
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+
+    <form id="reminderForm"
+          asp-action="SendInvoiceReminder"
+          method="post"
+          style="display:none;">
+
+        @Html.AntiForgeryToken()
+
+        <input type="hidden"
+               name="invoiceNo"
+               id="reminderInvoiceNo"
+               value="" />
+
+    </form>
+
+    <script>
+
+        /* =====================================================
+           RECEIPT MODAL
+           ===================================================== */
+
+        function viewReceiptModal(
+            invNum,
+            customer,
+            order,
+            taxable,
+            gst,
+            grandTotal,
+            status,
+            invDate,
+            dueDate
+        ) {
+            document.getElementById('modalInvoiceNum').textContent = invNum;
+            document.getElementById('modalCustomerName').textContent = customer;
+            document.getElementById('modalLinkedOrder').textContent = order;
+            document.getElementById('modalTaxable').textContent = taxable;
+            document.getElementById('modalGst').textContent = gst;
+            document.getElementById('modalGrandTotal').textContent = grandTotal;
+            document.getElementById('modalGrandTotalLarge').textContent = grandTotal;
+            document.getElementById('modalStatus').textContent = status;
+            document.getElementById('modalInvoiceDate').textContent = invDate;
+            document.getElementById('modalDueDate').textContent = dueDate;
+
+            new bootstrap.Modal(
+                document.getElementById('invoiceReceiptModal')
+            ).show();
+        }
+
+
+        /* =====================================================
+           PDF / PRINT
+           ===================================================== */
+
+        function downloadPdfModal(
+            invNum,
+            customer,
+            taxable,
+            gst,
+            grandTotal,
+            invDate
+        ) {
+            viewReceiptModal(
+                invNum,
+                customer,
+                "-",
+                taxable,
+                gst,
+                grandTotal,
+                "Paid / Downloaded",
+                invDate,
+                invDate
+            );
+
+            setTimeout(() => {
+                window.print();
+            }, 400);
+        }
+
+
+        /* =====================================================
+           OVERDUE INVOICE REMINDER
+           ===================================================== */
+
+        async function sendInvoiceReminder(invNum, customer) {
+
+            if (!confirm(
+                `Dispatch automated overdue payment reminder to ${customer} for invoice ${invNum}?`
+            )) {
+                return;
+            }
+
+            const token = document.querySelector(
+                '#reminderForm input[name="__RequestVerificationToken"]'
+            )?.value;
+
+            const formData = new FormData();
+
+            formData.append('invoiceNo', invNum);
+
+            if (token) {
+                formData.append(
+                    '__RequestVerificationToken',
+                    token
+                );
+            }
+
+            try {
+
+                const response = await fetch(
+                    '/SalesManagement/SendInvoiceReminder',
+                    {
+                        method: 'POST',
+                        body: formData
+                    }
+                );
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                }
+                else {
+                    alert(
+                        result.message ||
+                        "Failed to send reminder."
+                    );
+                }
+
+            }
+            catch (err) {
+
+                alert(
+                    "Reminder dispatch error: " + err
+                );
+
+            }
+        }
+
+    </script>
+}

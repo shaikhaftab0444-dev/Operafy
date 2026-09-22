@@ -1,52 +1,1266 @@
+```cshtml
+@model ERP_System.Models.SalesSummaryReportViewModel
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales Summary Report";
+
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-line text-primary me-2"></i>Sales Summary</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item">Sales Reports</li>
-                    <li class="breadcrumb-item active" aria-current="page">Summary</li>
-                </ol>
-            </nav>
+<style>
+    /* =========================================================
+           OPERAFY - SALES SUMMARY REPORT
+           Scoped page styles
+           ========================================================= */
+
+    .sales-summary-page {
+        background: #f6f8fb;
+        min-height: calc(100vh - 70px);
+        padding: 28px;
+    }
+
+    /* =========================
+           PAGE HEADER
+           ========================= */
+
+    .report-header {
+        margin-bottom: 26px;
+    }
+
+    .report-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .report-title-icon {
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: #eef2ff;
+        color: #4f46e5;
+        font-size: 1rem;
+    }
+
+    .report-title {
+        color: #172033;
+        font-size: 1.4rem;
+        font-weight: 750;
+        letter-spacing: -.35px;
+        margin: 0;
+    }
+
+    .report-breadcrumb {
+        margin-top: 6px;
+        margin-bottom: 0;
+    }
+
+        .report-breadcrumb .breadcrumb-item {
+            color: #8a94a6;
+            font-size: .76rem;
+        }
+
+        .report-breadcrumb a {
+            color: #667085 !important;
+        }
+
+    .report-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* =========================
+           PERIOD FILTER
+           ========================= */
+
+    .period-switcher {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        background: #fff;
+        border: 1px solid #e4e8ee;
+        border-radius: 11px;
+        padding: 4px;
+        box-shadow: 0 4px 15px rgba(31, 41, 55, .045);
+    }
+
+    .period-btn {
+        border: 0 !important;
+        border-radius: 8px !important;
+        font-size: .74rem;
+        font-weight: 650;
+        padding: 7px 13px;
+        transition: all .18s ease;
+    }
+
+        .period-btn:hover {
+            background: #f1f4f8;
+        }
+
+        .period-btn.active {
+            background: #4f46e5 !important;
+            color: #fff !important;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, .20);
+        }
+
+    .print-btn {
+        height: 39px;
+        border-radius: 10px !important;
+        padding: 0 15px;
+        font-size: .78rem;
+        font-weight: 650;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: all .18s ease;
+        background: #fff;
+    }
+
+        .print-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 7px 18px rgba(31, 41, 55, .08) !important;
+        }
+
+    /* =========================
+           KPI CARDS
+           ========================= */
+
+    .report-kpi {
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #e7ebf1;
+        border-radius: 15px;
+        padding: 18px;
+        box-shadow: 0 6px 22px rgba(31, 41, 55, .045);
+        transition: transform .2s ease, box-shadow .2s ease;
+        height: 100%;
+    }
+
+        .report-kpi:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(31, 41, 55, .08);
+        }
+
+        .report-kpi::after {
+            content: "";
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            right: -32px;
+            bottom: -40px;
+            background: rgba(79, 70, 229, .035);
+            pointer-events: none;
+        }
+
+    .kpi-label {
+        color: #667085;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .1px;
+    }
+
+    .kpi-icon {
+        width: 37px;
+        height: 37px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        font-size: .86rem;
+    }
+
+        .kpi-icon.blue {
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .kpi-icon.green {
+            background: #ecfdf3;
+            color: #16a34a;
+        }
+
+        .kpi-icon.amber {
+            background: #fff8e7;
+            color: #d97706;
+        }
+
+        .kpi-icon.cyan {
+            background: #ecfeff;
+            color: #0891b2;
+        }
+
+    .kpi-value {
+        color: #172033;
+        font-size: 1.48rem;
+        font-weight: 800;
+        letter-spacing: -.4px;
+        margin: 10px 0 4px;
+        line-height: 1.2;
+    }
+
+        .kpi-value.green-value {
+            color: #15803d;
+        }
+
+        .kpi-value.blue-value {
+            color: #2563eb;
+        }
+
+    .kpi-description {
+        color: #98a2b3;
+        font-size: .68rem;
+    }
+
+    /* =========================
+           MAIN PANELS
+           ========================= */
+
+    .report-panel {
+        background: #fff;
+        border: 1px solid #e7ebf1;
+        border-radius: 16px;
+        box-shadow: 0 6px 22px rgba(31, 41, 55, .045);
+        overflow: hidden;
+    }
+
+    .panel-header {
+        padding: 19px 21px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+    .panel-title {
+        color: #172033;
+        font-size: .91rem;
+        font-weight: 750;
+        margin: 0;
+    }
+
+    .panel-title-icon {
+        width: 29px;
+        height: 29px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+        background: #eef2ff;
+        color: #4f46e5;
+        font-size: .72rem;
+    }
+
+    .panel-subtitle {
+        color: #98a2b3;
+        font-size: .69rem;
+        margin-top: 4px;
+        margin-left: 37px;
+    }
+
+    .data-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid #e5e7eb;
+        background: #f8fafc;
+        color: #667085;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: .66rem;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+
+    /* =========================
+           BAR CHART
+           ========================= */
+
+    .chart-area {
+        padding: 22px 24px 12px;
+    }
+
+    .chart-bar-container {
+        display: flex;
+        align-items: flex-end;
+        gap: 18px;
+        height: 280px;
+        padding: 24px 20px 0;
+        border-bottom: 1px solid #dfe5ec;
+        background: linear-gradient(to bottom, rgba(148,163,184,.07) 1px, transparent 1px);
+        background-size: 100% 25%;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .chart-bar-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        justify-content: flex-end;
+        position: relative;
+        min-width: 35px;
+    }
+
+    .chart-bar {
+        width: 100%;
+        max-width: 46px;
+        min-height: 3px;
+        background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+        border-radius: 7px 7px 2px 2px;
+        position: relative;
+        cursor: pointer;
+        transition: height .6s cubic-bezier(.4, 0, .2, 1), opacity .2s ease, transform .2s ease;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, .10);
+    }
+
+        .chart-bar:hover {
+            opacity: .88;
+            transform: scaleX(1.04);
+        }
+
+        .chart-bar.bg-teal {
+            background: linear-gradient(180deg, #2dd4bf 0%, #0f766e 100%) !important;
+            box-shadow: 0 4px 10px rgba(13, 148, 136, .12);
+        }
+
+    .bar-tooltip {
+        position: absolute;
+        top: -35px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: .65rem;
+        font-weight: 750;
+        color: #344054;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        padding: 5px 7px;
+        border-radius: 7px;
+        box-shadow: 0 4px 12px rgba(31, 41, 55, .09);
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease;
+        z-index: 3;
+    }
+
+    .chart-bar:hover .bar-tooltip {
+        opacity: 1;
+    }
+
+    .chart-month {
+        color: #667085;
+        font-size: .68rem;
+        font-weight: 650;
+        margin-top: 9px;
+        white-space: nowrap;
+    }
+
+    .chart-legend {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        padding: 13px 20px;
+        color: #7b8495;
+        font-size: .68rem;
+        border-top: 1px solid #edf0f4;
+    }
+
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .legend-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+    }
+
+        .legend-dot.blue {
+            background: #2563eb;
+        }
+
+        .legend-dot.teal {
+            background: #0d9488;
+        }
+
+    /* =========================
+           LEDGER TABLE
+           ========================= */
+
+    .ledger-header {
+        padding: 19px 21px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+    .ledger-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .ledger-table {
+        min-width: 850px;
+        margin-bottom: 0 !important;
+    }
+
+        .ledger-table thead th {
+            background: #f8fafc;
+            color: #667085;
+            border-top: 0;
+            border-bottom: 1px solid #e7ebf1;
+            padding: 12px 15px;
+            font-size: .66rem;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: .35px;
+            white-space: nowrap;
+        }
+
+        .ledger-table tbody td {
+            padding: 14px 15px;
+            border-color: #eef1f5;
+            font-size: .77rem;
+            white-space: nowrap;
+        }
+
+        .ledger-table tbody tr {
+            transition: background .15s ease;
+        }
+
+            .ledger-table tbody tr:hover {
+                background: #f9fbff;
+            }
+
+            .ledger-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .billing-cycle {
+        color: #172033;
+        font-weight: 700;
+    }
+
+    .invoice-badge {
+        display: inline-flex;
+        align-items: center;
+        background: #f8fafc;
+        color: #475467;
+        border: 1px solid #e4e7ec;
+        border-radius: 999px;
+        padding: 5px 9px;
+        font-size: .65rem;
+        font-weight: 650;
+    }
+
+    .gross-value {
+        color: #2563eb;
+        font-weight: 750;
+    }
+
+    .tax-value {
+        color: #667085;
+        font-weight: 600;
+    }
+
+    .net-value {
+        color: #15803d;
+        font-weight: 750;
+    }
+
+    .growth-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 999px;
+        padding: 5px 9px;
+        font-size: .65rem;
+        font-weight: 700;
+    }
+
+    .growth-up {
+        background: #ecfdf3;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    .growth-down {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+    }
+
+    .growth-neutral {
+        background: #f3f4f6;
+        color: #667085;
+        border: 1px solid #e5e7eb;
+    }
+
+    .ledger-table tfoot td {
+        padding: 15px;
+        border-top: 1px solid #dfe5ec;
+        border-bottom: 0;
+        font-size: .76rem;
+    }
+
+    .empty-ledger {
+        padding: 58px 20px !important;
+    }
+
+    .empty-ledger-icon {
+        width: 55px;
+        height: 55px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #f3f4f6;
+        color: #98a2b3;
+        border-radius: 15px;
+        margin-bottom: 11px;
+    }
+
+    .empty-ledger-title {
+        color: #344054;
+        font-size: .84rem;
+        font-weight: 700;
+        margin-bottom: 3px;
+    }
+
+    .empty-ledger-text {
+        color: #98a2b3;
+        font-size: .7rem;
+        margin: 0;
+    }
+
+    /* =========================
+           PRINT HEADER
+           ========================= */
+
+    .print-only-header {
+        display: none;
+    }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 991.98px) {
+        .sales-summary-page {
+            padding: 22px;
+        }
+
+        .report-actions {
+            width: 100%;
+        }
+
+        .period-switcher {
+            flex: 1;
+        }
+
+        .period-btn {
+            flex: 1;
+        }
+
+        .print-btn {
+            flex-shrink: 0;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-summary-page {
+            padding: 16px;
+        }
+
+        .report-title {
+            font-size: 1.2rem;
+        }
+
+        .report-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .period-switcher {
+            width: 100%;
+        }
+
+        .print-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .chart-area {
+            padding: 15px 10px 8px;
+        }
+
+        .chart-bar-container {
+            gap: 8px;
+            padding-left: 8px;
+            padding-right: 8px;
+            overflow-x: auto;
+        }
+
+        .chart-bar-col {
+            min-width: 38px;
+        }
+
+        .chart-legend {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    /* =========================
+           PRINT
+           ========================= */
+
+    @@media print {
+
+        #sidebar,
+        .sidebar,
+        .topbar,
+        .navbar,
+        .btn,
+        .breadcrumb,
+        nav,
+        footer,
+        .no-print,
+        .report-actions {
+            display: none !important;
+        }
+
+        body,
+        .sales-summary-page,
+        .container-fluid,
+        .main-content {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
+            width: 100% !important;
+            min-height: auto !important;
+        }
+
+        .print-only-header {
+            display: block !important;
+            border-bottom: 2px solid #172033;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+
+        .report-panel,
+        .report-kpi {
+            box-shadow: none !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+
+            .report-kpi:hover {
+                transform: none !important;
+            }
+
+        .chart-bar-container {
+            background: #f8fafc !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .chart-bar,
+        .chart-bar.bg-teal {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .ledger-table {
+            min-width: 0 !important;
+        }
+    }
+</style>
+
+
+<div class="sales-summary-page">
+
+    <!-- =========================================================
+         PRINT-ONLY BRAND HEADER
+         ========================================================= -->
+    <div class="print-only-header">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+                <h3 class="fw-bold mb-0 text-dark">
+                    OPERAFY ENTERPRISE ERP
+                </h3>
+
+                <p class="text-muted small mb-0">
+                    Executive Sales Summary &amp; Financial Trend Analysis
+                </p>
+            </div>
+
+            <div class="text-end small text-muted">
+
+                <div>
+                    <strong>Generated:</strong>
+                    @DateTime.Now.ToString("dd MMM yyyy HH:mm")
+                </div>
+
+                <div>
+                    <strong>Period:</strong>
+                    @(Model.Period == "6M"
+                                        ? "Last 6 Months"
+                                        : Model.Period == "1Y"
+                                        ? "Last 12 Months"
+                                        : "All Time")
+                </div>
+
+            </div>
+
         </div>
-        <button class="btn btn-outline-secondary rounded-pill px-3"><i class="fa-solid fa-download me-1.5"></i>Export PDF</button>
+
     </div>
 
-    <!-- Summary Chart Panel -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm mb-4">
-        <h6 class="fw-bold text-dark mb-4">Monthly Revenue Summary (Last 6 Months)</h6>
-        <div style="height: 300px; display: flex; align-items: flex-end; gap: 20px; padding: 20px 40px; border-bottom: 2px solid #e2e8f0;">
-            <!-- Simulating charts visually with styled div bars -->
-            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <div style="height: 120px; width: 40px; background-color: #3b82f6; border-radius: 4px 4px 0 0;"></div>
-                <span class="small font-semibold">Mar 2026</span>
+
+    <!-- =========================================================
+         PAGE HEADER
+         ========================================================= -->
+    <div class="report-header d-flex flex-wrap justify-content-between align-items-center gap-3 no-print">
+
+        <div>
+
+            <div class="report-title-wrap">
+
+                <span class="report-title-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </span>
+
+                <h4 class="report-title">
+                    Sales Summary Report
+                </h4>
+
             </div>
-            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <div style="height: 150px; width: 40px; background-color: #3b82f6; border-radius: 4px 4px 0 0;"></div>
-                <span class="small font-semibold">Apr 2026</span>
-            </div>
-            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <div style="height: 180px; width: 40px; background-color: #3b82f6; border-radius: 4px 4px 0 0;"></div>
-                <span class="small font-semibold">May 2026</span>
-            </div>
-            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <div style="height: 160px; width: 40px; background-color: #3b82f6; border-radius: 4px 4px 0 0;"></div>
-                <span class="small font-semibold">Jun 2026</span>
-            </div>
-            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <div style="height: 220px; width: 40px; background-color: #3b82f6; border-radius: 4px 4px 0 0;"></div>
-                <span class="small font-semibold">Jul 2026</span>
-            </div>
-            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <div style="height: 240px; width: 40px; background-color: #0d9488; border-radius: 4px 4px 0 0;"></div>
-                <span class="small font-semibold fw-bold text-success">Aug 2026</span>
-            </div>
+
+            <nav aria-label="breadcrumb">
+
+                <ol class="breadcrumb report-breadcrumb">
+
+                    <li class="breadcrumb-item">
+                        <a href="/SalesDashboard" class="text-decoration-none">
+                            Sales Management
+                        </a>
+                    </li>
+
+                    <li class="breadcrumb-item">
+                        Sales Reports
+                    </li>
+
+                    <li class="breadcrumb-item active fw-semibold"
+                        aria-current="page">
+                        Summary
+                    </li>
+
+                </ol>
+
+            </nav>
+
         </div>
+
+
+        <div class="report-actions">
+
+            <!-- Period Filter -->
+            <div class="period-switcher"
+                 role="group"
+                 aria-label="Report period">
+
+                <a href="@Url.Action("Summary", "SalesReports", new { period = "6M" })"
+                   class="btn period-btn @(Model.Period == "6M" ? "active" : "text-secondary")">
+                    6 Months
+                </a>
+
+                <a href="@Url.Action("Summary", "SalesReports", new { period = "1Y" })"
+                   class="btn period-btn @(Model.Period == "1Y" ? "active" : "text-secondary")">
+                    12 Months
+                </a>
+
+                <a href="@Url.Action("Summary", "SalesReports", new { period = "ALL" })"
+                   class="btn period-btn @(Model.Period == "ALL" ? "active" : "text-secondary")">
+                    All Time
+                </a>
+
+            </div>
+
+
+            <!-- Print / Export -->
+            <button type="button"
+                    onclick="window.print()"
+                    class="btn btn-outline-secondary print-btn shadow-sm">
+
+                <i class="fa-solid fa-print"></i>
+                <span>Export PDF</span>
+
+            </button>
+
+        </div>
+
     </div>
+
+
+    <!-- =========================================================
+         KPI SUMMARY
+         ========================================================= -->
+    <div class="row g-3 mb-4">
+
+        <!-- Gross Sales -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="report-kpi">
+
+                <div class="d-flex align-items-center justify-content-between">
+
+                    <span class="kpi-label">
+                        Gross Invoiced Sales
+                    </span>
+
+                    <span class="kpi-icon blue">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </span>
+
+                </div>
+
+                <div class="kpi-value">
+                    @Model.TotalRevenue.ToString("C0", inCulture)
+                </div>
+
+                <div class="kpi-description">
+                    Total billing across @Model.TotalInvoicesCount invoices
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Net Revenue -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="report-kpi">
+
+                <div class="d-flex align-items-center justify-content-between">
+
+                    <span class="kpi-label">
+                        Net Taxable Revenue
+                    </span>
+
+                    <span class="kpi-icon green">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </span>
+
+                </div>
+
+                <div class="kpi-value green-value">
+                    @Model.NetRevenue.ToString("C0", inCulture)
+                </div>
+
+                <div class="kpi-description">
+                    Exclusive of GST liability
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- GST -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="report-kpi">
+
+                <div class="d-flex align-items-center justify-content-between">
+
+                    <span class="kpi-label">
+                        GST / Tax Liability
+                    </span>
+
+                    <span class="kpi-icon amber">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </span>
+
+                </div>
+
+                <div class="kpi-value">
+                    @Model.TotalTaxes.ToString("C0", inCulture)
+                </div>
+
+                <div class="kpi-description">
+                    Standard 18% Output GST
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- AOV -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="report-kpi">
+
+                <div class="d-flex align-items-center justify-content-between">
+
+                    <span class="kpi-label">
+                        Average Order Value (AOV)
+                    </span>
+
+                    <span class="kpi-icon cyan">
+                        <i class="fa-solid fa-calculator"></i>
+                    </span>
+
+                </div>
+
+                <div class="kpi-value blue-value">
+                    @Model.AverageOrderValue.ToString("C0", inCulture)
+                </div>
+
+                <div class="kpi-description">
+                    Per transaction ticket size
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         MONTHLY REVENUE CHART
+         ========================================================= -->
+    <div class="report-panel mb-4">
+
+        <div class="panel-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+            <div>
+
+                <h6 class="panel-title">
+
+                    <span class="panel-title-icon">
+                        <i class="fa-solid fa-chart-column"></i>
+                    </span>
+
+                    Monthly Revenue Velocity
+                    (@(
+                                        Model.Period == "6M"
+                                        ? "Last 6 Months"
+                                        : Model.Period == "1Y"
+                                        ? "Last 12 Months"
+                                        : "All Time Trend"
+                                        ))
+
+                </h6>
+
+                <div class="panel-subtitle">
+                    Revenue movement across the selected reporting period
+                </div>
+
+            </div>
+
+            <span class="data-badge">
+                <i class="fa-solid fa-database"></i>
+                Real-time EF Aggregation
+            </span>
+
+        </div>
+
+
+        <div class="chart-area">
+
+            <div class="chart-bar-container">
+
+                @foreach (var item in Model.MonthlyLedger)
+                {
+                    <div class="chart-bar-col">
+
+                        <div class="chart-bar">
+
+                            <div class="bar-tooltip">
+                                @item.GrossSales.ToString("C0", inCulture)
+                            </div>
+
+                        </div>
+
+                        <div class="chart-bar @item.BarColorClass"
+                             style="height: @item.HeightPercentage%;">
+
+                            <div class="bar-tooltip">
+                                @item.GrossSales.ToString("C0", inCulture)
+                            </div>
+
+                        </div>
+
+                        <span class="chart-month">
+                            @item.MonthYear
+                        </span>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+
+        <div class="chart-legend">
+
+            <span class="legend-item">
+                <span class="legend-dot blue"></span>
+                Standard Billing Month
+            </span>
+
+            <span class="legend-item">
+                <span class="legend-dot teal"></span>
+                Current Active Billing Period
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         MONTHLY LEDGER
+         ========================================================= -->
+    <div class="report-panel">
+
+        <div class="ledger-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+            <div>
+
+                <h6 class="panel-title">
+
+                    <span class="panel-title-icon">
+                        <i class="fa-solid fa-table-list"></i>
+                    </span>
+
+                    Monthly Ledger Breakdown
+
+                </h6>
+
+                <div class="panel-subtitle">
+                    Invoice, tax and revenue movement by billing cycle
+                </div>
+
+            </div>
+
+            <span class="data-badge">
+                <i class="fa-regular fa-calendar"></i>
+                Showing @Model.MonthlyLedger.Count reporting cycles
+            </span>
+
+        </div>
+
+
+        <div class="ledger-table-wrapper">
+
+            <table class="table table-hover align-middle ledger-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Billing Cycle
+                        </th>
+
+                        <th class="text-center">
+                            Invoices Issued
+                        </th>
+
+                        <th class="text-end">
+                            Gross Sales
+                        </th>
+
+                        <th class="text-end">
+                            GST Taxes
+                        </th>
+
+                        <th class="text-end">
+                            Net Revenue
+                        </th>
+
+                        <th class="text-center">
+                            MoM Growth
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.MonthlyLedger.Any())
+                    {
+                        @foreach (var m in Model.MonthlyLedger
+                                            .OrderByDescending(x => x.Year)
+                                            .ThenByDescending(x => x.Month))
+                        {
+                            <tr>
+
+                                <!-- Billing Cycle -->
+                                <td>
+
+                                    <span class="billing-cycle">
+                                        <i class="fa-regular fa-calendar text-muted me-1"></i>
+                                        @m.MonthYear
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Invoices -->
+                                <td class="text-center">
+
+                                    <span class="invoice-badge">
+                                        @m.TotalInvoices Invoices
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Gross Sales -->
+                                <td class="text-end">
+
+                                    <span class="gross-value">
+                                        @m.GrossSales.ToString("C2", inCulture)
+                                    </span>
+
+                                </td>
+
+
+                                <!-- GST -->
+                                <td class="text-end">
+
+                                    <span class="tax-value">
+                                        @m.TaxAmount.ToString("C2", inCulture)
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Net Revenue -->
+                                <td class="text-end">
+
+                                    <span class="net-value">
+                                        @m.NetRevenue.ToString("C2", inCulture)
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Growth -->
+                                <td class="text-center">
+
+                                    @if (m.GrowthRate > 0)
+                                    {
+                                        <span class="growth-badge growth-up">
+
+                                            <i class="fa-solid fa-arrow-up"></i>
+
+                                            +@m.GrowthRate%
+
+                                        </span>
+                                    }
+                                    else if (m.GrowthRate < 0)
+                                    {
+                                        <span class="growth-badge growth-down">
+
+                                            <i class="fa-solid fa-arrow-down"></i>
+
+                                            @m.GrowthRate%
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="growth-badge growth-neutral">
+                                            0.0%
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="6"
+                                class="text-center empty-ledger">
+
+                                <div class="empty-ledger-icon">
+                                    <i class="fa-solid fa-chart-column"></i>
+                                </div>
+
+                                <div class="empty-ledger-title">
+                                    No monthly billing records found
+                                </div>
+
+                                <p class="empty-ledger-text">
+                                    No billing records are available for the selected reporting period.
+                                </p>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+
+                <!-- TOTAL -->
+                <tfoot>
+
+                    <tr>
+
+                        <td>
+                            Total / Average
+                        </td>
+
+                        <td class="text-center">
+                            @Model.TotalInvoicesCount Invoices
+                        </td>
+
+                        <td class="text-end gross-value">
+                            @Model.TotalRevenue.ToString("C2", inCulture)
+                        </td>
+
+                        <td class="text-end tax-value">
+                            @Model.TotalTaxes.ToString("C2", inCulture)
+                        </td>
+
+                        <td class="text-end net-value">
+                            @Model.NetRevenue.ToString("C2", inCulture)
+                        </td>
+
+                        <td class="text-center text-muted">
+                            -
+                        </td>
+
+                    </tr>
+
+                </tfoot>
+
+            </table>
+
+        </div>
+
+    </div>
+
 </div>
+```

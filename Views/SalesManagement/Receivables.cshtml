@@ -1,115 +1,1538 @@
-@model IEnumerable<ERP_System.Models.PaymentReceipt>
+```cshtml
+@model IEnumerable<ERP_System.Models.PaymentReceivable>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Payments & Receivables";
     var inCulture = new System.Globalization.CultureInfo("en-IN");
+    var pendingInvoices = ViewBag.PendingInvoices as dynamic;
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-money-bill-trend-up text-primary me-2"></i>Payments / Receivables</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Payments / Receivables</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createReceivableModal">
-            <i class="fa-solid fa-hand-holding-dollar me-1.5"></i>Log Payment Receipt
-        </button>
-    </div>
+<style>
+    .receivable-page {
+        --receivable-primary: #2563eb;
+        --receivable-primary-dark: #1d4ed8;
+        --receivable-success: #16a34a;
+        --receivable-warning: #d97706;
+        --receivable-danger: #dc2626;
+        --receivable-info: #0891b2;
+        --receivable-text: #172033;
+        --receivable-muted: #64748b;
+        --receivable-border: #e5eaf1;
+        --receivable-soft: #f8fafc;
+        --receivable-shadow: 0 10px 30px rgba(15, 23, 42, .055);
+        --receivable-shadow-hover: 0 16px 38px rgba(15, 23, 42, .09);
+        color: var(--receivable-text);
+    }
 
-    <!-- Payments Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Invoice No</th>
-                        <th>Customer</th>
-                        <th>Invoice Date</th>
-                        <th>Due Date</th>
-                        <th>Pending Balance</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var rec in Model)
+        .receivable-page * {
+            box-sizing: border-box;
+        }
+
+    .receivable-shell {
+        padding: 28px 24px 40px;
+    }
+
+    /* Hero */
+    .receivable-hero {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(226, 232, 240, .9);
+        border-radius: 22px;
+        padding: 25px 26px;
+        margin-bottom: 22px;
+        background: radial-gradient(circle at 92% 8%, rgba(37, 99, 235, .09), transparent 30%), radial-gradient(circle at 72% 100%, rgba(14, 165, 233, .055), transparent 28%), #ffffff;
+        box-shadow: var(--receivable-shadow);
+    }
+
+        .receivable-hero::after {
+            content: "";
+            position: absolute;
+            width: 190px;
+            height: 190px;
+            border-radius: 50%;
+            right: -85px;
+            top: -105px;
+            background: rgba(37, 99, 235, .035);
+            pointer-events: none;
+        }
+
+    .receivable-title-row {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .receivable-heading {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        min-width: 0;
+    }
+
+    .receivable-title-icon {
+        width: 50px;
+        height: 50px;
+        flex: 0 0 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        background: #eff6ff;
+        color: var(--receivable-primary);
+        font-size: 21px;
+        border: 1px solid #dbeafe;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .08);
+    }
+
+    .receivable-eyebrow {
+        margin: 0 0 5px;
+        color: var(--receivable-primary);
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+    }
+
+    .receivable-page-title {
+        margin: 0;
+        color: #172033;
+        font-size: 1.55rem;
+        line-height: 1.25;
+        font-weight: 800;
+        letter-spacing: -.025em;
+    }
+
+    .receivable-page-subtitle {
+        margin: 6px 0 0;
+        color: var(--receivable-muted);
+        font-size: .9rem;
+        line-height: 1.55;
+    }
+
+    .receivable-breadcrumb {
+        margin-top: 10px;
+        margin-bottom: 0;
+        padding: 0;
+        font-size: .76rem;
+    }
+
+        .receivable-breadcrumb a {
+            color: #64748b;
+        }
+
+        .receivable-breadcrumb .breadcrumb-item.active {
+            color: #94a3b8;
+        }
+
+    .receivable-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 9px;
+        flex-wrap: wrap;
+    }
+
+    .receivable-outline-btn,
+    .receivable-primary-btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0 15px;
+        border-radius: 11px;
+        font-size: .82rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+
+    .receivable-outline-btn {
+        color: #334155;
+        background: #fff;
+        border: 1px solid #dbe2ea;
+    }
+
+        .receivable-outline-btn:hover {
+            color: var(--receivable-primary);
+            border-color: #bfdbfe;
+            background: #f8fbff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(15, 23, 42, .06);
+        }
+
+    .receivable-primary-btn {
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border: 1px solid #1d4ed8;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .18);
+    }
+
+        .receivable-primary-btn:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 11px 23px rgba(37, 99, 235, .24);
+        }
+
+    /* Success Alert */
+    .receivable-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 22px;
+        padding: 13px 15px;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #16a34a;
+        border-radius: 12px;
+        background: #f0fdf4;
+        color: #15803d;
+        box-shadow: 0 5px 16px rgba(22, 163, 74, .05);
+        font-size: .82rem;
+    }
+
+        .receivable-alert .alert-icon {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 30px;
+            border-radius: 9px;
+            background: #dcfce7;
+        }
+
+        .receivable-alert .btn-close {
+            margin-left: auto;
+            box-shadow: none;
+        }
+
+    /* KPI Cards */
+    .receivable-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .receivable-kpi {
+        position: relative;
+        overflow: hidden;
+        min-height: 132px;
+        padding: 19px;
+        border: 1px solid var(--receivable-border);
+        border-radius: 17px;
+        background: #fff;
+        box-shadow: var(--receivable-shadow);
+        transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+    }
+
+        .receivable-kpi:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--receivable-shadow-hover);
+            border-color: #d8e1ec;
+        }
+
+        .receivable-kpi::after {
+            content: "";
+            position: absolute;
+            width: 105px;
+            height: 105px;
+            right: -47px;
+            bottom: -53px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .035);
+            pointer-events: none;
+        }
+
+    .kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 13px;
+    }
+
+    .kpi-label {
+        color: #64748b;
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .065em;
+        text-transform: uppercase;
+    }
+
+    .kpi-icon {
+        width: 37px;
+        height: 37px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        font-size: 15px;
+    }
+
+        .kpi-icon.blue {
+            color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .kpi-icon.red {
+            color: #dc2626;
+            background: #fef2f2;
+        }
+
+        .kpi-icon.green {
+            color: #16a34a;
+            background: #f0fdf4;
+        }
+
+        .kpi-icon.indigo {
+            color: #4f46e5;
+            background: #eef2ff;
+        }
+
+    .kpi-value {
+        margin: 0;
+        color: #172033;
+        font-size: 1.5rem;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -.025em;
+    }
+
+        .kpi-value.danger {
+            color: #dc2626;
+        }
+
+        .kpi-value.success {
+            color: #15803d;
+        }
+
+        .kpi-value.primary {
+            color: #2563eb;
+        }
+
+    /* Main Card */
+    .receivable-card {
+        overflow: hidden;
+        border: 1px solid var(--receivable-border);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: var(--receivable-shadow);
+    }
+
+    .receivable-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf0f4;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    }
+
+    .receivable-section-title {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 0;
+        color: #172033;
+        font-size: .96rem;
+        font-weight: 800;
+    }
+
+    .receivable-section-title-icon {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: 14px;
+    }
+
+    .receivable-section-note {
+        color: #94a3b8;
+        font-size: .74rem;
+        font-weight: 600;
+    }
+
+    .receivable-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .receivable-table {
+        width: 100%;
+        min-width: 1040px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .82rem;
+    }
+
+        .receivable-table thead th {
+            padding: 12px 14px;
+            color: #64748b;
+            background: #f8fafc;
+            border-bottom: 1px solid #e8edf3;
+            white-space: nowrap;
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .045em;
+            text-transform: uppercase;
+            vertical-align: middle;
+        }
+
+        .receivable-table tbody td {
+            padding: 15px 14px;
+            color: #475569;
+            border-bottom: 1px solid #edf1f5;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .receivable-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .receivable-table tbody tr {
+            transition: background-color .18s ease;
+        }
+
+            .receivable-table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+    .invoice-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 29px;
+        padding: 0 9px;
+        border: 1px solid #dbe3ec;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #334155;
+        font-size: .73rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+    }
+
+    .customer-cell {
+        min-width: 190px;
+    }
+
+    .customer-name {
+        color: #172033;
+        font-weight: 750;
+        line-height: 1.3;
+    }
+
+    .customer-company {
+        display: block;
+        margin-top: 3px;
+        color: #94a3b8;
+        font-size: .71rem;
+    }
+
+    .date-cell {
+        color: #64748b;
+        font-size: .78rem;
+    }
+
+        .date-cell.overdue {
+            color: #dc2626;
+            font-weight: 750;
+        }
+
+    .amount-cell {
+        color: #475569;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+    }
+
+    .pending-cell {
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+    }
+
+        .pending-cell.pending {
+            color: #dc2626;
+        }
+
+        .pending-cell.cleared {
+            color: #16a34a;
+        }
+
+    .aging-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        min-height: 28px;
+        padding: 0 9px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: .68rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+        .aging-pill.overdue {
+            color: #b91c1c;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .aging-pill.paid {
+            color: #15803d;
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .aging-pill.partial {
+            color: #0e7490;
+            background: #ecfeff;
+            border-color: #a5f3fc;
+        }
+
+        .aging-pill.due {
+            color: #a16207;
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+
+    .receive-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 31px;
+        padding: 0 10px;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        color: #15803d;
+        background: #f0fdf4;
+        font-size: .72rem;
+        font-weight: 750;
+        transition: all .18s ease;
+    }
+
+        .receive-btn:hover {
+            color: #fff;
+            background: #16a34a;
+            border-color: #16a34a;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(22, 163, 74, .16);
+        }
+
+    .cleared-state {
+        color: #94a3b8;
+        font-size: .73rem;
+        font-weight: 650;
+    }
+
+        .cleared-state i {
+            color: #16a34a;
+        }
+
+    /* Empty state */
+    .receivable-empty {
+        padding: 55px 25px;
+        text-align: center;
+    }
+
+    .receivable-empty-icon {
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        border-radius: 17px;
+        color: #64748b;
+        background: #f1f5f9;
+        font-size: 21px;
+    }
+
+    .receivable-empty h6 {
+        margin-bottom: 5px;
+        color: #334155;
+        font-weight: 800;
+    }
+
+    .receivable-empty p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: .78rem;
+    }
+
+    /* Modal */
+    .receivable-modal .modal-dialog {
+        max-width: 540px;
+    }
+
+    .receivable-modal .modal-content {
+        overflow: hidden;
+        border: 1px solid #e5eaf1 !important;
+        border-radius: 19px !important;
+        box-shadow: 0 24px 65px rgba(15, 23, 42, .18) !important;
+    }
+
+    .receivable-modal .modal-header {
+        padding: 18px 21px;
+        border-bottom: 1px solid #edf1f5;
+        background: #fff;
+    }
+
+    .receivable-modal .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #172033;
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .modal-title-icon {
+        width: 35px;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: 14px;
+    }
+
+    .receivable-modal .modal-body {
+        padding: 21px;
+        background: #fff;
+    }
+
+    .receivable-form-group {
+        margin-bottom: 17px;
+    }
+
+        .receivable-form-group:last-child {
+            margin-bottom: 0;
+        }
+
+    .receivable-form-label {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-bottom: 7px;
+        color: #334155;
+        font-size: .76rem;
+        font-weight: 750;
+    }
+
+    .receivable-form-control,
+    .receivable-form-select {
+        width: 100%;
+        min-height: 43px;
+        padding: 9px 12px;
+        border: 1px solid #dbe2ea;
+        border-radius: 10px;
+        color: #334155;
+        background: #fff;
+        font-size: .82rem;
+        outline: none;
+        transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+        .receivable-form-control:focus,
+        .receivable-form-select:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .09);
+        }
+
+        .receivable-form-control::placeholder {
+            color: #a1acbb;
+        }
+
+    .invoice-summary {
+        display: none;
+        padding: 12px 13px;
+        border: 1px solid #dbeafe;
+        border-radius: 11px;
+        background: #f8fbff;
+    }
+
+    .invoice-summary-grid {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .summary-label {
+        display: block;
+        margin-bottom: 3px;
+        color: #94a3b8;
+        font-size: .66rem;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .summary-customer {
+        color: #334155;
+        font-size: .8rem;
+        font-weight: 750;
+    }
+
+    .summary-balance {
+        color: #dc2626;
+        font-size: .92rem;
+        font-weight: 850;
+        text-align: right;
+    }
+
+    .amount-input-wrap {
+        position: relative;
+    }
+
+        .amount-input-wrap .currency-symbol {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            z-index: 2;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        .amount-input-wrap input {
+            padding-left: 29px;
+            font-size: .95rem;
+        }
+
+    .receivable-modal .modal-footer {
+        padding: 14px 21px;
+        border-top: 1px solid #edf1f5;
+        background: #f8fafc;
+    }
+
+    .modal-cancel-btn {
+        min-height: 40px;
+        padding: 0 15px;
+        border: 1px solid #dbe2ea;
+        border-radius: 9px;
+        color: #475569;
+        background: #fff;
+        font-size: .78rem;
+        font-weight: 700;
+    }
+
+    .modal-submit-btn {
+        min-height: 40px;
+        padding: 0 17px;
+        border: 1px solid #2563eb;
+        border-radius: 9px;
+        color: #fff;
+        background: #2563eb;
+        font-size: .78rem;
+        font-weight: 750;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, .16);
+        transition: all .18s ease;
+    }
+
+        .modal-submit-btn:hover:not(:disabled) {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(37, 99, 235, .2);
+        }
+
+        .modal-submit-btn:disabled {
+            opacity: .7;
+            cursor: not-allowed;
+        }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .receivable-kpi-grid
+
+    {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .receivable-title-row {
+        align-items: flex-start;
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .receivable-shell
+
+    {
+        padding: 18px 14px 30px;
+    }
+
+    .receivable-hero {
+        padding: 19px;
+        border-radius: 17px;
+    }
+
+    .receivable-title-row {
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .receivable-heading {
+        width: 100%;
+    }
+
+    .receivable-title-icon {
+        width: 43px;
+        height: 43px;
+        flex-basis: 43px;
+        border-radius: 12px;
+        font-size: 18px;
+    }
+
+    .receivable-page-title {
+        font-size: 1.25rem;
+    }
+
+    .receivable-page-subtitle {
+        font-size: .8rem;
+    }
+
+    .receivable-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .receivable-outline-btn,
+    .receivable-primary-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 0 10px;
+        font-size: .74rem;
+    }
+
+    .receivable-kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 11px;
+    }
+
+    .receivable-kpi {
+        min-height: 116px;
+        padding: 15px;
+        border-radius: 14px;
+    }
+
+    .kpi-value {
+        font-size: 1.18rem;
+    }
+
+    .kpi-label {
+        font-size: .62rem;
+    }
+
+    .kpi-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        font-size: 13px;
+    }
+
+    .receivable-card-header {
+        align-items: flex-start;
+        padding: 15px;
+    }
+
+    .receivable-section-note {
+        display: none;
+    }
+
+    .receivable-table {
+        min-width: 980px;
+    }
+
+    .receivable-table-wrap {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .receivable-actions
+
+    {
+        flex-direction: column;
+    }
+
+    .receivable-outline-btn,
+    .receivable-primary-btn {
+        width: 100%;
+        flex: none;
+    }
+
+    .receivable-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .receivable-kpi {
+        min-height: 105px;
+    }
+
+    .receivable-modal .modal-dialog {
+        margin: 10px;
+    }
+
+    .receivable-modal .modal-body,
+    .receivable-modal .modal-header,
+    .receivable-modal .modal-footer {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .receivable-kpi, .receivable-outline-btn, .receivable-primary-btn, .receive-btn, .modal-submit-btn
+
+    {
+        transition: none;
+    }
+
+    }
+
+    @@media print {
+        .receivable-actions, .receivable-alert, .receivable-kpi-grid, .receivable-card-header
+
+    {
+        display: none !important;
+    }
+
+    .receivable-card {
+        border: 0;
+        box-shadow: none;
+    }
+
+    .receivable-table {
+        min-width: 0;
+    }
+
+    }
+</style>
+
+<div class="receivable-page">
+    <div class="receivable-shell">
+
+        <!-- Page Hero -->
+        <section class="receivable-hero">
+            <div class="receivable-title-row">
+                <div class="receivable-heading">
+                    <div class="receivable-title-icon">
+                        <i class="fa-solid fa-money-bill-trend-up"></i>
+                    </div>
+
+                    <div>
+                        <div class="receivable-eyebrow">Finance & Collections</div>
+
+                        <h1 class="receivable-page-title">
+                            Accounts Receivable & Payment Ledger
+                        </h1>
+
+                        <p class="receivable-page-subtitle">
+                            Monitor outstanding customer balances, payment aging and incoming collections.
+                        </p>
+
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb receivable-breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a href="/Dashboard" class="text-decoration-none">Dashboard</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">
+                                    Payments / Receivables
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <div class="receivable-actions">
+                    <a href="/SalesManagement/Invoices"
+                       class="receivable-outline-btn">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                        <span>Sales Invoices</span>
+                    </a>
+
+                    <button type="button"
+                            class="receivable-primary-btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#createReceivableModal">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                        <span>Log Payment Receipt</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Success Message -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert receivable-alert alert-dismissible fade show"
+                 role="alert">
+                <span class="alert-icon">
+                    <i class="fa-solid fa-circle-check"></i>
+                </span>
+
+                <span>@TempData["SuccessMessage"]</span>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- KPI Summary -->
+        <section class="receivable-kpi-grid">
+
+            <div class="receivable-kpi">
+                <div class="kpi-top">
+                    <span class="kpi-label">Total Outstanding</span>
+                    <span class="kpi-icon blue">
+                        <i class="fa-solid fa-wallet"></i>
+                    </span>
+                </div>
+
+                <h2 class="kpi-value">
+                    ₹@(((decimal)(ViewBag.TotalOutstanding ?? 0m)).ToString("N0"))
+                </h2>
+            </div>
+
+            <div class="receivable-kpi">
+                <div class="kpi-top">
+                    <span class="kpi-label">Overdue Aging Amount</span>
+                    <span class="kpi-icon red">
+                        <i class="fa-solid fa-clock"></i>
+                    </span>
+                </div>
+
+                <h2 class="kpi-value danger">
+                    ₹@(((decimal)(ViewBag.OverdueBalance ?? 0m)).ToString("N0"))
+                </h2>
+            </div>
+
+            <div class="receivable-kpi">
+                <div class="kpi-top">
+                    <span class="kpi-label">Collected to Date</span>
+                    <span class="kpi-icon green">
+                        <i class="fa-solid fa-circle-dollar-to-slot"></i>
+                    </span>
+                </div>
+
+                <h2 class="kpi-value success">
+                    ₹@(((decimal)(ViewBag.TotalCollected ?? 0m)).ToString("N0"))
+                </h2>
+            </div>
+
+            <div class="receivable-kpi">
+                <div class="kpi-top">
+                    <span class="kpi-label">Open Invoices</span>
+                    <span class="kpi-icon indigo">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </span>
+                </div>
+
+                <h2 class="kpi-value primary">
+                    @(ViewBag.ActiveCount ?? Model.Count(r => r.PendingBalance > 0))
+                </h2>
+            </div>
+
+        </section>
+
+        <!-- Receivables Ledger -->
+        <section class="receivable-card">
+
+            <div class="receivable-card-header">
+                <h2 class="receivable-section-title">
+                    <span class="receivable-section-title-icon">
+                        <i class="fa-solid fa-list-check"></i>
+                    </span>
+                    Receivables Ledger
+                </h2>
+
+                <span class="receivable-section-note">
+                    Customer invoice balances & aging
+                </span>
+            </div>
+
+            <div class="receivable-table-wrap">
+                <table class="receivable-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Customer / Client</th>
+                            <th>Invoice Date</th>
+                            <th>Due Date</th>
+                            <th class="text-end">Total Amount</th>
+                            <th class="text-end">Pending Balance</th>
+                            <th class="text-center">Aging / Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var rec in Model)
+                            {
+                                var isOverdue = rec.DueDate.Date < DateTime.Today && rec.PendingBalance > 0;
+                                var daysOverdue = (DateTime.Today - rec.DueDate.Date).Days;
+                                var daysRemaining = (rec.DueDate.Date - DateTime.Today).Days;
+
+                                <tr>
+                                    <!-- Invoice -->
+                                    <td>
+                                        <span class="invoice-badge">
+                                            @rec.InvoiceNumber
+                                        </span>
+                                    </td>
+
+                                    <!-- Customer -->
+                                    <td class="customer-cell">
+                                        <div class="customer-name">
+                                            @(rec.Customer?.CustomerName ?? rec.CustomerName)
+                                        </div>
+
+                                        @if (!string.IsNullOrEmpty(rec.Customer?.CompanyName))
+                                        {
+                                            <span class="customer-company">
+                                                @rec.Customer.CompanyName
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <!-- Invoice Date -->
+                                    <td class="date-cell">
+                                        @rec.InvoiceDate.ToString("dd MMM yyyy")
+                                    </td>
+
+                                    <!-- Due Date -->
+                                    <td>
+                                        <span class="date-cell @(isOverdue ? "overdue" : "")">
+                                            @rec.DueDate.ToString("dd MMM yyyy")
+                                        </span>
+                                    </td>
+
+                                    <!-- Total -->
+                                    <td class="text-end amount-cell">
+                                        ₹@rec.TotalAmount.ToString("N2")
+                                    </td>
+
+                                    <!-- Pending -->
+                                    <td class="text-end pending-cell @(rec.PendingBalance > 0 ? "pending" : "cleared")">
+                                        ₹@rec.PendingBalance.ToString("N2")
+                                    </td>
+
+                                    <!-- Aging -->
+                                    <td class="text-center">
+                                        @if (isOverdue)
+                                        {
+                                            <span class="aging-pill overdue">
+                                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                                Overdue (@daysOverdue Days)
+                                            </span>
+                                        }
+                                        else if (rec.PendingBalance <= 0)
+                                        {
+                                            <span class="aging-pill paid">
+                                                <i class="fa-solid fa-check"></i>
+                                                Paid in Full
+                                            </span>
+                                        }
+                                        else if (rec.Status == "Partially Paid")
+                                        {
+                                            <span class="aging-pill partial">
+                                                <i class="fa-solid fa-clock"></i>
+                                                Partially Paid (Due in @daysRemaining d)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="aging-pill due">
+                                                <i class="fa-regular fa-calendar"></i>
+                                                Due in @daysRemaining Days
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <!-- Action -->
+                                    <td class="text-center">
+                                        @if (rec.PendingBalance > 0)
+                                        {
+                                            <button type="button"
+                                                    class="receive-btn"
+                                                    onclick="openPaymentModal('@rec.InvoiceNumber', @rec.PendingBalance, '@(rec.Customer?.CustomerName ?? rec.CustomerName)')">
+                                                <i class="fa-solid fa-receipt"></i>
+                                                Receive
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="cleared-state">
+                                                <i class="fa-solid fa-circle-check me-1"></i>
+                                                Cleared
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@rec.InvoiceNo</td>
-                                <td>@rec.CustomerName</td>
-                                <td class="text-muted">@rec.InvoiceDate.ToString("dd MMM yyyy")</td>
-                                <td class="text-muted">@rec.DueDate.ToString("dd MMM yyyy")</td>
-                                <td class="fw-bold">₹@rec.PendingBalance.ToString("N0", inCulture)</td>
-                                <td>
-                                    @{
-                                        var badgeClass = rec.Status == "Paid" ? "bg-success-subtle text-success" :
-                                                         rec.Status == "Overdue" ? "bg-danger-subtle text-danger" :
-                                                         "bg-warning-subtle text-warning";
-                                    }
-                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@rec.Status</span>
+                                <td colspan="8">
+                                    <div class="receivable-empty">
+                                        <div class="receivable-empty-icon">
+                                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                                        </div>
+
+                                        <h6>No receivable records found</h6>
+
+                                        <p>
+                                            There are currently no accounts receivable records to display.
+                                        </p>
+                                    </div>
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">No receivables log found in database.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
     </div>
 </div>
 
 <!-- Log Payment Receipt Modal -->
-<div class="modal fade text-start" id="createReceivableModal" tabindex="-1" aria-labelledby="createReceivableModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade text-start receivable-modal"
+     id="createReceivableModal"
+     tabindex="-1"
+     aria-labelledby="createReceivableModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
         <div class="modal-content">
-            <form action="/SalesManagement/CreateReceivable" method="post">
+
+            <form id="paymentReceiptForm"
+                  onsubmit="submitPaymentReceipt(event)">
+
                 @Html.AntiForgeryToken()
+
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="createReceivableModalLabel">Log Payment Receivable Receipt</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    <h5 class="modal-title"
+                        id="createReceivableModalLabel">
+
+                        <span class="modal-title-icon">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </span>
+
+                        Log Payment Receipt
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                 </div>
+
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Invoice No</label>
-                        <input type="text" name="InvoiceNo" class="form-control" placeholder="e.g. INV-10041" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Customer Name</label>
-                        <input type="text" name="CustomerName" class="form-control" placeholder="e.g. Rajesh Corp Ltd" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Due Date</label>
-                        <input type="date" name="DueDate" class="form-control" value="@DateTime.Now.AddDays(15).ToString("yyyy-MM-dd")" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Pending Balance (INR)</label>
-                        <input type="number" name="PendingBalance" class="form-control" placeholder="e.g. 75000" min="0" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Status</label>
-                        <select name="Status" class="form-select" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Overdue">Overdue</option>
-                            <option value="Paid">Paid</option>
+
+                    <!-- Invoice -->
+                    <div class="receivable-form-group">
+
+                        <label class="receivable-form-label">
+                            Target Invoice No
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select id="modalPayInvoiceNo"
+                                name="invoiceNo"
+                                class="receivable-form-select"
+                                onchange="onInvoiceSelectionChanged()"
+                                required>
+
+                            <option value="">
+                                -- Select Pending Invoice --
+                            </option>
+
+                            @if (Model != null)
+                            {
+                                foreach (var p in Model.Where(m => m.PendingBalance > 0))
+                                {
+                                    <option value="@p.InvoiceNumber"
+                                            data-balance="@p.PendingBalance"
+                                            data-customer="@(p.Customer?.CustomerName ?? p.CustomerName)">
+                                        @p.InvoiceNumber - @(p.Customer?.CustomerName ?? p.CustomerName) (Pending: ₹@p.PendingBalance.ToString("N2"))
+                                    </option>
+                                }
+                            }
                         </select>
                     </div>
+
+                    <!-- Invoice Summary -->
+                    <div class="receivable-form-group"
+                         id="invoiceSummaryBox">
+
+                        <div class="invoice-summary">
+
+                            <div class="invoice-summary-grid">
+
+                                <div>
+                                    <span class="summary-label">
+                                        Customer
+                                    </span>
+
+                                    <strong class="summary-customer"
+                                            id="boxCustomer">
+                                        --
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span class="summary-label">
+                                        Maximum Due
+                                    </span>
+
+                                    <strong class="summary-balance"
+                                            id="boxBalance">
+                                        ₹0.00
+                                    </strong>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="receivable-form-group">
+
+                        <label class="receivable-form-label">
+                            Amount Received (₹)
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <div class="amount-input-wrap">
+                            <span class="currency-symbol">₹</span>
+
+                            <input type="number"
+                                   id="modalPayAmount"
+                                   name="amountReceived"
+                                   class="receivable-form-control fw-bold"
+                                   placeholder="0.00"
+                                   min="1"
+                                   step="0.01"
+                                   required />
+                        </div>
+                    </div>
+
+                    <!-- Payment Mode -->
+                    <div class="receivable-form-group">
+
+                        <label class="receivable-form-label">
+                            Payment Mode
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select name="paymentMode"
+                                class="receivable-form-select"
+                                required>
+
+                            <option value="NEFT / RTGS Bank Transfer">
+                                NEFT / RTGS Bank Transfer
+                            </option>
+
+                            <option value="UPI / IMPS">
+                                UPI / IMPS Instant Transfer
+                            </option>
+
+                            <option value="Corporate Net Banking">
+                                Corporate Net Banking
+                            </option>
+
+                            <option value="Cheque Deposit">
+                                Cheque Deposit
+                            </option>
+
+                            <option value="Cash / Counter Receipt">
+                                Cash / Counter Receipt
+                            </option>
+
+                        </select>
+                    </div>
+
+                    <!-- UTR -->
+                    <div class="receivable-form-group">
+
+                        <label class="receivable-form-label">
+                            Transaction UTR / Reference #
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="referenceUtr"
+                               class="receivable-form-control"
+                               placeholder="e.g. UTR928472910482"
+                               required />
+                    </div>
+
                 </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log Payment</button>
+
+                    <button type="button"
+                            class="modal-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="modal-submit-btn"
+                            id="btnSubmitPayment">
+                        <i class="fa-solid fa-check-circle me-1"></i>
+                        Post Payment Receipt
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function openPaymentModal(invNo, pendingBalance, customer) {
+            const select = document.getElementById('modalPayInvoiceNo');
+
+            select.value = invNo;
+
+            document.getElementById('modalPayAmount').value = pendingBalance;
+            document.getElementById('modalPayAmount').max = pendingBalance;
+
+            document.getElementById('boxCustomer').textContent = customer;
+
+            document.getElementById('boxBalance').textContent =
+                '₹' + pendingBalance.toLocaleString('en-IN', {
+                    minimumFractionDigits: 2
+                });
+
+            document.querySelector('#invoiceSummaryBox .invoice-summary').style.display = 'block';
+
+            new bootstrap.Modal(
+                document.getElementById('createReceivableModal')
+            ).show();
+        }
+
+        function onInvoiceSelectionChanged() {
+            const select = document.getElementById('modalPayInvoiceNo');
+            const selectedOpt = select.options[select.selectedIndex];
+
+            if (selectedOpt && selectedOpt.value) {
+
+                const bal =
+                    parseFloat(selectedOpt.getAttribute('data-balance')) || 0;
+
+                const cust =
+                    selectedOpt.getAttribute('data-customer') || '';
+
+                document.getElementById('modalPayAmount').value = bal;
+                document.getElementById('modalPayAmount').max = bal;
+
+                document.getElementById('boxCustomer').textContent = cust;
+
+                document.getElementById('boxBalance').textContent =
+                    '₹' + bal.toLocaleString('en-IN', {
+                        minimumFractionDigits: 2
+                    });
+
+                document.querySelector('#invoiceSummaryBox .invoice-summary').style.display = 'block';
+
+            } else {
+
+                document.querySelector('#invoiceSummaryBox .invoice-summary').style.display = 'none';
+
+            }
+        }
+
+        async function submitPaymentReceipt(event) {
+            event.preventDefault();
+
+            const btn = document.getElementById('btnSubmitPayment');
+
+            btn.disabled = true;
+
+            btn.innerHTML =
+                '<i class="fa-solid fa-spinner fa-spin me-1"></i> Processing...';
+
+            const form =
+                document.getElementById('paymentReceiptForm');
+
+            const formData =
+                new FormData(form);
+
+            try {
+
+                const response = await fetch(
+                    '/SalesManagement/RecordPaymentReceipt',
+                    {
+                        method: 'POST',
+                        body: formData
+                    }
+                );
+
+                const res = await response.json();
+
+                if (res.success) {
+
+                    alert(res.message);
+
+                    location.reload();
+
+                } else {
+
+                    alert(
+                        res.message ||
+                        "Failed to record payment receipt."
+                    );
+
+                    btn.disabled = false;
+
+                    btn.innerHTML =
+                        '<i class="fa-solid fa-check-circle me-1"></i> Post Payment Receipt';
+                }
+
+            } catch (err) {
+
+                alert(
+                    "An error occurred while posting payment receipt."
+                );
+
+                btn.disabled = false;
+
+                btn.innerHTML =
+                    '<i class="fa-solid fa-check-circle me-1"></i> Post Payment Receipt';
+            }
+        }
+    </script>
+}
+```

@@ -1,3 +1,4 @@
+
 @model IEnumerable<ERP_System.Models.SalesOrder>
 @{
     Layout = "_DashboardLayout";
@@ -5,101 +6,1282 @@
     var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-folder-open text-primary me-2"></i>Sales Orders</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Sales Orders</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createOrderModal">
-            <i class="fa-solid fa-cart-plus me-1.5"></i>Create Sales Order
-        </button>
-    </div>
+<style>
+    .sales-orders-page {
+        --so-primary: #2563eb;
+        --so-primary-dark: #1d4ed8;
+        --so-primary-soft: #eff6ff;
+        --so-success: #16a34a;
+        --so-success-soft: #f0fdf4;
+        --so-warning: #d97706;
+        --so-warning-soft: #fffbeb;
+        --so-info: #0891b2;
+        --so-info-soft: #ecfeff;
+        --so-danger: #dc2626;
+        --so-danger-soft: #fef2f2;
+        --so-text: #172033;
+        --so-muted: #64748b;
+        --so-border: #e5eaf1;
+        --so-bg: #f6f8fc;
+        --so-white: #ffffff;
+        --so-shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
+        --so-shadow-hover: 0 14px 32px rgba(15, 23, 42, 0.09);
+    }
 
-    <!-- Sales Orders Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Customer</th>
-                        <th>Order Date</th>
-                        <th>Order Total</th>
-                        <th>Delivery Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        @foreach (var order in Model)
+    .sales-orders-page {
+        min-height: calc(100vh - 70px);
+        background: radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.045), transparent 28%), linear-gradient(180deg, #f8faff 0%, #f6f8fc 100%);
+        padding-bottom: 35px;
+    }
+
+        .sales-orders-page .page-shell {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .sales-orders-page .page-header {
+            padding: 8px 0 20px;
+        }
+
+        .sales-orders-page .breadcrumb-line {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-bottom: 9px;
+            color: var(--so-muted);
+            font-size: 0.77rem;
+        }
+
+            .sales-orders-page .breadcrumb-line a {
+                color: var(--so-muted);
+                text-decoration: none;
+                transition: color .2s ease;
+            }
+
+                .sales-orders-page .breadcrumb-line a:hover {
+                    color: var(--so-primary);
+                }
+
+        .sales-orders-page .breadcrumb-separator {
+            color: #cbd5e1;
+        }
+
+        .sales-orders-page .title-row {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .sales-orders-page .title-icon {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--so-primary-soft);
+            color: var(--so-primary);
+            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .08);
+        }
+
+        .sales-orders-page .page-title {
+            color: var(--so-text);
+            font-size: clamp(1.4rem, 2vw, 1.75rem);
+            font-weight: 750;
+            letter-spacing: -0.025em;
+            margin: 0;
+        }
+
+        .sales-orders-page .page-subtitle {
+            color: var(--so-muted);
+            font-size: .82rem;
+            margin: 4px 0 0;
+        }
+
+        .sales-orders-page .create-btn {
+            border: 0;
+            border-radius: 11px;
+            padding: 10px 17px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            font-size: .82rem;
+            font-weight: 650;
+            box-shadow: 0 7px 17px rgba(37, 99, 235, .18);
+            transition: all .2s ease;
+        }
+
+            .sales-orders-page .create-btn:hover {
+                color: #fff;
+                transform: translateY(-1px);
+                box-shadow: 0 11px 24px rgba(37, 99, 235, .24);
+            }
+
+        /* Alert */
+        .sales-orders-page .success-alert {
+            border: 1px solid #bbf7d0 !important;
+            border-left: 4px solid #16a34a !important;
+            border-radius: 11px;
+            background: #f0fdf4 !important;
+            color: #15803d !important;
+            padding: 12px 15px;
+            font-size: .82rem;
+        }
+
+        /* KPI Cards */
+        .sales-orders-page .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .sales-orders-page .kpi-card {
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, .94);
+            border: 1px solid var(--so-border);
+            border-radius: 16px;
+            padding: 17px;
+            box-shadow: var(--so-shadow);
+            transition: all .22s ease;
+        }
+
+            .sales-orders-page .kpi-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--so-shadow-hover);
+            }
+
+            .sales-orders-page .kpi-card::after {
+                content: "";
+                position: absolute;
+                width: 90px;
+                height: 90px;
+                border-radius: 50%;
+                right: -35px;
+                top: -38px;
+                background: rgba(37, 99, 235, .035);
+            }
+
+            .sales-orders-page .kpi-card.confirmed::after {
+                background: rgba(37, 99, 235, .045);
+            }
+
+            .sales-orders-page .kpi-card.pending::after {
+                background: rgba(217, 119, 6, .05);
+            }
+
+            .sales-orders-page .kpi-card.delivered::after {
+                background: rgba(22, 163, 74, .05);
+            }
+
+        .sales-orders-page .kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 11px;
+            font-size: .92rem;
+        }
+
+            .sales-orders-page .kpi-icon.primary {
+                background: var(--so-primary-soft);
+                color: var(--so-primary);
+            }
+
+            .sales-orders-page .kpi-icon.confirmed {
+                background: #eef2ff;
+                color: #4f46e5;
+            }
+
+            .sales-orders-page .kpi-icon.pending {
+                background: var(--so-warning-soft);
+                color: var(--so-warning);
+            }
+
+            .sales-orders-page .kpi-icon.delivered {
+                background: var(--so-success-soft);
+                color: var(--so-success);
+            }
+
+        .sales-orders-page .kpi-label {
+            color: var(--so-muted);
+            font-size: .69rem;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: .065em;
+            margin-bottom: 4px;
+        }
+
+        .sales-orders-page .kpi-value {
+            color: var(--so-text);
+            font-size: 1.42rem;
+            line-height: 1.15;
+            font-weight: 750;
+        }
+
+            .sales-orders-page .kpi-value.confirmed {
+                color: var(--so-primary);
+            }
+
+            .sales-orders-page .kpi-value.pending {
+                color: var(--so-warning);
+            }
+
+            .sales-orders-page .kpi-value.delivered {
+                color: var(--so-success);
+            }
+
+        /* Main Card */
+        .sales-orders-page .orders-card {
+            background: var(--so-white);
+            border: 1px solid var(--so-border);
+            border-radius: 17px;
+            box-shadow: var(--so-shadow);
+            overflow: hidden;
+        }
+
+        .sales-orders-page .orders-card-header {
+            padding: 17px 19px;
+            border-bottom: 1px solid var(--so-border);
+            background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
+        }
+
+        .sales-orders-page .orders-heading {
+            color: var(--so-text);
+            font-size: .94rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .sales-orders-page .orders-description {
+            color: var(--so-muted);
+            font-size: .75rem;
+            margin-top: 3px;
+        }
+
+        .sales-orders-page .order-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 24px;
+            padding: 0 8px;
+            border-radius: 999px;
+            background: var(--so-primary-soft);
+            color: var(--so-primary);
+            font-size: .71rem;
+            font-weight: 750;
+        }
+
+        /* Table */
+        .sales-orders-page .table-wrap {
+            overflow-x: auto;
+        }
+
+        .sales-orders-page .orders-table {
+            min-width: 1050px;
+            font-size: .79rem;
+        }
+
+            .sales-orders-page .orders-table thead th {
+                background: #f8fafc;
+                color: #64748b;
+                border-top: 0;
+                border-bottom: 1px solid var(--so-border);
+                padding: 12px 16px;
+                font-size: .67rem;
+                font-weight: 750;
+                text-transform: uppercase;
+                letter-spacing: .06em;
+                white-space: nowrap;
+            }
+
+            .sales-orders-page .orders-table tbody td {
+                padding: 14px 16px;
+                border-color: #eef2f7;
+                vertical-align: middle;
+            }
+
+            .sales-orders-page .orders-table tbody tr {
+                transition: background-color .18s ease;
+            }
+
+                .sales-orders-page .orders-table tbody tr:hover {
+                    background: #f8fbff;
+                }
+
+        .sales-orders-page .order-number {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 4px 9px;
+            border-radius: 7px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            font-size: .73rem;
+            font-weight: 750;
+        }
+
+        .sales-orders-page .customer-name {
+            color: var(--so-text);
+            font-size: .8rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .sales-orders-page .company-name {
+            color: var(--so-muted);
+            font-size: .7rem;
+            margin-top: 2px;
+        }
+
+        .sales-orders-page .order-date {
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .sales-orders-page .order-total {
+            color: var(--so-text);
+            font-size: .82rem;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .sales-orders-page .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: .68rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .sales-orders-page .status-delivered {
+            background: var(--so-success-soft);
+            color: var(--so-success);
+            border: 1px solid #bbf7d0;
+        }
+
+        .sales-orders-page .status-awaiting {
+            background: var(--so-warning-soft);
+            color: var(--so-warning);
+            border: 1px solid #fde68a;
+        }
+
+        .sales-orders-page .status-dispatched {
+            background: var(--so-info-soft);
+            color: var(--so-info);
+            border: 1px solid #a5f3fc;
+        }
+
+        .sales-orders-page .status-default {
+            background: var(--so-primary-soft);
+            color: var(--so-primary);
+            border: 1px solid #bfdbfe;
+        }
+
+        .sales-orders-page .payment-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 9px;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            font-size: .68rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        /* Action dropdown */
+        .sales-orders-page .action-btn {
+            border-radius: 8px;
+            border: 1px solid #dbe2ea;
+            background: #fff;
+            color: #475569;
+            padding: 6px 10px;
+            font-size: .71rem;
+            font-weight: 650;
+            transition: all .18s ease;
+        }
+
+            .sales-orders-page .action-btn:hover,
+            .sales-orders-page .action-btn:focus {
+                background: #f8fafc;
+                border-color: #cbd5e1;
+                color: #1e293b;
+                box-shadow: none;
+            }
+
+        .sales-orders-page .dropdown-menu {
+            min-width: 225px;
+            padding: 7px;
+            border: 1px solid #e2e8f0;
+            border-radius: 11px;
+            box-shadow: 0 15px 35px rgba(15, 23, 42, .12);
+        }
+
+        .sales-orders-page .dropdown-item {
+            border-radius: 7px;
+            padding: 8px 10px;
+            font-size: .76rem;
+            color: #334155;
+        }
+
+            .sales-orders-page .dropdown-item:hover {
+                background: #f1f5f9;
+            }
+
+            .sales-orders-page .dropdown-item i {
+                width: 17px;
+                text-align: center;
+            }
+
+        /* Empty state */
+        .sales-orders-page .empty-state {
+            padding: 65px 20px !important;
+        }
+
+        .sales-orders-page .empty-icon {
+            width: 62px;
+            height: 62px;
+            margin: 0 auto 14px;
+            border-radius: 17px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: #94a3b8;
+            font-size: 1.45rem;
+        }
+
+        .sales-orders-page .empty-title {
+            color: var(--so-text);
+            font-size: .92rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .sales-orders-page .empty-text {
+            color: var(--so-muted);
+            font-size: .77rem;
+            margin: 0;
+        }
+
+        /* Modals */
+        .sales-orders-page + .modal,
+        #createOrderModal,
+        #orderSummaryModal {
+            --modal-radius: 18px;
+        }
+
+            #createOrderModal .modal-content,
+            #orderSummaryModal .modal-content {
+                border: 0;
+                border-radius: 18px;
+                overflow: hidden;
+                box-shadow: 0 24px 70px rgba(15, 23, 42, .2);
+            }
+
+            #createOrderModal .modal-header,
+            #orderSummaryModal .modal-header {
+                padding: 18px 21px;
+                border-bottom: 1px solid #e8edf3;
+                background: #fff;
+            }
+
+            #createOrderModal .modal-title,
+            #orderSummaryModal .modal-title {
+                color: var(--so-text);
+                font-size: .98rem;
+            }
+
+            #createOrderModal .modal-body,
+            #orderSummaryModal .modal-body {
+                padding: 22px;
+                background: #fff;
+            }
+
+            #createOrderModal .form-label {
+                color: #475569;
+                font-size: .74rem;
+                font-weight: 700;
+                margin-bottom: 7px;
+            }
+
+            #createOrderModal .form-control,
+            #createOrderModal .form-select {
+                min-height: 43px;
+                border: 1px solid #dbe2ea;
+                border-radius: 10px;
+                color: #1e293b;
+                font-size: .81rem;
+                box-shadow: 0 1px 2px rgba(15, 23, 42, .025);
+                transition: all .18s ease;
+            }
+
+                #createOrderModal .form-control::placeholder {
+                    color: #a0aec0;
+                }
+
+                #createOrderModal .form-control:focus,
+                #createOrderModal .form-select:focus {
+                    border-color: #93c5fd;
+                    box-shadow: 0 0 0 3px rgba(37, 99, 235, .09);
+                }
+
+            #createOrderModal .modal-footer,
+            #orderSummaryModal .modal-footer {
+                padding: 14px 21px;
+                border-top: 1px solid #e8edf3;
+                background: #f8fafc !important;
+            }
+
+                #createOrderModal .modal-footer .btn,
+                #orderSummaryModal .modal-footer .btn {
+                    border-radius: 9px;
+                    font-size: .79rem;
+                    font-weight: 650;
+                    padding: 9px 15px;
+                }
+
+                #createOrderModal .modal-footer .btn-primary {
+                    border: 0;
+                    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+                    box-shadow: 0 6px 15px rgba(37, 99, 235, .16);
+                }
+
+                #createOrderModal .modal-footer .btn-secondary,
+                #orderSummaryModal .modal-footer .btn-secondary {
+                    background: #fff;
+                    color: #475569;
+                    border: 1px solid #dbe2ea;
+                }
+
+            /* Summary modal */
+            #orderSummaryModal .summary-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 15px;
+                padding: 12px 0;
+                border-bottom: 1px solid #eef2f7;
+            }
+
+                #orderSummaryModal .summary-row:last-child {
+                    border-bottom: 0;
+                }
+
+            #orderSummaryModal .summary-label {
+                color: #64748b;
+                font-size: .78rem;
+            }
+
+            #orderSummaryModal .summary-value {
+                color: #1e293b;
+                font-size: .8rem;
+                font-weight: 650;
+                text-align: right;
+            }
+
+            #orderSummaryModal .summary-total {
+                color: var(--so-success);
+                font-size: 1.15rem;
+                font-weight: 750;
+            }
+
+            #orderSummaryModal #summaryDelivery {
+                border-radius: 999px;
+                padding: 6px 10px;
+                font-size: .69rem;
+                font-weight: 700;
+            }
+
+    /* Responsive */
+    @@media (max-width: 1100px) {
+        .sales-orders-page .kpi-grid
+
+    {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .sales-orders-page .page-header
+
+    {
+        padding-top: 2px;
+    }
+
+    .sales-orders-page .header-action {
+        width: 100%;
+    }
+
+    .sales-orders-page .create-btn {
+        width: 100%;
+    }
+
+    .sales-orders-page .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .sales-orders-page .kpi-card {
+        padding: 14px 16px;
+    }
+
+    .sales-orders-page .kpi-icon {
+        margin-bottom: 8px;
+    }
+
+    .sales-orders-page .orders-card-header {
+        padding: 15px 16px;
+    }
+
+    #createOrderModal .modal-dialog,
+    #orderSummaryModal .modal-dialog {
+        margin: 10px;
+    }
+
+    #createOrderModal .modal-body,
+    #orderSummaryModal .modal-body {
+        padding: 18px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .sales-orders-page .title-icon
+
+    {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+        border-radius: 10px;
+    }
+
+    .sales-orders-page .page-title {
+        font-size: 1.25rem;
+    }
+
+    .sales-orders-page .page-subtitle {
+        font-size: .76rem;
+    }
+
+    #createOrderModal .modal-footer,
+    #orderSummaryModal .modal-footer {
+        flex-direction: column-reverse;
+    }
+
+        #createOrderModal .modal-footer .btn,
+        #orderSummaryModal .modal-footer .btn {
+            width: 100%;
+        }
+
+    }
+
+    /* Print */
+    @@media print {
+        .sales-orders-page
+
+    {
+        background: #fff !important;
+    }
+
+    .sales-orders-page .header-action,
+    .sales-orders-page .kpi-grid,
+    .sales-orders-page .orders-card-header,
+    .sales-orders-page .dropdown,
+    #createOrderModal,
+    #orderSummaryModal {
+        display: none !important;
+    }
+
+    .sales-orders-page .orders-card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+
+    }
+</style>
+
+<div class="sales-orders-page">
+    <div class="container-fluid py-3 px-3 px-md-4 page-shell">
+
+        <!-- Header -->
+        <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+            <div>
+                <div class="breadcrumb-line">
+                    <a href="/Dashboard">
+                        <i class="fa-solid fa-chart-line me-1"></i> Dashboard
+                    </a>
+                    <span class="breadcrumb-separator">/</span>
+                    <span>Sales Orders</span>
+                </div>
+
+                <div class="title-row">
+                    <span class="title-icon">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </span>
+
+                    <div>
+                        <h4 class="page-title">Sales Orders</h4>
+                        <p class="page-subtitle">
+                            Manage customer orders, delivery progress and payment terms.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-action">
+                <button class="btn create-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#createOrderModal">
+                    <i class="fa-solid fa-cart-plus me-2"></i>
+                    Create Sales Order
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Success Alert -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm success-alert mb-4"
+                 role="alert">
+                <i class="fa-solid fa-circle-check me-2"></i>
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- KPI Summary -->
+        <div class="kpi-grid">
+
+            <div class="kpi-card">
+                <div class="kpi-icon primary">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+
+                <div class="kpi-label">Total Orders</div>
+                <div class="kpi-value">@Model.Count()</div>
+            </div>
+
+            <div class="kpi-card confirmed">
+                <div class="kpi-icon confirmed">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+
+                <div class="kpi-label">Confirmed</div>
+                <div class="kpi-value confirmed">
+                    @Model.Count(o => o.DeliveryStatus == "Confirmed")
+                </div>
+            </div>
+
+            <div class="kpi-card pending">
+                <div class="kpi-icon pending">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+
+                <div class="kpi-label">Awaiting Dispatch</div>
+                <div class="kpi-value pending">
+                    @Model.Count(o => o.DeliveryStatus == "Awaiting Dispatch" || o.DeliveryStatus == "Processing")
+                </div>
+            </div>
+
+            <div class="kpi-card delivered">
+                <div class="kpi-icon delivered">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+
+                <div class="kpi-label">Delivered</div>
+                <div class="kpi-value delivered">
+                    @Model.Count(o => o.DeliveryStatus == "Delivered")
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sales Orders Table -->
+        <div class="orders-card">
+
+            <div class="orders-card-header d-flex justify-content-between align-items-center gap-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h6 class="orders-heading mb-0">Sales Order Ledger</h6>
+                        <span class="order-count">@Model.Count()</span>
+                    </div>
+
+                    <div class="orders-description">
+                        Review order details, delivery status and fulfillment actions.
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table table-hover align-middle mb-0 orders-table">
+
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Order Date</th>
+                            <th class="text-end">Order Total</th>
+                            <th class="text-center">Delivery Status</th>
+                            <th class="text-center">Payment Terms</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var order in Model)
+                            {
+                                var badgeClass = order.DeliveryStatus == "Delivered"
+                                ? "status-delivered"
+                                : order.DeliveryStatus == "Awaiting Dispatch"
+                                ? "status-awaiting"
+                                : order.DeliveryStatus == "Dispatched"
+                                ? "status-dispatched"
+                                : "status-default";
+
+                                <tr>
+
+                                    <!-- Order ID -->
+                                    <td>
+                                        <span class="order-number">
+                                            @order.OrderNumber
+                                        </span>
+                                    </td>
+
+                                    <!-- Customer -->
+                                    <td>
+                                        <div class="customer-name">
+                                            @(order.Customer?.CustomerName ?? order.CustomerName)
+                                        </div>
+
+                                        @if (!string.IsNullOrEmpty(order.Customer?.CompanyName))
+                                        {
+                                            <div class="company-name">
+                                                @order.Customer.CompanyName
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <!-- Order Date -->
+                                    <td>
+                                        <span class="order-date">
+                                            <i class="fa-regular fa-calendar me-1 text-muted"></i>
+                                            @(order.OrderDate?.ToString("dd MMM yyyy") ?? "N/A")
+                                        </span>
+                                    </td>
+
+                                    <!-- Total -->
+                                    <td class="text-end">
+                                        <span class="order-total">
+                                            @order.OrderTotal.ToString("C", inCulture)
+                                        </span>
+                                    </td>
+
+                                    <!-- Delivery Status -->
+                                    <td class="text-center">
+                                        <span class="status-badge @badgeClass"
+                                              id="status-@order.SalesOrderId">
+
+                                            @if (order.DeliveryStatus == "Delivered")
+                                            {
+                                                <i class="fa-solid fa-check"></i>
+                                            }
+                                            else if (order.DeliveryStatus == "Awaiting Dispatch")
+                                            {
+                                                <i class="fa-solid fa-clock"></i>
+                                            }
+                                            else if (order.DeliveryStatus == "Dispatched")
+                                            {
+                                                <i class="fa-solid fa-truck-fast"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-circle-dot"></i>
+                                            }
+
+                                            @order.DeliveryStatus
+                                        </span>
+                                    </td>
+
+                                    <!-- Payment Terms -->
+                                    <td class="text-center">
+                                        <span class="payment-badge">
+                                            <i class="fa-regular fa-credit-card me-1"></i>
+                                            @(order.PaymentTerms ?? "Net 30")
+                                        </span>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-center">
+
+                                        <div class="dropdown">
+
+                                            <button class="btn action-btn dropdown-toggle"
+                                                    type="button"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false">
+                                                <i class="fa-solid fa-ellipsis me-1"></i>
+                                                Actions
+                                            </button>
+
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+
+                                                <li>
+                                                    <button class="dropdown-item"
+                                                            type="button"
+                                                            onclick="viewOrderSummary('@order.OrderNumber', '@(order.Customer?.CustomerName ?? order.CustomerName)', '@(order.OrderDate?.ToString("dd MMM yyyy") ?? "N/A")', '@order.OrderTotal.ToString("C", inCulture)', '@order.DeliveryStatus', '@(order.PaymentTerms ?? "Net 30")')">
+
+                                                        <i class="fa-regular fa-file-lines text-primary me-2"></i>
+                                                        View Order Summary
+                                                    </button>
+                                                </li>
+
+                                                @if (order.DeliveryStatus == "Confirmed" || order.DeliveryStatus == "Processing")
+                                                {
+                                                    <li>
+                                                        <button class="dropdown-item"
+                                                                type="button"
+                                                                onclick="notifyWarehouse(@order.SalesOrderId, '@order.OrderNumber')">
+
+                                                            <i class="fa-solid fa-truck-fast text-warning me-2"></i>
+                                                            Notify Warehouse for Dispatch
+                                                        </button>
+                                                    </li>
+                                                }
+                                                else
+                                                {
+                                                    <li>
+                                                        <span class="dropdown-item text-muted small">
+                                                            <i class="fa-solid fa-lock me-2 text-secondary"></i>
+                                                            Dispatch Locked (@order.DeliveryStatus)
+                                                        </span>
+                                                    </li>
+                                                }
+
+                                            </ul>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td class="fw-bold text-dark">@order.OrderNo</td>
-                                <td>@order.CustomerName</td>
-                                <td class="text-muted">@(order.OrderDate?.ToString("dd MMM yyyy") ?? "N/A")</td>
-                                <td class="fw-bold">₹@((order.OrderTotal ?? 0m).ToString("N0", inCulture))</td>
-                                <td>
-                                    @{
-                                        var badgeClass = order.DeliveryStatus == "Delivered" ? "bg-success-subtle text-success" :
-                                                         order.DeliveryStatus == "Dispatched" ? "bg-info-subtle text-info" :
-                                                         "bg-warning-subtle text-warning";
-                                    }
-                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@order.DeliveryStatus</span>
+                                <td colspan="7" class="text-center empty-state">
+
+                                    <div class="empty-icon">
+                                        <i class="fa-solid fa-cart-shopping"></i>
+                                    </div>
+
+                                    <div class="empty-title">
+                                        No sales orders found
+                                    </div>
+
+                                    <p class="empty-text">
+                                        There are currently no sales orders available in the database.
+                                    </p>
+
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">No sales orders found in database.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+                    </tbody>
+
+                </table>
+            </div>
+
         </div>
+
     </div>
 </div>
 
 <!-- Create Sales Order Modal -->
-<div class="modal fade text-start" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade text-start"
+     id="createOrderModal"
+     tabindex="-1"
+     aria-labelledby="createOrderModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
         <div class="modal-content">
-            <form action="/SalesManagement/CreateOrder" method="post">
+
+            <form asp-controller="SalesManagement"
+                  asp-action="CreateOrder"
+                  method="post">
+
                 @Html.AntiForgeryToken()
+
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="createOrderModalLabel">Create New Sales Order</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    <h5 class="modal-title fw-bold"
+                        id="createOrderModalLabel">
+
+                        <i class="fa-solid fa-cart-plus text-primary me-2"></i>
+                        Create New Sales Order
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
                 </div>
+
                 <div class="modal-body">
+
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Customer Name</label>
-                        <input type="text" name="CustomerName" class="form-control" placeholder="e.g. Rahul Enterprises" required />
+
+                        <label class="form-label">
+                            Customer / Account Name
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="CustomerName"
+                               class="form-control"
+                               placeholder="e.g. Acme Corp Ltd"
+                               required />
+
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Order Total (INR)</label>
-                        <input type="number" name="OrderTotal" class="form-control" placeholder="e.g. 180000" min="0" required />
+
+                        <label class="form-label">
+                            Order Total (₹)
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="number"
+                               name="OrderTotal"
+                               class="form-control"
+                               placeholder="e.g. 180000"
+                               min="0"
+                               step="100"
+                               required />
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Delivery Status</label>
-                        <select name="DeliveryStatus" class="form-select" required>
-                            <option value="Processing">Processing</option>
-                            <option value="Dispatched">Dispatched</option>
-                            <option value="Delivered">Delivered</option>
-                        </select>
+
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Delivery Status
+                            </label>
+
+                            <select name="DeliveryStatus"
+                                    class="form-select"
+                                    required>
+
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Awaiting Dispatch">Awaiting Dispatch</option>
+                                <option value="Delivered">Delivered</option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Payment Terms
+                            </label>
+
+                            <select name="PaymentTerms"
+                                    class="form-select">
+
+                                <option value="Net 30">Net 30</option>
+                                <option value="Net 15">Net 15</option>
+                                <option value="Immediate / Advance">Immediate / Advance</option>
+                                <option value="Net 60">Net 60</option>
+
+                            </select>
+
+                        </div>
+
                     </div>
+
                 </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Order</button>
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary fw-bold px-4">
+
+                        <i class="fa-solid fa-save me-1"></i>
+                        Save Order
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
 </div>
+
+<!-- Order Summary Modal -->
+<div class="modal fade text-start"
+     id="orderSummaryModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title fw-bold">
+
+                    <i class="fa-solid fa-receipt text-primary me-2"></i>
+                    Sales Order Summary
+
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="summary-row">
+                    <span class="summary-label">Order Number:</span>
+                    <strong class="summary-value"
+                            id="summaryOrderNumber">--</strong>
+                </div>
+
+                <div class="summary-row">
+                    <span class="summary-label">Customer:</span>
+                    <strong class="summary-value"
+                            id="summaryCustomer">--</strong>
+                </div>
+
+                <div class="summary-row">
+                    <span class="summary-label">Order Date:</span>
+                    <span class="summary-value"
+                          id="summaryDate">--</span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="summary-label">Delivery Status:</span>
+                    <span class="badge bg-primary-subtle text-primary"
+                          id="summaryDelivery">--</span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="summary-label">Payment Terms:</span>
+                    <span class="summary-value"
+                          id="summaryTerms">--</span>
+                </div>
+
+                <div class="summary-row pt-3">
+                    <span class="fw-bold fs-6">Total Order Value:</span>
+
+                    <strong class="summary-total"
+                            id="summaryTotal">--</strong>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function viewOrderSummary(orderNum, customer, date, total, status, terms) {
+            document.getElementById('summaryOrderNumber').textContent = orderNum;
+            document.getElementById('summaryCustomer').textContent = customer;
+            document.getElementById('summaryDate').textContent = date;
+            document.getElementById('summaryTotal').textContent = total;
+            document.getElementById('summaryDelivery').textContent = status;
+            document.getElementById('summaryTerms').textContent = terms;
+
+            new bootstrap.Modal(
+                document.getElementById('orderSummaryModal')
+            ).show();
+        }
+
+        async function notifyWarehouse(orderId, orderNum) {
+            if (!confirm("Send immediate dispatch notification to warehouse fulfillment for order " + orderNum + "?")) {
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const formData = new FormData();
+
+            formData.append('orderId', orderId);
+            formData.append('__RequestVerificationToken', token);
+
+            try {
+                const response = await fetch('/SalesManagement/NotifyWarehouseDispatch', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const res = await response.json();
+
+                if (res.success) {
+                    alert(res.message);
+                    location.reload();
+                } else {
+                    alert(res.message || "Failed to notify warehouse.");
+                }
+            } catch (err) {
+                alert("An error occurred while notifying warehouse.");
+            }
+        }
+    </script>
+}
+

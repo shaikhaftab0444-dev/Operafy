@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace ERP_System.Controllers
@@ -22,16 +23,30 @@ namespace ERP_System.Controllers
         // GET: /Customers
         public async Task<IActionResult> Index(string? searchTerm, string? statusFilter)
         {
-            var query = _context.Customers.AsQueryable();
+            var query = _context.Customers.Include(c => c.AssignedRepUser).AsQueryable();
+
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int? currentUid = int.TryParse(currentUserId, out int uid) ? uid : (int?)null;
+            bool isSalesExecutive = User.IsInRole("Sales Executive");
+
+            // Strict Data Isolation for Sales Executive
+            if (isSalesExecutive)
+            {
+                query = query.Where(c => c.AssignedRepId == currentUserId || (currentUid.HasValue && c.AssignedRepUserUserId == currentUid.Value));
+            }
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var term = searchTerm.Trim().ToLower();
                 query = query.Where(c =>
-                    c.FirstName.ToLower().Contains(term) ||
-                    c.LastName.ToLower().Contains(term) ||
-                    c.Email.ToLower().Contains(term) ||
-                    c.PhoneNumber.ToLower().Contains(term));
+                    (c.CustomerName != null && c.CustomerName.ToLower().Contains(term)) ||
+                    (c.FirstName != null && c.FirstName.ToLower().Contains(term)) ||
+                    (c.LastName != null && c.LastName.ToLower().Contains(term)) ||
+                    (c.CompanyName != null && c.CompanyName.ToLower().Contains(term)) ||
+                    (c.CustomerCode != null && c.CustomerCode.ToLower().Contains(term)) ||
+                    (c.TaxIdOrGSTIN != null && c.TaxIdOrGSTIN.ToLower().Contains(term)) ||
+                    (c.Email != null && c.Email.ToLower().Contains(term)) ||
+                    (c.PhoneNumber != null && c.PhoneNumber.ToLower().Contains(term)));
             }
 
             if (!string.IsNullOrWhiteSpace(statusFilter) && statusFilter != "All")
@@ -42,11 +57,23 @@ namespace ERP_System.Controllers
 
             ViewBag.SearchTerm = searchTerm;
             ViewBag.StatusFilter = statusFilter ?? "All";
-            ViewBag.TotalCustomers = await _context.Customers.CountAsync();
-            ViewBag.ActiveCustomers = await _context.Customers.CountAsync(c => c.IsActive);
-            ViewBag.BusinessCustomers = 0; // Mocked as CustomerType is not in db
 
-            var customers = await query.OrderByDescending(c => c.JoinedDate).ToListAsync();
+            if (isSalesExecutive)
+            {
+                ViewBag.TotalCustomers = await _context.Customers.CountAsync(c => c.AssignedRepId == currentUserId || (currentUid.HasValue && c.AssignedRepUserUserId == currentUid.Value));
+                ViewBag.ActiveCustomers = await _context.Customers.CountAsync(c => c.IsActive && (c.AssignedRepId == currentUserId || (currentUid.HasValue && c.AssignedRepUserUserId == currentUid.Value)));
+                ViewBag.BusinessCustomers = await _context.Customers.CountAsync(c => !string.IsNullOrEmpty(c.CompanyName) && (c.AssignedRepId == currentUserId || (currentUid.HasValue && c.AssignedRepUserUserId == currentUid.Value)));
+            }
+            else
+            {
+                ViewBag.TotalCustomers = await _context.Customers.CountAsync();
+                ViewBag.ActiveCustomers = await _context.Customers.CountAsync(c => c.IsActive);
+                ViewBag.BusinessCustomers = await _context.Customers.CountAsync(c => !string.IsNullOrEmpty(c.CompanyName));
+            }
+
+            ViewBag.Users = await _context.Users.OrderBy(u => u.FullName).ToListAsync();
+
+            var customers = await query.OrderByDescending(c => c.Id).ToListAsync();
             return View(customers);
         }
 
@@ -72,6 +99,22 @@ namespace ERP_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Customer customer)
         {
+            if (string.IsNullOrWhiteSpace(customer.FirstName) && !string.IsNullOrWhiteSpace(customer.CompanyName))
+            {
+                customer.CustomerName = customer.CompanyName;
+            }
+
+            if (string.IsNullOrWhiteSpace(customer.CustomerCode))
+            {
+                var nextNum = (await _context.Customers.CountAsync()) + 1;
+                customer.CustomerCode = $"CUST#{nextNum:D4}";
+            }
+
+            if (customer.CreditLimit <= 0)
+            {
+                customer.CreditLimit = 500000m;
+            }
+
             if (await _context.Customers.AnyAsync(c => c.Email == customer.Email))
             {
                 ModelState.AddModelError(nameof(customer.Email), "A customer with this email already exists.");
@@ -80,13 +123,15 @@ namespace ERP_System.Controllers
             if (ModelState.IsValid)
             {
                 customer.JoinedDate = DateTime.UtcNow;
+                customer.CreatedAt = DateTime.UtcNow;
                 _context.Add(customer);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Customer created successfully.";
+                TempData["SuccessMessage"] = $"Customer '{customer.CustomerName}' created successfully.";
                 return RedirectToAction(nameof(Index));
             }
 
+            ViewBag.Users = await _context.Users.OrderBy(u => u.FullName).ToListAsync();
             return View(customer);
         }
 
@@ -98,6 +143,7 @@ namespace ERP_System.Controllers
             var customer = await _context.Customers.FindAsync(id);
             if (customer == null) return NotFound();
 
+            ViewBag.Users = await _context.Users.OrderBy(u => u.FullName).ToListAsync();
             return View(customer);
         }
 
@@ -120,10 +166,16 @@ namespace ERP_System.Controllers
                     var existing = await _context.Customers.FindAsync(id);
                     if (existing == null) return NotFound();
 
+                    existing.CustomerCode = customer.CustomerCode;
+                    existing.CustomerName = !string.IsNullOrWhiteSpace(customer.CustomerName) ? customer.CustomerName : $"{customer.FirstName} {customer.LastName}".Trim();
+                    existing.CompanyName = customer.CompanyName;
                     existing.FirstName = customer.FirstName;
                     existing.LastName = customer.LastName;
                     existing.Email = customer.Email;
                     existing.PhoneNumber = customer.PhoneNumber;
+                    existing.TaxIdOrGSTIN = customer.TaxIdOrGSTIN;
+                    existing.CreditLimit = customer.CreditLimit;
+                    existing.AssignedRepUserUserId = customer.AssignedRepUserUserId;
                     existing.DateOfBirth = customer.DateOfBirth;
                     existing.IsActive = customer.IsActive;
                     
@@ -144,12 +196,14 @@ namespace ERP_System.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            ViewBag.Users = await _context.Users.OrderBy(u => u.FullName).ToListAsync();
             return View(customer);
         }
 
         // GET: /Customers/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
+            if (User.IsInRole("Sales Executive")) return Forbid();
             if (id == null) return NotFound();
 
             var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == id);
@@ -163,6 +217,8 @@ namespace ERP_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            if (User.IsInRole("Sales Executive")) return Forbid();
+
             var customer = await _context.Customers.FindAsync(id);
             if (customer != null)
             {

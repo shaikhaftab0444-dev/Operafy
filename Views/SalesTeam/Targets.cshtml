@@ -1,55 +1,1473 @@
+```cshtml
+@model IEnumerable<ERP_System.Models.SalesTargetAllocation>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales Targets";
+
+    string selectedQuarter = ViewBag.SelectedQuarter as string ?? "Q3 2026";
+    var executives = ViewBag.Executives as List<ERP_System.Models.SalesExecutiveProfile> ?? new List<ERP_System.Models.SalesExecutiveProfile>();
+    var repPacingList = ViewBag.RepPacingList as List<dynamic> ?? new List<dynamic>();
+
+    decimal enterpriseTarget = ViewBag.EnterpriseTarget != null ? (decimal)ViewBag.EnterpriseTarget : 6000000m;
+    decimal enterpriseAchieved = ViewBag.EnterpriseAchieved != null ? (decimal)ViewBag.EnterpriseAchieved : 5000000m;
+    int enterprisePct = enterpriseTarget > 0 ? (int)Math.Min(100, Math.Round((enterpriseAchieved / enterpriseTarget) * 100)) : 0;
+
+    decimal retailTarget = ViewBag.RetailTarget != null ? (decimal)ViewBag.RetailTarget : 2000000m;
+    decimal retailAchieved = ViewBag.RetailAchieved != null ? (decimal)ViewBag.RetailAchieved : 1850000m;
+    int retailPct = retailTarget > 0 ? (int)Math.Min(100, Math.Round((retailAchieved / retailTarget) * 100)) : 0;
+
+    decimal acqTarget = ViewBag.AcqTarget != null ? (decimal)ViewBag.AcqTarget : 50m;
+    decimal acqAchieved = ViewBag.AcqAchieved != null ? (decimal)ViewBag.AcqAchieved : 35m;
+    int acqPct = acqTarget > 0 ? (int)Math.Min(100, Math.Round((acqAchieved / acqTarget) * 100)) : 0;
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-bullseye text-primary me-2"></i>Sales Targets</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item">Sales Team</li>
-                    <li class="breadcrumb-item active" aria-current="page">Targets</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm"><i class="fa-solid fa-gear me-1.5"></i>Set Targets</button>
-    </div>
+<style>
+    .sales-targets-page {
+        --target-primary: #2563eb;
+        --target-primary-dark: #1d4ed8;
+        --target-primary-soft: #eff6ff;
+        --target-success: #16a34a;
+        --target-success-soft: #f0fdf4;
+        --target-warning: #d97706;
+        --target-warning-soft: #fffbeb;
+        --target-info: #0891b2;
+        --target-info-soft: #ecfeff;
+        --target-text: #172033;
+        --target-muted: #64748b;
+        --target-border: #e5eaf1;
+        --target-surface: #ffffff;
+        --target-soft: #f8fafc;
+        --target-shadow: 0 10px 30px rgba(15, 23, 42, .055);
+        --target-shadow-hover: 0 16px 38px rgba(15, 23, 42, .09);
+        color: var(--target-text);
+    }
 
-    <!-- Active Target Details -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm mb-4">
-        <h6 class="fw-bold text-dark mb-3">Q3 2026 Target Progression</h6>
-        
-        <div class="mb-4">
-            <div class="d-flex justify-content-between mb-1 small">
-                <span>Enterprise Invoices Revenue Target</span>
-                <span class="fw-bold">₹50,00,000 / ₹60,00,000 (83%)</span>
-            </div>
-            <div class="progress" style="height: 10px;">
-                <div class="progress-bar bg-success" role="progressbar" style="width: 83%;" aria-valuenow="83" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-        </div>
+        .sales-targets-page * {
+            box-sizing: border-box;
+        }
 
-        <div class="mb-4">
-            <div class="d-flex justify-content-between mb-1 small">
-                <span>Retail Counter Sales Target</span>
-                <span class="fw-bold">₹18,50,000 / ₹20,00,000 (92%)</span>
-            </div>
-            <div class="progress" style="height: 10px;">
-                <div class="progress-bar bg-info" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-        </div>
+        /* =========================================================
+           PAGE HEADER
+        ========================================================= */
 
-        <div>
-            <div class="d-flex justify-content-between mb-1 small">
-                <span>New Customer Acquisitions</span>
-                <span class="fw-bold">35 / 50 Accounts (70%)</span>
+        .sales-targets-page .page-shell {
+            padding: 1.5rem 0 2rem;
+        }
+
+        .sales-targets-page .target-hero {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 55%, #f2f6ff 100%);
+            border: 1px solid var(--target-border);
+            border-radius: 20px;
+            padding: 1.45rem 1.55rem;
+            margin-bottom: 1.25rem;
+            box-shadow: var(--target-shadow);
+        }
+
+            .sales-targets-page .target-hero::before {
+                content: "";
+                position: absolute;
+                width: 240px;
+                height: 240px;
+                right: -100px;
+                top: -135px;
+                border-radius: 50%;
+                background: rgba(37, 99, 235, .055);
+                pointer-events: none;
+            }
+
+            .sales-targets-page .target-hero::after {
+                content: "";
+                position: absolute;
+                width: 170px;
+                height: 170px;
+                right: 150px;
+                bottom: -135px;
+                border-radius: 50%;
+                background: rgba(14, 165, 233, .035);
+                pointer-events: none;
+            }
+
+        .sales-targets-page .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .sales-targets-page .hero-icon {
+            width: 50px;
+            height: 50px;
+            flex: 0 0 50px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            background: linear-gradient(145deg, #eff6ff, #e0ecff);
+            color: var(--target-primary);
+            font-size: 1.2rem;
+            border: 1px solid #dbeafe;
+            box-shadow: 0 7px 18px rgba(37, 99, 235, .08);
+        }
+
+        .sales-targets-page .hero-eyebrow {
+            color: var(--target-primary);
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .11em;
+            text-transform: uppercase;
+            margin-bottom: .18rem;
+        }
+
+        .sales-targets-page .page-title {
+            color: var(--target-text);
+            font-size: 1.45rem;
+            line-height: 1.2;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            margin: 0;
+        }
+
+        .sales-targets-page .page-subtitle {
+            color: var(--target-muted);
+            font-size: .83rem;
+            margin: .32rem 0 0;
+            max-width: 700px;
+        }
+
+        .sales-targets-page .breadcrumb {
+            margin-top: .7rem;
+        }
+
+        .sales-targets-page .breadcrumb-item {
+            font-size: .74rem;
+        }
+
+            .sales-targets-page .breadcrumb-item + .breadcrumb-item::before {
+                color: #94a3b8;
+            }
+
+        .sales-targets-page .breadcrumb a {
+            color: #64748b;
+        }
+
+            .sales-targets-page .breadcrumb a:hover {
+                color: var(--target-primary);
+            }
+
+        /* =========================================================
+           HEADER CONTROLS
+        ========================================================= */
+
+        .sales-targets-page .hero-controls {
+            position: relative;
+            z-index: 2;
+        }
+
+        .sales-targets-page .quarter-control {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            padding: .38rem .45rem .38rem .75rem;
+            background: rgba(255,255,255,.88);
+            border: 1px solid #dbe3ed;
+            border-radius: 11px;
+            box-shadow: 0 5px 15px rgba(15,23,42,.035);
+        }
+
+        .sales-targets-page .quarter-label {
+            color: #64748b;
+            font-size: .7rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .sales-targets-page .quarter-select {
+            min-width: 125px;
+            border: 0;
+            background-color: transparent;
+            color: #1e293b;
+            font-size: .77rem;
+            font-weight: 800;
+            padding: .35rem 1.8rem .35rem .35rem;
+            box-shadow: none !important;
+        }
+
+            .sales-targets-page .quarter-select:focus {
+                border: 0;
+                box-shadow: none !important;
+            }
+
+        .sales-targets-page .set-target-button {
+            border: 0;
+            border-radius: 11px;
+            padding: .72rem 1rem;
+            background: linear-gradient(135deg, var(--target-primary), var(--target-primary-dark));
+            color: #fff;
+            font-size: .79rem;
+            font-weight: 750;
+            box-shadow: 0 8px 18px rgba(37,99,235,.18);
+            transition: all .2s ease;
+        }
+
+            .sales-targets-page .set-target-button:hover {
+                color: #fff;
+                transform: translateY(-1px);
+                box-shadow: 0 12px 24px rgba(37,99,235,.23);
+            }
+
+        /* =========================================================
+           ALERT
+        ========================================================= */
+
+        .sales-targets-page .success-alert {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            border-radius: 13px;
+            padding: .85rem 1rem;
+            font-size: .81rem;
+            box-shadow: 0 6px 18px rgba(15,23,42,.035);
+        }
+
+        /* =========================================================
+           PROGRESSION CARD
+        ========================================================= */
+
+        .sales-targets-page .progression-card {
+            background: var(--target-surface);
+            border: 1px solid var(--target-border);
+            border-radius: 18px;
+            box-shadow: var(--target-shadow);
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .sales-targets-page .section-heading {
+            color: var(--target-text);
+            font-size: .92rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .sales-targets-page .section-heading-icon {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            background: var(--target-primary-soft);
+            color: var(--target-primary);
+            margin-right: .55rem;
+        }
+
+        .sales-targets-page .section-subtitle {
+            color: var(--target-muted);
+            font-size: .72rem;
+            margin-top: .15rem;
+        }
+
+        .sales-targets-page .quarter-badge {
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: .38rem .7rem;
+            font-size: .68rem;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        /* =========================================================
+           TARGET ROWS
+        ========================================================= */
+
+        .sales-targets-page .target-row {
+            padding: .95rem 0;
+        }
+
+            .sales-targets-page .target-row + .target-row {
+                border-top: 1px solid #edf1f5;
+            }
+
+        .sales-targets-page .target-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: .5rem;
+        }
+
+        .sales-targets-page .target-name {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            color: #334155;
+            font-size: .78rem;
+            font-weight: 750;
+        }
+
+        .sales-targets-page .target-name-icon {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: .75rem;
+        }
+
+        .sales-targets-page .target-values {
+            color: #334155;
+            font-size: .76rem;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .sales-targets-page .target-percent {
+            margin-left: .4rem;
+            font-weight: 800;
+        }
+
+            .sales-targets-page .target-percent.enterprise {
+                color: var(--target-success);
+            }
+
+            .sales-targets-page .target-percent.retail {
+                color: var(--target-info);
+            }
+
+            .sales-targets-page .target-percent.acquisition {
+                color: var(--target-warning);
+            }
+
+        .sales-targets-page .target-progress {
+            height: 10px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #eef2f7;
+            box-shadow: inset 0 1px 2px rgba(15,23,42,.04);
+        }
+
+            .sales-targets-page .target-progress .progress-bar {
+                border-radius: 999px;
+            }
+
+        .sales-targets-page .enterprise-bar {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        .sales-targets-page .retail-bar {
+            background: linear-gradient(90deg, #22d3ee, #0891b2);
+        }
+
+        .sales-targets-page .acquisition-bar {
+            background: linear-gradient(90deg, #fbbf24, #d97706);
+        }
+
+        /* =========================================================
+           EXECUTIVE BREAKDOWN
+        ========================================================= */
+
+        .sales-targets-page .breakdown-card {
+            background: var(--target-surface);
+            border: 1px solid var(--target-border);
+            border-radius: 18px;
+            box-shadow: var(--target-shadow);
+            overflow: hidden;
+        }
+
+        .sales-targets-page .breakdown-header {
+            padding: 1.15rem 1.25rem;
+            border-bottom: 1px solid var(--target-border);
+            background: linear-gradient(180deg, #ffffff, #fbfcfe);
+        }
+
+        .sales-targets-page .breakdown-meta {
+            color: var(--target-muted);
+            font-size: .71rem;
+        }
+
+        .sales-targets-page .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sales-targets-page .targets-table {
+            min-width: 980px;
+            margin: 0;
+            color: var(--target-text);
+            font-size: .8rem;
+        }
+
+            .sales-targets-page .targets-table thead th {
+                background: #f8fafc;
+                color: #64748b;
+                border-top: 0;
+                border-bottom: 1px solid var(--target-border);
+                padding: .82rem .85rem;
+                font-size: .66rem;
+                font-weight: 800;
+                letter-spacing: .055em;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            .sales-targets-page .targets-table tbody td {
+                padding: .9rem .85rem;
+                border-color: #edf1f5;
+                vertical-align: middle;
+            }
+
+            .sales-targets-page .targets-table tbody tr {
+                transition: background-color .18s ease, box-shadow .18s ease;
+            }
+
+                .sales-targets-page .targets-table tbody tr:hover {
+                    background: #fbfdff;
+                    box-shadow: inset 3px 0 0 rgba(37,99,235,.5);
+                }
+
+        .sales-targets-page .rep-avatar {
+            width: 35px;
+            height: 35px;
+            flex: 0 0 35px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: linear-gradient(145deg, #eff6ff, #e0ecff);
+            color: var(--target-primary);
+            border: 1px solid #dbeafe;
+            font-size: .75rem;
+            font-weight: 800;
+        }
+
+        .sales-targets-page .rep-name {
+            color: #172033;
+            font-size: .79rem;
+            font-weight: 750;
+            line-height: 1.25;
+        }
+
+        .sales-targets-page .exec-code {
+            display: inline-flex;
+            margin-top: .22rem;
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: .23rem .42rem;
+            font-size: .63rem;
+            font-weight: 750;
+        }
+
+        .sales-targets-page .region-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .32rem;
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: .38rem .55rem;
+            font-size: .68rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+            .sales-targets-page .region-badge i {
+                color: var(--target-primary);
+            }
+
+        .sales-targets-page .money-target {
+            color: #64748b;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .sales-targets-page .money-achieved {
+            color: #172033;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .sales-targets-page .pacing-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 54px;
+            border-radius: 999px;
+            padding: .4rem .58rem;
+            font-size: .68rem;
+            font-weight: 800;
+        }
+
+        .sales-targets-page .pacing-track {
+            height: 8px;
+            flex: 1;
+            min-width: 100px;
+            background: #eef2f7;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+            .sales-targets-page .pacing-track .progress-bar {
+                border-radius: 999px;
+            }
+
+        .sales-targets-page .pacing-status {
+            min-width: 72px;
+            color: #64748b;
+            font-size: .68rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .sales-targets-page .adjust-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .3rem;
+            border: 1px solid #dbe2ea;
+            background: #fff;
+            color: #475569;
+            border-radius: 8px;
+            padding: .45rem .68rem;
+            font-size: .69rem;
+            font-weight: 750;
+            white-space: nowrap;
+            transition: all .18s ease;
+        }
+
+            .sales-targets-page .adjust-button:hover {
+                background: #f8fafc;
+                color: var(--target-primary);
+                border-color: #bfdbfe;
+                transform: translateY(-1px);
+            }
+
+        /* =========================================================
+           EMPTY STATE
+        ========================================================= */
+
+        .sales-targets-page .empty-state {
+            padding: 3.25rem 1rem !important;
+        }
+
+        .sales-targets-page .empty-icon {
+            width: 58px;
+            height: 58px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 1.25rem;
+            margin-bottom: .8rem;
+        }
+
+        .sales-targets-page .empty-title {
+            color: var(--target-text);
+            font-size: .88rem;
+            font-weight: 800;
+            margin-bottom: .25rem;
+        }
+
+        .sales-targets-page .empty-text {
+            color: var(--target-muted);
+            font-size: .75rem;
+            margin: 0;
+        }
+
+        /* =========================================================
+           MODAL
+        ========================================================= */
+
+        .sales-targets-page .modal-content {
+            border: 1px solid var(--target-border) !important;
+            border-radius: 17px !important;
+            overflow: hidden;
+            box-shadow: 0 24px 70px rgba(15,23,42,.16) !important;
+        }
+
+        .sales-targets-page .modal-header-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            border-bottom: 0;
+            padding: 1rem 1.2rem;
+        }
+
+        .sales-targets-page .modal-title {
+            font-size: .94rem;
+            font-weight: 800;
+        }
+
+        .sales-targets-page .modal-body {
+            padding: 1.3rem;
+        }
+
+        .sales-targets-page .form-label {
+            color: #334155;
+            font-size: .72rem;
+            font-weight: 800;
+            margin-bottom: .42rem;
+        }
+
+        .sales-targets-page .form-control,
+        .sales-targets-page .form-select {
+            min-height: 42px;
+            border: 1px solid #dbe2ea;
+            border-radius: 9px;
+            color: #1e293b;
+            font-size: .8rem;
+            box-shadow: none;
+            transition: border-color .16s ease, box-shadow .16s ease;
+        }
+
+            .sales-targets-page .form-control:focus,
+            .sales-targets-page .form-select:focus {
+                border-color: #93c5fd;
+                box-shadow: 0 0 0 .2rem rgba(37,99,235,.09);
+            }
+
+            .sales-targets-page .form-control::placeholder {
+                color: #a0aec0;
+            }
+
+        .sales-targets-page .modal-footer {
+            padding: .9rem 1.2rem;
+            background: #f8fafc;
+            border-top: 1px solid var(--target-border) !important;
+        }
+
+        .sales-targets-page .modal-cancel {
+            border-radius: 9px;
+            padding: .55rem .9rem;
+            font-size: .76rem;
+            font-weight: 700;
+        }
+
+        .sales-targets-page .modal-save {
+            border: 0;
+            border-radius: 9px;
+            padding: .55rem 1rem;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            font-size: .76rem;
+            font-weight: 750;
+            box-shadow: 0 6px 15px rgba(37,99,235,.16);
+        }
+
+            .sales-targets-page .modal-save:hover {
+                color: #fff;
+                background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            }
+
+        .sales-targets-page .target-help {
+            color: #64748b;
+            font-size: .7rem;
+            margin-top: .4rem;
+        }
+
+    /* =========================================================
+           RESPONSIVE
+        ========================================================= */
+
+    @@media (max-width: 991.98px) {
+        .sales-targets-page .target-hero
+
+    {
+        padding: 1.25rem;
+    }
+
+    .sales-targets-page .page-title {
+        font-size: 1.25rem;
+    }
+
+    .sales-targets-page .hero-controls {
+        width: 100%;
+    }
+
+        .sales-targets-page .hero-controls > * {
+            flex: 1;
+        }
+
+    .sales-targets-page .quarter-control {
+        justify-content: space-between;
+    }
+
+    .sales-targets-page .set-target-button {
+        width: 100%;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-targets-page .page-shell
+
+    {
+        padding-top: 1rem;
+    }
+
+    .sales-targets-page .target-hero {
+        border-radius: 15px;
+        padding: 1rem;
+    }
+
+    .sales-targets-page .hero-icon {
+        width: 43px;
+        height: 43px;
+        flex-basis: 43px;
+        border-radius: 12px;
+        font-size: 1rem;
+    }
+
+    .sales-targets-page .page-title {
+        font-size: 1.1rem;
+    }
+
+    .sales-targets-page .page-subtitle {
+        font-size: .75rem;
+    }
+
+    .sales-targets-page .hero-controls {
+        flex-direction: column;
+    }
+
+        .sales-targets-page .hero-controls > * {
+            width: 100%;
+        }
+
+    .sales-targets-page .progression-card {
+        padding: 1rem;
+        border-radius: 14px;
+    }
+
+    .sales-targets-page .target-row-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: .35rem;
+    }
+
+    .sales-targets-page .breakdown-card {
+        border-radius: 14px;
+    }
+
+    .sales-targets-page .breakdown-header {
+        padding: 1rem;
+    }
+
+    .sales-targets-page .breakdown-meta {
+        display: none;
+    }
+
+    .sales-targets-page .table-wrap {
+        overflow-x: auto;
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .sales-targets-page *, .sales-targets-page *::before, .sales-targets-page *::after
+
+    {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+    }
+
+    }</style>
+
+<div class="sales-targets-page">
+    <div class="container-fluid page-shell text-start">
+
+        <!-- Success Message -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert success-alert alert-dismissible fade show mb-3" role="alert">
+                <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
             </div>
-            <div class="progress" style="height: 10px;">
-                <div class="progress-bar bg-warning" role="progressbar" style="width: 70%;" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100"></div>
+        }
+
+        <!-- =====================================================
+             HERO HEADER
+        ====================================================== -->
+
+        <section class="target-hero">
+            <div class="hero-content">
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                    <div class="d-flex align-items-start gap-3">
+
+                        <div class="hero-icon">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+
+                        <div>
+                            <div class="hero-eyebrow">
+                                Sales Performance Management
+                            </div>
+
+                            <h1 class="page-title">
+                                Sales Targets
+                            </h1>
+
+                            <p class="page-subtitle">
+                                Monitor quarterly quotas, revenue achievement and individual executive pacing.
+                            </p>
+
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+
+                                    <li class="breadcrumb-item">
+                                        <a href="/SalesDashboard"
+                                           class="text-decoration-none">
+                                            Sales Management
+                                        </a>
+                                    </li>
+
+                                    <li class="breadcrumb-item text-muted">
+                                        Sales Team
+                                    </li>
+
+                                    <li class="breadcrumb-item active fw-semibold"
+                                        aria-current="page">
+                                        Targets
+                                    </li>
+
+                                </ol>
+                            </nav>
+                        </div>
+
+                    </div>
+
+                    <div class="hero-controls d-flex align-items-center gap-2">
+
+                        <form method="get"
+                              asp-action="Targets"
+                              id="quarterForm"
+                              class="quarter-control">
+
+                            <label class="quarter-label mb-0">
+                                <i class="fa-regular fa-calendar-days me-1"></i>
+                                Quarter
+                            </label>
+
+                            <select name="quarter"
+                                    class="form-select quarter-select"
+                                    onchange="document.getElementById('quarterForm').submit();">
+
+                                <option value="Q1 2026"
+                                        selected="@(selectedQuarter == "Q1 2026")">
+                                    Q1 2026
+                                </option>
+
+                                <option value="Q2 2026"
+                                        selected="@(selectedQuarter == "Q2 2026")">
+                                    Q2 2026
+                                </option>
+
+                                <option value="Q3 2026"
+                                        selected="@(selectedQuarter == "Q3 2026")">
+                                    Q3 2026
+                                </option>
+
+                                <option value="Q4 2026"
+                                        selected="@(selectedQuarter == "Q4 2026")">
+                                    Q4 2026
+                                </option>
+
+                            </select>
+
+                        </form>
+
+                        <button type="button"
+                                class="btn set-target-button"
+                                data-bs-toggle="modal"
+                                data-bs-target="#setTargetsModal">
+
+                            <i class="fa-solid fa-sliders me-1"></i>
+                            Set Targets
+
+                        </button>
+
+                    </div>
+
+                </div>
+
             </div>
-        </div>
+        </section>
+
+        <!-- =====================================================
+             TARGET PROGRESSION
+        ====================================================== -->
+
+        <section class="progression-card">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+
+                <div class="d-flex align-items-center">
+
+                    <span class="section-heading-icon">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </span>
+
+                    <div>
+                        <h2 class="section-heading">
+                            @selectedQuarter Target Progression
+                        </h2>
+
+                        <div class="section-subtitle">
+                            Department-level quota performance
+                        </div>
+                    </div>
+
+                </div>
+
+                <span class="quarter-badge">
+                    <i class="fa-regular fa-calendar me-1"></i>
+                    Quarterly Quota Overview
+                </span>
+
+            </div>
+
+            <!-- Enterprise -->
+            <div class="target-row">
+
+                <div class="target-row-header">
+
+                    <div class="target-name">
+                        <span class="target-name-icon">
+                            <i class="fa-solid fa-building"></i>
+                        </span>
+
+                        Enterprise Invoices Revenue Target
+                    </div>
+
+                    <div class="target-values">
+                        ₹@enterpriseAchieved.ToString("N0")
+                        /
+                        ₹@enterpriseTarget.ToString("N0")
+
+                        <span class="target-percent enterprise">
+                            (@enterprisePct%)
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="progress target-progress"
+                     role="progressbar"
+                     aria-valuenow="@enterprisePct"
+                     aria-valuemin="0"
+                     aria-valuemax="100">
+
+                    <div class="progress-bar enterprise-bar"
+                         style="width: @enterprisePct%;"
+                         aria-hidden="true">
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Retail -->
+            <div class="target-row">
+
+                <div class="target-row-header">
+
+                    <div class="target-name">
+                        <span class="target-name-icon">
+                            <i class="fa-solid fa-cash-register"></i>
+                        </span>
+
+                        Retail Counter Sales Target
+                    </div>
+
+                    <div class="target-values">
+                        ₹@retailAchieved.ToString("N0")
+                        /
+                        ₹@retailTarget.ToString("N0")
+
+                        <span class="target-percent retail">
+                            (@retailPct%)
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="progress target-progress"
+                     role="progressbar"
+                     aria-valuenow="@retailPct"
+                     aria-valuemin="0"
+                     aria-valuemax="100">
+
+                    <div class="progress-bar retail-bar"
+                         style="width: @retailPct%;"
+                         aria-hidden="true">
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- New Customer Acquisition -->
+            <div class="target-row">
+
+                <div class="target-row-header">
+
+                    <div class="target-name">
+                        <span class="target-name-icon">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </span>
+
+                        New Customer Acquisitions
+                    </div>
+
+                    <div class="target-values">
+                        @((int)acqAchieved)
+                        /
+                        @((int)acqTarget)
+                        Accounts
+
+                        <span class="target-percent acquisition">
+                            (@acqPct%)
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="progress target-progress"
+                     role="progressbar"
+                     aria-valuenow="@acqPct"
+                     aria-valuemin="0"
+                     aria-valuemax="100">
+
+                    <div class="progress-bar acquisition-bar"
+                         style="width: @acqPct%;"
+                         aria-hidden="true">
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- =====================================================
+             EXECUTIVE BREAKDOWN
+        ====================================================== -->
+
+        <section class="breakdown-card">
+
+            <div class="breakdown-header">
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+
+                    <div class="d-flex align-items-center">
+
+                        <span class="section-heading-icon">
+                            <i class="fa-solid fa-users-gear"></i>
+                        </span>
+
+                        <div>
+                            <h2 class="section-heading">
+                                Executive Individual Quota Breakdown (@selectedQuarter)
+                            </h2>
+
+                            <div class="section-subtitle">
+                                Individual pacing against assigned quarterly targets
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <span class="breakdown-meta">
+                        Pacing tracks actual achieved revenue vs. quarterly target
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="table-wrap">
+
+                <table class="table targets-table align-middle mb-0">
+
+                    <thead>
+                        <tr>
+                            <th>Sales Executive</th>
+                            <th>Region</th>
+                            <th class="text-end">Quarter Target (₹)</th>
+                            <th class="text-end">Achieved (₹)</th>
+                            <th class="text-center" style="width: 100px;">
+                                Pacing %
+                            </th>
+                            <th style="min-width: 180px;">
+                                Pacing Status
+                            </th>
+                            <th class="text-center" style="width: 120px;">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @if (repPacingList != null && repPacingList.Any())
+                        {
+                            foreach (var rep in repPacingList)
+                            {
+                                <tr>
+
+                                    <!-- Executive -->
+                                    <td>
+
+                                        <div class="d-flex align-items-center gap-2">
+
+                                            <div class="rep-avatar">
+                                                <i class="fa-solid fa-user"></i>
+                                            </div>
+
+                                            <div>
+                                                <div class="rep-name">
+                                                    @rep.Name
+                                                </div>
+
+                                                <span class="exec-code">
+                                                    @rep.ExecId
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                    <!-- Region -->
+                                    <td>
+
+                                        <span class="region-badge">
+                                            <i class="fa-solid fa-location-dot"></i>
+                                            @rep.Region
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Target -->
+                                    <td class="text-end">
+                                        <span class="money-target">
+                                            ₹@(((decimal)rep.Target).ToString("N0"))
+                                        </span>
+                                    </td>
+
+                                    <!-- Achieved -->
+                                    <td class="text-end">
+                                        <span class="money-achieved">
+                                            ₹@(((decimal)rep.Achieved).ToString("N0"))
+                                        </span>
+                                    </td>
+
+                                    <!-- Pacing -->
+                                    <td class="text-center">
+
+                                        <span class="pacing-pill bg-@rep.StatusClass-subtle text-@rep.StatusClass border border-@rep.StatusClass">
+                                            @rep.Pacing%
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Pacing Status -->
+                                    <td>
+
+                                        <div class="d-flex align-items-center gap-2">
+
+                                            <div class="progress pacing-track">
+
+                                                <div class="progress-bar bg-@rep.StatusClass"
+                                                     role="progressbar"
+                                                     style="width: @Math.Min(100, rep.Pacing)%;"
+                                                     aria-valuenow="@rep.Pacing"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">
+                                                </div>
+
+                                            </div>
+
+                                            <small class="pacing-status">
+                                                @rep.Status
+                                            </small>
+
+                                        </div>
+
+                                    </td>
+
+                                    <!-- Action -->
+                                    <td class="text-center">
+
+                                        <button type="button"
+                                                class="btn adjust-button"
+                                                onclick="openTargetModal('@selectedQuarter', 'Enterprise Invoices', '@rep.UserId', '@rep.Target')">
+
+                                            <i class="fa-solid fa-sliders"></i>
+                                            Adjust
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="7"
+                                    class="text-center empty-state">
+
+                                    <div class="empty-icon">
+                                        <i class="fa-solid fa-chart-column"></i>
+                                    </div>
+
+                                    <div class="empty-title">
+                                        No individual target breakdown found
+                                    </div>
+
+                                    <p class="empty-text">
+                                        No executive pacing data is available for this quarter.
+                                    </p>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
     </div>
 </div>
+
+<!-- =========================================================
+     MODAL: SET TARGETS
+========================================================= -->
+
+<div class="modal fade"
+     id="setTargetsModal"
+     tabindex="-1"
+     aria-labelledby="setTargetsModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form asp-action="SetTarget" method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header modal-header-primary">
+
+                    <h5 class="modal-title"
+                        id="setTargetsModalLabel">
+
+                        <i class="fa-solid fa-bullseye me-2"></i>
+                        Configure Sales Target
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- Quarter -->
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Fiscal Quarter
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select id="modalQuarter"
+                                name="FiscalQuarter"
+                                class="form-select fw-semibold"
+                                required>
+
+                            <option value="Q1 2026"
+                                    selected="@(selectedQuarter == "Q1 2026")">
+                                Q1 2026
+                            </option>
+
+                            <option value="Q2 2026"
+                                    selected="@(selectedQuarter == "Q2 2026")">
+                                Q2 2026
+                            </option>
+
+                            <option value="Q3 2026"
+                                    selected="@(selectedQuarter == "Q3 2026")">
+                                Q3 2026
+                            </option>
+
+                            <option value="Q4 2026"
+                                    selected="@(selectedQuarter == "Q4 2026")">
+                                Q4 2026
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <!-- Category -->
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Target Category
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select id="modalCategory"
+                                name="TargetCategory"
+                                class="form-select fw-semibold"
+                                required>
+
+                            <option value="Enterprise Invoices">
+                                Enterprise Invoices (Revenue)
+                            </option>
+
+                            <option value="Retail Counter">
+                                Retail Counter Sales (Revenue)
+                            </option>
+
+                            <option value="New Customer Acquisitions">
+                                New Customer Acquisitions (Count)
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <!-- Sales Representative -->
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Target Assignment
+                        </label>
+
+                        <select id="modalRepUser"
+                                name="SalesRepUserId"
+                                class="form-select">
+
+                            <option value="">
+                                -- Team-Wide Aggregate Target --
+                            </option>
+
+                            @foreach (var exec in executives)
+                            {
+                                <option value="@exec.UserId">
+                                    @exec.ExecCode - @(exec.User?.FullName ?? "Executive") (@exec.Region)
+                                </option>
+                            }
+
+                        </select>
+
+                        <div class="target-help">
+                            <i class="fa-solid fa-circle-info me-1"></i>
+                            Leave empty to set the department aggregate milestone.
+                        </div>
+
+                    </div>
+
+                    <!-- Target Value -->
+                    <div class="mb-2">
+
+                        <label class="form-label">
+                            Target Value (₹ / Count)
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="number"
+                               step="1000"
+                               id="modalTargetValue"
+                               name="TargetValue"
+                               class="form-control fw-bold"
+                               placeholder="e.g. 5000000"
+                               required />
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary modal-cancel"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn modal-save">
+
+                        <i class="fa-solid fa-check me-1"></i>
+                        Save Target
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script>
+        function openTargetModal(quarter, category, repUserId, targetValue) {
+
+            document.getElementById('modalQuarter').value = quarter;
+
+            document.getElementById('modalCategory').value =
+                category || 'Enterprise Invoices';
+
+            document.getElementById('modalRepUser').value =
+                repUserId || '';
+
+            document.getElementById('modalTargetValue').value =
+                targetValue || '';
+
+            var modal = new bootstrap.Modal(
+                document.getElementById('setTargetsModal')
+            );
+
+            modal.show();
+        }
+    </script>
+
+}
+```

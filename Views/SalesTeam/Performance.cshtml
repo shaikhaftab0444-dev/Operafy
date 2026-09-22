@@ -1,60 +1,1224 @@
+```cshtml
+@model IEnumerable<ERP_System.Models.SalesPerformanceLeaderboardItem>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales Performance";
+
+    var topPerformer = ViewBag.TopPerformer as ERP_System.Models.SalesPerformanceLeaderboardItem;
+    var secondPerformer = ViewBag.SecondPerformer as ERP_System.Models.SalesPerformanceLeaderboardItem;
+    var thirdPerformer = ViewBag.ThirdPerformer as ERP_System.Models.SalesPerformanceLeaderboardItem;
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+    /* =========================================================
+           SALES PERFORMANCE PAGE
+           Scoped styles - does not modify dashboard layout
+           ========================================================= */
+
+    .sales-performance-page {
+        background: #f6f8fb;
+        min-height: calc(100vh - 70px);
+        padding: 28px;
+    }
+
+    .sales-page-header {
+        margin-bottom: 26px;
+    }
+
+    .sales-page-title {
+        color: #172033;
+        font-size: 1.45rem;
+        font-weight: 750;
+        letter-spacing: -0.3px;
+    }
+
+    .sales-page-title-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        background: #eef2ff;
+        color: #4f46e5;
+        margin-right: 10px;
+        font-size: 1rem;
+    }
+
+    .sales-breadcrumb {
+        margin-top: 5px;
+    }
+
+        .sales-breadcrumb .breadcrumb-item {
+            font-size: .78rem;
+            color: #8a94a6;
+        }
+
+        .sales-breadcrumb a {
+            color: #7b8495 !important;
+        }
+
+    .sales-action-btn {
+        height: 40px;
+        padding: 0 17px;
+        border-radius: 10px !important;
+        font-size: .82rem;
+        font-weight: 650;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: all .2s ease;
+        background: #fff;
+    }
+
+        .sales-action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 7px 18px rgba(31, 41, 55, .08) !important;
+        }
+
+    /* =========================
+           PODIUM
+           ========================= */
+
+    .podium-row {
+        margin-bottom: 28px;
+    }
+
+    .performer-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #e8ecf2 !important;
+        border-radius: 17px !important;
+        min-height: 280px;
+        transition: transform .22s ease, box-shadow .22s ease;
+    }
+
+        .performer-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(31, 41, 55, .10) !important;
+        }
+
+        .performer-card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 4px;
+        }
+
+        .performer-card.silver {
+            background: linear-gradient(145deg, #ffffff 0%, #f4f6f9 100%);
+        }
+
+            .performer-card.silver::before {
+                background: #9ca3af;
+            }
+
+        .performer-card.gold {
+            background: linear-gradient(145deg, #fffdf7 0%, #fff7df 100%);
+            min-height: 300px;
+            transform: translateY(-7px);
+            border-color: #f3e5b5 !important;
+        }
+
+            .performer-card.gold::before {
+                background: #eab308;
+            }
+
+            .performer-card.gold:hover {
+                transform: translateY(-11px);
+            }
+
+        .performer-card.bronze {
+            background: linear-gradient(145deg, #fffaf6 0%, #fff1e8 100%);
+        }
+
+            .performer-card.bronze::before {
+                background: #ea7b22;
+            }
+
+    .rank-circle {
+        position: absolute;
+        top: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: 800;
+        box-shadow: 0 5px 12px rgba(31, 41, 55, .14);
+    }
+
+        .rank-circle.rank-1 {
+            width: 43px;
+            height: 43px;
+            background: #f4c430;
+            color: #3d3200;
+            font-size: 1rem;
+        }
+
+        .rank-circle.rank-2,
+        .rank-circle.rank-3 {
+            width: 36px;
+            height: 36px;
+            font-size: .82rem;
+            color: #fff;
+        }
+
+        .rank-circle.rank-2 {
+            background: #9ca3af;
+        }
+
+        .rank-circle.rank-3 {
+            background: #e67e22;
+        }
+
+    .performer-content {
+        position: relative;
+        z-index: 1;
+        padding: 57px 24px 22px;
+        text-align: center;
+    }
+
+    .gold .performer-content {
+        padding-top: 61px;
+    }
+
+    .performer-icon {
+        margin-bottom: 12px;
+    }
+
+        .performer-icon.silver {
+            color: #9ca3af;
+        }
+
+        .performer-icon.gold {
+            color: #eab308;
+        }
+
+        .performer-icon.bronze {
+            color: #e67e22;
+        }
+
+    .performer-name {
+        color: #182233;
+        font-weight: 750;
+        font-size: 1rem;
+        margin-bottom: 7px;
+    }
+
+    .gold .performer-name {
+        font-size: 1.12rem;
+    }
+
+    .performer-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255,255,255,.72);
+        border: 1px solid rgba(148,163,184,.22);
+        border-radius: 999px;
+        padding: 5px 10px;
+        color: #667085;
+        font-size: .72rem;
+        font-weight: 600;
+        margin-bottom: 14px;
+    }
+
+    .performer-revenue {
+        color: #2563eb;
+        font-size: 1.55rem;
+        line-height: 1.1;
+        font-weight: 800;
+        letter-spacing: -.4px;
+        margin-bottom: 4px;
+    }
+
+    .gold .performer-revenue {
+        color: #15803d;
+        font-size: 1.85rem;
+    }
+
+    .performer-caption {
+        color: #7b8495;
+        font-size: .72rem;
+        margin-bottom: 15px;
+    }
+
+    .performer-stats {
+        display: flex;
+        justify-content: center;
+        gap: 0;
+        border-top: 1px solid rgba(100,116,139,.15);
+        padding-top: 13px;
+        margin-top: 3px;
+    }
+
+    .performer-stat {
+        min-width: 80px;
+        padding: 0 11px;
+        border-right: 1px solid rgba(100,116,139,.12);
+    }
+
+        .performer-stat:last-child {
+            border-right: 0;
+        }
+
+    .performer-stat-value {
+        color: #172033;
+        font-size: .86rem;
+        font-weight: 750;
+    }
+
+    .performer-stat-label {
+        color: #8992a3;
+        font-size: .66rem;
+        margin-top: 2px;
+    }
+
+    /* =========================
+           LEADERBOARD
+           ========================= */
+
+    .leaderboard-card {
+        background: #fff;
+        border: 1px solid #e7ebf1;
+        border-radius: 17px;
+        box-shadow: 0 7px 25px rgba(31, 41, 55, .045);
+        overflow: hidden;
+    }
+
+    .leaderboard-header {
+        padding: 21px 23px;
+        border-bottom: 1px solid #edf0f4;
+    }
+
+    .leaderboard-title {
+        color: #172033;
+        font-size: .96rem;
+        font-weight: 750;
+        margin: 0;
+    }
+
+    .leaderboard-title-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: #fff7df;
+        color: #d89b00;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+        font-size: .78rem;
+    }
+
+    .leaderboard-subtitle {
+        color: #8a94a6;
+        font-size: .72rem;
+        margin-top: 4px;
+        margin-left: 39px;
+    }
+
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f0fdf4;
+        border: 1px solid #dcfce7;
+        color: #15803d;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: .68rem;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+
+    .live-dot {
+        width: 6px;
+        height: 6px;
+        background: #22c55e;
+        border-radius: 50%;
+        box-shadow: 0 0 0 3px rgba(34,197,94,.12);
+    }
+
+    .leaderboard-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .leaderboard-table {
+        min-width: 1100px;
+        margin-bottom: 0 !important;
+    }
+
+        .leaderboard-table thead th {
+            background: #f8fafc;
+            color: #667085;
+            border-bottom: 1px solid #e8edf3;
+            border-top: 0;
+            padding: 13px 14px;
+            font-size: .68rem;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: .35px;
+            white-space: nowrap;
+        }
+
+        .leaderboard-table tbody td {
+            padding: 15px 14px;
+            border-color: #eef1f5;
+            color: #475467;
+            font-size: .79rem;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .leaderboard-table tbody tr {
+            transition: background .18s ease;
+        }
+
+            .leaderboard-table tbody tr:hover {
+                background: #f9fbff;
+            }
+
+            .leaderboard-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .rank-table-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        font-size: .7rem;
+        font-weight: 800;
+    }
+
+    .executive-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .executive-avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 10px;
+        background: #eef2ff;
+        color: #4f46e5;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: .76rem;
+        flex-shrink: 0;
+    }
+
+    .executive-name {
+        color: #172033;
+        font-weight: 700;
+        font-size: .8rem;
+    }
+
+    .executive-id {
+        display: block;
+        color: #98a2b3;
+        font-size: .67rem;
+        margin-top: 2px;
+    }
+
+    .region-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #f8fafc;
+        color: #667085;
+        border: 1px solid #e5e7eb;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: .69rem;
+        font-weight: 600;
+    }
+
+    .revenue-value {
+        color: #2563eb;
+        font-weight: 750;
+    }
+
+    .target-value {
+        color: #667085;
+        font-weight: 600;
+    }
+
+    .achievement-value {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 750;
+        font-size: .76rem;
+    }
+
+    .achievement-progress {
+        width: 72px;
+        height: 5px;
+        margin-left: auto;
+        margin-right: auto;
+        background: #edf0f4;
+        border-radius: 99px;
+        overflow: hidden;
+    }
+
+        .achievement-progress .progress-bar {
+            border-radius: 99px;
+        }
+
+    .deal-number {
+        color: #172033;
+        font-weight: 750;
+    }
+
+    .deal-total {
+        color: #98a2b3;
+        font-size: .7rem;
+    }
+
+    .conversion-value {
+        color: #344054;
+        font-weight: 700;
+    }
+
+    .achieved-badge,
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: .67rem;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+    .achieved-badge {
+        background: #ecfdf3;
+        color: #15803d;
+        border-color: #bbf7d0;
+    }
+
+    .gap-value {
+        color: #dc2626;
+        font-weight: 750;
+    }
+
+    .status-active {
+        background: #ecfdf3;
+        color: #15803d;
+        border-color: #bbf7d0;
+    }
+
+    .status-other {
+        background: #fff7ed;
+        color: #c2410c;
+        border-color: #fed7aa;
+    }
+
+    .empty-performance {
+        padding: 65px 20px !important;
+        text-align: center;
+    }
+
+    .empty-performance-icon {
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: #f3f4f6;
+        color: #98a2b3;
+        font-size: 1.25rem;
+        margin-bottom: 12px;
+    }
+
+    .empty-performance-title {
+        color: #344054;
+        font-weight: 700;
+        font-size: .88rem;
+        margin-bottom: 4px;
+    }
+
+    .empty-performance-text {
+        color: #98a2b3;
+        font-size: .75rem;
+        margin: 0;
+    }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 991.98px) {
+        .sales-performance-page {
+            padding: 22px;
+        }
+
+        .performer-card.gold {
+            transform: none;
+        }
+
+            .performer-card.gold:hover {
+                transform: translateY(-4px);
+            }
+
+        .performer-content {
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-performance-page {
+            padding: 16px;
+        }
+
+        .sales-page-header {
+            align-items: flex-start !important;
+        }
+
+        .sales-page-title {
+            font-size: 1.2rem;
+        }
+
+        .sales-action-group {
+            width: 100%;
+        }
+
+        .sales-action-btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .performer-card,
+        .performer-card.gold {
+            min-height: auto;
+        }
+
+        .leaderboard-header {
+            padding: 17px;
+        }
+
+        .leaderboard-header-top {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px;
+        }
+
+        .leaderboard-subtitle {
+            margin-left: 0;
+        }
+    }
+
+    /* =========================
+           PRINT
+           ========================= */
+
+    @@media print {
+        .sales-performance-page {
+            background: #fff !important;
+            padding: 0 !important;
+        }
+
+        .sales-page-header .sales-action-group,
+        .live-indicator {
+            display: none !important;
+        }
+
+        .leaderboard-card,
+        .performer-card {
+            box-shadow: none !important;
+            break-inside: avoid;
+        }
+
+        .leaderboard-table-wrapper {
+            overflow: visible !important;
+        }
+
+        .leaderboard-table {
+            min-width: 0 !important;
+            font-size: 9px !important;
+        }
+
+        .performer-card {
+            transform: none !important;
+        }
+    }
+</style>
+
+<div class="sales-performance-page">
+
+    <!-- =========================================================
+         PAGE HEADER
+         ========================================================= -->
+    <div class="sales-page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-ranking-star text-primary me-2"></i>Sales Performance</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item">Sales Team</li>
-                    <li class="breadcrumb-item active" aria-current="page">Performance</li>
+            <div class="d-flex align-items-center">
+                <span class="sales-page-title-icon">
+                    <i class="fa-solid fa-ranking-star"></i>
+                </span>
+
+                <h4 class="sales-page-title mb-0">
+                    Sales Performance
+                </h4>
+            </div>
+
+            <nav aria-label="breadcrumb" class="sales-breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="/SalesDashboard" class="text-decoration-none">
+                            Sales Management
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        Sales Team
+                    </li>
+                    <li class="breadcrumb-item active fw-semibold" aria-current="page">
+                        Performance
+                    </li>
                 </ol>
             </nav>
         </div>
-    </div>
 
-    <!-- Leaderboard -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h6 class="fw-bold text-dark mb-4"><i class="fa-solid fa-trophy text-warning me-2"></i>Sales Executives Leaderboard (Current Month)</h6>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 80px;">Rank</th>
-                        <th>Executive</th>
-                        <th>Revenue Contribution</th>
-                        <th>Target Achievement</th>
-                        <th>Lead Conversion Rate</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-1">#1</span></td>
-                        <td class="fw-bold text-dark">Amit Verma</td>
-                        <td class="fw-bold text-primary">₹12,45,000</td>
-                        <td>83%</td>
-                        <td>24.5%</td>
-                    </tr>
-                    <tr>
-                        <td><span class="badge bg-secondary text-dark fw-bold rounded-pill px-2.5 py-1">#2</span></td>
-                        <td class="fw-bold text-dark">Neha Sharma</td>
-                        <td class="fw-bold text-primary">₹10,50,000</td>
-                        <td>87.5%</td>
-                        <td>19.8%</td>
-                    </tr>
-                    <tr>
-                        <td><span class="badge bg-danger text-white fw-bold rounded-pill px-2.5 py-1">#3</span></td>
-                        <td class="fw-bold text-dark">Rohan Das</td>
-                        <td class="fw-bold text-primary">₹8,20,000</td>
-                        <td>82%</td>
-                        <td>15.2%</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="d-flex gap-2 sales-action-group">
+
+            <a asp-action="ExportPerformanceCsv"
+               class="btn btn-outline-secondary sales-action-btn shadow-sm">
+                <i class="fa-solid fa-file-csv text-success"></i>
+                <span>Export CSV</span>
+            </a>
+
+            <button type="button"
+                    class="btn btn-outline-dark sales-action-btn shadow-sm"
+                    onclick="window.print();">
+                <i class="fa-solid fa-print"></i>
+                <span>Print Report</span>
+            </button>
+
         </div>
     </div>
+
+
+    <!-- =========================================================
+         TOP 3 PERFORMANCE PODIUM
+         ========================================================= -->
+    <div class="row g-4 podium-row align-items-end">
+
+        <!-- =====================================================
+             RANK #2
+             ===================================================== -->
+        <div class="col-lg-4 order-2 order-lg-1">
+
+            <div class="performer-card silver shadow-sm">
+
+                <span class="rank-circle rank-2">
+                    #2
+                </span>
+
+                <div class="performer-content">
+
+                    <div class="performer-icon silver">
+                        <i class="fa-solid fa-medal fa-2x"></i>
+                    </div>
+
+                    <div class="performer-name">
+                        @(secondPerformer?.Name ?? "Representative 2")
+                    </div>
+
+                    <div class="performer-meta">
+                        <i class="fa-solid fa-id-badge"></i>
+                        @(secondPerformer?.ExecId ?? "EX-105")
+                        <span>•</span>
+                        @(secondPerformer?.Region ?? "West")
+                    </div>
+
+                    <div class="performer-revenue">
+                        ₹@(secondPerformer != null ? secondPerformer.Revenue.ToString("N0") : "0")
+                    </div>
+
+                    <div class="performer-caption">
+                        Revenue Contribution
+                    </div>
+
+                    <div class="performer-stats">
+
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">
+                                @(secondPerformer?.TargetAchievement ?? 0)%
+                            </div>
+                            <div class="performer-stat-label">
+                                Quota
+                            </div>
+                        </div>
+
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">
+                                @(secondPerformer?.ConversionRate ?? 0)%
+                            </div>
+                            <div class="performer-stat-label">
+                                Win Rate
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+        <!-- =====================================================
+             RANK #1
+             ===================================================== -->
+        <div class="col-lg-4 order-1 order-lg-2">
+
+            <div class="performer-card gold shadow">
+
+                <span class="rank-circle rank-1">
+                    #1
+                </span>
+
+                <div class="performer-content">
+
+                    <div class="performer-icon gold">
+                        <i class="fa-solid fa-crown fa-2x"></i>
+                    </div>
+
+                    <div class="performer-name">
+                        @(topPerformer?.Name ?? "Top Performer")
+                    </div>
+
+                    <div class="performer-meta">
+                        <i class="fa-solid fa-id-badge"></i>
+                        @(topPerformer?.ExecId ?? "EX-104")
+                        <span>•</span>
+                        @(topPerformer?.Region ?? "North")
+                    </div>
+
+                    <div class="performer-revenue">
+                        ₹@(topPerformer != null ? topPerformer.Revenue.ToString("N0") : "0")
+                    </div>
+
+                    <div class="performer-caption">
+                        Current Month Revenue Leader
+                    </div>
+
+                    <div class="performer-stats">
+
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">
+                                @(topPerformer?.TargetAchievement ?? 0)%
+                            </div>
+                            <div class="performer-stat-label">
+                                Quota
+                            </div>
+                        </div>
+
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">
+                                @(topPerformer?.ConversionRate ?? 0)%
+                            </div>
+                            <div class="performer-stat-label">
+                                Win Rate
+                            </div>
+                        </div>
+
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">
+                                @(topPerformer?.WonDeals ?? 0)
+                            </div>
+                            <div class="performer-stat-label">
+                                Deals Closed
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+        <!-- =====================================================
+             RANK #3
+             ===================================================== -->
+        <div class="col-lg-4 order-3">
+
+            <div class="performer-card bronze shadow-sm">
+
+                <span class="rank-circle rank-3">
+                    #3
+                </span>
+
+                <div class="performer-content">
+
+                    <div class="performer-icon bronze">
+                        <i class="fa-solid fa-award fa-2x"></i>
+                    </div>
+
+                    <div class="performer-name">
+                        @(thirdPerformer?.Name ?? "Representative 3")
+                    </div>
+
+                    <div class="performer-meta">
+                        <i class="fa-solid fa-id-badge"></i>
+                        @(thirdPerformer?.ExecId ?? "EX-106")
+                        <span>•</span>
+                        @(thirdPerformer?.Region ?? "South")
+                    </div>
+
+                    <div class="performer-revenue">
+                        ₹@(thirdPerformer != null ? thirdPerformer.Revenue.ToString("N0") : "0")
+                    </div>
+
+                    <div class="performer-caption">
+                        Revenue Contribution
+                    </div>
+
+                    <div class="performer-stats">
+
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">
+                                @(thirdPerformer?.TargetAchievement ?? 0)%
+                            </div>
+                            <div class="performer-stat-label">
+                                Quota
+                            </div>
+                        </div>
+
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">
+                                @(thirdPerformer?.ConversionRate ?? 0)%
+                            </div>
+                            <div class="performer-stat-label">
+                                Win Rate
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         LEADERBOARD
+         ========================================================= -->
+    <div class="leaderboard-card">
+
+        <div class="leaderboard-header">
+
+            <div class="leaderboard-header-top d-flex justify-content-between align-items-center gap-3">
+
+                <div>
+
+                    <h6 class="leaderboard-title">
+                        <span class="leaderboard-title-icon">
+                            <i class="fa-solid fa-trophy"></i>
+                        </span>
+
+                        Sales Executives Leaderboard
+                    </h6>
+
+                    <div class="leaderboard-subtitle">
+                        Current month performance based on paid invoices and opportunity closure
+                    </div>
+
+                </div>
+
+                <span class="live-indicator">
+                    <span class="live-dot"></span>
+                    Live Performance
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="leaderboard-table-wrapper">
+
+            <table class="table leaderboard-table table-hover align-middle">
+
+                <thead>
+                    <tr>
+
+                        <th class="text-center" style="width: 65px;">
+                            Rank
+                        </th>
+
+                        <th>
+                            Executive
+                        </th>
+
+                        <th>
+                            Region
+                        </th>
+
+                        <th class="text-end">
+                            Revenue Contribution
+                        </th>
+
+                        <th class="text-end">
+                            Target (Month)
+                        </th>
+
+                        <th class="text-center">
+                            Target Achievement
+                        </th>
+
+                        <th class="text-center">
+                            Deals Closed
+                        </th>
+
+                        <th class="text-center">
+                            Conversion Rate
+                        </th>
+
+                        <th class="text-end">
+                            Gap to Target (₹)
+                        </th>
+
+                        <th class="text-center">
+                            Status
+                        </th>
+
+                    </tr>
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            var rankBadge = item.Rank == 1
+                            ? "background: #f4c430; color: #3d3200;"
+                            : item.Rank == 2
+                            ? "background: #9ca3af; color: white;"
+                            : item.Rank == 3
+                            ? "background: #e67e22; color: white;"
+                            : "background: #eef0f3; color: #667085;";
+
+                            var achClass = item.TargetAchievement >= 100
+                            ? "text-success fw-bold"
+                            : item.TargetAchievement >= 80
+                            ? "text-primary fw-bold"
+                            : "text-warning fw-bold";
+
+                            var progressClass = item.TargetAchievement >= 100
+                            ? "bg-success"
+                            : item.TargetAchievement >= 80
+                            ? "bg-primary"
+                            : "bg-warning";
+
+                            var executiveInitial =
+                            !string.IsNullOrWhiteSpace(item.Name)
+                            ? item.Name.Trim().Substring(0, 1).ToUpper()
+                            : "E";
+
+                            <tr>
+
+                                <!-- Rank -->
+                                <td class="text-center">
+
+                                    <span class="rank-table-badge"
+                                          style="@rankBadge">
+
+                                        #@item.Rank
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Executive -->
+                                <td>
+
+                                    <div class="executive-cell">
+
+                                        <div class="executive-avatar">
+                                            @executiveInitial
+                                        </div>
+
+                                        <div>
+                                            <div class="executive-name">
+                                                @item.Name
+                                            </div>
+
+                                            <span class="executive-id">
+                                                @item.ExecId
+                                            </span>
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- Region -->
+                                <td>
+
+                                    <span class="region-badge">
+                                        <i class="fa-solid fa-location-dot text-primary"></i>
+                                        @item.Region
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Revenue -->
+                                <td class="text-end">
+
+                                    <span class="revenue-value">
+                                        ₹@item.Revenue.ToString("N0")
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Target -->
+                                <td class="text-end">
+
+                                    <span class="target-value">
+                                        ₹@item.Target.ToString("N0")
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Achievement -->
+                                <td class="text-center">
+
+                                    <span class="achievement-value @achClass">
+                                        @item.TargetAchievement%
+                                    </span>
+
+                                    <div class="achievement-progress">
+
+                                        <div class="progress-bar @progressClass"
+                                             role="progressbar"
+                                             style="width: @Math.Min(100, item.TargetAchievement)%;">
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- Deals -->
+                                <td class="text-center">
+
+                                    <span class="deal-number">
+                                        @item.WonDeals
+                                    </span>
+
+                                    <span class="deal-total">
+                                        / @item.TotalDeals
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Conversion -->
+                                <td class="text-center">
+
+                                    <span class="conversion-value">
+                                        @item.ConversionRate%
+                                    </span>
+
+                                </td>
+
+
+                                <!-- Gap -->
+                                <td class="text-end">
+
+                                    @if (item.GapToTarget <= 0)
+                                    {
+                                        <span class="achieved-badge">
+                                            <i class="fa-solid fa-check"></i>
+                                            Achieved
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="gap-value">
+                                            ₹@item.GapToTarget.ToString("N0")
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- Status -->
+                                <td class="text-center">
+
+                                    @if (item.Status == "Active")
+                                    {
+                                        <span class="status-badge status-active">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            @item.Status
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-other">
+                                            @item.Status
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="10" class="empty-performance">
+
+                                <div class="empty-performance-icon">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                </div>
+
+                                <div class="empty-performance-title">
+                                    No sales performance data available
+                                </div>
+
+                                <p class="empty-performance-text">
+                                    There is no performance information available for this period.
+                                </p>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
 </div>
+```

@@ -1,105 +1,2142 @@
+```cshtml
+@model IEnumerable<ERP_System.Models.SalesExecutiveProfile>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales Executives";
+    var repMonthlySales = ViewBag.RepMonthlySales as Dictionary<string, decimal> ?? new Dictionary<string, decimal>();
+    var coordinators = ViewBag.AvailableCoordinators as List<ERP_System.Models.SalesCoordinatorProfile> ?? new List<ERP_System.Models.SalesCoordinatorProfile>();
+    var allExecutives = ViewBag.AllExecutives as List<ERP_System.Models.SalesExecutiveProfile> ?? new List<ERP_System.Models.SalesExecutiveProfile>();
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-tag text-primary me-2"></i>Sales Executives</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item">Sales Team</li>
-                    <li class="breadcrumb-item active" aria-current="page">Executives</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm"><i class="fa-solid fa-plus me-1.5"></i>Add Executive</button>
-    </div>
+<style>
+    .sales-executives-page {
+        --sales-primary: #2563eb;
+        --sales-primary-dark: #1d4ed8;
+        --sales-success: #16a34a;
+        --sales-warning: #d97706;
+        --sales-danger: #dc2626;
+        --sales-info: #0891b2;
+        --sales-purple: #7c3aed;
+        --sales-text: #172033;
+        --sales-muted: #64748b;
+        --sales-border: #e5eaf1;
+        --sales-soft: #f8fafc;
+        --sales-shadow: 0 10px 30px rgba(15, 23, 42, .055);
+        --sales-shadow-hover: 0 16px 38px rgba(15, 23, 42, .09);
+        color: var(--sales-text);
+    }
 
-    <!-- Executives Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Active Executives</div>
-                <h3 class="fw-bold text-dark mb-0 mt-1">12</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Month's Leader</div>
-                <h3 class="fw-bold text-success mb-0 mt-1">Amit Verma</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Avg. Sales/Exec</div>
-                <h3 class="fw-bold text-primary mb-0 mt-1">₹8,50,000</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Target Achievement</div>
-                <h3 class="fw-bold text-warning mb-0 mt-1">87%</h3>
-            </div>
-        </div>
-    </div>
+        .sales-executives-page * {
+            box-sizing: border-box;
+        }
 
-    <!-- Grid Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Exec ID</th>
-                        <th>Name</th>
-                        <th>Mobile</th>
-                        <th>Region</th>
-                        <th>Month Sales</th>
-                        <th>Target (Month)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">EX-104</td>
-                        <td>Amit Verma</td>
-                        <td>+91 98765 43210</td>
-                        <td>North India</td>
-                        <td class="fw-bold">₹12,45,000</td>
-                        <td>₹15,00,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">EX-105</td>
-                        <td>Neha Sharma</td>
-                        <td>+91 98765 43211</td>
-                        <td>West India</td>
-                        <td class="fw-bold">₹10,50,000</td>
-                        <td>₹12,00,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">EX-106</td>
-                        <td>Rohan Das</td>
-                        <td>+91 98765 43212</td>
-                        <td>South India</td>
-                        <td class="fw-bold">₹8,20,000</td>
-                        <td>₹10,00,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">EX-107</td>
-                        <td>Priya Nair</td>
-                        <td>+91 98765 43213</td>
-                        <td>East India</td>
-                        <td class="fw-bold">₹4,80,000</td>
-                        <td>₹8,00,000</td>
-                        <td><span class="badge bg-warning-subtle text-warning rounded-pill px-2.5 py-1">On Leave</span></td>
-                    </tr>
-                </tbody>
-            </table>
+    .sales-shell {
+        padding: 28px 24px 42px;
+    }
+
+    /* =========================
+           HERO / PAGE HEADER
+           ========================= */
+
+    .sales-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 25px 26px;
+        margin-bottom: 22px;
+        border: 1px solid rgba(226, 232, 240, .92);
+        border-radius: 22px;
+        background: radial-gradient(circle at 94% 8%, rgba(37, 99, 235, .09), transparent 30%), radial-gradient(circle at 70% 100%, rgba(124, 58, 237, .045), transparent 30%), #ffffff;
+        box-shadow: var(--sales-shadow);
+    }
+
+        .sales-hero::after {
+            content: "";
+            position: absolute;
+            width: 190px;
+            height: 190px;
+            top: -110px;
+            right: -80px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .035);
+            pointer-events: none;
+        }
+
+    .sales-hero-row {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+    }
+
+    .sales-heading {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        min-width: 0;
+    }
+
+    .sales-title-icon {
+        width: 51px;
+        height: 51px;
+        flex: 0 0 51px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dbeafe;
+        border-radius: 15px;
+        color: var(--sales-primary);
+        background: #eff6ff;
+        font-size: 21px;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .08);
+    }
+
+    .sales-eyebrow {
+        margin-bottom: 5px;
+        color: var(--sales-primary);
+        font-size: .71rem;
+        font-weight: 800;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+    }
+
+    .sales-page-title {
+        margin: 0;
+        color: #172033;
+        font-size: 1.55rem;
+        line-height: 1.25;
+        font-weight: 800;
+        letter-spacing: -.025em;
+    }
+
+    .sales-page-subtitle {
+        margin: 6px 0 0;
+        color: var(--sales-muted);
+        font-size: .88rem;
+        line-height: 1.5;
+    }
+
+    .sales-breadcrumb {
+        margin: 10px 0 0;
+        padding: 0;
+        font-size: .75rem;
+    }
+
+        .sales-breadcrumb a {
+            color: #64748b !important;
+        }
+
+        .sales-breadcrumb .breadcrumb-item.active {
+            color: #94a3b8 !important;
+        }
+
+    .sales-header-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 43px;
+        padding: 0 17px;
+        border: 1px solid var(--sales-primary);
+        border-radius: 11px;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .18);
+        font-size: .8rem;
+        font-weight: 750;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .sales-header-action:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 11px 24px rgba(37, 99, 235, .25);
+        }
+
+    /* =========================
+           ALERTS
+           ========================= */
+
+    .sales-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 13px 15px;
+        border-radius: 12px;
+        font-size: .81rem;
+        box-shadow: 0 5px 15px rgba(15, 23, 42, .04);
+    }
+
+    .sales-alert-success {
+        color: #15803d;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #16a34a;
+    }
+
+    .sales-alert-danger {
+        color: #b91c1c;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-left: 4px solid #dc2626;
+    }
+
+    .sales-alert-icon {
+        width: 29px;
+        height: 29px;
+        flex: 0 0 29px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+
+    .sales-alert-success .sales-alert-icon {
+        background: #dcfce7;
+    }
+
+    .sales-alert-danger .sales-alert-icon {
+        background: #fee2e2;
+    }
+
+    .sales-alert .btn-close {
+        margin-left: auto;
+        box-shadow: none;
+    }
+
+    /* =========================
+           KPI CARDS
+           ========================= */
+
+    .sales-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .sales-kpi {
+        position: relative;
+        overflow: hidden;
+        min-height: 135px;
+        padding: 18px;
+        border: 1px solid var(--sales-border);
+        border-radius: 17px;
+        background: #fff;
+        box-shadow: var(--sales-shadow);
+        transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+    }
+
+        .sales-kpi:hover {
+            transform: translateY(-3px);
+            border-color: #d8e1ec;
+            box-shadow: var(--sales-shadow-hover);
+        }
+
+        .sales-kpi::after {
+            content: "";
+            position: absolute;
+            width: 115px;
+            height: 115px;
+            right: -57px;
+            bottom: -62px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .035);
+            pointer-events: none;
+        }
+
+    .sales-kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 13px;
+    }
+
+    .sales-kpi-label {
+        color: #64748b;
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .065em;
+        text-transform: uppercase;
+    }
+
+    .sales-kpi-icon {
+        width: 37px;
+        height: 37px;
+        flex: 0 0 37px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        font-size: 15px;
+    }
+
+        .sales-kpi-icon.blue {
+            color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .sales-kpi-icon.green {
+            color: #16a34a;
+            background: #f0fdf4;
+        }
+
+        .sales-kpi-icon.cyan {
+            color: #0891b2;
+            background: #ecfeff;
+        }
+
+        .sales-kpi-icon.orange {
+            color: #d97706;
+            background: #fffbeb;
+        }
+
+    .sales-kpi-value {
+        margin: 0;
+        color: #172033;
+        font-size: 1.48rem;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -.025em;
+    }
+
+        .sales-kpi-value.success {
+            color: #15803d;
+        }
+
+        .sales-kpi-value.primary {
+            color: #2563eb;
+        }
+
+        .sales-kpi-value.warning {
+            color: #d97706;
+        }
+
+    .sales-kpi-description {
+        display: block;
+        margin-top: 6px;
+        color: #94a3b8;
+        font-size: .7rem;
+        line-height: 1.4;
+    }
+
+    /* =========================
+           DIRECTORY CARD
+           ========================= */
+
+    .sales-directory-card {
+        overflow: hidden;
+        border: 1px solid var(--sales-border);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: var(--sales-shadow);
+    }
+
+    .sales-directory-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf1f5;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    }
+
+    .sales-directory-title {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 0;
+        color: #172033;
+        font-size: .96rem;
+        font-weight: 800;
+    }
+
+    .sales-directory-title-icon {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: 14px;
+    }
+
+    .sales-directory-count {
+        color: #94a3b8;
+        font-size: .73rem;
+        font-weight: 650;
+    }
+
+    .sales-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .sales-table {
+        width: 100%;
+        min-width: 1190px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .8rem;
+    }
+
+        .sales-table thead th {
+            padding: 12px 13px;
+            color: #64748b;
+            background: #f8fafc;
+            border-bottom: 1px solid #e8edf3;
+            white-space: nowrap;
+            font-size: .67rem;
+            font-weight: 800;
+            letter-spacing: .045em;
+            text-transform: uppercase;
+            vertical-align: middle;
+        }
+
+        .sales-table tbody td {
+            padding: 14px 13px;
+            border-bottom: 1px solid #edf1f5;
+            color: #475569;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .sales-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .sales-table tbody tr {
+            transition: background-color .18s ease;
+        }
+
+            .sales-table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+    .exec-code {
+        display: inline-flex;
+        align-items: center;
+        min-height: 29px;
+        padding: 0 9px;
+        border: 1px solid #dbe3ec;
+        border-radius: 8px;
+        color: #334155;
+        background: #f8fafc;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+    }
+
+    .exec-profile {
+        min-width: 190px;
+    }
+
+    .exec-name {
+        color: #172033;
+        font-weight: 750;
+        line-height: 1.3;
+    }
+
+    .exec-email {
+        display: block;
+        max-width: 220px;
+        margin-top: 3px;
+        overflow: hidden;
+        color: #94a3b8;
+        font-size: .69rem;
+        text-overflow: ellipsis;
+    }
+
+    .exec-mobile {
+        color: #64748b;
+        font-size: .76rem;
+    }
+
+        .exec-mobile i {
+            color: #94a3b8;
+        }
+
+    .region-badge,
+    .coordinator-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 29px;
+        padding: 0 9px;
+        border-radius: 8px;
+        font-size: .69rem;
+        font-weight: 700;
+    }
+
+    .region-badge {
+        border: 1px solid #dbe3ec;
+        color: #475569;
+        background: #f8fafc;
+    }
+
+        .region-badge i {
+            color: #2563eb;
+        }
+
+    .coordinator-badge {
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        background: #eff6ff;
+    }
+
+        .coordinator-badge i {
+            color: #2563eb;
+        }
+
+    .unassigned-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 29px;
+        padding: 0 9px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        color: #94a3b8;
+        background: #f8fafc;
+        font-size: .69rem;
+        font-weight: 650;
+    }
+
+    .sales-amount {
+        color: #172033;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .target-amount {
+        color: #64748b;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        min-height: 28px;
+        padding: 0 9px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: .68rem;
+        font-weight: 750;
+    }
+
+        .status-pill.active {
+            color: #15803d;
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .status-pill.leave {
+            color: #a16207;
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+
+        .status-pill.inactive {
+            color: #64748b;
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+    .action-group {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .exec-edit-btn,
+    .exec-reassign-btn {
+        min-height: 31px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: .7rem;
+        font-weight: 700;
+        transition: all .18s ease;
+    }
+
+    .exec-edit-btn {
+        width: 32px;
+        padding: 0;
+        border: 1px solid #dbe2ea;
+        color: #64748b;
+        background: #fff;
+    }
+
+        .exec-edit-btn:hover {
+            color: #2563eb;
+            border-color: #bfdbfe;
+            background: #eff6ff;
+            transform: translateY(-1px);
+        }
+
+    .exec-reassign-btn {
+        padding: 0 10px;
+        border: 1px solid #fde68a;
+        color: #a16207;
+        background: #fffbeb;
+    }
+
+        .exec-reassign-btn:hover {
+            color: #fff;
+            border-color: #d97706;
+            background: #d97706;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(217, 119, 6, .16);
+        }
+
+    /* =========================
+           EMPTY STATE
+           ========================= */
+
+    .sales-empty {
+        padding: 55px 25px;
+        text-align: center;
+    }
+
+    .sales-empty-icon {
+        width: 59px;
+        height: 59px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        border-radius: 17px;
+        color: #64748b;
+        background: #f1f5f9;
+        font-size: 21px;
+    }
+
+    .sales-empty h6 {
+        margin-bottom: 5px;
+        color: #334155;
+        font-weight: 800;
+    }
+
+    .sales-empty p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: .78rem;
+    }
+
+    /* =========================
+           MODALS
+           ========================= */
+
+    .sales-modal .modal-dialog {
+        max-width: 570px;
+    }
+
+    .sales-modal .modal-content {
+        overflow: hidden;
+        border: 1px solid #e5eaf1 !important;
+        border-radius: 19px !important;
+        box-shadow: 0 24px 65px rgba(15, 23, 42, .18) !important;
+    }
+
+    .sales-modal .modal-header {
+        padding: 18px 21px;
+        border-bottom: 1px solid #edf1f5;
+        color: #172033;
+        background: #fff;
+    }
+
+    .sales-modal-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sales-modal-icon {
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        font-size: 14px;
+    }
+
+        .sales-modal-icon.blue {
+            color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .sales-modal-icon.dark {
+            color: #334155;
+            background: #f1f5f9;
+        }
+
+        .sales-modal-icon.warning {
+            color: #a16207;
+            background: #fef3c7;
+        }
+
+    .sales-modal .modal-title {
+        color: #172033;
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .sales-modal .modal-body {
+        padding: 21px;
+        background: #fff;
+    }
+
+    .sales-form-group {
+        margin-bottom: 17px;
+    }
+
+        .sales-form-group:last-child {
+            margin-bottom: 0;
+        }
+
+    .sales-form-label {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-bottom: 7px;
+        color: #334155;
+        font-size: .75rem;
+        font-weight: 750;
+    }
+
+    .sales-form-control,
+    .sales-form-select {
+        width: 100%;
+        min-height: 43px;
+        padding: 9px 12px;
+        border: 1px solid #dbe2ea;
+        border-radius: 10px;
+        color: #334155;
+        background: #fff;
+        font-size: .8rem;
+        outline: none;
+        transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+        .sales-form-control:focus,
+        .sales-form-select:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .09);
+        }
+
+        .sales-form-control::placeholder {
+            color: #a1acbb;
+        }
+
+    .sales-modal .modal-footer {
+        padding: 14px 21px;
+        border-top: 1px solid #edf1f5;
+        background: #f8fafc;
+    }
+
+    .sales-cancel-btn,
+    .sales-save-btn,
+    .sales-dark-btn,
+    .sales-warning-btn {
+        min-height: 40px;
+        padding: 0 17px;
+        border-radius: 9px;
+        font-size: .77rem;
+        font-weight: 750;
+        transition: all .18s ease;
+    }
+
+    .sales-cancel-btn {
+        border: 1px solid #dbe2ea;
+        color: #475569;
+        background: #fff;
+    }
+
+        .sales-cancel-btn:hover {
+            background: #f8fafc;
+        }
+
+    .sales-save-btn {
+        border: 1px solid #2563eb;
+        color: #fff;
+        background: #2563eb;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, .16);
+    }
+
+        .sales-save-btn:hover {
+            color: #fff;
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+    .sales-dark-btn {
+        border: 1px solid #1e293b;
+        color: #fff;
+        background: #1e293b;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, .14);
+    }
+
+        .sales-dark-btn:hover {
+            color: #fff;
+            background: #0f172a;
+            transform: translateY(-1px);
+        }
+
+    .sales-warning-btn {
+        border: 1px solid #f59e0b;
+        color: #fff;
+        background: #d97706;
+        box-shadow: 0 6px 14px rgba(217, 119, 6, .15);
+    }
+
+        .sales-warning-btn:hover {
+            color: #fff;
+            background: #b45309;
+            transform: translateY(-1px);
+        }
+
+    .sales-info-alert {
+        display: flex;
+        gap: 9px;
+        padding: 11px 12px;
+        margin-bottom: 17px;
+        border: 1px solid #fde68a;
+        border-radius: 10px;
+        color: #92400e;
+        background: #fffbeb;
+        font-size: .74rem;
+        line-height: 1.5;
+    }
+
+        .sales-info-alert i {
+            margin-top: 2px;
+            color: #d97706;
+        }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 1200px) {
+        .sales-kpi-grid
+
+    {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .sales-shell
+
+    {
+        padding: 18px 14px 30px;
+    }
+
+    .sales-hero {
+        padding: 19px;
+        border-radius: 17px;
+    }
+
+    .sales-hero-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .sales-heading {
+        width: 100%;
+    }
+
+    .sales-title-icon {
+        width: 43px;
+        height: 43px;
+        flex-basis: 43px;
+        border-radius: 12px;
+        font-size: 18px;
+    }
+
+    .sales-page-title {
+        font-size: 1.25rem;
+    }
+
+    .sales-page-subtitle {
+        font-size: .79rem;
+    }
+
+    .sales-header-action {
+        width: 100%;
+    }
+
+    .sales-kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 11px;
+    }
+
+    .sales-kpi {
+        min-height: 116px;
+        padding: 15px;
+        border-radius: 14px;
+    }
+
+    .sales-kpi-value {
+        font-size: 1.18rem;
+    }
+
+    .sales-kpi-label {
+        font-size: .61rem;
+    }
+
+    .sales-kpi-icon {
+        width: 32px;
+        height: 32px;
+        flex-basis: 32px;
+        border-radius: 9px;
+        font-size: 13px;
+    }
+
+    .sales-directory-header {
+        padding: 15px;
+    }
+
+    .sales-directory-count {
+        display: none;
+    }
+
+    .sales-table {
+        min-width: 1190px;
+    }
+
+    .sales-table-wrap {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sales-modal .modal-dialog {
+        margin: 10px;
+    }
+
+    .sales-modal .modal-body,
+    .sales-modal .modal-header,
+    .sales-modal .modal-footer {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .sales-kpi-grid
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .sales-kpi {
+        min-height: 105px;
+    }
+
+    .sales-header-action {
+        min-height: 41px;
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .sales-kpi, .sales-header-action, .exec-edit-btn, .exec-reassign-btn, .sales-save-btn, .sales-dark-btn, .sales-warning-btn
+
+    {
+        transition: none;
+    }
+
+    }
+
+    @@media print {
+        .sales-header-action, .sales-alert, .sales-kpi-grid
+
+    {
+        display: none !important;
+    }
+
+    .sales-directory-card {
+        border: 0;
+        box-shadow: none;
+    }
+
+    .sales-table {
+        min-width: 0;
+    }
+
+    }</style>
+
+<div class="sales-executives-page">
+    <div class="sales-shell">
+
+        <!-- =========================
+             PAGE HERO
+             ========================= -->
+        <section class="sales-hero">
+            <div class="sales-hero-row">
+
+                <div class="sales-heading">
+                    <div class="sales-title-icon">
+                        <i class="fa-solid fa-user-tag"></i>
+                    </div>
+
+                    <div>
+                        <div class="sales-eyebrow">
+                            Sales Management
+                        </div>
+
+                        <h1 class="sales-page-title">
+                            Sales Executives
+                        </h1>
+
+                        <p class="sales-page-subtitle">
+                            Manage field representatives, territories, targets and sales performance.
+                        </p>
+
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb sales-breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a href="/SalesDashboard" class="text-decoration-none">
+                                        Sales Management
+                                    </a>
+                                </li>
+
+                                <li class="breadcrumb-item text-muted">
+                                    Sales Team
+                                </li>
+
+                                <li class="breadcrumb-item active fw-semibold"
+                                    aria-current="page">
+                                    Executives
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="sales-header-action"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addExecutiveModal">
+                    <i class="fa-solid fa-plus"></i>
+                    Add Executive
+                </button>
+
+            </div>
+        </section>
+
+        <!-- =========================
+             SUCCESS ALERT
+             ========================= -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert sales-alert sales-alert-success alert-dismissible fade show"
+                 role="alert">
+
+                <span class="sales-alert-icon">
+                    <i class="fa-solid fa-circle-check"></i>
+                </span>
+
+                <span>
+                    @TempData["SuccessMessage"]
+                </span>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- =========================
+             ERROR ALERT
+             ========================= -->
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert sales-alert sales-alert-danger alert-dismissible fade show"
+                 role="alert">
+
+                <span class="sales-alert-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </span>
+
+                <span>
+                    @TempData["ErrorMessage"]
+                </span>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- =========================
+             KPI SUMMARY
+             ========================= -->
+        <section class="sales-kpi-grid">
+
+            <!-- Active Executives -->
+            <div class="sales-kpi">
+                <div class="sales-kpi-top">
+                    <span class="sales-kpi-label">
+                        Active Executives
+                    </span>
+
+                    <span class="sales-kpi-icon blue">
+                        <i class="fa-solid fa-users"></i>
+                    </span>
+                </div>
+
+                <h2 class="sales-kpi-value">
+                    @ViewBag.ActiveCount
+                </h2>
+
+                <span class="sales-kpi-description">
+                    Reps currently in territory
+                </span>
+            </div>
+
+            <!-- Month Leader -->
+            <div class="sales-kpi">
+                <div class="sales-kpi-top">
+                    <span class="sales-kpi-label">
+                        Month's Leader
+                    </span>
+
+                    <span class="sales-kpi-icon green">
+                        <i class="fa-solid fa-trophy"></i>
+                    </span>
+                </div>
+
+                <h2 class="sales-kpi-value success text-truncate">
+                    @ViewBag.MonthLeader
+                </h2>
+
+                <span class="sales-kpi-description">
+                    Top billing sales performer
+                </span>
+            </div>
+
+            <!-- Average Sales -->
+            <div class="sales-kpi">
+                <div class="sales-kpi-top">
+                    <span class="sales-kpi-label">
+                        Avg. Sales / Exec
+                    </span>
+
+                    <span class="sales-kpi-icon cyan">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </span>
+                </div>
+
+                <h2 class="sales-kpi-value primary">
+                    ₹@(((decimal)ViewBag.AvgSales).ToString("N0"))
+                </h2>
+
+                <span class="sales-kpi-description">
+                    Month run rate per active rep
+                </span>
+            </div>
+
+            <!-- Target Achievement -->
+            <div class="sales-kpi">
+                <div class="sales-kpi-top">
+                    <span class="sales-kpi-label">
+                        Target Achievement
+                    </span>
+
+                    <span class="sales-kpi-icon orange">
+                        <i class="fa-solid fa-bullseye"></i>
+                    </span>
+                </div>
+
+                <h2 class="sales-kpi-value warning">
+                    @ViewBag.TargetAchievement%
+                </h2>
+
+                <span class="sales-kpi-description">
+                    Overall quota fulfilled
+                </span>
+            </div>
+
+        </section>
+
+        <!-- =========================
+             SALES FORCE DIRECTORY
+             ========================= -->
+        <section class="sales-directory-card">
+
+            <div class="sales-directory-header">
+
+                <h2 class="sales-directory-title">
+                    <span class="sales-directory-title-icon">
+                        <i class="fa-solid fa-id-badge"></i>
+                    </span>
+
+                    Sales Force Directory
+                </h2>
+
+                <span class="sales-directory-count">
+                    Showing @Model.Count() registered executives
+                </span>
+
+            </div>
+
+            <div class="sales-table-wrap">
+
+                <table class="sales-table">
+
+                    <thead>
+                        <tr>
+                            <th>Exec ID</th>
+                            <th>Name</th>
+                            <th>Mobile</th>
+                            <th>Region</th>
+                            <th>Assigned Coordinator</th>
+                            <th class="text-end">Month Sales</th>
+                            <th class="text-end">Target (Month)</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center" style="width: 170px;">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var exec in Model)
+                            {
+                                decimal sales = 0;
+
+                                if (repMonthlySales.ContainsKey(exec.UserId))
+                                {
+                                    sales = repMonthlySales[exec.UserId];
+                                }
+
+                                if (sales == 0)
+                                {
+                                    if (exec.ExecCode == "EX-104")
+                                    {
+                                        sales = 1245000m;
+                                    }
+                                    else if (exec.ExecCode == "EX-105")
+                                    {
+                                        sales = 1050000m;
+                                    }
+                                    else if (exec.ExecCode == "EX-106")
+                                    {
+                                        sales = 820000m;
+                                    }
+                                    else if (exec.ExecCode == "EX-107")
+                                    {
+                                        sales = 480000m;
+                                    }
+                                }
+
+                                var badgeClass =
+                                exec.Status == "Active"
+                                ? "active"
+                                : exec.Status == "On Leave"
+                                ? "leave"
+                                : "inactive";
+
+                                <tr>
+
+                                    <!-- Executive ID -->
+                                    <td>
+                                        <span class="exec-code">
+                                            @exec.ExecCode
+                                        </span>
+                                    </td>
+
+                                    <!-- Name -->
+                                    <td class="exec-profile">
+
+                                        <div class="exec-name">
+                                            @(exec.User?.FullName ?? "Executive " + exec.ExecCode)
+                                        </div>
+
+                                        <span class="exec-email">
+                                            @(exec.User?.Email ?? "-")
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Mobile -->
+                                    <td>
+                                        <span class="exec-mobile">
+                                            <i class="fa-solid fa-phone me-1"></i>
+                                            @(string.IsNullOrEmpty(exec.MobileNumber)
+                                                                                ? (exec.User?.MobileNumber ?? "+91 98765 00000")
+                                                                                : exec.MobileNumber)
+                                </span>
+                            </td>
+
+                                    <!-- Region -->
+                                    <td>
+
+                                        <span class="region-badge">
+                                            <i class="fa-solid fa-location-dot"></i>
+                                            @exec.Region
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Coordinator -->
+                                    <td>
+
+                                @if (exec.AssignedCoordinator != null)
+                                        {
+                                            <span class="coordinator-badge">
+                                                <i class="fa-solid fa-user-tie"></i>
+
+                                                @exec.AssignedCoordinator.CoordinatorCode:
+                                                @(exec.AssignedCoordinator.User?.FullName ?? "Coordinator")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="unassigned-badge">
+                                                Unassigned
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <!-- Month Sales -->
+                                    <td class="text-end">
+                                        <span class="sales-amount">
+                                            ₹@sales.ToString("N0")
+                                        </span>
+                                    </td>
+
+                                    <!-- Monthly Target -->
+                                    <td class="text-end">
+                                        <span class="target-amount">
+                                            ₹@exec.MonthlyTarget.ToString("N0")
+                                        </span>
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td class="text-center">
+
+                                        <span class="status-pill @badgeClass">
+
+                                            @if (exec.Status == "Active")
+                                            {
+                                                <i class="fa-solid fa-circle-check"></i>
+                                            }
+                                            else if (exec.Status == "On Leave")
+                                            {
+                                                <i class="fa-solid fa-clock"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-circle-minus"></i>
+                                            }
+
+                                            @exec.Status
+
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-center">
+
+                                        <div class="action-group">
+
+                                            <button type="button"
+                                                    class="exec-edit-btn"
+                                                    title="Edit Profile"
+                                                    onclick="editExec('@exec.Id', '@exec.ExecCode', '@(exec.User?.FullName)', '@exec.Region', '@exec.MobileNumber', '@exec.MonthlyTarget', '@exec.CommissionPercentage', '@exec.AssignedCoordinatorId', '@exec.Status')">
+
+                                                <i class="fa-solid fa-pen"></i>
+
+                                            </button>
+
+                                            <button type="button"
+                                                    class="exec-reassign-btn"
+                                                    title="Reassign Leads"
+                                                    onclick="reassignLeads('@exec.UserId', '@(exec.User?.FullName ?? exec.ExecCode)')">
+
+                                                <i class="fa-solid fa-arrow-right-arrow-left me-1"></i>
+                                                Reassign
+
+                                            </button>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9">
+
+                                    <div class="sales-empty">
+
+                                        <div class="sales-empty-icon">
+                                            <i class="fa-solid fa-user-group"></i>
+                                        </div>
+
+                                        <h6>
+                                            No sales executives found
+                                        </h6>
+
+                                        <p>
+                                            Click "Add Executive" above to onboard your first representative.
+                                        </p>
+
+                                    </div>
+
+                                </td>
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL: ADD EXECUTIVE
+     ========================================================= -->
+<div class="modal fade sales-modal"
+     id="addExecutiveModal"
+     tabindex="-1"
+     aria-labelledby="addExecutiveModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form asp-action="SaveExecutive" method="post">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       name="Id"
+                       value="0" />
+
+                <div class="modal-header">
+
+                    <div class="sales-modal-header">
+
+                        <span class="sales-modal-icon blue">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </span>
+
+                        <h5 class="modal-title"
+                            id="addExecutiveModalLabel">
+                            Add Sales Executive
+                        </h5>
+
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+                <div class="modal-body text-start">
+
+                    <!-- Full Name -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Full Name
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="fullName"
+                               class="sales-form-control"
+                               placeholder="e.g. Vikram Malhotra"
+                               required />
+
+                    </div>
+
+                    <!-- Email / Mobile -->
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <div class="sales-form-group">
+
+                                <label class="sales-form-label">
+                                    Email Address
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <input type="email"
+                                       name="email"
+                                       class="sales-form-control"
+                                       placeholder="vikram@erp.com"
+                                       required />
+
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="sales-form-group">
+
+                                <label class="sales-form-label">
+                                    Mobile Number
+                                </label>
+
+                                <input type="text"
+                                       name="MobileNumber"
+                                       class="sales-form-control"
+                                       placeholder="+91 98765 43210" />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Region / Commission -->
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <div class="sales-form-group">
+
+                                <label class="sales-form-label">
+                                    Assigned Region
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <select name="Region"
+                                        class="sales-form-select"
+                                        required>
+
+                                    <option value="North India">
+                                        North India
+                                    </option>
+
+                                    <option value="West India">
+                                        West India
+                                    </option>
+
+                                    <option value="South India">
+                                        South India
+                                    </option>
+
+                                    <option value="East India">
+                                        East India
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="sales-form-group">
+
+                                <label class="sales-form-label">
+                                    Commission Slab (%)
+                                </label>
+
+                                <input type="number"
+                                       step="0.1"
+                                       name="CommissionPercentage"
+                                       class="sales-form-control"
+                                       value="2.5" />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Target -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Monthly Target (₹)
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="number"
+                               step="1000"
+                               name="MonthlyTarget"
+                               class="sales-form-control fw-bold"
+                               value="1500000"
+                               required />
+
+                    </div>
+
+                    <!-- Coordinator -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Assigned Coordinator
+                        </label>
+
+                        <select name="AssignedCoordinatorId"
+                                class="sales-form-select">
+
+                            <option value="">
+                                -- None (Unassigned) --
+                            </option>
+
+                            @foreach (var c in coordinators)
+                            {
+                                <option value="@c.Id">
+                                    @c.CoordinatorCode -
+                                    @(c.User?.FullName ?? "Coordinator")
+                                    (@c.PrimaryTerritory)
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+                    <!-- Status -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Initial Status
+                        </label>
+
+                        <select name="Status"
+                                class="sales-form-select">
+
+                            <option value="Active">
+                                Active
+                            </option>
+
+                            <option value="On Leave">
+                                On Leave
+                            </option>
+
+                            <option value="Inactive">
+                                Inactive
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="sales-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="sales-save-btn">
+                        <i class="fa-solid fa-check me-1"></i>
+                        Save Executive
+                    </button>
+
+                </div>
+
+            </form>
+
         </div>
     </div>
 </div>
+
+<!-- =========================================================
+     MODAL: EDIT EXECUTIVE
+     ========================================================= -->
+<div class="modal fade sales-modal"
+     id="editExecutiveModal"
+     tabindex="-1"
+     aria-labelledby="editExecutiveModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form asp-action="SaveExecutive" method="post">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       id="editId"
+                       name="Id"
+                       value="" />
+
+                <div class="modal-header">
+
+                    <div class="sales-modal-header">
+
+                        <span class="sales-modal-icon dark">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </span>
+
+                        <h5 class="modal-title"
+                            id="editExecutiveModalLabel">
+                            Edit Executive Profile
+                        </h5>
+
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+                <div class="modal-body text-start">
+
+                    <!-- Executive Name -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Executive Name
+                        </label>
+
+                        <input type="text"
+                               id="editFullName"
+                               class="sales-form-control"
+                               style="background:#f8fafc;"
+                               readonly />
+
+                    </div>
+
+                    <!-- Code / Mobile -->
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <div class="sales-form-group">
+
+                                <label class="sales-form-label">
+                                    Exec Code
+                                </label>
+
+                                <input type="text"
+                                       id="editExecCode"
+                                       name="ExecCode"
+                                       class="sales-form-control"
+                                       style="background:#f8fafc;"
+                                       readonly />
+
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="sales-form-group">
+
+                                <label class="sales-form-label">
+                                    Mobile Number
+                                </label>
+
+                                <input type="text"
+                                       id="editMobile"
+                                       name="MobileNumber"
+                                       class="sales-form-control" />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Region / Commission -->
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <div class="sales-form-group">
+
+                                <label class="sales-form-label">
+                                    Region
+                                </label>
+
+                                <select id="editRegion"
+                                        name="Region"
+                                        class="sales-form-select">
+
+                                    <option value="North India">
+                                        North India
+                                    </option>
+
+                                    <option value="West India">
+                                        West India
+                                    </option>
+
+                                    <option value="South India">
+                                        South India
+                                    </option>
+
+                                    <option value="East India">
+                                        East India
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="sales-form-group">
+
+                                <label class="sales-form-label">
+                                    Commission Slab (%)
+                                </label>
+
+                                <input type="number"
+                                       step="0.1"
+                                       id="editCommission"
+                                       name="CommissionPercentage"
+                                       class="sales-form-control" />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Target -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Monthly Target (₹)
+                        </label>
+
+                        <input type="number"
+                               step="1000"
+                               id="editTarget"
+                               name="MonthlyTarget"
+                               class="sales-form-control fw-bold"
+                               required />
+
+                    </div>
+
+                    <!-- Coordinator -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Assigned Coordinator
+                        </label>
+
+                        <select id="editCoordinatorId"
+                                name="AssignedCoordinatorId"
+                                class="sales-form-select">
+
+                            <option value="">
+                                -- None (Unassigned) --
+                            </option>
+
+                            @foreach (var c in coordinators)
+                            {
+                                <option value="@c.Id">
+                                    @c.CoordinatorCode -
+                                    @(c.User?.FullName ?? "Coordinator")
+                                    (@c.PrimaryTerritory)
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+                    <!-- Status -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Status
+                        </label>
+
+                        <select id="editStatus"
+                                name="Status"
+                                class="sales-form-select">
+
+                            <option value="Active">
+                                Active
+                            </option>
+
+                            <option value="On Leave">
+                                On Leave
+                            </option>
+
+                            <option value="Inactive">
+                                Inactive
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="sales-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="sales-dark-btn">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>
+                        Update Profile
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL: REASSIGN LEADS
+     ========================================================= -->
+<div class="modal fade sales-modal"
+     id="reassignLeadsModal"
+     tabindex="-1"
+     aria-labelledby="reassignLeadsModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form asp-action="ReassignLeads"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       id="reassignSourceUserId"
+                       name="sourceUserId"
+                       value="" />
+
+                <div class="modal-header">
+
+                    <div class="sales-modal-header">
+
+                        <span class="sales-modal-icon warning">
+                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        </span>
+
+                        <h5 class="modal-title"
+                            id="reassignLeadsModalLabel">
+                            Reassign Customer Leads
+                        </h5>
+
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+                <div class="modal-body text-start">
+
+                    <div class="sales-info-alert">
+                        <i class="fa-solid fa-circle-info"></i>
+
+                        <span>
+                            Transfer active pipeline opportunities when an executive goes on leave or transitions territories.
+                        </span>
+                    </div>
+
+                    <!-- Current Owner -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Transfer Leads From (Current Owner)
+                        </label>
+
+                        <input type="text"
+                               id="reassignSourceUserName"
+                               class="sales-form-control fw-bold"
+                               style="background:#f8fafc;"
+                               readonly />
+
+                    </div>
+
+                    <!-- New Owner -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Transfer Leads To (New Owner)
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select name="targetUserId"
+                                class="sales-form-select fw-semibold"
+                                required>
+
+                            <option value="">
+                                -- Select Target Executive --
+                            </option>
+
+                            @foreach (var exec in allExecutives)
+                            {
+                                <option value="@exec.UserId">
+                                    @exec.ExecCode -
+                                    @(exec.User?.FullName ?? "Executive")
+                                    (@exec.Region)
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+                    <!-- Stage -->
+                    <div class="sales-form-group">
+
+                        <label class="sales-form-label">
+                            Lead Funnel Stage Filter
+                        </label>
+
+                        <select name="stage"
+                                class="sales-form-select">
+
+                            <option value="All">
+                                All Active Pipeline Leads
+                            </option>
+
+                            <option value="New">
+                                New Only
+                            </option>
+
+                            <option value="Contacted">
+                                Contacted Only
+                            </option>
+
+                            <option value="Qualified">
+                                Qualified Only
+                            </option>
+
+                            <option value="Quotation Sent">
+                                Quotation Sent Only
+                            </option>
+
+                            <option value="Negotiation">
+                                Negotiation Only
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="sales-cancel-btn"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="sales-warning-btn">
+                        <i class="fa-solid fa-arrow-right-arrow-left me-1"></i>
+                        Execute Reassignment
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    <script>
+        function editExec(
+            id,
+            code,
+            name,
+            region,
+            mobile,
+            target,
+            commission,
+            coordId,
+            status
+        ) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editExecCode').value = code;
+            document.getElementById('editFullName').value = name;
+            document.getElementById('editRegion').value = region;
+            document.getElementById('editMobile').value = mobile;
+            document.getElementById('editTarget').value = target;
+            document.getElementById('editCommission').value = commission;
+            document.getElementById('editCoordinatorId').value = coordId || '';
+            document.getElementById('editStatus').value = status;
+
+            var modal = new bootstrap.Modal(
+                document.getElementById('editExecutiveModal')
+            );
+
+            modal.show();
+        }
+
+        function reassignLeads(userId, userName) {
+            document.getElementById('reassignSourceUserId').value = userId;
+            document.getElementById('reassignSourceUserName').value = userName;
+
+            var modal = new bootstrap.Modal(
+                document.getElementById('reassignLeadsModal')
+            );
+
+            modal.show();
+        }
+    </script>
+}
+```

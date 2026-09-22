@@ -9,7 +9,7 @@ using ERP_System.Data;
 
 namespace ERP_System.Controllers
 {
-    [Authorize(Roles = "Super Admin,Admin,Inventory Manager,Sales Manager,Manager")]
+    [Authorize(Roles = "Super Admin,Admin,Inventory Manager,Sales Manager,Manager,Sales Executive")]
     public class ProductsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -46,6 +46,7 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
+            if (User.IsInRole("Sales Executive")) return Forbid();
             ViewBag.BranchesList = await _context.Branches.Where(b => b.IsActive).ToListAsync();
             return View(new Product());
         }
@@ -55,6 +56,8 @@ namespace ERP_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product model)
         {
+            if (User.IsInRole("Sales Executive")) return Forbid();
+
             if (ModelState.IsValid)
             {
                 // Dynamic product status based on stock level
@@ -80,6 +83,8 @@ namespace ERP_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
+            if (User.IsInRole("Sales Executive")) return Forbid();
+
             var product = await _context.Products.FindAsync(id);
             if (product == null)
             {
@@ -95,6 +100,8 @@ namespace ERP_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Product model)
         {
+            if (User.IsInRole("Sales Executive")) return Forbid();
+
             if (id != model.ProductId)
             {
                 return BadRequest();
@@ -126,6 +133,8 @@ namespace ERP_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
+            if (User.IsInRole("Sales Executive")) return Forbid();
+
             var product = await _context.Products.FindAsync(id);
             if (product == null)
             {

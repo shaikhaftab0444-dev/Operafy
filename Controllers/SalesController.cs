@@ -308,7 +308,7 @@ namespace ERP_System.Controllers
                 if (!input.TotalAmount.HasValue) input.TotalAmount = 0m;
 
                 var currentUser = await GetCurrentUserAsync();
-                input.CreatedByUserId = currentUser.UserId;
+                input.CreatedByUserId = currentUser.UserId.ToString();
 
                 _context.SalesOrders.Add(input);
                 await _context.SaveChangesAsync();

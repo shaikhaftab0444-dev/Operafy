@@ -86,6 +86,11 @@ namespace ERP_System.Data
         public DbSet<SalesLead> SalesLeads { get; set; }
         public DbSet<SalesQuotation> SalesQuotations { get; set; }
         public DbSet<SalesInvoice> SalesInvoices { get; set; }
+        public DbSet<PaymentReceivable> PaymentReceivables { get; set; }
+        public DbSet<SalesOrderItem> SalesOrderItems { get; set; }
+        public DbSet<SalesExecutiveProfile> SalesExecutiveProfiles { get; set; }
+        public DbSet<SalesCoordinatorProfile> SalesCoordinatorProfiles { get; set; }
+        public DbSet<SalesTargetAllocation> SalesTargetAllocations { get; set; }
         public DbSet<HierarchicalTask> HierarchicalTasks { get; set; }
         public DbSet<DepartmentTask> DepartmentTasks { get; set; }
         public DbSet<WorkShift> WorkShifts { get; set; }
@@ -346,6 +351,38 @@ namespace ERP_System.Data
             modelBuilder.Entity<SalesOrder>().ToTable("erp_SalesOrders");
             modelBuilder.Entity<SalesReturn>().ToTable("erp_SalesReturns");
             modelBuilder.Entity<PaymentReceipt>().ToTable("erp_PaymentReceipts");
+            modelBuilder.Entity<SalesCoordinatorProfile>(entity =>
+            {
+                entity.ToTable("erp_SalesCoordinatorProfiles");
+                entity.HasOne(c => c.User)
+                      .WithMany()
+                      .HasForeignKey(c => c.UserUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<SalesExecutiveProfile>(entity =>
+            {
+                entity.ToTable("erp_SalesExecutiveProfiles");
+                entity.Property(e => e.MonthlyTarget).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CommissionPercentage).HasColumnType("decimal(18,2)");
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.AssignedCoordinator)
+                      .WithMany(c => c.AssignedExecutives)
+                      .HasForeignKey(e => e.AssignedCoordinatorId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+            modelBuilder.Entity<SalesTargetAllocation>(entity =>
+            {
+                entity.ToTable("erp_SalesTargetAllocations");
+                entity.Property(t => t.TargetValue).HasColumnType("decimal(18,2)");
+                entity.Property(t => t.AchievedValue).HasColumnType("decimal(18,2)");
+                entity.HasOne(t => t.SalesRep)
+                      .WithMany()
+                      .HasForeignKey(t => t.SalesRepUserUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
             modelBuilder.Entity<HROnboarding>().ToTable("erp_Onboardings");
             modelBuilder.Entity<HRContract>().ToTable("erp_Contracts");
             modelBuilder.Entity<HRTransfer>().ToTable("erp_Transfers");
@@ -404,6 +441,31 @@ namespace ERP_System.Data
             modelBuilder.Entity<SalesLead>().ToTable("erp_SalesLeads");
             modelBuilder.Entity<SalesQuotation>().ToTable("erp_SalesQuotations");
             modelBuilder.Entity<SalesInvoice>().ToTable("erp_SalesInvoices");
+
+            modelBuilder.Entity<PaymentReceivable>(entity =>
+            {
+                entity.ToTable("erp_PaymentReceivables");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PendingBalance).HasColumnType("decimal(18,2)");
+                entity.HasOne(e => e.Customer)
+                      .WithMany()
+                      .HasForeignKey(e => e.CustomerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<SalesOrderItem>(entity =>
+            {
+                entity.ToTable("erp_SalesOrderItems");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
+                entity.HasOne(e => e.SalesOrder)
+                      .WithMany(o => o.Items)
+                      .HasForeignKey(e => e.SalesOrderId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<HierarchicalTask>().ToTable("erp_HierarchicalTasks");
             modelBuilder.Entity<JournalVoucher>().ToTable("erp_JournalVouchers");
             modelBuilder.Entity<BankReconciliationItem>().ToTable("erp_BankReconciliations");

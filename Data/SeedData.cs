@@ -340,6 +340,210 @@ namespace ERP_System.Data
                         ALTER TABLE AITStudent.erp_SalesTargets ADD FiscalQuarter NVARCHAR(50) NOT NULL DEFAULT 'Q3-2026';
                 END";
 
+            // Ensure erp_PaymentReceivables table exists
+            string createPaymentReceivablesSql = @"
+                IF OBJECT_ID('AITStudent.erp_PaymentReceivables', 'U') IS NULL AND OBJECT_ID('erp_PaymentReceivables', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_PaymentReceivables (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        InvoiceNumber NVARCHAR(50) NOT NULL DEFAULT '',
+                        CustomerId INT NOT NULL DEFAULT 1,
+                        InvoiceDate DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                        DueDate DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                        TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        PendingBalance DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending'
+                    );
+                END";
+
+            // Ensure erp_SalesOrderItems table exists
+            string createSalesOrderItemsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesOrderItems', 'U') IS NULL AND OBJECT_ID('erp_SalesOrderItems', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesOrderItems (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        SalesOrderId INT NOT NULL,
+                        ProductId INT NULL,
+                        ItemDescription NVARCHAR(200) NOT NULL DEFAULT '',
+                        Quantity INT NOT NULL DEFAULT 1,
+                        UnitPrice DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        TotalPrice DECIMAL(18,2) NOT NULL DEFAULT 0
+                    );
+                END";
+
+            // Patch Customers columns
+            string patchCustomersSql = @"
+                IF OBJECT_ID('AITStudent.Customers', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'CustomerName')
+                        ALTER TABLE AITStudent.Customers ADD CustomerName NVARCHAR(250) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'CustomerCode')
+                        ALTER TABLE AITStudent.Customers ADD CustomerCode NVARCHAR(50) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'CompanyName')
+                        ALTER TABLE AITStudent.Customers ADD CompanyName NVARCHAR(200) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'TaxIdOrGSTIN')
+                        ALTER TABLE AITStudent.Customers ADD TaxIdOrGSTIN NVARCHAR(50) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'CreditLimit')
+                        ALTER TABLE AITStudent.Customers ADD CreditLimit DECIMAL(18,2) NOT NULL DEFAULT 500000;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'OutstandingBalance')
+                        ALTER TABLE AITStudent.Customers ADD OutstandingBalance DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'AssignedRepId')
+                        ALTER TABLE AITStudent.Customers ADD AssignedRepId NVARCHAR(100) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'AssignedRepUserUserId')
+                        ALTER TABLE AITStudent.Customers ADD AssignedRepUserUserId INT NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Customers') AND name = 'CreatedAt')
+                        ALTER TABLE AITStudent.Customers ADD CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE();
+                END
+                ELSE IF OBJECT_ID('Customers', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'CustomerName')
+                        ALTER TABLE Customers ADD CustomerName NVARCHAR(250) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'CustomerCode')
+                        ALTER TABLE Customers ADD CustomerCode NVARCHAR(50) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'CompanyName')
+                        ALTER TABLE Customers ADD CompanyName NVARCHAR(200) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'TaxIdOrGSTIN')
+                        ALTER TABLE Customers ADD TaxIdOrGSTIN NVARCHAR(50) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'CreditLimit')
+                        ALTER TABLE Customers ADD CreditLimit DECIMAL(18,2) NOT NULL DEFAULT 500000;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'OutstandingBalance')
+                        ALTER TABLE Customers ADD OutstandingBalance DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'AssignedRepId')
+                        ALTER TABLE Customers ADD AssignedRepId NVARCHAR(100) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'AssignedRepUserUserId')
+                        ALTER TABLE Customers ADD AssignedRepUserUserId INT NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Customers') AND name = 'CreatedAt')
+                        ALTER TABLE Customers ADD CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE();
+                END";
+
+            // Patch Products columns
+            string patchProductsSql = @"
+                IF OBJECT_ID('AITStudent.erp_Products', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Products') AND name = 'UnitSellingPrice')
+                        ALTER TABLE AITStudent.erp_Products ADD UnitSellingPrice DECIMAL(18,2) NOT NULL DEFAULT 1500;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Products') AND name = 'GstRate')
+                        ALTER TABLE AITStudent.erp_Products ADD GstRate DECIMAL(18,2) NOT NULL DEFAULT 18;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_Products') AND name = 'ReservedStockQty')
+                        ALTER TABLE AITStudent.erp_Products ADD ReservedStockQty INT NOT NULL DEFAULT 0;
+                END
+                IF OBJECT_ID('erp_Products', 'U') IS NOT NULL AND OBJECT_ID('AITStudent.erp_Products', 'U') IS NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_Products') AND name = 'UnitSellingPrice')
+                        ALTER TABLE erp_Products ADD UnitSellingPrice DECIMAL(18,2) NOT NULL DEFAULT 1500;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_Products') AND name = 'GstRate')
+                        ALTER TABLE erp_Products ADD GstRate DECIMAL(18,2) NOT NULL DEFAULT 18;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_Products') AND name = 'ReservedStockQty')
+                        ALTER TABLE erp_Products ADD ReservedStockQty INT NOT NULL DEFAULT 0;
+                END
+                IF OBJECT_ID('AITStudent.Products', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Products') AND name = 'UnitSellingPrice')
+                        ALTER TABLE AITStudent.Products ADD UnitSellingPrice DECIMAL(18,2) NOT NULL DEFAULT 1500;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Products') AND name = 'GstRate')
+                        ALTER TABLE AITStudent.Products ADD GstRate DECIMAL(18,2) NOT NULL DEFAULT 18;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.Products') AND name = 'ReservedStockQty')
+                        ALTER TABLE AITStudent.Products ADD ReservedStockQty INT NOT NULL DEFAULT 0;
+                END
+                ELSE IF OBJECT_ID('Products', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'UnitSellingPrice')
+                        ALTER TABLE Products ADD UnitSellingPrice DECIMAL(18,2) NOT NULL DEFAULT 1500;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'GstRate')
+                        ALTER TABLE Products ADD GstRate DECIMAL(18,2) NOT NULL DEFAULT 18;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'ReservedStockQty')
+                        ALTER TABLE Products ADD ReservedStockQty INT NOT NULL DEFAULT 0;
+                END";
+
+            // Patch erp_SalesLeads columns
+            string patchSalesLeadsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesLeads', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesLeads') AND name = 'LeadCode')
+                        ALTER TABLE AITStudent.erp_SalesLeads ADD LeadCode NVARCHAR(50) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesLeads') AND name = 'ContactName')
+                        ALTER TABLE AITStudent.erp_SalesLeads ADD ContactName NVARCHAR(150) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesLeads') AND name = 'Company')
+                        ALTER TABLE AITStudent.erp_SalesLeads ADD Company NVARCHAR(150) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesLeads') AND name = 'Source')
+                        ALTER TABLE AITStudent.erp_SalesLeads ADD Source NVARCHAR(100) NOT NULL DEFAULT 'Website Referral';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesLeads') AND name = 'CreatedDate')
+                        ALTER TABLE AITStudent.erp_SalesLeads ADD CreatedDate DATETIME NOT NULL DEFAULT GETUTCDATE();
+                END";
+
+            // Patch erp_SalesOrders columns
+            string patchSalesOrdersSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesOrders', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesOrders') AND name = 'CustomerId')
+                        ALTER TABLE AITStudent.erp_SalesOrders ADD CustomerId INT NOT NULL DEFAULT 1;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesOrders') AND name = 'OrderTotal')
+                        ALTER TABLE AITStudent.erp_SalesOrders ADD OrderTotal DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesOrders') AND name = 'DeliveryStatus')
+                        ALTER TABLE AITStudent.erp_SalesOrders ADD DeliveryStatus NVARCHAR(50) NOT NULL DEFAULT 'Confirmed';
+                END";
+
+            // Patch erp_SalesReturns columns
+            string patchSalesReturnsSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesReturns', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesReturns') AND name = 'ReturnCode')
+                        ALTER TABLE AITStudent.erp_SalesReturns ADD ReturnCode NVARCHAR(50) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesReturns') AND name = 'OriginalInvoiceNumber')
+                        ALTER TABLE AITStudent.erp_SalesReturns ADD OriginalInvoiceNumber NVARCHAR(50) NOT NULL DEFAULT '';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesReturns') AND name = 'CustomerId')
+                        ALTER TABLE AITStudent.erp_SalesReturns ADD CustomerId INT NOT NULL DEFAULT 1;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesReturns') AND name = 'ReturnReason')
+                        ALTER TABLE AITStudent.erp_SalesReturns ADD ReturnReason NVARCHAR(100) NOT NULL DEFAULT 'Defective';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesReturns') AND name = 'CreditNoteNumber')
+                        ALTER TABLE AITStudent.erp_SalesReturns ADD CreditNoteNumber NVARCHAR(50) NULL;
+                END";
+
+            // Patch erp_SalesInvoices columns
+            string patchSalesInvoicesSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesInvoices', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesInvoices') AND name = 'CustomerId')
+                        ALTER TABLE AITStudent.erp_SalesInvoices ADD CustomerId INT NOT NULL DEFAULT 1;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesInvoices') AND name = 'SalesOrderId')
+                        ALTER TABLE AITStudent.erp_SalesInvoices ADD SalesOrderId INT NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesInvoices') AND name = 'LinkedOrderNumber')
+                        ALTER TABLE AITStudent.erp_SalesInvoices ADD LinkedOrderNumber NVARCHAR(50) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesInvoices') AND name = 'TaxableValue')
+                        ALTER TABLE AITStudent.erp_SalesInvoices ADD TaxableValue DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesInvoices') AND name = 'GstAmount')
+                        ALTER TABLE AITStudent.erp_SalesInvoices ADD GstAmount DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesInvoices') AND name = 'GrandTotal')
+                        ALTER TABLE AITStudent.erp_SalesInvoices ADD GrandTotal DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesInvoices') AND name = 'TotalAmount')
+                        ALTER TABLE AITStudent.erp_SalesInvoices ADD TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_SalesInvoices') AND name = 'DueDate')
+                        ALTER TABLE AITStudent.erp_SalesInvoices ADD DueDate DATETIME NOT NULL DEFAULT DATEADD(day, 30, GETUTCDATE());
+                    UPDATE AITStudent.erp_SalesInvoices SET GrandTotal = TotalAmount, TaxableValue = ROUND(TotalAmount / 1.18, 2), GstAmount = ROUND(TotalAmount - (TotalAmount / 1.18), 2) WHERE (GrandTotal IS NULL OR GrandTotal = 0) AND TotalAmount > 0;
+                    UPDATE AITStudent.erp_SalesInvoices SET TotalAmount = GrandTotal WHERE (TotalAmount IS NULL OR TotalAmount = 0) AND GrandTotal > 0;
+                END
+                IF OBJECT_ID('erp_SalesInvoices', 'U') IS NOT NULL AND OBJECT_ID('AITStudent.erp_SalesInvoices', 'U') IS NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalesInvoices') AND name = 'CustomerId')
+                        ALTER TABLE erp_SalesInvoices ADD CustomerId INT NOT NULL DEFAULT 1;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalesInvoices') AND name = 'SalesOrderId')
+                        ALTER TABLE erp_SalesInvoices ADD SalesOrderId INT NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalesInvoices') AND name = 'LinkedOrderNumber')
+                        ALTER TABLE erp_SalesInvoices ADD LinkedOrderNumber NVARCHAR(50) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalesInvoices') AND name = 'TaxableValue')
+                        ALTER TABLE erp_SalesInvoices ADD TaxableValue DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalesInvoices') AND name = 'GstAmount')
+                        ALTER TABLE erp_SalesInvoices ADD GstAmount DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalesInvoices') AND name = 'GrandTotal')
+                        ALTER TABLE erp_SalesInvoices ADD GrandTotal DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalesInvoices') AND name = 'TotalAmount')
+                        ALTER TABLE erp_SalesInvoices ADD TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('erp_SalesInvoices') AND name = 'DueDate')
+                        ALTER TABLE erp_SalesInvoices ADD DueDate DATETIME NOT NULL DEFAULT DATEADD(day, 30, GETUTCDATE());
+                    UPDATE erp_SalesInvoices SET GrandTotal = TotalAmount, TaxableValue = ROUND(TotalAmount / 1.18, 2), GstAmount = ROUND(TotalAmount - (TotalAmount / 1.18), 2) WHERE (GrandTotal IS NULL OR GrandTotal = 0) AND TotalAmount > 0;
+                    UPDATE erp_SalesInvoices SET TotalAmount = GrandTotal WHERE (TotalAmount IS NULL OR TotalAmount = 0) AND GrandTotal > 0;
+                END";
+
             // Execute scripts
             await context.Database.ExecuteSqlRawAsync(createLeadsSql);
             await context.Database.ExecuteSqlRawAsync(createQuotationsSql);
@@ -350,31 +554,58 @@ namespace ERP_System.Data
             await context.Database.ExecuteSqlRawAsync(createSalesLeadsSql);
             await context.Database.ExecuteSqlRawAsync(createSalesQuotationsSql);
             await context.Database.ExecuteSqlRawAsync(createSalesInvoicesSql);
+            await context.Database.ExecuteSqlRawAsync(createPaymentReceivablesSql);
+            await context.Database.ExecuteSqlRawAsync(createSalesOrderItemsSql);
             await context.Database.ExecuteSqlRawAsync(patchSalesTargetsSql);
+            await context.Database.ExecuteSqlRawAsync(patchCustomersSql);
+            await context.Database.ExecuteSqlRawAsync(patchProductsSql);
+            await context.Database.ExecuteSqlRawAsync(patchSalesLeadsSql);
+            await context.Database.ExecuteSqlRawAsync(patchSalesOrdersSql);
+            await context.Database.ExecuteSqlRawAsync(patchSalesReturnsSql);
+            await context.Database.ExecuteSqlRawAsync(patchSalesInvoicesSql);
 
-            // Seed initial records if empty
-            if (!await context.Leads.AnyAsync())
-            {
-                await context.Leads.AddRangeAsync(new List<Lead>
-                {
-                    new Lead { ClientName = "Rajesh Kumar", CompanyName = "Rajesh Corp Ltd", Email = "rajesh@corp.in", Phone = "+91 98765 43210", EstimatedValue = 450000m, Stage = "Proposal", Source = "Website Referral", CreatedAt = DateTime.UtcNow.AddDays(-2) },
-                    new Lead { ClientName = "Sarah Jenkins", CompanyName = "Jenkins Auditing", Email = "sarah@jenkins.com", Phone = "+91 98234 56789", EstimatedValue = 280000m, Stage = "Negotiation", Source = "Cold Email", CreatedAt = DateTime.UtcNow.AddDays(-5) },
-                    new Lead { ClientName = "Sunil Mehta", CompanyName = "Mehta Logistics", Email = "sunil@mehtalogistics.in", Phone = "+91 94567 89012", EstimatedValue = 850000m, Stage = "Won", Source = "Direct Call", CreatedAt = DateTime.UtcNow.AddDays(-8) },
-                    new Lead { ClientName = "Vikram Singh", CompanyName = "Singh & Sons Industries", Email = "vikram@singhsons.com", Phone = "+91 91234 56780", EstimatedValue = 320000m, Stage = "Contacted", Source = "LinkedIn", CreatedAt = DateTime.UtcNow.AddDays(-10) },
-                    new Lead { ClientName = "Amitabh Sharma", CompanyName = "Sharma Global Trade", Email = "asharma@sharmatrade.com", Phone = "+91 98901 23456", EstimatedValue = 600000m, Stage = "New", Source = "Trade Expo", CreatedAt = DateTime.UtcNow.AddDays(-1) }
-                });
-            }
-
-            if (!await context.SalesOrders.AnyAsync())
-            {
-                await context.SalesOrders.AddRangeAsync(new List<SalesOrder>
-                {
-                    new SalesOrder { OrderNumber = "SO-2026-0412", CustomerName = "Rahul Enterprises", TotalAmount = 380000m, Status = "Confirmed", OrderDate = DateTime.Today.AddDays(-2), PaymentTerms = "Net 30" },
-                    new SalesOrder { OrderNumber = "SO-2026-0411", CustomerName = "Mehta Logistics", TotalAmount = 425000m, Status = "Invoiced", OrderDate = DateTime.Today.AddDays(-5), PaymentTerms = "Immediate" },
-                    new SalesOrder { OrderNumber = "SO-2026-0410", CustomerName = "Apex Industrial Supply", TotalAmount = 215000m, Status = "Confirmed", OrderDate = DateTime.Today.AddDays(-8), PaymentTerms = "Net 30" },
-                    new SalesOrder { OrderNumber = "SO-2026-0409", CustomerName = "TechCorp Solutions", TotalAmount = 540000m, Status = "Invoiced", OrderDate = DateTime.Today.AddDays(-12), PaymentTerms = "Net 60" }
-                });
-            }
+            // Ensure Sales Team Tables Exist
+            string createSalesTeamTablesSql = @"
+                IF OBJECT_ID('AITStudent.erp_SalesCoordinatorProfiles', 'U') IS NULL AND OBJECT_ID('erp_SalesCoordinatorProfiles', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesCoordinatorProfiles (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        CoordinatorCode NVARCHAR(50) NOT NULL,
+                        UserId NVARCHAR(100) NOT NULL,
+                        UserUserId INT NULL,
+                        PrimaryTerritory NVARCHAR(150) NOT NULL DEFAULT 'North Zone',
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Active'
+                    );
+                END
+                IF OBJECT_ID('AITStudent.erp_SalesExecutiveProfiles', 'U') IS NULL AND OBJECT_ID('erp_SalesExecutiveProfiles', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesExecutiveProfiles (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        ExecCode NVARCHAR(50) NOT NULL,
+                        UserId NVARCHAR(100) NOT NULL,
+                        UserUserId INT NULL,
+                        Region NVARCHAR(100) NOT NULL DEFAULT 'North India',
+                        MobileNumber NVARCHAR(25) NOT NULL DEFAULT '',
+                        MonthlyTarget DECIMAL(18,2) NOT NULL DEFAULT 1500000.00,
+                        CommissionPercentage DECIMAL(18,2) NOT NULL DEFAULT 2.50,
+                        Status NVARCHAR(50) NOT NULL DEFAULT 'Active',
+                        AssignedCoordinatorId INT NULL
+                    );
+                END
+                IF OBJECT_ID('AITStudent.erp_SalesTargetAllocations', 'U') IS NULL AND OBJECT_ID('erp_SalesTargetAllocations', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE AITStudent.erp_SalesTargetAllocations (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        FiscalQuarter NVARCHAR(50) NOT NULL DEFAULT 'Q3 2026',
+                        TargetCategory NVARCHAR(100) NOT NULL DEFAULT 'Enterprise Invoices',
+                        SalesRepUserId NVARCHAR(100) NULL,
+                        SalesRepUserUserId INT NULL,
+                        TargetValue DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                        AchievedValue DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                    );
+                END";
+            await context.Database.ExecuteSqlRawAsync(createSalesTeamTablesSql);
 
             // Seed Sales Subordinates (Executives reporting to Sales Manager / Admin)
             var salesRole = await context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Sales Executive");
@@ -382,6 +613,14 @@ namespace ERP_System.Data
             {
                 salesRole = new Role { RoleName = "Sales Executive", Description = "Field & Inbound Sales Executive" };
                 await context.Roles.AddAsync(salesRole);
+                await context.SaveChangesAsync();
+            }
+
+            var coordinatorRole = await context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Sales Coordinator");
+            if (coordinatorRole == null)
+            {
+                coordinatorRole = new Role { RoleName = "Sales Coordinator", Description = "Territory Operations and Executive Support Coordinator" };
+                await context.Roles.AddAsync(coordinatorRole);
                 await context.SaveChangesAsync();
             }
 
@@ -457,20 +696,40 @@ namespace ERP_System.Data
             string r3Id = repRohan != null ? repRohan.UserId.ToString() : "1";
             int? r3Uid = repRohan?.UserId;
 
-            // Seed Sales Leads across 5 funnel stages
+            // Seed Customers if fewer than 5
+            var existingCustomers = await context.Customers.ToListAsync();
+            if (existingCustomers.Count < 5)
+            {
+                var newCusts = new List<Customer>
+                {
+                    new Customer { CustomerCode = "CUST#0001", CustomerName = "Apex Infotech Pvt Ltd", CompanyName = "Apex Infotech Pvt Ltd", TaxIdOrGSTIN = "27AABCA1234F1Z5", Email = "contact@apexinfo.in", PhoneNumber = "+91 98111 22334", CreditLimit = 1500000m, OutstandingBalance = 245000m, AssignedRepId = r1Id, AssignedRepUserUserId = r1Uid, IsActive = true, CreatedAt = DateTime.UtcNow.AddMonths(-5) },
+                    new Customer { CustomerCode = "CUST#0002", CustomerName = "BlueDart Logistics Corp", CompanyName = "BlueDart Logistics Corp", TaxIdOrGSTIN = "29BBCCD5678G2Z1", Email = "procure@bluedart.com", PhoneNumber = "+91 98222 33445", CreditLimit = 2500000m, OutstandingBalance = 480000m, AssignedRepId = r2Id, AssignedRepUserUserId = r2Uid, IsActive = true, CreatedAt = DateTime.UtcNow.AddMonths(-4) },
+                    new Customer { CustomerCode = "CUST#0003", CustomerName = "Zenith Healthcare Ltd", CompanyName = "Zenith Healthcare Ltd", TaxIdOrGSTIN = "33CCDDE9012H3Z8", Email = "it@zenithhealth.org", PhoneNumber = "+91 98333 44556", CreditLimit = 1000000m, OutstandingBalance = 150000m, AssignedRepId = r1Id, AssignedRepUserUserId = r1Uid, IsActive = true, CreatedAt = DateTime.UtcNow.AddMonths(-3) },
+                    new Customer { CustomerCode = "CUST#0004", CustomerName = "Mahindra Finance Group", CompanyName = "Mahindra Finance Group", TaxIdOrGSTIN = "27DDEEF3456J4Z3", Email = "accounts@mfg.in", PhoneNumber = "+91 98444 55667", CreditLimit = 5000000m, OutstandingBalance = 0m, AssignedRepId = r3Id, AssignedRepUserUserId = r3Uid, IsActive = true, CreatedAt = DateTime.UtcNow.AddMonths(-2) },
+                    new Customer { CustomerCode = "CUST#0005", CustomerName = "Tata Steel Logistics", CompanyName = "Tata Steel Logistics", TaxIdOrGSTIN = "20AABCT4567K1Z9", Email = "supply@tatasteel.com", PhoneNumber = "+91 98777 88990", CreditLimit = 3000000m, OutstandingBalance = 380000m, AssignedRepId = r2Id, AssignedRepUserUserId = r2Uid, IsActive = true, CreatedAt = DateTime.UtcNow.AddMonths(-1) }
+                };
+                await context.Customers.AddRangeAsync(newCusts);
+                await context.SaveChangesAsync();
+                existingCustomers = await context.Customers.ToListAsync();
+            }
+
+            var defaultCust = existingCustomers.FirstOrDefault();
+            int c1Id = defaultCust != null ? defaultCust.Id : 1;
+            int c2Id = existingCustomers.Count > 1 ? existingCustomers[1].Id : c1Id;
+            int c3Id = existingCustomers.Count > 2 ? existingCustomers[2].Id : c1Id;
+
+            // Seed Sales Leads across 7 funnel stages
             if (!await context.SalesLeads.AnyAsync())
             {
                 await context.SalesLeads.AddRangeAsync(new List<SalesLead>
                 {
-                    new SalesLead { LeadTitle = "Enterprise Cloud ERP Modernization", CustomerName = "Apex Infotech Pvt Ltd", ContactEmail = "contact@apexinfo.in", ContactPhone = "+91 98111 22334", EstimatedDealValue = 1800000m, Stage = "New", WinProbability = 20, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedAt = DateTime.UtcNow.AddDays(-2), ExpectedCloseDate = DateTime.UtcNow.AddDays(45) },
-                    new SalesLead { LeadTitle = "Supply Chain Warehouse Management", CustomerName = "BlueDart Logistics Corp", ContactEmail = "procure@bluedart.com", ContactPhone = "+91 98222 33445", EstimatedDealValue = 2400000m, Stage = "New", WinProbability = 20, AssignedToUserId = r2Id, AssignedToUserUserId = r2Uid, CreatedAt = DateTime.UtcNow.AddDays(-3), ExpectedCloseDate = DateTime.UtcNow.AddDays(50) },
-                    new SalesLead { LeadTitle = "HRMS & Automated Biometrics Setup", CustomerName = "Zenith Healthcare Ltd", ContactEmail = "it@zenithhealth.org", ContactPhone = "+91 98333 44556", EstimatedDealValue = 1250000m, Stage = "Qualified", WinProbability = 40, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedAt = DateTime.UtcNow.AddDays(-6), ExpectedCloseDate = DateTime.UtcNow.AddDays(30) },
-                    new SalesLead { LeadTitle = "Financial Accounting & Tax Hub", CustomerName = "Mahindra Finance Group", ContactEmail = "accounts@mfg.in", ContactPhone = "+91 98444 55667", EstimatedDealValue = 3100000m, Stage = "Qualified", WinProbability = 40, AssignedToUserId = r3Id, AssignedToUserUserId = r3Uid, CreatedAt = DateTime.UtcNow.AddDays(-8), ExpectedCloseDate = DateTime.UtcNow.AddDays(35) },
-                    new SalesLead { LeadTitle = "Multi-Branch POS System", CustomerName = "Reliance Fresh Express", ContactEmail = "retail@relfresh.com", ContactPhone = "+91 98555 66778", EstimatedDealValue = 1450000m, Stage = "Quotation Sent", WinProbability = 60, AssignedToUserId = r2Id, AssignedToUserUserId = r2Uid, CreatedAt = DateTime.UtcNow.AddDays(-10), ExpectedCloseDate = DateTime.UtcNow.AddDays(20) },
-                    new SalesLead { LeadTitle = "Manufacturing BOM Automation", CustomerName = "Bajaj Auto Components", ContactEmail = "orders@bajajcomponents.in", ContactPhone = "+91 98666 77889", EstimatedDealValue = 2200000m, Stage = "Negotiation", WinProbability = 80, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedAt = DateTime.UtcNow.AddDays(-14), ExpectedCloseDate = DateTime.UtcNow.AddDays(15) },
-                    new SalesLead { LeadTitle = "Omni-Channel Customer CRM", CustomerName = "Tata Consumer Products", ContactEmail = "crm@tataconsumer.com", ContactPhone = "+91 98777 88990", EstimatedDealValue = 2750000m, Stage = "Negotiation", WinProbability = 80, AssignedToUserId = r3Id, AssignedToUserUserId = r3Uid, CreatedAt = DateTime.UtcNow.AddDays(-16), ExpectedCloseDate = DateTime.UtcNow.AddDays(10) },
-                    new SalesLead { LeadTitle = "Enterprise Global License Agreement", CustomerName = "Wipro Technologies", ContactEmail = "vendor@wipro.com", ContactPhone = "+91 98888 99001", EstimatedDealValue = 4200000m, Stage = "Closed Won", WinProbability = 100, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedAt = DateTime.UtcNow.AddDays(-25), ExpectedCloseDate = DateTime.UtcNow.AddDays(-5) },
-                    new SalesLead { LeadTitle = "Integrated Logistics Cloud", CustomerName = "Gati Logistics", ContactEmail = "info@gati.in", ContactPhone = "+91 98999 00112", EstimatedDealValue = 1950000m, Stage = "Closed Won", WinProbability = 100, AssignedToUserId = r2Id, AssignedToUserUserId = r2Uid, CreatedAt = DateTime.UtcNow.AddDays(-30), ExpectedCloseDate = DateTime.UtcNow.AddDays(-10) }
+                    new SalesLead { LeadCode = "LD-101", LeadTitle = "Enterprise Cloud ERP Modernization", ContactName = "Rahul Sharma", Company = "Apex Infotech Pvt Ltd", ContactEmail = "contact@apexinfo.in", ContactPhone = "+91 98111 22334", Source = "LinkedIn", EstimatedDealValue = 1800000m, Stage = "New", WinProbability = 20, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedDate = DateTime.UtcNow.AddDays(-2), ExpectedCloseDate = DateTime.UtcNow.AddDays(45) },
+                    new SalesLead { LeadCode = "LD-102", LeadTitle = "Supply Chain Warehouse Management", ContactName = "Vikram Malhotra", Company = "BlueDart Logistics Corp", ContactEmail = "procure@bluedart.com", ContactPhone = "+91 98222 33445", Source = "Direct Call", EstimatedDealValue = 2400000m, Stage = "Contacted", WinProbability = 35, AssignedToUserId = r2Id, AssignedToUserUserId = r2Uid, CreatedDate = DateTime.UtcNow.AddDays(-3), ExpectedCloseDate = DateTime.UtcNow.AddDays(50) },
+                    new SalesLead { LeadCode = "LD-103", LeadTitle = "HRMS & Automated Biometrics Setup", ContactName = "Dr. Anita Desai", Company = "Zenith Healthcare Ltd", ContactEmail = "it@zenithhealth.org", ContactPhone = "+91 98333 44556", Source = "Website Referral", EstimatedDealValue = 1250000m, Stage = "Qualified", WinProbability = 50, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedDate = DateTime.UtcNow.AddDays(-6), ExpectedCloseDate = DateTime.UtcNow.AddDays(30) },
+                    new SalesLead { LeadCode = "LD-104", LeadTitle = "Financial Accounting & Tax Hub", ContactName = "Sameer Patel", Company = "Mahindra Finance Group", ContactEmail = "accounts@mfg.in", ContactPhone = "+91 98444 55667", Source = "Cold Email", EstimatedDealValue = 3100000m, Stage = "Quotation Sent", WinProbability = 65, AssignedToUserId = r3Id, AssignedToUserUserId = r3Uid, CreatedDate = DateTime.UtcNow.AddDays(-8), ExpectedCloseDate = DateTime.UtcNow.AddDays(35) },
+                    new SalesLead { LeadCode = "LD-105", LeadTitle = "Multi-Branch POS System", ContactName = "Pooja Verma", Company = "Reliance Fresh Express", ContactEmail = "retail@relfresh.com", ContactPhone = "+91 98555 66778", Source = "LinkedIn", EstimatedDealValue = 1450000m, Stage = "Negotiation", WinProbability = 80, AssignedToUserId = r2Id, AssignedToUserUserId = r2Uid, CreatedDate = DateTime.UtcNow.AddDays(-10), ExpectedCloseDate = DateTime.UtcNow.AddDays(20) },
+                    new SalesLead { LeadCode = "LD-106", LeadTitle = "Manufacturing BOM Automation", ContactName = "Anand Bajaj", Company = "Bajaj Auto Components", ContactEmail = "orders@bajajcomponents.in", ContactPhone = "+91 98666 77889", Source = "Direct Call", EstimatedDealValue = 2200000m, Stage = "Closed Won", WinProbability = 100, AssignedToUserId = r1Id, AssignedToUserUserId = r1Uid, CreatedDate = DateTime.UtcNow.AddDays(-14), ExpectedCloseDate = DateTime.UtcNow.AddDays(15) },
+                    new SalesLead { LeadCode = "LD-107", LeadTitle = "Omni-Channel Customer CRM", ContactName = "Kunal Tata", Company = "Tata Consumer Products", ContactEmail = "crm@tataconsumer.com", ContactPhone = "+91 98777 88990", Source = "Website Referral", EstimatedDealValue = 2750000m, Stage = "Closed Lost", WinProbability = 0, AssignedToUserId = r3Id, AssignedToUserUserId = r3Uid, CreatedDate = DateTime.UtcNow.AddDays(-16), ExpectedCloseDate = DateTime.UtcNow.AddDays(10) }
                 });
             }
 
@@ -481,8 +740,8 @@ namespace ERP_System.Data
                 {
                     new SalesQuotation
                     {
-                        QuotationNumber = "QT-2026-0042",
-                        CustomerName = "Zenith Infotech Ltd",
+                        QuotationNumber = "QTN-5001",
+                        CustomerName = "Zenith Healthcare Ltd",
                         SubTotal = 1500000m,
                         DiscountPercentage = 15.00m,
                         TotalAmount = 1275000m,
@@ -495,22 +754,22 @@ namespace ERP_System.Data
                     },
                     new SalesQuotation
                     {
-                        QuotationNumber = "QT-2026-0045",
-                        CustomerName = "Paramount Global Logistics",
+                        QuotationNumber = "QTN-5002",
+                        CustomerName = "BlueDart Logistics Corp",
                         SubTotal = 2200000m,
                         DiscountPercentage = 12.50m,
                         TotalAmount = 1925000m,
                         RequiresManagerApproval = true,
-                        ApprovalStatus = "Pending Review",
-                        ApprovalRemarks = "Multi-year renewal pricing concession requested for nationwide deployment.",
+                        ApprovalStatus = "Approved",
+                        ApprovalRemarks = "Multi-year renewal pricing concession approved by Sales Director.",
                         CreatedByUserId = r2Id,
                         CreatedByUserUserId = r2Uid,
                         CreatedAt = DateTime.UtcNow.AddHours(-18)
                     },
                     new SalesQuotation
                     {
-                        QuotationNumber = "QT-2026-0038",
-                        CustomerName = "Apex Retailers Ltd",
+                        QuotationNumber = "QTN-5003",
+                        CustomerName = "Apex Infotech Pvt Ltd",
                         SubTotal = 800000m,
                         DiscountPercentage = 5.00m,
                         TotalAmount = 760000m,
@@ -524,16 +783,75 @@ namespace ERP_System.Data
                 });
             }
 
-            // Seed Sales Invoices (Closed & Paid)
+            // Seed Sales Orders
+            if (!await context.SalesOrders.AnyAsync())
+            {
+                await context.SalesOrders.AddRangeAsync(new List<SalesOrder>
+                {
+                    new SalesOrder { OrderNumber = "SO-2026-001", CustomerId = c1Id, CustomerName = "Apex Infotech Pvt Ltd", OrderTotal = 760000m, DeliveryStatus = "Delivered", OrderDate = DateTime.UtcNow.AddDays(-20), PaymentTerms = "Net 30" },
+                    new SalesOrder { OrderNumber = "SO-2026-002", CustomerId = c2Id, CustomerName = "BlueDart Logistics Corp", OrderTotal = 1925000m, DeliveryStatus = "Awaiting Dispatch", OrderDate = DateTime.UtcNow.AddDays(-5), PaymentTerms = "Net 30" },
+                    new SalesOrder { OrderNumber = "SO-2026-003", CustomerId = c3Id, CustomerName = "Zenith Healthcare Ltd", OrderTotal = 1275000m, DeliveryStatus = "Confirmed", OrderDate = DateTime.UtcNow.AddDays(-2), PaymentTerms = "Immediate" },
+                    new SalesOrder { OrderNumber = "SO-2026-004", CustomerId = c1Id, CustomerName = "Tata Steel Logistics", OrderTotal = 380000m, DeliveryStatus = "Partially Dispatched", OrderDate = DateTime.UtcNow.AddDays(-8), PaymentTerms = "Net 60" }
+                });
+            }
+
+            // Seed Sales Invoices
             if (!await context.SalesInvoices.AnyAsync())
             {
                 await context.SalesInvoices.AddRangeAsync(new List<SalesInvoice>
                 {
-                    new SalesInvoice { InvoiceNumber = "INV-2026-0810", CustomerName = "Tata Steel Logistics", TotalAmount = 1245000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddDays(-2) },
-                    new SalesInvoice { InvoiceNumber = "INV-2026-0815", CustomerName = "Infosys Campus B", TotalAmount = 1050000m, Status = "Paid", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddDays(-4) },
-                    new SalesInvoice { InvoiceNumber = "INV-2026-0820", CustomerName = "L&T Construction", TotalAmount = 820000m, Status = "Paid", CreatedByUserId = r3Id, CreatedByUserUserId = r3Uid, InvoiceDate = DateTime.UtcNow.AddDays(-7) },
-                    new SalesInvoice { InvoiceNumber = "INV-2026-0825", CustomerName = "Reliance Retail Hub", TotalAmount = 950000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddDays(-11) },
-                    new SalesInvoice { InvoiceNumber = "INV-2026-0830", CustomerName = "Adani Ports Automation", TotalAmount = 780000m, Status = "Paid", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddDays(-15) }
+                    // April 2026
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0405", CustomerId = c1Id, CustomerName = "Apex Infotech Pvt Ltd", LinkedOrderNumber = "SO-2026-001", TaxableValue = 525424m, GstAmount = 94576m, GrandTotal = 620000m, TotalAmount = 620000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-5), DueDate = DateTime.UtcNow.AddMonths(-4) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0420", CustomerId = c2Id, CustomerName = "BlueDart Logistics Corp", LinkedOrderNumber = "SO-2026-002", TaxableValue = 711864m, GstAmount = 128136m, GrandTotal = 840000m, TotalAmount = 840000m, Status = "Paid", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-5).AddDays(15), DueDate = DateTime.UtcNow.AddMonths(-4).AddDays(15) },
+                    // May 2026
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0510", CustomerId = c3Id, CustomerName = "Zenith Healthcare Ltd", LinkedOrderNumber = "SO-2026-003", TaxableValue = 805085m, GstAmount = 144915m, GrandTotal = 950000m, TotalAmount = 950000m, Status = "Paid", CreatedByUserId = r3Id, CreatedByUserUserId = r3Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-4), DueDate = DateTime.UtcNow.AddMonths(-3) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0525", CustomerId = c1Id, CustomerName = "Apex Infotech Pvt Ltd", LinkedOrderNumber = "SO-2026-004", TaxableValue = 932203m, GstAmount = 167797m, GrandTotal = 1100000m, TotalAmount = 1100000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-4).AddDays(15), DueDate = DateTime.UtcNow.AddMonths(-3).AddDays(15) },
+                    // June 2026
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0612", CustomerId = c2Id, CustomerName = "BlueDart Logistics Corp", LinkedOrderNumber = "SO-2026-005", TaxableValue = 1144068m, GstAmount = 205932m, GrandTotal = 1350000m, TotalAmount = 1350000m, Status = "Paid", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-3), DueDate = DateTime.UtcNow.AddMonths(-2) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0628", CustomerId = c3Id, CustomerName = "Zenith Healthcare Ltd", LinkedOrderNumber = "SO-2026-006", TaxableValue = 661017m, GstAmount = 118983m, GrandTotal = 780000m, TotalAmount = 780000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-3).AddDays(16), DueDate = DateTime.UtcNow.AddMonths(-2).AddDays(16) },
+                    // July 2026
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0715", CustomerId = c1Id, CustomerName = "Apex Infotech Pvt Ltd", LinkedOrderNumber = "SO-2026-007", TaxableValue = 1254237m, GstAmount = 225763m, GrandTotal = 1480000m, TotalAmount = 1480000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-2), DueDate = DateTime.UtcNow.AddMonths(-1) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0728", CustomerId = c2Id, CustomerName = "BlueDart Logistics Corp", LinkedOrderNumber = "SO-2026-008", TaxableValue = 754237m, GstAmount = 135763m, GrandTotal = 890000m, TotalAmount = 890000m, Status = "Paid", CreatedByUserId = r3Id, CreatedByUserUserId = r3Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-2).AddDays(13), DueDate = DateTime.UtcNow.AddMonths(-1).AddDays(13) },
+                    // August 2026
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0808", CustomerId = c3Id, CustomerName = "Zenith Healthcare Ltd", LinkedOrderNumber = "SO-2026-009", TaxableValue = 1398305m, GstAmount = 251695m, GrandTotal = 1650000m, TotalAmount = 1650000m, Status = "Paid", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddMonths(-1), DueDate = DateTime.UtcNow },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0810", CustomerId = c1Id, CustomerName = "Tata Steel Logistics", LinkedOrderNumber = "SO-2026-004", TaxableValue = 1055085m, GstAmount = 189915m, GrandTotal = 1245000m, TotalAmount = 1245000m, Status = "Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddDays(-35), DueDate = DateTime.UtcNow.AddDays(-5) },
+                    // September 2026
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0815", CustomerId = c2Id, CustomerName = "BlueDart Logistics Corp", LinkedOrderNumber = "SO-2026-002", TaxableValue = 889830m, GstAmount = 160170m, GrandTotal = 1050000m, TotalAmount = 1050000m, Status = "Pending", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddDays(-10), DueDate = DateTime.UtcNow.AddDays(20) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0820", CustomerId = c3Id, CustomerName = "Zenith Healthcare Ltd", LinkedOrderNumber = "SO-2026-003", TaxableValue = 694915m, GstAmount = 125085m, GrandTotal = 820000m, TotalAmount = 820000m, Status = "Overdue", CreatedByUserId = r3Id, CreatedByUserUserId = r3Uid, InvoiceDate = DateTime.UtcNow.AddDays(-45), DueDate = DateTime.UtcNow.AddDays(-15) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0825", CustomerId = c1Id, CustomerName = "Apex Infotech Pvt Ltd", LinkedOrderNumber = "SO-2026-001", TaxableValue = 644068m, GstAmount = 115932m, GrandTotal = 760000m, TotalAmount = 760000m, Status = "Partially Paid", CreatedByUserId = r1Id, CreatedByUserUserId = r1Uid, InvoiceDate = DateTime.UtcNow.AddDays(-20), DueDate = DateTime.UtcNow.AddDays(10) },
+                    new SalesInvoice { InvoiceNumber = "INV-2026-0830", CustomerId = c2Id, CustomerName = "Mahindra Finance Group", LinkedOrderNumber = "SO-2026-005", TaxableValue = 661017m, GstAmount = 118983m, GrandTotal = 780000m, TotalAmount = 780000m, Status = "Paid", CreatedByUserId = r2Id, CreatedByUserUserId = r2Uid, InvoiceDate = DateTime.UtcNow.AddDays(-15), DueDate = DateTime.UtcNow.AddDays(15) }
+                });
+            }
+
+            // Seed Payment Receivables
+            if (!await context.PaymentReceivables.AnyAsync())
+            {
+                await context.PaymentReceivables.AddRangeAsync(new List<PaymentReceivable>
+                {
+                    // 0-30 Days (Current)
+                    new PaymentReceivable { InvoiceNumber = "INV-2026-0815", CustomerId = c2Id, InvoiceDate = DateTime.UtcNow.AddDays(-10), DueDate = DateTime.UtcNow.AddDays(20), TotalAmount = 1050000m, PendingBalance = 1050000m, Status = "Pending" },
+                    new PaymentReceivable { InvoiceNumber = "INV-REC-AG01", CustomerId = c1Id, InvoiceDate = DateTime.UtcNow.AddDays(-10), DueDate = DateTime.UtcNow.AddDays(15), TotalAmount = 450000m, PendingBalance = 450000m, Status = "Pending" },
+                    // 31-60 Days Overdue
+                    new PaymentReceivable { InvoiceNumber = "INV-REC-AG02", CustomerId = c2Id, InvoiceDate = DateTime.UtcNow.AddDays(-70), DueDate = DateTime.UtcNow.AddDays(-40), TotalAmount = 550000m, PendingBalance = 550000m, Status = "Overdue" },
+                    // 61-90 Days Overdue
+                    new PaymentReceivable { InvoiceNumber = "INV-REC-AG03", CustomerId = c3Id, InvoiceDate = DateTime.UtcNow.AddDays(-105), DueDate = DateTime.UtcNow.AddDays(-75), TotalAmount = 320000m, PendingBalance = 320000m, Status = "Overdue" },
+                    // 90+ Days Overdue (High Risk)
+                    new PaymentReceivable { InvoiceNumber = "INV-2026-0820", CustomerId = c3Id, InvoiceDate = DateTime.UtcNow.AddDays(-45), DueDate = DateTime.UtcNow.AddDays(-15), TotalAmount = 820000m, PendingBalance = 820000m, Status = "Overdue" },
+                    new PaymentReceivable { InvoiceNumber = "INV-REC-AG04", CustomerId = c1Id, InvoiceDate = DateTime.UtcNow.AddDays(-150), DueDate = DateTime.UtcNow.AddDays(-115), TotalAmount = 680000m, PendingBalance = 680000m, Status = "Overdue" },
+                    // Settled / Partially Paid
+                    new PaymentReceivable { InvoiceNumber = "INV-2026-0825", CustomerId = c1Id, InvoiceDate = DateTime.UtcNow.AddDays(-20), DueDate = DateTime.UtcNow.AddDays(10), TotalAmount = 760000m, PendingBalance = 245000m, Status = "Partially Paid" },
+                    new PaymentReceivable { InvoiceNumber = "INV-2026-0810", CustomerId = c1Id, InvoiceDate = DateTime.UtcNow.AddDays(-35), DueDate = DateTime.UtcNow.AddDays(-5), TotalAmount = 1245000m, PendingBalance = 0m, Status = "Paid" }
+                });
+            }
+
+            // Seed Sales Returns
+            if (!await context.SalesReturns.AnyAsync())
+            {
+                await context.SalesReturns.AddRangeAsync(new List<SalesReturn>
+                {
+                    new SalesReturn { ReturnCode = "SR-7001", OriginalInvoiceNumber = "INV-2026-0810", CustomerId = c1Id, CustomerName = "Tata Steel Logistics", ReturnDate = DateTime.UtcNow.AddDays(-3), RefundValue = 45000m, ReturnReason = "Transit Damage", Status = "Inspecting", CreditNoteNumber = null },
+                    new SalesReturn { ReturnCode = "SR-7002", OriginalInvoiceNumber = "INV-2026-0825", CustomerId = c1Id, CustomerName = "Apex Infotech Pvt Ltd", ReturnDate = DateTime.UtcNow.AddDays(-8), RefundValue = 85000m, ReturnReason = "Wrong Item", Status = "Restocked", CreditNoteNumber = "CN-2026-0001" },
+                    new SalesReturn { ReturnCode = "SR-7003", OriginalInvoiceNumber = "INV-2026-0815", CustomerId = c2Id, CustomerName = "BlueDart Logistics Corp", ReturnDate = DateTime.UtcNow.AddDays(-14), RefundValue = 32000m, ReturnReason = "Defective", Status = "Refunded", CreditNoteNumber = "CN-2026-0002" }
                 });
             }
 

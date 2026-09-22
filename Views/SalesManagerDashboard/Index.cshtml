@@ -2,6 +2,7 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales Manager Dashboard";
+
     var inCulture = new System.Globalization.CultureInfo("en-IN");
     var now = DateTime.Now;
     var activeMonthName = now.ToString("MMMM yyyy");
@@ -12,8 +13,8 @@
     decimal targetAchievedPct = ViewBag.TargetAchievedPct ?? Model?.TeamTargetAchievementPercent ?? 0m;
     decimal goalAmount = ViewBag.GoalAmount ?? Model?.GoalAmount ?? 15000000m;
 
-    var pipelineStages = (Dictionary<string, (int Count, decimal Value)>?)ViewBag.PipelineStages 
-        ?? Model?.PipelineStages 
+    var pipelineStages = (Dictionary<string, (int Count, decimal Value)>?)ViewBag.PipelineStages
+        ?? Model?.PipelineStages
         ?? new Dictionary<string, (int Count, decimal Value)>
         {
             { "New", (0, 0m) },
@@ -27,717 +28,2616 @@
     var leaderboard = (IEnumerable<dynamic>?)ViewBag.Leaderboard ?? Model?.Leaderboard;
     var recentInvoices = (IEnumerable<dynamic>?)ViewBag.RecentInvoices ?? Model?.RecentInvoices;
     var repUsers = (IEnumerable<dynamic>?)ViewBag.RepUsers ?? Model?.RepUsers;
+
     string selectedDateRange = ViewBag.DateRange ?? Model?.DateRange ?? "Q3 2026";
 }
 
 <style>
-    /* 4 KPI Cards Grid Layout */
-    .kpi-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1.25rem;
-        margin-bottom: 2rem;
+    /* ============================================================
+           SALES MANAGER DASHBOARD
+           Scoped UI system
+           ============================================================ */
+
+    .sales-manager-dashboard {
+        --sm-primary: #2563eb;
+        --sm-primary-dark: #1d4ed8;
+        --sm-primary-soft: #eff6ff;
+        --sm-indigo: #4f46e5;
+        --sm-indigo-soft: #eef2ff;
+        --sm-success: #059669;
+        --sm-success-soft: #ecfdf5;
+        --sm-warning: #d97706;
+        --sm-warning-soft: #fffbeb;
+        --sm-danger: #dc2626;
+        --sm-danger-soft: #fef2f2;
+        --sm-purple: #7c3aed;
+        --sm-purple-soft: #f5f3ff;
+        --sm-cyan: #0891b2;
+        --sm-cyan-soft: #ecfeff;
+        --sm-text: #172033;
+        --sm-muted: #64748b;
+        --sm-border: #e5eaf1;
+        --sm-surface: #ffffff;
+        --sm-bg: #f6f8fb;
+        --sm-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
+        --sm-shadow-hover: 0 18px 40px rgba(15, 23, 42, 0.10);
+        color: var(--sm-text);
+        animation: smPageIn .55s ease both;
     }
+
+        .sales-manager-dashboard *,
+        .sales-manager-dashboard *::before,
+        .sales-manager-dashboard *::after {
+            box-sizing: border-box;
+        }
+
+        .sales-manager-dashboard .sm-page-shell {
+            position: relative;
+            padding: 4px 0 35px;
+        }
+
+            .sales-manager-dashboard .sm-page-shell::before {
+                content: "";
+                position: absolute;
+                top: -40px;
+                right: -80px;
+                width: 280px;
+                height: 280px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(37, 99, 235, .075), transparent 68%);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            .sales-manager-dashboard .sm-page-shell > * {
+                position: relative;
+                z-index: 1;
+            }
+
+        /* ------------------------------------------------------------
+           Header
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+
+        .sales-manager-dashboard .sm-title-area {
+            min-width: 0;
+        }
+
+        .sales-manager-dashboard .sm-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--sm-primary);
+            background: var(--sm-primary-soft);
+            border: 1px solid rgba(37, 99, 235, .12);
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: .69rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-bottom: 9px;
+        }
+
+            .sales-manager-dashboard .sm-eyebrow i {
+                font-size: .65rem;
+            }
+
+        .sales-manager-dashboard .sm-main-title {
+            font-size: clamp(1.45rem, 2.4vw, 2rem);
+            line-height: 1.15;
+            font-weight: 800;
+            letter-spacing: -.035em;
+            margin: 0 0 7px;
+            color: var(--sm-text);
+        }
+
+        .sales-manager-dashboard .sm-subtitle {
+            margin: 0;
+            color: var(--sm-muted);
+            font-size: .82rem;
+        }
+
+        .sales-manager-dashboard .sm-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 10px;
+            font-size: .74rem;
+            color: var(--sm-muted);
+        }
+
+            .sales-manager-dashboard .sm-breadcrumb a {
+                color: var(--sm-primary);
+                text-decoration: none;
+                font-weight: 600;
+            }
+
+            .sales-manager-dashboard .sm-breadcrumb .separator {
+                color: #a8b1bf;
+            }
+
+        .sales-manager-dashboard .sm-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .sales-manager-dashboard .sm-filter-control {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--sm-surface);
+            border: 1px solid var(--sm-border);
+            border-radius: 11px;
+            padding: 0 11px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, .035);
+            transition: .2s ease;
+        }
+
+            .sales-manager-dashboard .sm-filter-control:focus-within {
+                border-color: rgba(37, 99, 235, .45);
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+            }
+
+            .sales-manager-dashboard .sm-filter-control i {
+                color: var(--sm-primary);
+                font-size: .76rem;
+            }
+
+            .sales-manager-dashboard .sm-filter-control select {
+                width: auto;
+                min-width: 125px;
+                height: 32px;
+                padding: 0 25px 0 0;
+                border: 0;
+                box-shadow: none !important;
+                outline: none !important;
+                background-color: transparent;
+                color: var(--sm-text);
+                font-size: .76rem;
+                font-weight: 700;
+                cursor: pointer;
+            }
+
+        .sales-manager-dashboard .sm-action-btn {
+            min-height: 40px;
+            border-radius: 10px;
+            padding: 0 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            font-size: .76rem;
+            font-weight: 700;
+            transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+
+            .sales-manager-dashboard .sm-action-btn:hover {
+                transform: translateY(-2px);
+            }
+
+        .sales-manager-dashboard .sm-action-primary {
+            box-shadow: 0 7px 18px rgba(37, 99, 235, .17);
+        }
+
+        .sales-manager-dashboard .sm-role-card {
+            min-height: 40px;
+            background: var(--sm-surface);
+            border: 1px solid var(--sm-border);
+            border-radius: 10px;
+            padding: 5px 11px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, .035);
+        }
+
+        .sales-manager-dashboard .sm-role-label {
+            display: block;
+            font-size: .58rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: #94a3b8;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .sales-manager-dashboard .sm-role-value {
+            display: block;
+            font-size: .72rem;
+            font-weight: 750;
+            color: var(--sm-text);
+            white-space: nowrap;
+        }
+
+        /* ------------------------------------------------------------
+           KPI Cards
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .sales-manager-dashboard .sm-kpi {
+            position: relative;
+            overflow: hidden;
+            min-height: 136px;
+            border-radius: 16px;
+            padding: 17px;
+            color: #fff;
+            isolation: isolate;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, .09);
+            transition: transform .25s ease, box-shadow .25s ease;
+            animation: smCardIn .55s ease both;
+        }
+
+            .sales-manager-dashboard .sm-kpi:nth-child(2) {
+                animation-delay: .06s;
+            }
+
+            .sales-manager-dashboard .sm-kpi:nth-child(3) {
+                animation-delay: .12s;
+            }
+
+            .sales-manager-dashboard .sm-kpi:nth-child(4) {
+                animation-delay: .18s;
+            }
+
+            .sales-manager-dashboard .sm-kpi:hover {
+                transform: translateY(-4px);
+                box-shadow: var(--sm-shadow-hover);
+            }
+
+            .sales-manager-dashboard .sm-kpi::before {
+                content: "";
+                position: absolute;
+                width: 125px;
+                height: 125px;
+                right: -45px;
+                top: -55px;
+                border: 1px solid rgba(255, 255, 255, .18);
+                border-radius: 50%;
+                z-index: -1;
+            }
+
+            .sales-manager-dashboard .sm-kpi::after {
+                content: "";
+                position: absolute;
+                width: 180px;
+                height: 180px;
+                right: -100px;
+                bottom: -115px;
+                border: 1px solid rgba(255, 255, 255, .12);
+                border-radius: 50%;
+                z-index: -1;
+            }
+
+        .sales-manager-dashboard .sm-kpi-blue {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+        }
+
+        .sales-manager-dashboard .sm-kpi-indigo {
+            background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+        }
+
+        .sales-manager-dashboard .sm-kpi-green {
+            background: linear-gradient(135deg, #047857 0%, #10b981 100%);
+        }
+
+        .sales-manager-dashboard .sm-kpi-purple {
+            background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
+        }
+
+        .sales-manager-dashboard .sm-kpi-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .sales-manager-dashboard .sm-kpi-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: .68rem;
+            font-weight: 750;
+            letter-spacing: .025em;
+            text-transform: uppercase;
+            opacity: .9;
+        }
+
+        .sales-manager-dashboard .sm-kpi-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, .14);
+            border: 1px solid rgba(255, 255, 255, .16);
+            font-size: .92rem;
+            backdrop-filter: blur(5px);
+        }
+
+        .sales-manager-dashboard .sm-kpi-period {
+            font-size: .63rem;
+            font-weight: 700;
+            opacity: .78;
+            white-space: nowrap;
+        }
+
+        .sales-manager-dashboard .sm-kpi-value {
+            margin: 0;
+            color: #fff;
+            font-size: clamp(1.3rem, 2.2vw, 1.72rem);
+            line-height: 1.1;
+            font-weight: 850;
+            letter-spacing: -.035em;
+            white-space: nowrap;
+        }
+
+        .sales-manager-dashboard .sm-kpi-description {
+            margin-top: 6px;
+            font-size: .7rem;
+            font-weight: 550;
+            opacity: .82;
+        }
+
+        /* ------------------------------------------------------------
+           Section Cards
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-section {
+            background: var(--sm-surface);
+            border: 1px solid var(--sm-border);
+            border-radius: 16px;
+            box-shadow: var(--sm-shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+            animation: smSectionIn .55s ease both;
+        }
+
+        .sales-manager-dashboard .sm-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 18px 20px;
+            border-bottom: 1px solid #eef1f5;
+        }
+
+        .sales-manager-dashboard .sm-section-heading {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-width: 0;
+        }
+
+        .sales-manager-dashboard .sm-section-icon {
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 11px;
+            background: var(--sm-primary-soft);
+            color: var(--sm-primary);
+            font-size: .86rem;
+        }
+
+        .sales-manager-dashboard .sm-section-title {
+            margin: 0;
+            color: var(--sm-text);
+            font-size: .91rem;
+            font-weight: 800;
+            letter-spacing: -.01em;
+        }
+
+        .sales-manager-dashboard .sm-section-description {
+            margin: 3px 0 0;
+            color: var(--sm-muted);
+            font-size: .69rem;
+        }
+
+        .sales-manager-dashboard .sm-section-body {
+            padding: 20px;
+        }
+
+        .sales-manager-dashboard .sm-section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: .64rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        /* ------------------------------------------------------------
+           Pipeline
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-pipeline-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .sales-manager-dashboard .sm-stage {
+            position: relative;
+            overflow: hidden;
+            min-height: 158px;
+            padding: 15px;
+            border: 1px solid var(--sm-border);
+            border-radius: 13px;
+            background: #fbfcfe;
+            transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+        }
+
+            .sales-manager-dashboard .sm-stage:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 12px 25px rgba(15, 23, 42, .07);
+            }
+
+            .sales-manager-dashboard .sm-stage::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                height: 3px;
+            }
+
+        .sales-manager-dashboard .sm-stage-new::before {
+            background: #3b82f6;
+        }
+
+        .sales-manager-dashboard .sm-stage-qualified::before {
+            background: #06b6d4;
+        }
+
+        .sales-manager-dashboard .sm-stage-quotation::before {
+            background: #f59e0b;
+        }
+
+        .sales-manager-dashboard .sm-stage-negotiation::before {
+            background: #8b5cf6;
+        }
+
+        .sales-manager-dashboard .sm-stage-won::before {
+            background: #10b981;
+        }
+
+        .sales-manager-dashboard .sm-stage-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            margin-bottom: 18px;
+        }
+
+        .sales-manager-dashboard .sm-stage-number {
+            font-size: .59rem;
+            font-weight: 850;
+            letter-spacing: .07em;
+            padding: 4px 7px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .sales-manager-dashboard .sm-stage-count {
+            font-size: .67rem;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .sales-manager-dashboard .sm-stage-name {
+            margin: 0 0 5px;
+            font-size: .79rem;
+            font-weight: 800;
+            color: var(--sm-text);
+        }
+
+        .sales-manager-dashboard .sm-stage-value {
+            font-size: 1rem;
+            line-height: 1.15;
+            font-weight: 850;
+            letter-spacing: -.025em;
+        }
+
+        .sales-manager-dashboard .sm-stage-meta {
+            display: block;
+            margin-top: 7px;
+            color: #94a3b8;
+            font-size: .64rem;
+            font-weight: 600;
+        }
+
+        .sales-manager-dashboard .sm-stage-new .sm-stage-value {
+            color: #2563eb;
+        }
+
+        .sales-manager-dashboard .sm-stage-qualified .sm-stage-value {
+            color: #0891b2;
+        }
+
+        .sales-manager-dashboard .sm-stage-quotation .sm-stage-value {
+            color: #d97706;
+        }
+
+        .sales-manager-dashboard .sm-stage-negotiation .sm-stage-value {
+            color: #7c3aed;
+        }
+
+        .sales-manager-dashboard .sm-stage-won .sm-stage-value {
+            color: #059669;
+        }
+
+        /* ------------------------------------------------------------
+           Target Projection
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-target-panel {
+            padding: 18px 20px 20px;
+        }
+
+        .sales-manager-dashboard .sm-target-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .sales-manager-dashboard .sm-target-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: .82rem;
+            font-weight: 800;
+            color: var(--sm-text);
+        }
+
+            .sales-manager-dashboard .sm-target-title i {
+                color: var(--sm-primary);
+            }
+
+        .sales-manager-dashboard .sm-goal {
+            font-size: .7rem;
+            font-weight: 750;
+            color: var(--sm-muted);
+            white-space: nowrap;
+        }
+
+        .sales-manager-dashboard .sm-progress {
+            height: 12px;
+            overflow: hidden;
+            background: #eef2f7;
+            border-radius: 999px;
+        }
+
+            .sales-manager-dashboard .sm-progress .progress-bar {
+                position: relative;
+                overflow: hidden;
+                border-radius: 999px;
+                background: linear-gradient(90deg, #059669, #10b981);
+                transition: width 1s cubic-bezier(.22, .61, .36, 1);
+            }
+
+                .sales-manager-dashboard .sm-progress .progress-bar::after {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+                    transform: translateX(-100%);
+                    animation: smShimmer 2.4s infinite;
+                }
+
+        /* ------------------------------------------------------------
+           Approval Panel
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-approval {
+            border-color: #f5d48b;
+            box-shadow: 0 10px 28px rgba(217, 119, 6, .07);
+        }
+
+            .sales-manager-dashboard .sm-approval .sm-section-icon {
+                background: var(--sm-warning-soft);
+                color: var(--sm-warning);
+            }
+
+        .sales-manager-dashboard .sm-approval-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 11px;
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 999px;
+            font-size: .64rem;
+            font-weight: 850;
+        }
+
+        /* ------------------------------------------------------------
+           Tables
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sales-manager-dashboard .sm-table {
+            width: 100%;
+            min-width: 690px;
+            margin: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: .74rem;
+        }
+
+            .sales-manager-dashboard .sm-table thead th {
+                padding: 11px 14px;
+                background: #f8fafc;
+                border-bottom: 1px solid var(--sm-border);
+                color: #64748b;
+                font-size: .61rem;
+                font-weight: 850;
+                letter-spacing: .055em;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            .sales-manager-dashboard .sm-table tbody td {
+                padding: 12px 14px;
+                border-bottom: 1px solid #eef2f6;
+                color: #475569;
+                vertical-align: middle;
+                background: #fff;
+            }
+
+            .sales-manager-dashboard .sm-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+            .sales-manager-dashboard .sm-table tbody tr {
+                transition: background .18s ease;
+            }
+
+                .sales-manager-dashboard .sm-table tbody tr:hover td {
+                    background: #f8fbff;
+                }
+
+        .sales-manager-dashboard .sm-quote-number {
+            color: var(--sm-primary);
+            font-weight: 850;
+        }
+
+        .sales-manager-dashboard .sm-customer {
+            color: var(--sm-text);
+            font-weight: 700;
+        }
+
+        .sales-manager-dashboard .sm-amount {
+            color: var(--sm-text);
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .sales-manager-dashboard .sm-person {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 180px;
+        }
+
+        .sales-manager-dashboard .sm-avatar {
+            width: 31px;
+            height: 31px;
+            flex: 0 0 31px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--sm-primary-soft);
+            color: var(--sm-primary);
+            border: 1px solid #dbeafe;
+            font-size: .68rem;
+            font-weight: 850;
+        }
+
+        .sales-manager-dashboard .sm-person-name {
+            color: var(--sm-text);
+            font-weight: 750;
+            font-size: .72rem;
+        }
+
+        .sales-manager-dashboard .sm-person-email {
+            display: block;
+            max-width: 170px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #94a3b8;
+            font-size: .61rem;
+            margin-top: 2px;
+        }
+
+        .sales-manager-dashboard .sm-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: .62rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+            .sales-manager-dashboard .sm-status::before {
+                content: "";
+                width: 5px;
+                height: 5px;
+                border-radius: 50%;
+                background: currentColor;
+            }
+
+        .sales-manager-dashboard .sm-status-paid,
+        .sales-manager-dashboard .sm-status-active {
+            color: #047857;
+            background: #ecfdf5;
+        }
+
+        .sales-manager-dashboard .sm-status-pending {
+            color: #b45309;
+            background: #fffbeb;
+        }
+
+        .sales-manager-dashboard .sm-status-inactive {
+            color: #64748b;
+            background: #f1f5f9;
+        }
+
+        .sales-manager-dashboard .sm-discount {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 8px;
+            border-radius: 7px;
+            color: #b91c1c;
+            background: #fef2f2;
+            font-weight: 850;
+            font-size: .62rem;
+        }
+
+        .sales-manager-dashboard .sm-action-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .sales-manager-dashboard .sm-action-small {
+            border-radius: 8px;
+            padding: 5px 9px;
+            font-size: .63rem;
+            font-weight: 750;
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+            .sales-manager-dashboard .sm-action-small:hover {
+                transform: translateY(-1px);
+            }
+
+        /* ------------------------------------------------------------
+           Lower Dashboard Cards
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-lower-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(0, .9fr);
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .sales-manager-dashboard .sm-card {
+            min-width: 0;
+            background: var(--sm-surface);
+            border: 1px solid var(--sm-border);
+            border-radius: 16px;
+            box-shadow: var(--sm-shadow);
+            overflow: hidden;
+        }
+
+        .sales-manager-dashboard .sm-card-header {
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #eef1f5;
+        }
+
+        .sales-manager-dashboard .sm-card-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .sales-manager-dashboard .sm-card-title-icon {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: #fff7ed;
+            color: #ea580c;
+            font-size: .8rem;
+        }
+
+        .sales-manager-dashboard .sm-card-title {
+            margin: 0;
+            color: var(--sm-text);
+            font-size: .82rem;
+            font-weight: 800;
+        }
+
+        .sales-manager-dashboard .sm-card-subtitle {
+            margin: 2px 0 0;
+            color: #94a3b8;
+            font-size: .62rem;
+        }
+
+        .sales-manager-dashboard .sm-view-all {
+            flex: 0 0 auto;
+            border-radius: 999px;
+            padding: 6px 11px;
+            font-size: .62rem;
+            font-weight: 800;
+        }
+
+        .sales-manager-dashboard .sm-leaderboard .sm-card-title-icon {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .sales-manager-dashboard .sm-rep-row {
+            cursor: pointer;
+            transition: background .2s ease, transform .2s ease;
+        }
+
+            .sales-manager-dashboard .sm-rep-row:hover td {
+                background: #f8fbff !important;
+            }
+
+        .sales-manager-dashboard .sm-rep-profile {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 190px;
+        }
+
+        .sales-manager-dashboard .sm-rep-avatar {
+            width: 35px;
+            height: 35px;
+            flex: 0 0 35px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #dbeafe, #eef2ff);
+            color: var(--sm-primary);
+            border: 1px solid #dbeafe;
+            font-size: .72rem;
+            font-weight: 850;
+        }
+
+        .sales-manager-dashboard .sm-rep-name {
+            color: var(--sm-text);
+            font-weight: 800;
+            font-size: .72rem;
+            text-decoration: none;
+        }
+
+        .sales-manager-dashboard .sm-rep-meta {
+            margin-top: 2px;
+            color: #94a3b8;
+            font-size: .61rem;
+        }
+
+        .sales-manager-dashboard .sm-revenue {
+            color: var(--sm-success);
+            font-weight: 850;
+            white-space: nowrap;
+            font-size: .73rem;
+        }
+
+        /* ------------------------------------------------------------
+           Empty States
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-empty {
+            padding: 34px 20px !important;
+            text-align: center;
+            color: #94a3b8 !important;
+        }
+
+        .sales-manager-dashboard .sm-empty-icon {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: #94a3b8;
+        }
+
+        /* ------------------------------------------------------------
+           Buttons
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .sm-btn-primary {
+            background: var(--sm-primary);
+            border-color: var(--sm-primary);
+            color: #fff;
+        }
+
+            .sales-manager-dashboard .sm-btn-primary:hover {
+                background: var(--sm-primary-dark);
+                border-color: var(--sm-primary-dark);
+                color: #fff;
+            }
+
+        /* ------------------------------------------------------------
+           Modals
+           ------------------------------------------------------------ */
+
+        .sales-manager-dashboard .modal-content {
+            border: 1px solid rgba(226, 232, 240, .9) !important;
+            border-radius: 18px !important;
+            overflow: hidden;
+            box-shadow: 0 25px 70px rgba(15, 23, 42, .20) !important;
+        }
+
+        .sales-manager-dashboard .modal-header {
+            padding: 18px 20px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-bottom: 1px solid #edf1f5;
+        }
+
+        .sales-manager-dashboard .modal-title {
+            color: var(--sm-text);
+            font-size: .95rem;
+            font-weight: 800;
+        }
+
+        .sales-manager-dashboard .modal-body {
+            padding: 20px;
+        }
+
+        .sales-manager-dashboard .modal-footer {
+            padding: 14px 20px;
+            background: #fafbfd;
+            border-top: 1px solid #edf1f5;
+        }
+
+        .sales-manager-dashboard .modal .form-label {
+            color: #475569 !important;
+            font-size: .67rem !important;
+            font-weight: 800 !important;
+            margin-bottom: 6px;
+        }
+
+        .sales-manager-dashboard .modal .form-control,
+        .sales-manager-dashboard .modal .form-select {
+            min-height: 40px;
+            border-color: #dfe5ed;
+            border-radius: 9px;
+            color: var(--sm-text);
+            font-size: .74rem;
+            box-shadow: none;
+            transition: border-color .18s ease, box-shadow .18s ease;
+        }
+
+        .sales-manager-dashboard .modal textarea.form-control {
+            min-height: 85px;
+        }
+
+        .sales-manager-dashboard .modal .form-control:focus,
+        .sales-manager-dashboard .modal .form-select:focus {
+            border-color: rgba(37, 99, 235, .55);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .09);
+        }
+
+        .sales-manager-dashboard .sm-rep-modal-strip {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px;
+            border: 1px solid #e8edf3;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .sales-manager-dashboard .sm-rep-modal-icon {
+            width: 48px;
+            height: 48px;
+            flex: 0 0 48px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            color: #fff;
+            font-size: 1rem;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, .2);
+        }
+
+        .sales-manager-dashboard .sm-modal-metric {
+            height: 100%;
+            padding: 14px;
+            border: 1px solid #e7ebf1;
+            background: #fff;
+            border-radius: 11px;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+            .sales-manager-dashboard .sm-modal-metric:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 9px 22px rgba(15, 23, 42, .07);
+            }
+
+        .sales-manager-dashboard .sm-modal-metric-label {
+            color: #94a3b8;
+            font-size: .62rem;
+            font-weight: 750;
+        }
+
+        .sales-manager-dashboard .sm-modal-metric-value {
+            margin: 5px 0 0;
+            color: var(--sm-text);
+            font-size: 1rem;
+            font-weight: 850;
+        }
+
+    /* ------------------------------------------------------------
+           Mobile Table Cards / Responsive
+           ------------------------------------------------------------ */
 
     @@media (max-width: 1200px) {
-        .kpi-row {
-            grid-template-columns: repeat(2, 1fr);
+        .sales-manager-dashboard .sm-kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-    }
 
-    @@media (max-width: 600px) {
-        .kpi-row {
-            grid-template-columns: 1fr;
+        .sales-manager-dashboard .sm-pipeline-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
-    }
 
-    /* KPI Card Style */
-    .screenshot-card {
-        border-radius: 6px;
-        color: #ffffff !important;
-        display: flex;
-        align-items: stretch;
-        min-height: 100px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        overflow: hidden;
-        text-align: left;
-    }
+        .sales-manager-dashboard .sm-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
 
-    .card-left-block {
-        width: 34%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        border-right: 1px solid rgba(255, 255, 255, 0.25);
-        background: rgba(0, 0, 0, 0.08);
-        padding: 0.5rem;
-        text-align: center;
-    }
-
-    .card-left-month {
-        font-size: 0.7rem;
-        font-weight: 500;
-        opacity: 0.9;
-        text-transform: capitalize;
-    }
-
-    .card-left-year {
-        font-size: 1.05rem;
-        font-weight: 700;
-        line-height: 1.1;
-    }
-
-    .card-left-icon {
-        font-size: 1.8rem;
-        opacity: 0.85;
-    }
-
-    .card-right-block {
-        width: 66%;
-        padding: 0.75rem 1rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-    }
-
-    .card-val {
-        font-size: clamp(1.1rem, 2vw, 1.4rem);
-        font-weight: 700;
-        margin: 0;
-        line-height: 1.25;
-        white-space: nowrap;
-        overflow: visible;
-    }
-
-    .card-label {
-        font-size: 0.72rem;
-        font-weight: 500;
-        opacity: 0.95;
-        margin-top: 3px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Card Background Colors */
-    .bg-kpi-blue { background-color: #3b82f6; }
-    .bg-kpi-indigo { background-color: #6366f1; }
-    .bg-kpi-purple { background-color: #a855f7; }
-    .bg-kpi-green { background-color: #10b981; }
-
-    .detail-card {
-        background: #ffffff;
-        border: 1px solid var(--border-warm, #e5e7eb);
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        padding: 1.5rem;
-        height: 100%;
-        text-align: left;
-    }
-
-    /* Visual Pipeline Funnel Styling */
-    .funnel-container {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 0.75rem;
+        .sales-manager-dashboard .sm-header-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
     }
 
     @@media (max-width: 992px) {
-        .funnel-container {
-            grid-template-columns: repeat(2, 1fr);
+        .sales-manager-dashboard .sm-lower-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .sales-manager-dashboard .sm-pipeline-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .sales-manager-dashboard .sm-role-card {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .sales-manager-dashboard .sm-page-shell {
+            padding-top: 0;
+        }
+
+        .sales-manager-dashboard .sm-header {
+            margin-bottom: 16px;
+        }
+
+        .sales-manager-dashboard .sm-main-title {
+            font-size: 1.45rem;
+        }
+
+        .sales-manager-dashboard .sm-header-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 100%;
+        }
+
+        .sales-manager-dashboard .sm-filter-control {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+
+            .sales-manager-dashboard .sm-filter-control select {
+                flex: 1;
+                width: 100%;
+            }
+
+        .sales-manager-dashboard .sm-action-btn {
+            width: 100%;
+        }
+
+        .sales-manager-dashboard .sm-kpi {
+            min-height: 128px;
+        }
+
+        .sales-manager-dashboard .sm-section-header {
+            align-items: flex-start;
+        }
+
+        .sales-manager-dashboard .sm-section-badge {
+            display: none;
+        }
+
+        .sales-manager-dashboard .sm-target-top {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .sales-manager-dashboard .sm-card-header {
+            align-items: flex-start;
+        }
+
+        .sales-manager-dashboard .sm-view-all {
+            margin-top: 1px;
         }
     }
 
     @@media (max-width: 576px) {
-        .funnel-container {
+        .sales-manager-dashboard .sm-kpi-grid {
             grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .sales-manager-dashboard .sm-kpi {
+            min-height: 120px;
+        }
+
+        .sales-manager-dashboard .sm-pipeline-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .sales-manager-dashboard .sm-section-header,
+        .sales-manager-dashboard .sm-section-body,
+        .sales-manager-dashboard .sm-target-panel {
+            padding-left: 14px;
+            padding-right: 14px;
+        }
+
+        .sales-manager-dashboard .sm-section-heading {
+            align-items: flex-start;
+        }
+
+        .sales-manager-dashboard .sm-section-icon {
+            width: 34px;
+            height: 34px;
+            flex-basis: 34px;
+        }
+
+        .sales-manager-dashboard .sm-section-title {
+            font-size: .83rem;
+        }
+
+        .sales-manager-dashboard .sm-card-header {
+            padding: 13px 14px;
+        }
+
+        .sales-manager-dashboard .sm-card-title {
+            font-size: .76rem;
+        }
+
+        .sales-manager-dashboard .sm-view-all {
+            padding: 5px 8px;
+            font-size: .58rem;
+        }
+
+        .sales-manager-dashboard .sm-table {
+            min-width: 650px;
+        }
+
+        .sales-manager-dashboard .sm-action-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .sales-manager-dashboard .sm-action-small {
+            width: 100%;
+        }
+
+        .sales-manager-dashboard .modal-dialog {
+            margin: .65rem;
+        }
+
+        .sales-manager-dashboard .modal-body {
+            padding: 16px;
+        }
+
+        .sales-manager-dashboard .modal-header,
+        .sales-manager-dashboard .modal-footer {
+            padding-left: 16px;
+            padding-right: 16px;
         }
     }
 
-    .funnel-stage-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 1rem;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    @@media (max-width: 400px) {
+        .sales-manager-dashboard .sm-header-actions {
+            grid-template-columns: 1fr;
+        }
+
+        .sales-manager-dashboard .sm-filter-control {
+            grid-column: auto;
+        }
+
+        .sales-manager-dashboard .sm-kpi-value {
+            font-size: 1.25rem;
+        }
+
+        .sales-manager-dashboard .sm-kpi {
+            padding: 14px;
+        }
     }
 
-    .funnel-stage-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    /* ------------------------------------------------------------
+           Reduced Motion
+           ------------------------------------------------------------ */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .sales-manager-dashboard *,
+        .sales-manager-dashboard *::before,
+        .sales-manager-dashboard *::after {
+            animation-duration: .01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: .01ms !important;
+            scroll-behavior: auto !important;
+        }
     }
 
-    .funnel-stage-card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
+    /* ------------------------------------------------------------
+           Print
+           ------------------------------------------------------------ */
+
+    @@media print {
+        .sales-manager-dashboard .sm-header-actions,
+        .sales-manager-dashboard .sm-view-all,
+        .sales-manager-dashboard .sm-action-group,
+        .sales-manager-dashboard .modal {
+            display: none !important;
+        }
+
+        .sales-manager-dashboard .sm-section,
+        .sales-manager-dashboard .sm-card,
+        .sales-manager-dashboard .sm-kpi {
+            box-shadow: none !important;
+            break-inside: avoid;
+        }
+
+        .sales-manager-dashboard .sm-page-shell::before {
+            display: none;
+        }
     }
 
-    .stage-new::before { background-color: #3b82f6; }
-    .stage-qualified::before { background-color: #06b6d4; }
-    .stage-quotesent::before { background-color: #f59e0b; }
-    .stage-negotiation::before { background-color: #8b5cf6; }
-    .stage-won::before { background-color: #10b981; }
+    /* ------------------------------------------------------------
+           Animations
+           ------------------------------------------------------------ */
 
-    .rep-clickable-row {
-        cursor: pointer;
-        transition: background-color 0.15s ease;
+    @@keyframes smPageIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
-    .rep-clickable-row:hover {
-        background-color: #f8fafc !important;
+    @@keyframes smCardIn {
+        from {
+            opacity: 0;
+            transform: translateY(13px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes smSectionIn {
+        from {
+            opacity: 0;
+            transform: translateY(9px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes smShimmer {
+        0% {
+            transform: translateX(-100%);
+        }
+
+        55%,
+        100% {
+            transform: translateX(100%);
+        }
     }
 </style>
 
-<!-- Header & Top Filter Bar with Quick Actions -->
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4 text-start">
-    <div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-color, #1e293b);">Dashboard</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Sales Manager</li>
-            </ol>
-        </nav>
-    </div>
-    
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <!-- Date Filter Dropdown -->
-        <div class="d-flex align-items-center bg-white border rounded-3 px-2 py-1 shadow-sm">
-            <i class="fa fa-calendar-alt text-muted me-2 small"></i>
-            <select id="dateFilterSelect" class="form-select form-select-sm border-0 shadow-none py-1 fw-semibold text-dark" style="width: auto; cursor: pointer;" onchange="onDateRangeChange(this.value)">
-                <option value="September 2026" selected="@(selectedDateRange == "September 2026")">September 2026</option>
-                <option value="Q3 2026" selected="@(selectedDateRange == "Q3 2026" || string.IsNullOrEmpty(selectedDateRange))">Q3 2026</option>
-                <option value="FY 2026-27" selected="@(selectedDateRange == "FY 2026-27")">FY 2026-27</option>
-                <option value="Custom Range" selected="@(selectedDateRange == "Custom Range")">Custom Range</option>
-            </select>
-        </div>
+<div class="sales-manager-dashboard">
+    <div class="sm-page-shell">
 
-        <!-- Quick Action Buttons -->
-        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newLeadModal">
-            <i class="fa fa-plus me-1"></i> Add Lead
-        </button>
-        <button class="btn btn-sm btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#assignTargetModal">
-            <i class="fa fa-bullseye me-1"></i> Assign Target
-        </button>
+        <!-- =====================================================
+             PAGE HEADER
+             ===================================================== -->
+        <div class="sm-header">
+            <div class="sm-title-area">
+                <span class="sm-eyebrow">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Sales Management
+                </span>
 
-        <div class="px-3 py-1.5 bg-white border rounded-3 text-start small shadow-sm d-none d-xl-block">
-            <div class="text-muted fw-semibold" style="font-size: 0.7rem; text-transform: uppercase;">Active Role</div>
-            <div class="fw-bold text-dark"><i class="fa-solid fa-crown me-1.5 text-primary"></i>@(Model?.CurrentUserRole ?? "Sales Manager")</div>
-        </div>
-        <div class="px-3 py-1.5 bg-white border rounded-3 text-start small shadow-sm d-none d-xl-block">
-            <div class="text-muted fw-semibold" style="font-size: 0.7rem; text-transform: uppercase;">Management Scope</div>
-            <div class="fw-bold text-dark"><i class="fa-solid fa-building me-1.5 text-info"></i>@(Model?.CurrentCompany ?? "Head Office")</div>
-        </div>
-    </div>
-</div>
+                <h1 class="sm-main-title">Sales Manager Dashboard</h1>
 
-<!-- 4 KPI Cards Grid -->
-<div class="kpi-row">
-    <!-- Total Team Sales Revenue -->
-    <div class="screenshot-card bg-kpi-blue">
-        <div class="card-left-block">
-            <span class="card-left-month">@activeMonthName.Split(' ')[0]</span>
-            <span class="card-left-year">@activeMonthName.Split(' ')[1]</span>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val" style="font-size: clamp(1.1rem, 2vw, 1.4rem); white-space: nowrap;">₹@totalRevenue.ToString("N0", inCulture)</h4>
-            <span class="card-label">Total Team Revenue</span>
-        </div>
-    </div>
+                <p class="sm-subtitle">
+                    Monitor team revenue, pipeline movement, targets and sales operations from one place.
+                </p>
 
-    <!-- Active Sales Reps -->
-    <div class="screenshot-card bg-kpi-indigo">
-        <div class="card-left-block">
-            <i class="fa-solid fa-users card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@activeReps</h4>
-            <span class="card-label">Active Sales Reps</span>
-        </div>
-    </div>
-
-    <!-- Avg. Sales / Rep -->
-    <div class="screenshot-card bg-kpi-green">
-        <div class="card-left-block">
-            <i class="fa-solid fa-money-bill-trend-up card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">₹@avgSales.ToString("N0", inCulture)</h4>
-            <span class="card-label">Avg. Sales / Representative</span>
-        </div>
-    </div>
-
-    <!-- Team Target Achievement -->
-    <div class="screenshot-card bg-kpi-purple">
-        <div class="card-left-block">
-            <i class="fa-solid fa-bullseye card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@targetAchievedPct%</h4>
-            <span class="card-label">Team Target Achieved</span>
-        </div>
-    </div>
-</div>
-
-<!-- Visual Pipeline Funnel Widget -->
-<div class="bg-white border rounded-3 p-4 shadow-sm mb-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h6 class="fw-bold mb-0 text-dark">
-                <i class="fa-solid fa-filter text-primary me-2"></i>Sales Pipeline Funnel
-            </h6>
-            <small class="text-muted">Real-time team deal velocity and stage distribution</small>
-        </div>
-        <span class="badge bg-primary-subtle text-primary fw-semibold px-2.5 py-1">
-            Total Active Stages: 5
-        </span>
-    </div>
-
-    <div class="funnel-container">
-        <!-- Stage 1: New -->
-        <div class="funnel-stage-card stage-new">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge bg-primary-subtle text-primary fw-bold" style="font-size: 0.72rem;">STAGE 1</span>
-                <span class="fw-bold text-dark small">@pipelineStages["New"].Count Deals</span>
+                <div class="sm-breadcrumb">
+                    <a href="#">Dashboard</a>
+                    <span class="separator">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </span>
+                    <span>Sales Manager</span>
+                </div>
             </div>
-            <h6 class="fw-bold text-dark mb-1">New</h6>
-            <div class="text-primary fw-bold fs-6">₹@pipelineStages["New"].Value.ToString("N0", inCulture)</div>
-            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["New"].Count Deals (₹@pipelineStages["New"].Value.ToString("N0"))</small>
-        </div>
 
-        <!-- Stage 2: Qualified -->
-        <div class="funnel-stage-card stage-qualified">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge bg-info-subtle text-info fw-bold" style="font-size: 0.72rem;">STAGE 2</span>
-                <span class="fw-bold text-dark small">@pipelineStages["Qualified"].Count Deals</span>
+            <div class="sm-header-actions">
+
+                <!-- Date Filter -->
+                <div class="sm-filter-control">
+                    <i class="fa-solid fa-calendar-days"></i>
+
+                    <select id="dateFilterSelect"
+                            class="form-select form-select-sm"
+                            onchange="onDateRangeChange(this.value)">
+                        <option value="September 2026" selected="@(selectedDateRange == "September 2026")">
+                            September 2026
+                        </option>
+
+                        <option value="Q3 2026" selected="@(selectedDateRange == "Q3 2026" || string.IsNullOrEmpty(selectedDateRange))">
+                            Q3 2026
+                        </option>
+
+                        <option value="FY 2026-27" selected="@(selectedDateRange == "FY 2026-27")">
+                            FY 2026-27
+                        </option>
+
+                        <option value="Custom Range" selected="@(selectedDateRange == "Custom Range")">
+                            Custom Range
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Add Lead -->
+                <button type="button"
+                        class="btn btn-outline-primary sm-action-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#newLeadModal">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add Lead</span>
+                </button>
+
+                <!-- Assign Target -->
+                <button type="button"
+                        class="btn btn-primary sm-action-btn sm-action-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#assignTargetModal">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <span>Assign Target</span>
+                </button>
+
+                <!-- Role -->
+                <div class="sm-role-card">
+                    <span class="sm-role-label">Active Role</span>
+                    <span class="sm-role-value">
+                        <i class="fa-solid fa-crown text-primary me-1"></i>
+                        @(Model?.CurrentUserRole ?? "Sales Manager")
+                    </span>
+                </div>
+
+                <!-- Scope -->
+                <div class="sm-role-card">
+                    <span class="sm-role-label">Management Scope</span>
+                    <span class="sm-role-value">
+                        <i class="fa-solid fa-building text-info me-1"></i>
+                        @(Model?.CurrentCompany ?? "Head Office")
+                    </span>
+                </div>
             </div>
-            <h6 class="fw-bold text-dark mb-1">Qualified</h6>
-            <div class="text-info fw-bold fs-6">₹@pipelineStages["Qualified"].Value.ToString("N0", inCulture)</div>
-            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["Qualified"].Count Deals (₹@pipelineStages["Qualified"].Value.ToString("N0"))</small>
         </div>
 
-        <!-- Stage 3: Quotation Sent -->
-        <div class="funnel-stage-card stage-quotesent">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge bg-warning-subtle text-warning fw-bold" style="font-size: 0.72rem;">STAGE 3</span>
-                <span class="fw-bold text-dark small">@pipelineStages["Quotation Sent"].Count Deals</span>
+        <!-- =====================================================
+             KPI GRID
+             ===================================================== -->
+        <div class="sm-kpi-grid">
+
+            <!-- Revenue -->
+            <div class="sm-kpi sm-kpi-blue">
+                <div class="sm-kpi-top">
+                    <div class="sm-kpi-label">
+                        <span class="sm-kpi-icon">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                        </span>
+                        Team Revenue
+                    </div>
+
+                    <span class="sm-kpi-period">
+                        @activeMonthName
+                    </span>
+                </div>
+
+                <h2 class="sm-kpi-value">
+                    ₹@totalRevenue.ToString("N0", inCulture)
+                </h2>
+
+                <div class="sm-kpi-description">
+                    Total team sales revenue
+                </div>
             </div>
-            <h6 class="fw-bold text-dark mb-1">Quotation Sent</h6>
-            <div class="text-warning fw-bold fs-6">₹@pipelineStages["Quotation Sent"].Value.ToString("N0", inCulture)</div>
-            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["Quotation Sent"].Count Deals</small>
-        </div>
 
-        <!-- Stage 4: Negotiation -->
-        <div class="funnel-stage-card stage-negotiation">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge bg-purple-subtle text-purple fw-bold" style="font-size: 0.72rem; color: #8b5cf6;">STAGE 4</span>
-                <span class="fw-bold text-dark small">@pipelineStages["Negotiation"].Count Deals</span>
+            <!-- Active Reps -->
+            <div class="sm-kpi sm-kpi-indigo">
+                <div class="sm-kpi-top">
+                    <div class="sm-kpi-label">
+                        <span class="sm-kpi-icon">
+                            <i class="fa-solid fa-users"></i>
+                        </span>
+                        Sales Team
+                    </div>
+
+                    <span class="sm-kpi-period">Live</span>
+                </div>
+
+                <h2 class="sm-kpi-value">
+                    @activeReps
+                </h2>
+
+                <div class="sm-kpi-description">
+                    Active sales representatives
+                </div>
             </div>
-            <h6 class="fw-bold text-dark mb-1">Negotiation</h6>
-            <div class="text-purple fw-bold fs-6" style="color: #8b5cf6;">₹@pipelineStages["Negotiation"].Value.ToString("N0", inCulture)</div>
-            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["Negotiation"].Count Deals</small>
-        </div>
 
-        <!-- Stage 5: Closed Won -->
-        <div class="funnel-stage-card stage-won">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge bg-success-subtle text-success fw-bold" style="font-size: 0.72rem;">CLOSED</span>
-                <span class="fw-bold text-dark small">@pipelineStages["Closed Won"].Count Deals</span>
+            <!-- Average Sales -->
+            <div class="sm-kpi sm-kpi-green">
+                <div class="sm-kpi-top">
+                    <div class="sm-kpi-label">
+                        <span class="sm-kpi-icon">
+                            <i class="fa-solid fa-money-bill-trend-up"></i>
+                        </span>
+                        Productivity
+                    </div>
+
+                    <span class="sm-kpi-period">Average</span>
+                </div>
+
+                <h2 class="sm-kpi-value">
+                    ₹@avgSales.ToString("N0", inCulture)
+                </h2>
+
+                <div class="sm-kpi-description">
+                    Average sales per representative
+                </div>
             </div>
-            <h6 class="fw-bold text-dark mb-1">Closed Won</h6>
-            <div class="text-success fw-bold fs-6">₹@pipelineStages["Closed Won"].Value.ToString("N0", inCulture)</div>
-            <small class="text-muted" style="font-size: 0.7rem;">@pipelineStages["Closed Won"].Count Deals</small>
+
+            <!-- Target -->
+            <div class="sm-kpi sm-kpi-purple">
+                <div class="sm-kpi-top">
+                    <div class="sm-kpi-label">
+                        <span class="sm-kpi-icon">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </span>
+                        Target
+                    </div>
+
+                    <span class="sm-kpi-period">Q3 2026</span>
+                </div>
+
+                <h2 class="sm-kpi-value">
+                    @targetAchievedPct%
+                </h2>
+
+                <div class="sm-kpi-description">
+                    Team target achieved
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
-<!-- Team target completion bar -->
-<div class="bg-white border rounded-3 p-4 shadow-sm mb-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-chart-bar text-primary me-2"></i>Q3 2026 Team Target Projection</h6>
-        <span class="small fw-semibold text-muted">Goal: ₹@goalAmount.ToString("N0", inCulture)</span>
-    </div>
-    <div class="progress" style="height: 12px;">
-        <div class="progress-bar bg-success progress-bar-striped" role="progressbar" style="width: @Math.Min(100m, targetAchievedPct)%;" aria-valuenow="@targetAchievedPct" aria-valuemin="0" aria-valuemax="100"></div>
-    </div>
-</div>
+        <!-- =====================================================
+             SALES PIPELINE
+             ===================================================== -->
+        <section class="sm-section">
 
-<!-- Pending Quotation & Discount Approvals Table Card -->
+            <div class="sm-section-header">
+                <div class="sm-section-heading">
+                    <div class="sm-section-icon">
+                        <i class="fa-solid fa-filter"></i>
+                    </div>
+
+                    <div>
+                        <h2 class="sm-section-title">
+                            Sales Pipeline Funnel
+                        </h2>
+
+                        <p class="sm-section-description">
+                            Real-time team deal velocity and stage distribution
+                        </p>
+                    </div>
+                </div>
+
+                <span class="sm-section-badge bg-primary-subtle text-primary">
+                    <i class="fa-solid fa-layer-group"></i>
+                    5 Active Stages
+                </span>
+            </div>
+
+            <div class="sm-section-body">
+
+                <div class="sm-pipeline-grid">
+
+                    <!-- New -->
+                    <div class="sm-stage sm-stage-new">
+                        <div class="sm-stage-top">
+                            <span class="sm-stage-number">STAGE 01</span>
+                            <span class="sm-stage-count">
+                                @pipelineStages["New"].Count Deals
+                            </span>
+                        </div>
+
+                        <h3 class="sm-stage-name">New</h3>
+
+                        <div class="sm-stage-value">
+                            ₹@pipelineStages["New"].Value.ToString("N0", inCulture)
+                        </div>
+
+                        <small class="sm-stage-meta">
+                            @pipelineStages["New"].Count opportunities
+                        </small>
+                    </div>
+
+                    <!-- Qualified -->
+                    <div class="sm-stage sm-stage-qualified">
+                        <div class="sm-stage-top">
+                            <span class="sm-stage-number">STAGE 02</span>
+                            <span class="sm-stage-count">
+                                @pipelineStages["Qualified"].Count Deals
+                            </span>
+                        </div>
+
+                        <h3 class="sm-stage-name">Qualified</h3>
+
+                        <div class="sm-stage-value">
+                            ₹@pipelineStages["Qualified"].Value.ToString("N0", inCulture)
+                        </div>
+
+                        <small class="sm-stage-meta">
+                            @pipelineStages["Qualified"].Count opportunities
+                        </small>
+                    </div>
+
+                    <!-- Quotation -->
+                    <div class="sm-stage sm-stage-quotation">
+                        <div class="sm-stage-top">
+                            <span class="sm-stage-number">STAGE 03</span>
+                            <span class="sm-stage-count">
+                                @pipelineStages["Quotation Sent"].Count Deals
+                            </span>
+                        </div>
+
+                        <h3 class="sm-stage-name">Quotation Sent</h3>
+
+                        <div class="sm-stage-value">
+                            ₹@pipelineStages["Quotation Sent"].Value.ToString("N0", inCulture)
+                        </div>
+
+                        <small class="sm-stage-meta">
+                            @pipelineStages["Quotation Sent"].Count opportunities
+                        </small>
+                    </div>
+
+                    <!-- Negotiation -->
+                    <div class="sm-stage sm-stage-negotiation">
+                        <div class="sm-stage-top">
+                            <span class="sm-stage-number">STAGE 04</span>
+                            <span class="sm-stage-count">
+                                @pipelineStages["Negotiation"].Count Deals
+                            </span>
+                        </div>
+
+                        <h3 class="sm-stage-name">Negotiation</h3>
+
+                        <div class="sm-stage-value">
+                            ₹@pipelineStages["Negotiation"].Value.ToString("N0", inCulture)
+                        </div>
+
+                        <small class="sm-stage-meta">
+                            @pipelineStages["Negotiation"].Count opportunities
+                        </small>
+                    </div>
+
+                    <!-- Closed Won -->
+                    <div class="sm-stage sm-stage-won">
+                        <div class="sm-stage-top">
+                            <span class="sm-stage-number">CLOSED</span>
+                            <span class="sm-stage-count">
+                                @pipelineStages["Closed Won"].Count Deals
+                            </span>
+                        </div>
+
+                        <h3 class="sm-stage-name">Closed Won</h3>
+
+                        <div class="sm-stage-value">
+                            ₹@pipelineStages["Closed Won"].Value.ToString("N0", inCulture)
+                        </div>
+
+                        <small class="sm-stage-meta">
+                            @pipelineStages["Closed Won"].Count closed deals
+                        </small>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             TARGET PROJECTION
+             ===================================================== -->
+        <section class="sm-section">
+
+            <div class="sm-target-panel">
+
+                <div class="sm-target-top">
+                    <div class="sm-target-title">
+                        <i class="fa-solid fa-chart-column"></i>
+                        <span>Q3 2026 Team Target Projection</span>
+                    </div>
+
+                    <span class="sm-goal">
+                        Goal: ₹@goalAmount.ToString("N0", inCulture)
+                    </span>
+                </div>
+
+                <div class="progress sm-progress">
+                    <div class="progress-bar progress-bar-striped"
+                         role="progressbar"
+                         style="width: @Math.Min(100m, targetAchievedPct)%"
+                         aria-valuenow="@targetAchievedPct"
+                         aria-valuemin="0"
+                         aria-valuemax="100">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             PENDING APPROVALS
+             ===================================================== -->
 @if (pendingApprovals != null && pendingApprovals.Any())
 {
-    <div class="bg-white border border-warning rounded-3 p-4 shadow-sm mb-4 text-start">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h5 class="fw-bold mb-1 text-dark">
-                    <i class="fa-solid fa-stamp text-warning me-2"></i>Pending Quotation & Discount Approvals
-                </h5>
-                <span class="small text-muted">Quotations with requested discount rates exceeding policy threshold (>10%) requiring manager review.</span>
-            </div>
-            <span class="badge bg-warning text-dark px-3 py-1.5 fw-bold rounded-pill">
-                @pendingApprovals.Count() Pending Review
-            </span>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Quote #</th>
-                        <th>Customer Name</th>
-                        <th>Subtotal</th>
-                        <th>Discount %</th>
-                        <th>Total Amount</th>
-                        <th>Requested By</th>
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in pendingApprovals)
-                    {
-                        <tr>
-                            <td class="fw-bold text-primary">@item.QuotationNumber</td>
-                            <td class="fw-semibold text-dark">@item.CustomerName</td>
-                            <td>₹@item.SubTotal.ToString("N0", inCulture)</td>
-                            <td>
-                                <span class="badge bg-danger-subtle text-danger fw-bold px-2 py-1">
-                                    <i class="fa fa-arrow-down me-1"></i>@item.DiscountPercentage%
-                                </span>
-                            </td>
-                            <td class="fw-bold text-dark">₹@item.TotalAmount.ToString("N0", inCulture)</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-light border text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">
-                                        @((item.CreatedByUser?.FullName ?? "Rep").Substring(0, 1))
-                                    </div>
-                                    <div>
-                                        <div class="fw-semibold text-dark">@(item.CreatedByUser?.FullName ?? item.CreatedByUser?.UserName ?? "Sales Rep")</div>
-                                        <small class="text-muted">@(item.CreatedByUser?.Email ?? "")</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-success px-2 py-1" onclick="submitQuoteReview(@item.Id, 'Approved')">
-                                    <i class="fa fa-check me-1"></i> Approve
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger px-2 py-1 ms-1" onclick="submitQuoteReview(@item.Id, 'Rejected')">
-                                    <i class="fa fa-times me-1"></i> Reject
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-}
+            <section class="sm-section sm-approval">
 
-<!-- Details Grid -->
-<div class="row g-4 mb-5">
-    <!-- Left Column: Recent Team Invoices -->
-    <div class="col-lg-7">
-        <div class="detail-card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-receipt me-2 text-warning"></i>Recent Team Sales Invoices</h5>
-                <a href="/Sales" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">View All</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Invoice No</th>
-                            <th>Customer</th>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (recentInvoices != null && recentInvoices.Any())
-                        {
-                            @foreach (var inv in recentInvoices)
-                            {
-                                <tr>
-                                    <td class="fw-bold text-dark">@inv.InvoiceNumber</td>
-                                    <td>@inv.CustomerName</td>
-                                    <td class="text-muted">@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
-                                    <td class="fw-bold">₹@inv.TotalAmount.ToString("N0", inCulture)</td>
-                                    <td>
-                                        <span class="badge rounded-pill @(inv.Status == "Paid" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning") px-2.5 py-1">
-                                            @inv.Status
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else if (Model?.RecentTeamTransactions != null && Model.RecentTeamTransactions.Any())
-                        {
-                            @foreach (var sales in Model.RecentTeamTransactions)
-                            {
-                                <tr>
-                                    <td class="fw-bold text-dark">@sales.TransactionNo</td>
-                                    <td>@sales.PartyName</td>
-                                    <td class="text-muted">@sales.Date.ToString("dd MMM yyyy")</td>
-                                    <td class="fw-bold">₹@sales.Amount.ToString("N0", inCulture)</td>
-                                    <td>
-                                        <span class="badge rounded-pill @(sales.Status == "Paid" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning") px-2.5 py-1">
-                                            @sales.Status
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
+                <div class="sm-section-header">
+
+                    <div class="sm-section-heading">
+                        <div class="sm-section-icon">
+                            <i class="fa-solid fa-stamp"></i>
+                        </div>
+
+                        <div>
+                            <h2 class="sm-section-title">
+                                Pending Quotation & Discount Approvals
+                            </h2>
+
+                            <p class="sm-section-description">
+                                Quotations with requested discount rates exceeding policy threshold (&gt;10%) requiring manager review.
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="sm-approval-count">
+                        <i class="fa-solid fa-clock"></i>
+                        @pendingApprovals.Count() Pending Review
+                    </span>
+                </div>
+
+                <div class="sm-table-wrap">
+                    <table class="table sm-table align-middle mb-0">
+
+                        <thead>
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No sales registered.</td>
+                                <th>Quote #</th>
+                                <th>Customer Name</th>
+                                <th>Subtotal</th>
+                                <th>Discount %</th>
+                                <th>Total Amount</th>
+                                <th>Requested By</th>
+                                <th class="text-end">Actions</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+                        </thead>
 
-    <!-- Right Column: Top Performing Reps (Leaderboard with Drill-down) -->
-    <div class="col-lg-5">
-        <div class="detail-card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-trophy me-2 text-danger"></i>Top Sales Representatives</h5>
-                <a href="/SalesTeam/Performance" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">Leaderboard</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Sales Rep (Click to Drill Down)</th>
-                            <th>Revenue</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (leaderboard != null && leaderboard.Any())
-                        {
-                            @foreach (var item in leaderboard)
+                        <tbody>
+
+                            @foreach (var item in pendingApprovals)
                             {
-                                <tr class="rep-clickable-row" onclick="openRepDrilldown('@item.RepId')" title="Click to view @item.Name performance drilldown">
+                                <tr>
+
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                                @(string.IsNullOrEmpty(item.Name) ? "R" : item.Name.Substring(0, 1))
+                                        <span class="sm-quote-number">
+                                            @item.QuotationNumber
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="sm-customer">
+                                            @item.CustomerName
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        ₹@item.SubTotal.ToString("N0", inCulture)
+                                    </td>
+
+                                    <td>
+                                        <span class="sm-discount">
+                                            <i class="fa-solid fa-arrow-down"></i>
+                                            @item.DiscountPercentage%
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="sm-amount">
+                                            ₹@item.TotalAmount.ToString("N0", inCulture)
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <div class="sm-person">
+
+                                            <div class="sm-avatar">
+                                                @((item.CreatedByUser?.FullName ?? "Rep").Substring(0, 1))
                                             </div>
+
                                             <div>
-                                                <a href="javascript:void(0)" class="fw-bold text-dark text-decoration-none">@item.Name</a>
-                                                <div class="small text-muted">@item.DealsClosed closed deals</div>
+                                                <div class="sm-person-name">
+                                                    @(item.CreatedByUser?.FullName ?? item.CreatedByUser?.UserName ?? "Sales Rep")
+                                                </div>
+
+                                                <small class="sm-person-email">
+                                                    @(item.CreatedByUser?.Email ?? "")
+                                                </small>
                                             </div>
+
                                         </div>
                                     </td>
-                                    <td class="fw-bold text-success">₹@item.Revenue.ToString("N0", inCulture)</td>
+
                                     <td>
-                                        <span class="badge @(item.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-muted") px-2 py-0.5 small">
-                                            @(item.IsActive ? "Active" : "Inactive")
-                                        </span>
+                                        <div class="sm-action-group">
+
+                                            <button type="button"
+                                                    class="btn btn-success sm-action-small"
+                                                    onclick="submitQuoteReview(@item.Id, 'Approved')">
+                                                <i class="fa-solid fa-check me-1"></i>
+                                                Approve
+                                            </button>
+
+                                            <button type="button"
+                                                    class="btn btn-outline-danger sm-action-small"
+                                                    onclick="submitQuoteReview(@item.Id, 'Rejected')">
+                                                <i class="fa-solid fa-xmark me-1"></i>
+                                                Reject
+                                            </button>
+
+                                        </div>
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+}
+
+        <!-- =====================================================
+             LOWER DASHBOARD GRID
+             ===================================================== -->
+        <div class="sm-lower-grid">
+
+            <!-- Recent Invoices -->
+            <section class="sm-card">
+
+                <div class="sm-card-header">
+
+                    <div class="sm-card-title-wrap">
+                        <div class="sm-card-title-icon">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+
+                        <div>
+                            <h2 class="sm-card-title">
+                                Recent Team Sales Invoices
+                            </h2>
+
+                            <p class="sm-card-subtitle">
+                                Latest sales transactions from your team
+                            </p>
+                        </div>
+                    </div>
+
+                    <a href="/Sales"
+                       class="btn btn-outline-primary sm-view-all">
+                        View All
+                    </a>
+                </div>
+
+                <div class="sm-table-wrap">
+
+                    <table class="table sm-table align-middle mb-0">
+
+                        <thead>
+                            <tr>
+                                <th>Invoice No</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @if (recentInvoices != null && recentInvoices.Any())
+                            {
+                                @foreach (var inv in recentInvoices)
+                                {
+                                    <tr>
+
+                                        <td>
+                                            <span class="fw-bold text-dark">
+                                                @inv.InvoiceNumber
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <span class="sm-customer">
+                                                @inv.CustomerName
+                                            </span>
+                                        </td>
+
+                                        <td class="text-muted">
+                                            @inv.InvoiceDate.ToString("dd MMM yyyy")
+                                        </td>
+
+                                        <td>
+                                            <span class="sm-amount">
+                                                ₹@inv.TotalAmount.ToString("N0", inCulture)
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            @if (inv.Status == "Paid")
+                                            {
+                                                <span class="sm-status sm-status-paid">
+                                                    Paid
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="sm-status sm-status-pending">
+                                                    @inv.Status
+                                                </span>
+                                            }
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+                            else if (Model?.RecentTeamTransactions != null && Model.RecentTeamTransactions.Any())
+                            {
+                                @foreach (var sales in Model.RecentTeamTransactions)
+                                {
+                                    <tr>
+
+                                        <td>
+                                            <span class="fw-bold text-dark">
+                                                @sales.TransactionNo
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <span class="sm-customer">
+                                                @sales.PartyName
+                                            </span>
+                                        </td>
+
+                                        <td class="text-muted">
+                                            @sales.Date.ToString("dd MMM yyyy")
+                                        </td>
+
+                                        <td>
+                                            <span class="sm-amount">
+                                                ₹@sales.Amount.ToString("N0", inCulture)
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            @if (sales.Status == "Paid")
+                                            {
+                                                <span class="sm-status sm-status-paid">
+                                                    Paid
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="sm-status sm-status-pending">
+                                                    @sales.Status
+                                                </span>
+                                            }
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="sm-empty">
+
+                                        <div class="sm-empty-icon">
+                                            <i class="fa-solid fa-receipt"></i>
+                                        </div>
+
+                                        No sales registered.
                                     </td>
                                 </tr>
                             }
-                        }
-                        else
-                        {
+
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Leaderboard -->
+            <section class="sm-card sm-leaderboard">
+
+                <div class="sm-card-header">
+
+                    <div class="sm-card-title-wrap">
+                        <div class="sm-card-title-icon">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+
+                        <div>
+                            <h2 class="sm-card-title">
+                                Top Sales Representatives
+                            </h2>
+
+                            <p class="sm-card-subtitle">
+                                Team performance and closed deals
+                            </p>
+                        </div>
+                    </div>
+
+                    <a href="/SalesTeam/Performance"
+                       class="btn btn-outline-primary sm-view-all">
+                        Leaderboard
+                    </a>
+                </div>
+
+                <div class="sm-table-wrap">
+
+                    <table class="table sm-table align-middle mb-0">
+
+                        <thead>
                             <tr>
-                                <td colspan="3" class="text-center py-4 text-muted">No sales representatives assigned.</td>
+                                <th>Sales Representative</th>
+                                <th>Revenue</th>
+                                <th>Status</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+                        </thead>
 
-<!-- Rep Drilldown Modal -->
-<div class="modal fade" id="repDrilldownModal" tabindex="-1" aria-labelledby="repDrilldownModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0 rounded-4">
-            <div class="modal-header border-bottom-0 pb-0">
-                <div>
-                    <h5 class="modal-title fw-bold text-dark" id="repDrilldownModalLabel">
-                        <i class="fa-solid fa-user-tie text-primary me-2"></i>Sales Representative Performance
-                    </h5>
-                    <p class="text-muted small mb-0">Direct subordinate live conversion and operational metrics</p>
+                        <tbody>
+
+                            @if (leaderboard != null && leaderboard.Any())
+                            {
+                                @foreach (var item in leaderboard)
+                                {
+                                    <tr class="sm-rep-row"
+                                        onclick="openRepDrilldown('@item.RepId')"
+                                        title="Click to view @item.Name performance drilldown">
+
+                                        <td>
+
+                                            <div class="sm-rep-profile">
+
+                                                <div class="sm-rep-avatar">
+                                                    @(string.IsNullOrEmpty(item.Name) ? "R" : item.Name.Substring(0, 1))
+                                                </div>
+
+                                                <div>
+                                                    <a href="javascript:void(0)"
+                                                       class="sm-rep-name">
+                                                        @item.Name
+                                                    </a>
+
+                                                    <div class="sm-rep-meta">
+                                                        @item.DealsClosed closed deals
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                        </td>
+
+                                        <td>
+                                            <span class="sm-revenue">
+                                                ₹@item.Revenue.ToString("N0", inCulture)
+                                            </span>
+                                        </td>
+
+                                        <td>
+
+                                            @if (item.IsActive)
+                                            {
+                                                <span class="sm-status sm-status-active">
+                                                    Active
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="sm-status sm-status-inactive">
+                                                    Inactive
+                                                </span>
+                                            }
+
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="3" class="sm-empty">
+
+                                        <div class="sm-empty-icon">
+                                            <i class="fa-solid fa-users-slash"></i>
+                                        </div>
+
+                                        No sales representatives assigned.
+                                    </td>
+                                </tr>
+                            }
+
+                        </tbody>
+                    </table>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pt-3">
-                <!-- Rep Profile Strip -->
-                <div class="d-flex align-items-center p-3 bg-light rounded-3 mb-3 border">
-                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3 fw-bold fs-4" style="width: 48px; height: 48px;">
-                        <i class="fa-solid fa-user"></i>
-                    </div>
+            </section>
+
+        </div>
+
+    </div>
+
+    <!-- =========================================================
+         REP DRILLDOWN MODAL
+         ========================================================= -->
+    <div class="modal fade"
+         id="repDrilldownModal"
+         tabindex="-1"
+         aria-labelledby="repDrilldownModalLabel"
+         aria-hidden="true">
+
+        <div class="modal-dialog modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
                     <div>
-                        <h6 class="fw-bold mb-0 text-dark" id="repModalName">Sales Executive</h6>
-                        <small class="text-muted" id="repModalEmail">rep@erp.com</small>
+                        <h5 class="modal-title" id="repDrilldownModalLabel">
+                            <i class="fa-solid fa-user-tie text-primary me-2"></i>
+                            Sales Representative Performance
+                        </h5>
+
+                        <p class="text-muted small mb-0 mt-1">
+                            Direct subordinate live conversion and operational metrics
+                        </p>
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- Rep Profile -->
+                    <div class="sm-rep-modal-strip mb-3">
+
+                        <div class="sm-rep-modal-icon">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark"
+                                id="repModalName">
+                                Sales Executive
+                            </h6>
+
+                            <small class="text-muted"
+                                   id="repModalEmail">
+                                rep@erp.com
+                            </small>
+                        </div>
+
+                    </div>
+
+                    <!-- Metrics -->
+                    <div class="row g-3">
+
+                        <div class="col-6">
+                            <div class="sm-modal-metric">
+
+                                <div class="sm-modal-metric-label">
+                                    Deals Closed / Total
+                                </div>
+
+                                <h5 class="sm-modal-metric-value"
+                                    id="repModalWon">
+                                    0 / 0
+                                </h5>
+
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="sm-modal-metric">
+
+                                <div class="sm-modal-metric-label">
+                                    Total Revenue
+                                </div>
+
+                                <h5 class="sm-modal-metric-value text-success"
+                                    id="repModalRevenue">
+                                    ₹ 0
+                                </h5>
+
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="sm-modal-metric">
+
+                                <div class="sm-modal-metric-label">
+                                    Active Open Pipeline Value
+                                </div>
+
+                                <h5 class="sm-modal-metric-value text-primary"
+                                    id="repModalPipeline">
+                                    ₹ 0
+                                </h5>
+
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
-                <!-- 2x2 Metric Cards Grid -->
-                <div class="row g-3 mb-3">
-                    <div class="col-6">
-                        <div class="border rounded-3 p-3 bg-white text-start shadow-sm">
-                            <div class="text-muted small fw-semibold">Deals Closed / Total</div>
-                            <h5 class="fw-bold text-dark mb-0 mt-1" id="repModalWon">0 / 0</h5>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="border rounded-3 p-3 bg-white text-start shadow-sm">
-                            <div class="text-muted small fw-semibold">Total Revenue</div>
-                            <h5 class="fw-bold text-success mb-0 mt-1" id="repModalRevenue">₹ 0</h5>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="border rounded-3 p-3 bg-white text-start shadow-sm">
-                            <div class="text-muted small fw-semibold">Active Open Pipeline Value</div>
-                            <h5 class="fw-bold text-primary mb-0 mt-1" id="repModalPipeline">₹ 0</h5>
-                        </div>
-                    </div>
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary btn-sm rounded-pill px-3"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+
                 </div>
-            </div>
-            <div class="modal-footer border-top-0 pt-0">
-                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Quick Action: Add Lead Modal -->
-<div class="modal fade" id="newLeadModal" tabindex="-1" aria-labelledby="newLeadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="newLeadModalLabel"><i class="fa fa-plus-circle text-primary me-2"></i>Create New Sales Lead</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="newLeadForm" onsubmit="submitNewLead(event)">
-                <div class="modal-body text-start">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Opportunity / Deal Title *</label>
-                        <input type="text" class="form-control" name="leadTitle" required placeholder="e.g. Enterprise Cloud ERP Setup" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Customer / Organization Name *</label>
-                        <input type="text" class="form-control" name="customerName" required placeholder="e.g. Acme Industries Ltd" />
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold text-muted">Contact Email</label>
-                            <input type="email" class="form-control" name="contactEmail" placeholder="contact@acme.com" />
+    <!-- =========================================================
+         ADD LEAD MODAL
+         ========================================================= -->
+    <div class="modal fade"
+         id="newLeadModal"
+         tabindex="-1"
+         aria-labelledby="newLeadModalLabel"
+         aria-hidden="true">
+
+        <div class="modal-dialog modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title"
+                        id="newLeadModalLabel">
+                        <i class="fa-solid fa-circle-plus text-primary me-2"></i>
+                        Create New Sales Lead
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+
+                <form id="newLeadForm"
+                      onsubmit="submitNewLead(event)">
+
+                    <div class="modal-body text-start">
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Opportunity / Deal Title *
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   name="leadTitle"
+                                   required
+                                   placeholder="e.g. Enterprise Cloud ERP Setup" />
+
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold text-muted">Contact Phone</label>
-                            <input type="text" class="form-control" name="contactPhone" placeholder="+91 98765 43210" />
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Customer / Organization Name *
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   name="customerName"
+                                   required
+                                   placeholder="e.g. Acme Industries Ltd" />
+
                         </div>
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold text-muted">Estimated Deal Value (₹) *</label>
-                            <input type="number" step="1000" class="form-control" name="estimatedDealValue" required placeholder="500000" />
+
+                        <div class="row g-2 mb-3">
+
+                            <div class="col-6">
+
+                                <label class="form-label">
+                                    Contact Email
+                                </label>
+
+                                <input type="email"
+                                       class="form-control"
+                                       name="contactEmail"
+                                       placeholder="contact@acme.com" />
+
+                            </div>
+
+                            <div class="col-6">
+
+                                <label class="form-label">
+                                    Contact Phone
+                                </label>
+
+                                <input type="text"
+                                       class="form-control"
+                                       name="contactPhone"
+                                       placeholder="+91 98765 43210" />
+
+                            </div>
+
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold text-muted">Initial Stage</label>
-                            <select class="form-select" name="stage">
-                                <option value="New">New (20%)</option>
-                                <option value="Qualified">Qualified (40%)</option>
-                                <option value="Quotation Sent">Quotation Sent (60%)</option>
-                                <option value="Negotiation">Negotiation (80%)</option>
-                                <option value="Closed Won">Closed Won (100%)</option>
+
+                        <div class="row g-2 mb-3">
+
+                            <div class="col-6">
+
+                                <label class="form-label">
+                                    Estimated Deal Value (₹) *
+                                </label>
+
+                                <input type="number"
+                                       step="1000"
+                                       class="form-control"
+                                       name="estimatedDealValue"
+                                       required
+                                       placeholder="500000" />
+
+                            </div>
+
+                            <div class="col-6">
+
+                                <label class="form-label">
+                                    Initial Stage
+                                </label>
+
+                                <select class="form-select"
+                                        name="stage">
+
+                                    <option value="New">
+                                        New (20%)
+                                    </option>
+
+                                    <option value="Qualified">
+                                        Qualified (40%)
+                                    </option>
+
+                                    <option value="Quotation Sent">
+                                        Quotation Sent (60%)
+                                    </option>
+
+                                    <option value="Negotiation">
+                                        Negotiation (80%)
+                                    </option>
+
+                                    <option value="Closed Won">
+                                        Closed Won (100%)
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Assign to Sales Representative *
+                            </label>
+
+                            <select class="form-select"
+                                    name="assignedToUserId"
+                                    required>
+
+                                @if (repUsers != null && repUsers.Any())
+                                {
+                                    @foreach (var rep in repUsers)
+                                    {
+                                        <option value="@rep.Id">
+                                            @(rep.FullName ?? rep.UserName) (@rep.UserCode)
+                                        </option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option value="1">
+                                        Primary Executive
+                                    </option>
+                                }
+
                             </select>
+
                         </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Assign to Sales Representative *</label>
-                        <select class="form-select" name="assignedToUserId" required>
-                            @if (repUsers != null && repUsers.Any())
-                            {
-                                @foreach (var rep in repUsers)
-                                {
-                                    <option value="@rep.Id">@(rep.FullName ?? rep.UserName) (@rep.UserCode)</option>
-                                }
-                            }
-                            else
-                            {
-                                <option value="1">Primary Executive</option>
-                            }
-                        </select>
+
+                    <div class="modal-footer">
+
+                        <button type="button"
+                                class="btn btn-secondary btn-sm"
+                                data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                class="btn btn-primary btn-sm px-3">
+                            <i class="fa-solid fa-floppy-disk me-1"></i>
+                            Save Opportunity
+                        </button>
+
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="fa fa-save me-1"></i> Save Opportunity</button>
-                </div>
-            </form>
+
+                </form>
+
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Quick Action: Assign Target Modal -->
-<div class="modal fade" id="assignTargetModal" tabindex="-1" aria-labelledby="assignTargetModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="assignTargetModalLabel"><i class="fa fa-bullseye text-primary me-2"></i>Assign Sales Target</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="assignTargetForm" onsubmit="submitAssignTarget(event)">
-                <div class="modal-body text-start">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Sales Representative *</label>
-                        <select class="form-select" name="salesRepUserId" required>
-                            @if (repUsers != null && repUsers.Any())
-                            {
-                                @foreach (var rep in repUsers)
+    <!-- =========================================================
+         ASSIGN TARGET MODAL
+         ========================================================= -->
+    <div class="modal fade"
+         id="assignTargetModal"
+         tabindex="-1"
+         aria-labelledby="assignTargetModalLabel"
+         aria-hidden="true">
+
+        <div class="modal-dialog modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title"
+                        id="assignTargetModalLabel">
+                        <i class="fa-solid fa-bullseye text-primary me-2"></i>
+                        Assign Sales Target
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+
+                <form id="assignTargetForm"
+                      onsubmit="submitAssignTarget(event)">
+
+                    <div class="modal-body text-start">
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Sales Representative *
+                            </label>
+
+                            <select class="form-select"
+                                    name="salesRepUserId"
+                                    required>
+
+                                @if (repUsers != null && repUsers.Any())
                                 {
-                                    <option value="@rep.Id">@(rep.FullName ?? rep.UserName) (@rep.UserCode)</option>
+                                    @foreach (var rep in repUsers)
+                                    {
+                                        <option value="@rep.Id">
+                                            @(rep.FullName ?? rep.UserName) (@rep.UserCode)
+                                        </option>
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                <option value="1">Primary Executive</option>
-                            }
-                        </select>
+                                else
+                                {
+                                    <option value="1">
+                                        Primary Executive
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Fiscal Quarter *
+                            </label>
+
+                            <select class="form-select"
+                                    name="fiscalQuarter"
+                                    required>
+
+                                <option value="Q3-2026" selected>
+                                    Q3-2026 (Oct - Dec 2026)
+                                </option>
+
+                                <option value="Q4-2026">
+                                    Q4-2026 (Jan - Mar 2027)
+                                </option>
+
+                                <option value="Q1-2027">
+                                    Q1-2027 (Apr - Jun 2027)
+                                </option>
+
+                                <option value="Q2-2027">
+                                    Q2-2027 (Jul - Sep 2027)
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Target Amount (₹) *
+                            </label>
+
+                            <input type="number"
+                                   step="50000"
+                                   class="form-control"
+                                   name="targetAmount"
+                                   required
+                                   placeholder="5000000" />
+
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Fiscal Quarter *</label>
-                        <select class="form-select" name="fiscalQuarter" required>
-                            <option value="Q3-2026" selected>Q3-2026 (Oct - Dec 2026)</option>
-                            <option value="Q4-2026">Q4-2026 (Jan - Mar 2027)</option>
-                            <option value="Q1-2027">Q1-2027 (Apr - Jun 2027)</option>
-                            <option value="Q2-2027">Q2-2027 (Jul - Sep 2027)</option>
-                        </select>
+
+                    <div class="modal-footer">
+
+                        <button type="button"
+                                class="btn btn-secondary btn-sm"
+                                data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                class="btn btn-primary btn-sm px-3">
+                            <i class="fa-solid fa-circle-check me-1"></i>
+                            Confirm Target
+                        </button>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Target Amount (₹) *</label>
-                        <input type="number" step="50000" class="form-control" name="targetAmount" required placeholder="5000000" />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-3"><i class="fa fa-check-circle me-1"></i> Confirm Target</button>
-                </div>
-            </form>
+
+                </form>
+
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
+        // =========================================================
         // Review & Sign-Off Quotation Discount
+        // Existing endpoint preserved
+        // =========================================================
         async function submitQuoteReview(id, decision) {
-            const remarks = prompt(`Enter remarks for ${decision.toLowerCase()} this quotation discount:`, decision === 'Approved' ? 'Discount within permissible margin.' : 'Discount exceeds acceptable threshold.');
+            const remarks = prompt(
+                `Enter remarks for ${decision.toLowerCase()} this quotation discount:`,
+                decision === 'Approved'
+                    ? 'Discount within permissible margin.'
+                    : 'Discount exceeds acceptable threshold.'
+            );
+
             if (remarks === null) return;
 
             const formData = new URLSearchParams();
@@ -747,11 +2647,14 @@
 
             const res = await fetch('/SalesManagerDashboard/ReviewQuotation', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
                 body: formData.toString()
             });
 
             const data = await res.json();
+
             if (data.success) {
                 alert(data.message);
                 location.reload();
@@ -760,84 +2663,145 @@
             }
         }
 
+        // =========================================================
         // Rep Drilldown JSON Modal Trigger
+        // Existing endpoint preserved
+        // =========================================================
         async function openRepDrilldown(repId) {
             try {
-                const res = await fetch(`/SalesManagerDashboard/GetRepDetails?repId=${encodeURIComponent(repId)}`);
+                const res = await fetch(
+                    `/SalesManagerDashboard/GetRepDetails?repId=${encodeURIComponent(repId)}`
+                );
+
                 const data = await res.json();
+
                 if (data.success) {
+
                     document.getElementById('repModalName').innerText = data.name;
-                    document.getElementById('repModalEmail').innerText = data.email || 'N/A';
-                    document.getElementById('repModalWon').innerText = `${data.wonDeals} / ${data.totalDeals}`;
-                    document.getElementById('repModalRevenue').innerText = `₹ ${Number(data.totalRevenue).toLocaleString('en-IN')}`;
-                    document.getElementById('repModalPipeline').innerText = `₹ ${Number(data.activePipeline).toLocaleString('en-IN')}`;
-                    new bootstrap.Modal(document.getElementById('repDrilldownModal')).show();
+
+                    document.getElementById('repModalEmail').innerText =
+                        data.email || 'N/A';
+
+                    document.getElementById('repModalWon').innerText =
+                        `${data.wonDeals} / ${data.totalDeals}`;
+
+                    document.getElementById('repModalRevenue').innerText =
+                        `₹ ${Number(data.totalRevenue).toLocaleString('en-IN')}`;
+
+                    document.getElementById('repModalPipeline').innerText =
+                        `₹ ${Number(data.activePipeline).toLocaleString('en-IN')}`;
+
+                    new bootstrap.Modal(
+                        document.getElementById('repDrilldownModal')
+                    ).show();
+
                 } else {
-                    alert(data.message || 'Unable to retrieve representative data.');
+                    alert(
+                        data.message ||
+                        'Unable to retrieve representative data.'
+                    );
                 }
+
             } catch (err) {
                 console.error(err);
                 alert('Error connecting to drilldown service.');
             }
         }
 
+        // =========================================================
         // Top Filter Bar Change
+        // Existing route preserved
+        // =========================================================
         function onDateRangeChange(val) {
-            window.location.href = `/SalesManagerDashboard?dateRange=${encodeURIComponent(val)}`;
+            window.location.href =
+                `/SalesManagerDashboard?dateRange=${encodeURIComponent(val)}`;
         }
 
+        // =========================================================
         // Quick Action: Add Lead submission
+        // Existing endpoint and field names preserved
+        // =========================================================
         async function submitNewLead(e) {
             e.preventDefault();
+
             const form = e.target;
             const formData = new FormData(form);
             const searchParams = new URLSearchParams();
+
             for (const pair of formData) {
                 searchParams.append(pair[0], pair[1]);
             }
 
             try {
+
                 const res = await fetch('/SalesManagerDashboard/AddLead', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: {
+                        'Content-Type':
+                            'application/x-www-form-urlencoded'
+                    },
                     body: searchParams.toString()
                 });
+
                 const data = await res.json();
+
                 if (data.success) {
                     alert(data.message);
                     location.reload();
                 } else {
-                    alert(data.message || 'Failed to create lead.');
+                    alert(
+                        data.message ||
+                        'Failed to create lead.'
+                    );
                 }
+
             } catch (err) {
                 console.error(err);
                 alert('Error creating lead.');
             }
         }
 
+        // =========================================================
         // Quick Action: Assign Target submission
+        // Existing endpoint and field names preserved
+        // =========================================================
         async function submitAssignTarget(e) {
             e.preventDefault();
+
             const form = e.target;
             const formData = new FormData(form);
             const searchParams = new URLSearchParams();
+
             for (const pair of formData) {
                 searchParams.append(pair[0], pair[1]);
             }
 
             try {
-                const res = await fetch('/SalesManagerDashboard/AssignTarget', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: searchParams.toString()
-                });
+
+                const res = await fetch(
+                    '/SalesManagerDashboard/AssignTarget',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type':
+                                'application/x-www-form-urlencoded'
+                        },
+                        body: searchParams.toString()
+                    }
+                );
+
                 const data = await res.json();
+
                 if (data.success) {
                     alert(data.message);
                     location.reload();
                 } else {
-                    alert(data.message || 'Failed to assign target.');
+                    alert(
+                        data.message ||
+                        'Failed to assign target.'
+                    );
                 }
+
             } catch (err) {
                 console.error(err);
                 alert('Error assigning target.');
@@ -845,4 +2809,3 @@
         }
     </script>
 }
-
