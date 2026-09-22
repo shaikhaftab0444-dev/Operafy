@@ -687,8 +687,7 @@
             <table class="table table-hover align-middle ats-table">
                 <thead>
                     <tr>
-                        <th>Candidate</th>
-                        <th>Position</th>
+                        <th>Candidate & Position</th>
                         <th>Round</th>
                         <th>Mode</th>
                         <th>Interviewer(s)</th>
@@ -733,16 +732,13 @@
                                         <div>
                                             <div class="ats-name">@candidateName</div>
                                             <div class="ats-meta">
-                                                <i class="fa-solid fa-envelope me-1"></i>@(interview.Candidate?.Email)
+                                                <i class="fa-solid fa-envelope me-1"></i>@(interview.Candidate?.Email) &bull; <i class="fa-solid fa-phone me-1"></i>@(interview.Candidate?.Phone)
+                                            </div>
+                                            <div class="mt-1">
+                                                <span class="badge bg-light text-primary border">@(interview.JobOpening?.JobTitle ?? "Position")</span>
+                                                <small class="text-muted">(@(interview.JobOpening?.JobCode))</small>
                                             </div>
                                         </div>
-                                    </div>
-                                </td>
-
-                                <td>
-                                    <div class="ats-job-name">@(interview.JobOpening?.JobTitle ?? "N/A")</div>
-                                    <div class="ats-meta">
-                                        <i class="fa-solid fa-briefcase me-1"></i>@interview.JobOpening?.JobCode
                                     </div>
                                 </td>
 
@@ -820,6 +816,13 @@
                                                     </a>
                                                 </li>
                                             }
+
+                                            <li>
+                                                <button type="button" class="dropdown-item" onclick="resendInvite(@interview.InterviewId)">
+                                                    <i class="fa-solid fa-envelope text-info me-2"></i>
+                                                    Resend Email Invite
+                                                </button>
+                                            </li>
 
                                             <li>
                                                 <form method="post" action="/HRRecruitment/ChangeInterviewStatus">
@@ -1069,7 +1072,8 @@
                                 <span class="text-danger">*</span>
                             </label>
 
-                            <select name="interviewRound" class="form-select" required>
+                            <input type="hidden" name="interviewType" id="modalInterviewType" value="HR Interview" />
+                            <select name="interviewRound" class="form-select" required onchange="document.getElementById('modalInterviewType').value = this.value">
                                 <option value="HR Interview">HR Interview</option>
                                 <option value="Technical Round 1">Technical Round 1</option>
                                 <option value="Technical Round 2">Technical Round 2</option>
@@ -1173,3 +1177,48 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const candidateId = urlParams.get('candidateId');
+        if (candidateId) {
+            const selectApp = document.querySelector('select[name="applicationId"]');
+            if (selectApp) {
+                for (let i = 0; i < selectApp.options.length; i++) {
+                    if (selectApp.options[i].value === candidateId) {
+                        selectApp.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            const modalEl = document.getElementById('scheduleInterviewModal');
+            if (modalEl) {
+                new bootstrap.Modal(modalEl).show();
+            }
+        }
+    });
+
+    function resendInvite(scheduleId) {
+        fetch('/HRRecruitment/ResendInterviewEmail', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ scheduleId: scheduleId })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                if (typeof toastr !== 'undefined') toastr.success(res.message, "Email Sent");
+                else alert("Success: " + res.message);
+            } else {
+                if (typeof toastr !== 'undefined') toastr.error(res.message, "Mailtrap Delivery Notice");
+                alert(res.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            if (typeof toastr !== 'undefined') toastr.error("Network request failed.");
+            else alert("Network request failed.");
+        });
+    }
+</script>

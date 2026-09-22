@@ -1,0 +1,86 @@
+@model IEnumerable<ERP_System.Models.CandidateApplication>
+
+@if (Model != null && Model.Any())
+{
+    foreach (var c in Model)
+    {
+        var resumeUrl = !string.IsNullOrEmpty(c.ResumePath) ? c.ResumePath : (!string.IsNullOrEmpty(c.Candidate?.ResumePath) ? c.Candidate.ResumePath : "");
+        var candName = !string.IsNullOrEmpty(c.CandidateName) ? c.CandidateName : (c.Candidate?.FullName ?? "Unknown Candidate");
+        var candEmail = !string.IsNullOrEmpty(c.Email) ? c.Email : (c.Candidate?.Email ?? "");
+        var candPhone = !string.IsNullOrEmpty(c.Phone) ? c.Phone : (c.Candidate?.Phone ?? "");
+        var candExp = !string.IsNullOrEmpty(c.Experience) ? c.Experience : (c.Candidate?.Experience ?? "Fresher / Entry Level");
+        var jobTitle = c.JobOpening?.Title ?? c.JobOpening?.JobTitle ?? "Position";
+        var deptName = c.JobOpening?.Department?.Name ?? c.JobOpening?.Department?.DepartmentName ?? "General";
+
+        <tr>
+            <td>
+                <div class="fw-bold text-dark">@candName</div>
+                <div class="text-muted small">@candEmail @(!string.IsNullOrEmpty(candPhone) ? $"| {candPhone}" : "")</div>
+            </td>
+            <td>
+                <span class="fw-semibold">@jobTitle</span>
+                <div class="text-muted small">@deptName</div>
+            </td>
+            <td>
+                <span class="small">@candExp</span>
+            </td>
+            <td>
+                <span class="badge @(c.Stage == "Applied" ? "bg-info-subtle text-info border border-info-subtle" : 
+                                    c.Stage == "Interview Scheduled" ? "bg-primary-subtle text-primary border border-primary-subtle" :
+                                    c.Stage == "Offered" || c.Stage == "Selected" || c.Stage == "Offer Accepted" ? "bg-success-subtle text-success border border-success-subtle" :
+                                    c.Stage == "Rejected" ? "bg-danger-subtle text-danger border border-danger-subtle" : "bg-warning-subtle text-warning border border-warning-subtle")">
+                    @c.Stage
+                </span>
+            </td>
+            <td>
+                @if (!string.IsNullOrEmpty(resumeUrl))
+                {
+                    <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" 
+                            onclick="previewResume('@resumeUrl', '@candName')">
+                        <i class="fa fa-file-pdf me-1"></i> Resume
+                    </button>
+                }
+                else
+                {
+                    <span class="text-muted small">No File</span>
+                }
+            </td>
+            <td class="text-end">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light border rounded-pill px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fa fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li>
+                            <a class="dropdown-item" href="@Url.Action("InterviewSchedules", "HRRecruitment", new { candidateId = c.Id, name = candName, email = candEmail, jobTitle = jobTitle })">
+                                <i class="fa fa-calendar-check text-primary me-2"></i> Schedule Interview
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="@Url.Action("OfferLetters", "HRRecruitment", new { candidateId = c.Id, name = candName, email = candEmail, jobTitle = jobTitle })">
+                                <i class="fa fa-file-signature text-success me-2"></i> Create Offer Letter
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <button type="button" class="dropdown-item text-danger" onclick="setCandidateStage(@c.Id, 'Rejected')">
+                                <i class="fa fa-times-circle me-2"></i> Reject Candidate
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item text-warning" onclick="setCandidateStage(@c.Id, 'On Hold')">
+                                <i class="fa fa-pause-circle me-2"></i> Put On Hold
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </td>
+        </tr>
+    }
+}
+else
+{
+    <tr>
+        <td colspan="6" class="text-center py-4 text-muted">No candidates found matching the selected filters.</td>
+    </tr>
+}

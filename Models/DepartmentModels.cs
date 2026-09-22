@@ -38,6 +38,9 @@ namespace ERP_System.Models
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [NotMapped]
+        public string Name => DepartmentName;
     }
 
     public class DepartmentViewModel

@@ -20,11 +20,13 @@ namespace ERP_System.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ERP_System.Services.IEmailSenderService _emailSender;
 
-        public HRRecruitmentController(ApplicationDbContext context, IWebHostEnvironment webHostEnvironment)
+        public HRRecruitmentController(ApplicationDbContext context, IWebHostEnvironment webHostEnvironment, ERP_System.Services.IEmailSenderService emailSender)
         {
             _context = context;
             _webHostEnvironment = webHostEnvironment;
+            _emailSender = emailSender;
         }
 
         private int GetCurrentUserId()
@@ -230,119 +232,222 @@ namespace ERP_System.Controllers
         // ==========================================
 
         [HttpGet]
-        public async Task<IActionResult> CandidatePipeline(int? jobId, string? stage, string? status, string? search)
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> CandidatePipeline(string search = "", int? jobOpeningId = null, int? jobId = null, string stage = "All", string status = "All")
         {
+            ViewBag.JobOpenings = await _context.JobOpenings.Where(j => j.Status == "Open" || j.Status == "On Hold").ToListAsync();
+            ViewBag.AllJobs = await _context.JobOpenings.ToListAsync();
+
             var query = _context.CandidateApplications
                 .Include(a => a.Candidate)
                 .Include(a => a.JobOpening)
-                .ThenInclude(j => j!.Department)
+                    .ThenInclude(j => j!.Department)
                 .Include(a => a.StageHistories)
-                .ThenInclude(h => h.ChangedByUser)
+                    .ThenInclude(h => h.ChangedByUser)
                 .Include(a => a.Interviews)
                 .Include(a => a.Offers)
                 .AsQueryable();
 
-            if (jobId.HasValue && jobId.Value > 0)
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(a => a.JobId == jobId.Value);
+                var term = search.Trim().ToLower();
+                query = query.Where(a => (a.Candidate != null && (a.Candidate.FullName.ToLower().Contains(term) ||
+                                                                   a.Candidate.Email.ToLower().Contains(term) ||
+                                                                   a.Candidate.Phone.Contains(term))) ||
+                                         (a.JobOpening != null && a.JobOpening.JobTitle.ToLower().Contains(term)));
             }
 
-            if (!string.IsNullOrWhiteSpace(stage) && stage != "All")
+            int targetJobId = jobOpeningId ?? jobId ?? 0;
+            if (targetJobId > 0)
+            {
+                query = query.Where(a => a.JobId == targetJobId);
+            }
+
+            if (!string.IsNullOrEmpty(stage) && stage != "All" && stage != "All Pipeline Stages")
             {
                 query = query.Where(a => a.Stage == stage);
             }
 
-            if (!string.IsNullOrWhiteSpace(status) && status != "All")
+            if (!string.IsNullOrEmpty(status) && status != "All")
             {
                 query = query.Where(a => a.Status == status);
             }
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                search = search.Trim().ToLower();
-                query = query.Where(a => a.Candidate!.FullName.ToLower().Contains(search) ||
-                                         a.Candidate.Email.ToLower().Contains(search) ||
-                                         a.Candidate.Phone.ToLower().Contains(search) ||
-                                         a.JobOpening!.JobTitle.ToLower().Contains(search));
-            }
+            var candidates = await query.OrderByDescending(a => a.ApplicationDate).ThenByDescending(a => a.ApplicationId).ToListAsync();
 
-            var applications = await query.OrderByDescending(a => a.ApplicationId).ToListAsync();
-
-            ViewBag.JobOpenings = await _context.JobOpenings.Where(j => j.Status == "Open" || j.Status == "On Hold").ToListAsync();
-            ViewBag.AllJobs = await _context.JobOpenings.ToListAsync();
-            ViewBag.SelectedJobId = jobId;
+            ViewBag.SelectedJobOpeningId = targetJobId;
+            ViewBag.SelectedJobId = targetJobId;
             ViewBag.SelectedStage = stage;
             ViewBag.SelectedStatus = status;
             ViewBag.Search = search;
 
-            return View(applications);
+            // Return Partial View if called via live AJAX filter
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("_CandidateTableRowsPartial", candidates);
+            }
+
+            return View(candidates);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddCandidate(Candidate candidate, int jobId, string initialStage, IFormFile? resumeFile)
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> AddCandidate(
+            int? jobOpeningId,
+            int? jobId,
+            string? candidateName,
+            string? email,
+            string? phone,
+            string? experience,
+            string? educationQualification,
+            string? education,
+            string? currentCompany,
+            string? initialStage,
+            Candidate? candidate,
+            IFormFile? resume,
+            IFormFile? resumeFile)
         {
-            if (jobId <= 0)
+            int targetJobId = (jobOpeningId.HasValue && jobOpeningId.Value > 0) ? jobOpeningId.Value : (jobId ?? 0);
+            if (targetJobId <= 0)
             {
                 TempData["ErrorMessage"] = "Please select a valid Job Opening.";
                 return RedirectToAction(nameof(CandidatePipeline));
             }
 
-            // Handle Resume File Upload
-            if (resumeFile != null && resumeFile.Length > 0)
-            {
-                string folder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "resumes");
-                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            string name = !string.IsNullOrWhiteSpace(candidateName) ? candidateName.Trim() : (candidate?.FullName ?? "Unknown Candidate");
+            string mail = !string.IsNullOrWhiteSpace(email) ? email.Trim() : (candidate?.Email ?? "");
+            string ph = !string.IsNullOrWhiteSpace(phone) ? phone.Trim() : (candidate?.Phone ?? "");
+            string exp = !string.IsNullOrWhiteSpace(experience) ? experience.Trim() : (!string.IsNullOrWhiteSpace(candidate?.Experience) ? candidate.Experience : "Fresher / Entry Level");
+            string edu = !string.IsNullOrWhiteSpace(educationQualification) ? educationQualification.Trim() : (!string.IsNullOrWhiteSpace(education) ? education.Trim() : (candidate?.Education ?? "Bachelor's Degree"));
+            string comp = !string.IsNullOrWhiteSpace(currentCompany) ? currentCompany.Trim() : (candidate?.CurrentCompany ?? "");
 
-                string fileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(resumeFile.FileName);
-                string filePath = Path.Combine(folder, fileName);
+            var upload = resume ?? resumeFile;
+            string resumePath = "/uploads/resumes/default_resume.pdf";
+
+            if (upload != null && upload.Length > 0)
+            {
+                string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "resumes");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+                string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(upload.FileName)}";
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
-                    await resumeFile.CopyToAsync(stream);
+                    await upload.CopyToAsync(stream);
                 }
-                candidate.ResumePath = "/uploads/resumes/" + fileName;
+                resumePath = $"/uploads/resumes/{uniqueFileName}";
             }
 
-            candidate.CreatedAt = DateTime.Now;
-            _context.Candidates.Add(candidate);
-            await _context.SaveChangesAsync();
-
-            // Create Application
-            string stage = string.IsNullOrWhiteSpace(initialStage) ? "Applied" : initialStage;
-            var application = new CandidateApplication
+            var cand = await _context.Candidates.FirstOrDefaultAsync(c => c.Email.ToLower() == mail.ToLower());
+            if (cand == null)
             {
-                CandidateId = candidate.CandidateId,
-                JobId = jobId,
+                cand = new Candidate
+                {
+                    FullName = name,
+                    Email = mail,
+                    Phone = ph,
+                    Experience = exp,
+                    Education = edu,
+                    CurrentCompany = comp,
+                    ResumePath = resumePath,
+                    ApplicationSource = "Internal / HR Recruiter",
+                    CreatedAt = DateTime.Now
+                };
+                _context.Candidates.Add(cand);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                cand.FullName = name;
+                cand.Phone = ph;
+                cand.Experience = exp;
+                cand.Education = edu;
+                cand.CurrentCompany = comp;
+                if (upload != null && upload.Length > 0)
+                {
+                    cand.ResumePath = resumePath;
+                }
+                _context.Candidates.Update(cand);
+                await _context.SaveChangesAsync();
+            }
+
+            string stage = string.IsNullOrWhiteSpace(initialStage) ? "Applied" : initialStage;
+            var app = new CandidateApplication
+            {
+                CandidateId = cand.CandidateId,
+                JobId = targetJobId,
                 ApplicationDate = DateTime.Now,
                 Stage = stage,
                 Status = "Active",
                 MatchScore = 85,
-                Notes = "Candidate created and added to pipeline.",
+                Notes = "Candidate logged into the talent pipeline by HR.",
                 CreatedAt = DateTime.Now
             };
 
-            _context.CandidateApplications.Add(application);
+            _context.CandidateApplications.Add(app);
             await _context.SaveChangesAsync();
 
-            // Add Stage History
             _context.CandidateStageHistories.Add(new CandidateStageHistory
             {
-                ApplicationId = application.ApplicationId,
+                ApplicationId = app.ApplicationId,
                 PreviousStage = "None",
                 NewStage = stage,
                 ChangedByUserId = GetCurrentUserId(),
                 ChangeDate = DateTime.Now,
-                ReasonNotes = "Initial candidate application registered"
+                ReasonNotes = "Initial candidate application registered in talent pipeline"
             });
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"Candidate '{candidate.FullName}' added successfully to pipeline!";
+            TempData["SuccessMessage"] = $"Candidate {name} successfully logged into the talent pipeline.";
             return RedirectToAction(nameof(CandidatePipeline));
         }
 
         [HttpPost]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> UpdateCandidateStage(int? candidateId, int? applicationId, string stage)
+        {
+            int targetId = applicationId ?? candidateId ?? 0;
+            var app = await _context.CandidateApplications
+                .Include(a => a.Candidate)
+                .FirstOrDefaultAsync(a => a.ApplicationId == targetId || a.CandidateId == targetId);
+
+            if (app == null) return Json(new { success = false, message = "Candidate not found." });
+
+            string oldStage = app.Stage;
+            app.Stage = stage;
+            if (stage == "Rejected")
+            {
+                app.Status = "Rejected";
+            }
+            else if (stage == "On Hold")
+            {
+                app.Status = "On Hold";
+            }
+            else
+            {
+                app.Status = "Active";
+            }
+            app.UpdatedAt = DateTime.Now;
+
+            _context.CandidateApplications.Update(app);
+            _context.CandidateStageHistories.Add(new CandidateStageHistory
+            {
+                ApplicationId = app.ApplicationId,
+                PreviousStage = oldStage,
+                NewStage = stage,
+                ChangedByUserId = GetCurrentUserId(),
+                ChangeDate = DateTime.Now,
+                ReasonNotes = $"Candidate stage updated to {stage} via Talent Pipeline."
+            });
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = $"Candidate stage updated to {stage}." });
+        }
+
+        [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
         public async Task<IActionResult> ChangeCandidateStage(int applicationId, string newStage, string? reasonNotes)
         {
             var app = await _context.CandidateApplications.Include(a => a.Candidate).FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
@@ -371,6 +476,7 @@ namespace ERP_System.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
         public async Task<IActionResult> ChangeCandidateStatus(int applicationId, string status, string? reasonNotes)
         {
             var app = await _context.CandidateApplications.Include(a => a.Candidate).FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
@@ -401,7 +507,7 @@ namespace ERP_System.Controllers
         // ==========================================
 
         [HttpGet]
-        public async Task<IActionResult> InterviewSchedules(int? jobId, string? status, string? search)
+        public async Task<IActionResult> InterviewSchedules(int? jobId, string? status, string? search, int? candidateId)
         {
             var query = _context.InterviewSchedules
                 .Include(i => i.Candidate)
@@ -415,6 +521,12 @@ namespace ERP_System.Controllers
             if (jobId.HasValue && jobId.Value > 0)
             {
                 query = query.Where(i => i.JobId == jobId.Value);
+            }
+
+            if (candidateId.HasValue && candidateId.Value > 0)
+            {
+                query = query.Where(i => i.CandidateId == candidateId.Value || i.ApplicationId == candidateId.Value);
+                ViewBag.SelectedCandidateId = candidateId.Value;
             }
 
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
@@ -449,7 +561,8 @@ namespace ERP_System.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateInterview(int applicationId, string interviewRound, string interviewType, string interviewMode, DateTime scheduledDate, string startTime, string endTime, int? interviewerId, string? meetingLink, string? location, string? notes)
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> CreateInterview(int applicationId, string? interviewRound, string? interviewType, string? interviewMode, DateTime scheduledDate, string? startTime, string? endTime, int? interviewerId, string? meetingLink, string? location, string? notes)
         {
             var app = await _context.CandidateApplications.Include(a => a.Candidate).FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
             if (app == null)
@@ -465,14 +578,17 @@ namespace ERP_System.Controllers
                 if (interviewerUser != null) interviewerName = interviewerUser.FullName;
             }
 
+            string safeInterviewType = interviewType ?? interviewRound ?? "General";
+            string safeInterviewRound = interviewRound ?? "First Round";
+
             var schedule = new InterviewSchedule
             {
                 ApplicationId = app.ApplicationId,
                 CandidateId = app.CandidateId,
                 JobId = app.JobId,
-                InterviewRound = interviewRound,
-                InterviewType = interviewType,
-                InterviewMode = interviewMode,
+                InterviewRound = safeInterviewRound,
+                InterviewType = safeInterviewType,
+                InterviewMode = interviewMode ?? "Virtual",
                 ScheduledDate = scheduledDate,
                 StartTime = string.IsNullOrWhiteSpace(startTime) ? "10:00 AM" : startTime,
                 EndTime = string.IsNullOrWhiteSpace(endTime) ? "11:00 AM" : endTime,
@@ -488,15 +604,15 @@ namespace ERP_System.Controllers
             _context.InterviewSchedules.Add(schedule);
 
             // Move candidate stage if applicable
-            if (interviewType.Contains("Technical") || interviewRound.Contains("Technical"))
+            if (safeInterviewType.Contains("Technical", StringComparison.OrdinalIgnoreCase) || safeInterviewRound.Contains("Technical", StringComparison.OrdinalIgnoreCase))
             {
                 app.Stage = "Technical Interview";
             }
-            else if (interviewType.Contains("Manager") || interviewRound.Contains("Manager"))
+            else if (safeInterviewType.Contains("Manager", StringComparison.OrdinalIgnoreCase) || safeInterviewRound.Contains("Manager", StringComparison.OrdinalIgnoreCase))
             {
                 app.Stage = "Manager Interview";
             }
-            else if (interviewType.Contains("Final"))
+            else if (safeInterviewType.Contains("Final", StringComparison.OrdinalIgnoreCase))
             {
                 app.Stage = "Final Interview";
             }
@@ -509,8 +625,66 @@ namespace ERP_System.Controllers
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = $"Interview for '{app.Candidate?.FullName}' scheduled successfully!";
+            
+            // 1. Send Email to Candidate Automatically
+            if (!string.IsNullOrEmpty(app.Email) && !string.IsNullOrEmpty(meetingLink))
+            {
+                var result = await _emailSender.SendInterviewInvitationAsync(
+                    app.Email,
+                    app.CandidateName,
+                    app.JobOpening?.JobTitle ?? "Open Role",
+                    safeInterviewRound,
+                    scheduledDate.ToString("dd MMM yyyy"),
+                    $"{schedule.StartTime} - {schedule.EndTime}",
+                    meetingLink,
+                    schedule.InterviewerNames ?? "HR Team"
+                );
+                
+                if (result.Success)
+                {
+                    TempData["SuccessMessage"] = $"Interview scheduled for '{app.CandidateName}' and invite dispatched via Mailtrap!";
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = $"Interview scheduled for '{app.CandidateName}' but invite failed: {result.Message}";
+                }
+            }
+
             return RedirectToAction(nameof(InterviewSchedules));
         }
+
+        [HttpPost]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> ResendInterviewEmail(int scheduleId)
+        {
+            var s = await _context.InterviewSchedules
+                .Include(i => i.Application)
+                    .ThenInclude(a => a.JobOpening)
+                .Include(i => i.Application)
+                    .ThenInclude(a => a.Candidate)
+                .FirstOrDefaultAsync(i => i.InterviewId == scheduleId);
+
+            if (s == null) return Json(new { success = false, message = "Schedule not found." });
+
+            if (string.IsNullOrWhiteSpace(s.Application?.Email))
+            {
+                return Json(new { success = false, message = "Candidate has no valid email address." });
+            }
+
+            var result = await _emailSender.SendInterviewInvitationAsync(
+                s.Application?.Email ?? "",
+                s.Application?.CandidateName ?? "",
+                s.Application?.JobOpening?.JobTitle ?? "Open Role",
+                s.InterviewRound,
+                s.ScheduledDate.ToString("dd MMM yyyy"),
+                $"{s.StartTime} - {s.EndTime}",
+                s.MeetingLink ?? "#",
+                s.InterviewerNames ?? "HR Team"
+            );
+
+            return Json(new { success = result.Success, message = result.Message });
+        }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -610,7 +784,7 @@ namespace ERP_System.Controllers
         // ==========================================
 
         [HttpGet]
-        public async Task<IActionResult> OfferLetters(int? jobId, string? status, string? search)
+        public async Task<IActionResult> OfferLetters(int? jobId, string? status, string? search, int? candidateId)
         {
             var query = _context.OfferLetters
                 .Include(o => o.Candidate)
@@ -624,6 +798,12 @@ namespace ERP_System.Controllers
             if (jobId.HasValue && jobId.Value > 0)
             {
                 query = query.Where(o => o.JobId == jobId.Value);
+            }
+
+            if (candidateId.HasValue && candidateId.Value > 0)
+            {
+                query = query.Where(o => o.CandidateId == candidateId.Value || o.ApplicationId == candidateId.Value);
+                ViewBag.SelectedCandidateId = candidateId.Value;
             }
 
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
