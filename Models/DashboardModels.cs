@@ -33,7 +33,7 @@ namespace ERP_System.Models
         public string Status { get; set; } = "Pending"; // Paid, Pending, Cancelled
     }
 
-    [Table("Products")]
+    [Table("erp_Products")]
     public class Product
     {
         [Key]
@@ -55,6 +55,20 @@ namespace ERP_System.Models
         public decimal Revenue { get; set; }
 
         public int StockQty { get; set; }
+
+        public int ReservedStockQty { get; set; } = 0;
+
+        [NotMapped]
+        public int FreeAvailableStock => Math.Max(0, StockQty - ReservedStockQty);
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal UnitSellingPrice { get; set; } = 1500m;
+
+        [NotMapped]
+        public decimal UnitPrice { get => UnitSellingPrice; set => UnitSellingPrice = value; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal GstRate { get; set; } = 18.00m;
 
         [Required]
         [StringLength(50)]

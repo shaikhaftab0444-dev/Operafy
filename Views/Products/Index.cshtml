@@ -1,241 +1,1592 @@
 @model IEnumerable<ERP_System.Models.Product>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Product Inventory Manager";
-    var inCulture = new System.Globalization.CultureInfo("en-IN");
+
+var inCulture = new System.Globalization.CultureInfo("en-IN");
     var branches = (IEnumerable<ERP_System.Models.Branch>)ViewBag.BranchesList;
     var categories = (IEnumerable<string>)ViewBag.CategoriesList;
+
 }
 
 <style>
-    .panel-products {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(45,37,30,0.03);
+    /* =========================================================
+           PRODUCT INVENTORY MANAGER
+           Premium ERP UI - Scoped to .product-inventory-page
+           ========================================================= */
+
+    .product-inventory-page {
+        --product-primary: #4f46e5;
+        --product-primary-dark: #4338ca;
+        --product-primary-soft: rgba(79, 70, 229, 0.09);
+        --product-success: #10b981;
+        --product-success-soft: rgba(16, 185, 129, 0.09);
+        --product-warning: #f59e0b;
+        --product-warning-soft: rgba(245, 158, 11, 0.10);
+        --product-danger: #ef4444;
+        --product-danger-soft: rgba(239, 68, 68, 0.09);
+        --product-info: #0ea5e9;
+        --product-info-soft: rgba(14, 165, 233, 0.09);
+        --product-text: #1f2937;
+        --product-muted: #6b7280;
+        --product-border: #e7e5e4;
+        --product-surface: #ffffff;
+        --product-soft-bg: #f8fafc;
     }
-    
-    .table-products th {
-        background-color: #fcfbfa !important;
-        font-size: 0.75rem;
+
+    .product-inventory-page {
+        width: 100%;
+        color: var(--product-text);
+    }
+
+    /* =========================================================
+           PAGE HERO
+           ========================================================= */
+
+    .product-hero {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient( 135deg, #ffffff 0%, #fbfbff 58%, #f6f7ff 100% );
+        border: 1px solid var(--product-border);
+        border-radius: 18px;
+        padding: 1.35rem 1.5rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.035);
+    }
+
+        .product-hero::before {
+            content: "";
+            position: absolute;
+            width: 190px;
+            height: 190px;
+            right: -75px;
+            top: -95px;
+            border-radius: 50%;
+            background: rgba(79, 70, 229, 0.055);
+            pointer-events: none;
+        }
+
+        .product-hero::after {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            right: 105px;
+            bottom: -60px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, 0.035);
+            pointer-events: none;
+        }
+
+    .product-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .product-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--product-primary);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
+        margin-bottom: 0.35rem;
+    }
+
+        .product-eyebrow i {
+            font-size: 0.55rem;
+        }
+
+    .product-page-title {
+        color: var(--product-text);
+        font-size: 1.55rem;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        margin: 0;
+    }
+
+    .product-page-subtitle {
+        color: var(--product-muted);
+        font-size: 0.82rem;
+        margin: 0.3rem 0 0;
+    }
+
+    .product-breadcrumb {
+        margin-top: 0.55rem;
+    }
+
+        .product-breadcrumb .breadcrumb {
+            margin-bottom: 0;
+            font-size: 0.74rem;
+        }
+
+        .product-breadcrumb .breadcrumb-item a {
+            color: var(--product-primary);
+            font-weight: 600;
+        }
+
+        .product-breadcrumb .breadcrumb-item.active {
+            color: var(--product-muted);
+        }
+
+        .product-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+            color: #b6b3af;
+        }
+
+    .product-add-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 42px;
+        padding: 0.7rem 1rem;
+        border: 0;
+        border-radius: 10px;
+        background: linear-gradient( 135deg, var(--product-primary), var(--product-primary-dark) );
+        color: #ffffff !important;
+        font-size: 0.79rem;
+        font-weight: 750;
+        text-decoration: none;
+        white-space: nowrap;
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.18);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .product-add-btn:hover {
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 9px 21px rgba(79, 70, 229, 0.24);
+        }
+
+        .product-add-btn:active {
+            transform: translateY(0);
+        }
+
+    /* =========================================================
+           ALERT
+           ========================================================= */
+
+    .product-alert {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #16a34a !important;
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        font-size: 0.8rem;
+        box-shadow: 0 3px 12px rgba(22, 163, 74, 0.04);
+    }
+
+        .product-alert i {
+            font-size: 0.92rem;
+        }
+
+        .product-alert .btn-close {
+            margin-left: auto;
+            font-size: 0.68rem;
+        }
+
+    /* =========================================================
+           INVENTORY SUMMARY CARDS
+           ========================================================= */
+
+    .inventory-summary-card {
+        position: relative;
+        height: 100%;
+        min-height: 108px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        background: #ffffff;
+        border: 1px solid var(--product-border);
+        border-radius: 15px;
+        padding: 1.05rem 1.1rem;
+        box-shadow: 0 4px 15px rgba(15, 23, 42, 0.035);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+        .inventory-summary-card::after {
+            content: "";
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            right: -48px;
+            bottom: -62px;
+            border-radius: 50%;
+            background: var(--summary-soft, var(--product-primary-soft));
+            pointer-events: none;
+        }
+
+        .inventory-summary-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(79, 70, 229, 0.14);
+            box-shadow: 0 9px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .inventory-summary-card.products {
+            --summary-soft: var(--product-primary-soft);
+        }
+
+        .inventory-summary-card.stock {
+            --summary-soft: var(--product-success-soft);
+        }
+
+        .inventory-summary-card.warning {
+            --summary-soft: var(--product-warning-soft);
+        }
+
+    .inventory-summary-icon {
+        position: relative;
+        z-index: 1;
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        font-size: 1rem;
+    }
+
+    .inventory-summary-card.products .inventory-summary-icon {
+        color: var(--product-primary);
+        background: var(--product-primary-soft);
+    }
+
+    .inventory-summary-card.stock .inventory-summary-icon {
+        color: var(--product-success);
+        background: var(--product-success-soft);
+    }
+
+    .inventory-summary-card.warning .inventory-summary-icon {
+        color: var(--product-warning);
+        background: var(--product-warning-soft);
+    }
+
+    .inventory-summary-content {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .inventory-summary-label {
+        color: var(--product-muted);
+        font-size: 0.67rem;
+        font-weight: 800;
+        letter-spacing: 0.065em;
+        text-transform: uppercase;
+        margin-bottom: 0.18rem;
+    }
+
+    .inventory-summary-value {
+        color: var(--product-text);
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+    }
+
+    .inventory-summary-caption {
+        color: #9ca3af;
+        font-size: 0.67rem;
+        margin-top: 0.18rem;
+    }
+
+    /* =========================================================
+           FILTER PANEL
+           ========================================================= */
+
+    .product-filter-panel {
+        background: #ffffff;
+        border: 1px solid var(--product-border);
+        border-radius: 15px;
+        padding: 1rem 1.15rem;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.032);
+    }
+
+    .product-filter-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 0.85rem;
+        margin-bottom: 0.95rem;
+        border-bottom: 1px solid #f0efed;
+    }
+
+    .product-filter-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--product-text);
+        font-size: 0.86rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .product-filter-title-icon {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        background: var(--product-primary-soft);
+        color: var(--product-primary);
+        font-size: 0.73rem;
+    }
+
+    .product-filter-caption {
+        color: #9ca3af;
+        font-size: 0.69rem;
+    }
+
+    .product-filter-label {
+        display: block;
+        color: #4b5563;
+        font-size: 0.69rem;
+        font-weight: 800;
+        margin-bottom: 0.38rem;
+    }
+
+    .product-search-box {
+        position: relative;
+    }
+
+        .product-search-box > i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 0.76rem;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+    .product-search-input,
+    .product-filter-select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #deddda !important;
+        border-radius: 9px !important;
+        background: #ffffff !important;
+        color: var(--product-text) !important;
+        font-size: 0.78rem !important;
+        font-weight: 500;
+        box-shadow: none !important;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .product-search-input {
+        padding-left: 2.2rem !important;
+    }
+
+        .product-search-input:focus,
+        .product-filter-select:focus {
+            border-color: rgba(79, 70, 229, 0.55) !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08) !important;
+        }
+
+        .product-search-input::placeholder {
+            color: #aaa6a1;
+        }
+
+    /* =========================================================
+           TABLE PANEL
+           ========================================================= */
+
+    .product-table-panel {
+        background: #ffffff;
+        border: 1px solid var(--product-border);
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.032);
+    }
+
+    .product-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 1rem 1.15rem;
+        border-bottom: 1px solid #f0efed;
+    }
+
+    .product-table-heading {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .product-table-heading-icon {
+        width: 31px;
+        height: 31px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        background: var(--product-primary-soft);
+        color: var(--product-primary);
+        font-size: 0.74rem;
+    }
+
+    .product-table-title {
+        color: var(--product-text);
+        font-size: 0.86rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .product-table-subtitle {
+        color: #9ca3af;
+        font-size: 0.68rem;
+        margin: 2px 0 0;
+    }
+
+    .product-table-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.34rem 0.65rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        background: #f8fafc;
+        color: #6b7280;
+        font-size: 0.67rem;
         font-weight: 700;
-        color: #7c7267;
-        border-bottom: 1px solid var(--border-warm);
-        padding: 1rem 1.25rem;
-    }
-    
-    .table-products td {
-        font-size: 0.875rem;
-        color: var(--text-color);
-        border-bottom: 1px solid var(--border-warm);
-        padding: 1rem 1.25rem;
-        vertical-align: middle;
     }
 
-    .badge-in-stock {
-        background-color: rgba(16, 185, 129, 0.08);
-        color: #10b981;
-        font-weight: 600;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    .badge-low-stock {
-        background-color: rgba(245, 158, 11, 0.08);
-        color: #f59e0b;
-        font-weight: 600;
-        border: 1px solid rgba(245, 158, 11, 0.2);
-    }
-    .badge-out-stock {
-        background-color: rgba(239, 68, 68, 0.08);
-        color: #ef4444;
-        font-weight: 600;
-        border: 1px solid rgba(239, 68, 68, 0.2);
+    .product-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
-    .btn-edit-warm {
-        border: 1px solid var(--border-warm);
-        background-color: #ffffff;
-        color: var(--text-color);
-        font-size: 0.8rem;
-        font-weight: 600;
-        transition: all 0.2s;
-    }
-    .btn-edit-warm:hover {
-        background-color: #faf8f5;
-        border-color: #cbd5e1;
-        color: var(--primary-warm);
+    .product-table {
+        width: 100%;
+        min-width: 1220px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
     }
 
-    .btn-delete-warm {
+        .product-table thead th {
+            background: #fafafa !important;
+            color: #77716a;
+            border-bottom: 1px solid #e7e5e4 !important;
+            padding: 0.8rem 0.85rem;
+            font-size: 0.64rem;
+            font-weight: 800;
+            letter-spacing: 0.055em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .product-table tbody td {
+            background: #ffffff;
+            color: var(--product-text);
+            border-bottom: 1px solid #f0efed !important;
+            padding: 0.82rem 0.85rem;
+            font-size: 0.77rem;
+            vertical-align: middle;
+        }
+
+        .product-table tbody tr:last-child td {
+            border-bottom: 0 !important;
+        }
+
+        .product-table tbody tr {
+            transition: background-color 0.18s ease;
+        }
+
+            .product-table tbody tr:hover td {
+                background: #fbfbff;
+            }
+
+    .product-id-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 7px;
+        background: #f8fafc;
+        color: #475569;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 0.66rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .product-name-cell {
+        min-width: 190px;
+    }
+
+    .product-name {
+        color: #1f2937;
+        font-size: 0.79rem;
+        font-weight: 750;
+        line-height: 1.25;
+    }
+
+    .product-branch {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #9ca3af;
+        font-size: 0.65rem;
+        margin-top: 3px;
+        white-space: nowrap;
+    }
+
+    .product-category-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.55rem;
+        border-radius: 7px;
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        font-size: 0.66rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .product-price {
+        color: #1f2937;
+        font-size: 0.78rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .product-gst-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.55rem;
+        border-radius: 7px;
+        background: var(--product-info-soft);
+        color: #0284c7;
+        border: 1px solid rgba(14, 165, 233, 0.12);
+        font-size: 0.66rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .product-qty-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 58px;
+        padding: 0.3rem 0.5rem;
+        border-radius: 7px;
+        font-size: 0.66rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .product-qty-free {
+        background: var(--product-success-soft);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.12);
+    }
+
+    .product-qty-reserved {
+        background: var(--product-warning-soft);
+        color: #b45309;
+        border: 1px solid rgba(245, 158, 11, 0.13);
+    }
+
+    .product-stock-value {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        color: #1f2937;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+        .product-stock-value.low {
+            color: #dc2626;
+        }
+
+    .product-sold-value {
+        color: #64748b;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .product-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.34rem 0.62rem;
+        border-radius: 20px;
+        font-size: 0.66rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+        .product-status::before {
+            content: "";
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        .product-status.in-stock {
+            background: var(--product-success-soft);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.13);
+        }
+
+            .product-status.in-stock::before {
+                background: #10b981;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.09);
+            }
+
+        .product-status.low-stock {
+            background: var(--product-warning-soft);
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.14);
+        }
+
+            .product-status.low-stock::before {
+                background: #f59e0b;
+                box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.09);
+            }
+
+        .product-status.out-stock {
+            background: var(--product-danger-soft);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.14);
+        }
+
+            .product-status.out-stock::before {
+                background: #ef4444;
+                box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+            }
+
+    .product-actions {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .product-edit-btn,
+    .product-delete-btn {
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 0.35rem 0.62rem;
+        border-radius: 8px;
+        font-size: 0.67rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+    }
+
+    .product-edit-btn {
+        border: 1px solid #e2e0dd;
+        background: #ffffff;
+        color: #475569;
+    }
+
+        .product-edit-btn:hover {
+            background: #fafaff;
+            border-color: rgba(79, 70, 229, 0.25);
+            color: var(--product-primary);
+            transform: translateY(-1px);
+        }
+
+    .product-delete-btn {
         border: 1px solid rgba(239, 68, 68, 0.15);
-        background-color: #ffffff;
+        background: #ffffff;
         color: #ef4444;
-        font-size: 0.8rem;
-        font-weight: 600;
-        transition: all 0.2s;
     }
-    .btn-delete-warm:hover {
-        background-color: rgba(239, 68, 68, 0.05);
-        border-color: #ef4444;
+
+        .product-delete-btn:hover {
+            background: var(--product-danger-soft);
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #dc2626;
+            transform: translateY(-1px);
+        }
+
+    .product-readonly {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 0.34rem 0.62rem;
+        border-radius: 20px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #94a3b8;
+        font-size: 0.66rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .product-empty-state {
+        padding: 4rem 1.5rem !important;
+        color: #9ca3af !important;
+    }
+
+    .product-empty-icon {
+        width: 58px;
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.85rem;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #94a3b8;
+        font-size: 1.2rem;
+    }
+
+    .product-empty-title {
+        color: #4b5563;
+        font-size: 0.85rem;
+        font-weight: 750;
+        margin-bottom: 0.25rem;
+    }
+
+    .product-empty-text {
+        color: #9ca3af;
+        font-size: 0.7rem;
+    }
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 991.98px) {
+        .product-page-title
+
+    {
+        font-size: 1.35rem;
+    }
+
+    .product-hero {
+        padding: 1.15rem;
+    }
+
+    .product-table {
+        min-width: 1160px;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .product-hero
+
+    {
+        border-radius: 14px;
+        padding: 1rem;
+    }
+
+    .product-hero .product-add-btn {
+        width: 100%;
+    }
+
+    .product-page-title {
+        font-size: 1.25rem;
+    }
+
+    .product-page-subtitle {
+        font-size: 0.76rem;
+    }
+
+    .inventory-summary-card {
+        min-height: 94px;
+        padding: 0.9rem;
+    }
+
+    .inventory-summary-icon {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+    }
+
+    .inventory-summary-value {
+        font-size: 1.22rem;
+    }
+
+    .product-filter-panel {
+        padding: 0.95rem;
+    }
+
+    .product-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 0.9rem;
+    }
+
+    .product-table-badge {
+        align-self: flex-start;
+    }
+
+    }
+
+    @@media (max-width: 575.98px) {
+        .product-breadcrumb
+
+    {
+        display: none;
+    }
+
+    .product-eyebrow {
+        font-size: 0.61rem;
+    }
+
+    .product-page-title {
+        font-size: 1.15rem;
+    }
+
+    .product-filter-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .product-table-panel {
+        border-radius: 12px;
+    }
+
+    .inventory-summary-card {
+        border-radius: 12px;
+    }
+
+    }
+
+    /* =========================================================
+           REDUCED MOTION
+           ========================================================= */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .product-inventory-page *, .product-inventory-page *::before, .product-inventory-page *::after
+
+    {
+        scroll-behavior: auto !important;
+        transition: none !important;
+        animation: none !important;
+    }
+
+    }
+
+    /* =========================================================
+           PRINT
+           ========================================================= */
+
+    @@media print {
+        .product-hero::before, .product-hero::after, .inventory-summary-card::after, .product-filter-panel, .product-add-btn, .product-actions
+
+    {
+        display: none !important;
+    }
+
+    .product-hero,
+    .product-table-panel,
+    .inventory-summary-card {
+        box-shadow: none !important;
+    }
+
+    .product-table {
+        min-width: 0 !important;
+    }
+
     }
 </style>
 
-<!-- Top Breadcrumbs & Page Header -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
-    <div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Product Management</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="/Dashboard" class="text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Products</li>
-            </ol>
-        </nav>
-    </div>
-    
-    <a href="/Products/Create" class="btn btn-primary-warm px-4 py-2">
-        <i class="fa-solid fa-plus me-2"></i> Add New Product
-    </a>
-</div>
+<div class="product-inventory-page">
 
-<!-- Alerts -->
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4 small text-start" role="alert" style="background-color: #f0fdf4; color: #15803d; border-left: 4px solid #16a34a !important;">
-        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+    ```
+    <!-- =========================================================
+         PAGE HERO
+         ========================================================= -->
+    <div class="product-hero">
 
-<!-- Search & Filter Controls -->
-<div class="row g-3 mb-4 text-start">
-    <!-- Search Input -->
-    <div class="col-md-5">
-        <div class="input-group-warm" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; display: flex; align-items: center; padding: 2px;">
-            <span style="padding: 0.6rem 0.5rem 0.6rem 1rem; color: #7c7267;"><i class="fa-solid fa-magnifying-glass"></i></span>
-            <input type="text" id="searchProduct" class="form-control" style="border: none !important; box-shadow: none !important; background: transparent; font-size: 0.9rem; padding: 0.6rem 1rem 0.6rem 0;" placeholder="Search products by name..." />
-        </div>
-    </div>
-    
-    <!-- Category Filter Dropdown -->
-    <div class="col-md-3">
-        <select id="filterCategory" class="form-select" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; padding: 0.72rem 1rem; font-size: 0.9rem; font-weight: 600; outline: none; width: 100%; color: var(--text-color);">
-            <option value="">All Categories (Filter by Category)</option>
-            @foreach (var cat in categories)
-            {
-                <option value="@cat">@cat</option>
-            }
-        </select>
-    </div>
+        <div class="product-hero-content">
 
-    <!-- Branch Filter Dropdown -->
-    <div class="col-md-4">
-        <select id="filterBranch" class="form-select" style="border: 1px solid #d4cbbd; border-radius: 8px; background-color: #ffffff; padding: 0.72rem 1rem; font-size: 0.9rem; font-weight: 600; outline: none; width: 100%; color: var(--text-color);">
-            <option value="">All Branches (Filter by Branch)</option>
-            @foreach (var branch in branches)
-            {
-                <option value="@branch.BranchName">@branch.BranchName</option>
-            }
-        </select>
-    </div>
-</div>
+            <div class="row align-items-center g-3">
 
-<!-- Products Inventory Grid -->
-<div class="panel-products overflow-hidden">
-    <div class="table-responsive">
-        <table class="table table-hover table-products mb-0 border-0 text-start" id="productsTable">
-            <thead>
-                <tr>
-                    <th class="border-0">Product ID</th>
-                    <th class="border-0">Product Name</th>
-                    <th class="border-0">Category</th>
-                    <th class="border-0">Branch Location</th>
-                    <th class="border-0 text-center">Sold Qty</th>
-                    <th class="border-0">Total Revenue</th>
-                    <th class="border-0 text-center">In Stock Bal</th>
-                    <th class="border-0">Availability Status</th>
-                    <th class="border-0 text-center">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var prod in Model)
-                    {
-                        var badgeClass = prod.Status == "In Stock" ? "badge-in-stock" :
-                                         prod.Status == "Low Stock" ? "badge-low-stock" : "badge-out-stock";
-                        <tr>
-                            <td class="fw-bold text-secondary">PROD#@prod.ProductId.ToString("D3")</td>
-                            <td class="fw-bold text-dark">@prod.ProductName</td>
-                            <td class="fw-bold text-secondary">@prod.Category</td>
-                            <td class="fw-bold text-secondary">@(prod.Branch?.BranchName ?? "Head Office")</td>
-                            <td class="text-center fw-bold text-secondary">@prod.SoldQty</td>
-                            <td class="fw-bold text-dark">@prod.Revenue.ToString("C0", inCulture)</td>
-                            <td class="text-center fw-bold @(prod.StockQty <= 50 ? "text-danger" : "text-dark")">@prod.StockQty Units</td>
-                            <td>
-                                <span class="badge rounded-pill px-2.5 py-1.5 @badgeClass" style="font-size: 0.75rem;">@prod.Status</span>
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center gap-2">
-                                    <a href="/Products/Edit/@prod.ProductId" class="btn btn-sm btn-edit-warm px-3 py-1 rounded">
-                                        <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+                <div class="col-lg">
+
+                    <div class="product-eyebrow">
+                        <i class="fa-solid fa-circle"></i>
+                        Inventory & Products
+                    </div>
+
+                    <h1 class="product-page-title">
+                        Product Management
+                    </h1>
+
+                    <p class="product-page-subtitle">
+                        Monitor product pricing, taxation, warehouse stock and availability.
+                    </p>
+
+                    <div class="product-breadcrumb">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+
+                                <li class="breadcrumb-item">
+                                    <a href="/Dashboard"
+                                       class="text-decoration-none">
+                                        Dashboard
                                     </a>
-                                    <form asp-action="Delete" asp-route-id="@prod.ProductId" method="post" onsubmit="return confirm('Are you sure you want to delete this product?');" style="display:inline;">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-delete-warm px-3 py-1 rounded">
-                                            <i class="fa-solid fa-trash-can me-1"></i>Delete
-                                        </button>
-                                    </form>
+                                </li>
+
+                                <li class="breadcrumb-item active"
+                                    aria-current="page">
+                                    Products
+                                </li>
+
+                            </ol>
+                        </nav>
+                    </div>
+
+                </div>
+
+                @if (User.IsInRole("Sales Manager") ||
+                                User.IsInRole("Admin") ||
+                                User.IsInRole("Super Admin"))
+                {
+                    <div class="col-lg-auto">
+
+                        <a href="/Products/Create"
+                           class="product-add-btn">
+
+                            <i class="fa-solid fa-plus"></i>
+                            Add New Product
+
+                        </a>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =========================================================
+         ALERT
+         ========================================================= -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-dismissible fade show product-alert mb-4"
+             role="alert">
+
+            <i class="fa-solid fa-circle-check"></i>
+
+            <span>
+                @TempData["SuccessMessage"]
+            </span>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
+            </button>
+
+        </div>
+    }
+
+    <!-- =========================================================
+         INVENTORY SUMMARY
+         ========================================================= -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-4">
+            <div class="inventory-summary-card products">
+
+                <div class="inventory-summary-icon">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+
+                <div class="inventory-summary-content">
+
+                    <div class="inventory-summary-label">
+                        Product Catalog
+                    </div>
+
+                    <div class="inventory-summary-value">
+                        @(Model?.Count() ?? 0)
+                    </div>
+
+                    <div class="inventory-summary-caption">
+                        Products in current registry
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="inventory-summary-card stock">
+
+                <div class="inventory-summary-icon">
+                    <i class="fa-solid fa-warehouse"></i>
+                </div>
+
+                <div class="inventory-summary-content">
+
+                    <div class="inventory-summary-label">
+                        Inventory Control
+                    </div>
+
+                    <div class="inventory-summary-value">
+                        <i class="fa-solid fa-check"
+                           style="font-size: 0.85rem;"></i>
+                    </div>
+
+                    <div class="inventory-summary-caption">
+                        Warehouse stock monitoring
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="inventory-summary-card warning">
+
+                <div class="inventory-summary-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+
+                <div class="inventory-summary-content">
+
+                    <div class="inventory-summary-label">
+                        Stock Visibility
+                    </div>
+
+                    <div class="inventory-summary-value">
+                        Live
+                    </div>
+
+                    <div class="inventory-summary-caption">
+                        Availability and sales quantities
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =========================================================
+         SEARCH & FILTERS
+         ========================================================= -->
+    <div class="product-filter-panel mb-4">
+
+        <div class="product-filter-heading">
+
+            <div>
+
+                <h2 class="product-filter-title">
+
+                    <span class="product-filter-title-icon">
+                        <i class="fa-solid fa-sliders"></i>
+                    </span>
+
+                    Inventory Filters
+
+                </h2>
+
+                <div class="product-filter-caption mt-1">
+                    Quickly find products by name, category or branch.
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="row g-3 text-start">
+
+            <!-- Search -->
+            <div class="col-lg-5 col-md-12">
+
+                <label class="product-filter-label">
+                    Search Products
+                </label>
+
+                <div class="product-search-box">
+
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                    <input type="text"
+                           id="searchProduct"
+                           class="form-control product-search-input"
+                           placeholder="Search products by name..." />
+
+                </div>
+
+            </div>
+
+            <!-- Category -->
+            <div class="col-lg-3 col-md-6">
+
+                <label class="product-filter-label">
+                    Product Category
+                </label>
+
+                <select id="filterCategory"
+                        class="form-select product-filter-select">
+
+                    <option value="">
+                        All Categories (Filter by Category)
+                    </option>
+
+                    @foreach (var cat in categories)
+                    {
+                        <option value="@cat">
+                            @cat
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+            <!-- Branch -->
+            <div class="col-lg-4 col-md-6">
+
+                <label class="product-filter-label">
+                    Warehouse / Branch
+                </label>
+
+                <select id="filterBranch"
+                        class="form-select product-filter-select">
+
+                    <option value="">
+                        All Branches (Filter by Branch)
+                    </option>
+
+                    @foreach (var branch in branches)
+                    {
+                        <option value="@branch.BranchName">
+                            @branch.BranchName
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =========================================================
+         PRODUCTS TABLE
+         ========================================================= -->
+    <div class="product-table-panel">
+
+        <div class="product-table-header">
+
+            <div class="product-table-heading">
+
+                <div class="product-table-heading-icon">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+
+                <div>
+
+                    <h2 class="product-table-title">
+                        Product Inventory
+                    </h2>
+
+                    <p class="product-table-subtitle">
+                        Product pricing, stock allocation and availability
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="product-table-badge">
+                <i class="fa-solid fa-database"></i>
+                Inventory Registry
+            </div>
+
+        </div>
+
+        <div class="product-table-wrap">
+
+            <table class="table product-table table-hover mb-0 border-0 text-start align-middle"
+                   id="productsTable">
+
+                <thead>
+
+                    <tr>
+
+                        <th class="border-0">
+                            Product ID
+                        </th>
+
+                        <th class="border-0">
+                            Product Name
+                        </th>
+
+                        <th class="border-0">
+                            Category
+                        </th>
+
+                        <th class="border-0 text-end">
+                            Unit Price (₹)
+                        </th>
+
+                        <th class="border-0 text-center">
+                            GST Rate
+                        </th>
+
+                        <th class="border-0 text-center">
+                            Free Available
+                        </th>
+
+                        <th class="border-0 text-center">
+                            Reserved
+                        </th>
+
+                        <th class="border-0 text-center">
+                            Total Stock
+                        </th>
+
+                        <th class="border-0 text-center">
+                            Sold Qty
+                        </th>
+
+                        <th class="border-0">
+                            Availability
+                        </th>
+
+                        <th class="border-0 text-center">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var prod in Model)
+                        {
+                            var badgeClass =
+                            prod.Status == "In Stock"
+                            ? "in-stock"
+                            : prod.Status == "Low Stock"
+                            ? "low-stock"
+                            : "out-stock";
+
+                            var price =
+                            prod.UnitSellingPrice > 0
+                            ? prod.UnitSellingPrice
+                            : (prod.StockQty > 0
+                            ? prod.Revenue / Math.Max(1, prod.SoldQty)
+                            : 1000m);
+
+                            var freeStock = prod.FreeAvailableStock;
+                            var reservedStock = prod.ReservedStockQty;
+
+                            <tr>
+
+                                <!-- Product ID -->
+                                <td>
+
+                                    <span class="product-id-badge">
+                                        PROD#@prod.ProductId.ToString("D3")
+                                    </span>
+
+                                </td>
+
+                                <!-- Product Name -->
+                                <td>
+
+                                    <div class="product-name-cell">
+
+                                        <div class="product-name">
+                                            @prod.ProductName
+                                        </div>
+
+                                        <div class="product-branch">
+                                            <i class="fa-solid fa-location-dot"></i>
+                                            @(prod.Branch?.BranchName ?? "Head Office")
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+                                <!-- Category -->
+                                <td>
+
+                                    <span class="product-category-badge">
+                                        @prod.Category
+                                    </span>
+
+                                </td>
+
+                                <!-- Price -->
+                                <td class="text-end">
+
+                                    <span class="product-price">
+                                        ₹@price.ToString("N2")
+                                    </span>
+
+                                </td>
+
+                                <!-- GST -->
+                                <td class="text-center">
+
+                                    <span class="product-gst-badge">
+                                        @(prod.GstRate > 0
+                                                                        ? prod.GstRate.ToString("0.##")
+                                                                        : "18")%
+                            </span>
+
+                                </td>
+
+                                <!-- Free Stock -->
+                                <td class="text-center">
+
+                                    <span class="product-qty-badge product-qty-free">
+                                        @freeStock Units
+                                    </span>
+
+                                </td>
+
+                                <!-- Reserved -->
+                                <td class="text-center">
+
+                                    <span class="product-qty-badge product-qty-reserved">
+                                        @reservedStock Units
+                                    </span>
+
+                                </td>
+
+                                <!-- Total Stock -->
+                                <td class="text-center">
+
+                                    <span class="product-stock-value @(prod.StockQty <= 50 ? "low" : "")">
+                                        @prod.StockQty
+                                    </span>
+
+                                </td>
+
+                                <!-- Sold -->
+                                <td class="text-center">
+
+                                    <span class="product-sold-value">
+                                        @prod.SoldQty
+                                    </span>
+
+                                </td>
+
+                                <!-- Availability -->
+                                <td>
+
+                                    <span class="product-status @badgeClass"
+                                          style="font-size: 0.7rem;">
+
+                                        @prod.Status
+
+                                    </span>
+
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="text-center">
+
+                                    <div class="product-actions">
+
+                                @if (User.IsInRole("Sales Manager") ||
+                                                                User.IsInRole("Admin") ||
+                                                                User.IsInRole("Super Admin"))
+                                        {
+                                            <a href="/Products/Edit/@prod.ProductId"
+                                               class="product-edit-btn">
+
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                                Edit
+
+                                            </a>
+
+                                            @if (User.IsInRole("Super Admin") ||
+                                                                            User.IsInRole("Admin"))
+                                            {
+                                                <form asp-action="Delete"
+                                                      asp-route-id="@prod.ProductId"
+                                                      method="post"
+                                                      onsubmit="return confirm('Are you sure you want to delete this product?');"
+                                                      style="display:inline;">
+
+                                                    @Html.AntiForgeryToken()
+
+                                                    <button type="submit"
+                                                            class="product-delete-btn">
+
+                                                        <i class="fa-solid fa-trash-can"></i>
+                                                        Delete
+
+                                                    </button>
+
+                                                </form>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="product-readonly">
+
+                                                <i class="fa-solid fa-lock"></i>
+                                                Read-Only
+
+                                            </span>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="11"
+                                class="text-center product-empty-state">
+
+                                <div class="product-empty-icon">
+                                    <i class="fa-solid fa-box-open"></i>
                                 </div>
+
+                                <div class="product-empty-title">
+                                    No product records found
+                                </div>
+
+                                <div class="product-empty-text">
+                                    No products are currently available in the warehouse inventory.
+                                </div>
+
                             </td>
+
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="9" class="text-center text-muted py-5">No product records found in warehouse inventory.</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
     </div>
+    ```
+
 </div>
 
 @section Scripts {
+
+    ```
     <script>
         document.addEventListener("DOMContentLoaded", () => {
+
             const searchInput = document.getElementById("searchProduct");
             const catSelect = document.getElementById("filterCategory");
             const branchSelect = document.getElementById("filterBranch");
             const tableRows = document.querySelectorAll("#productsTable tbody tr");
 
             function filterTable() {
-                const query = searchInput.value.toLowerCase().trim();
-                const selectedCat = catSelect.value.toLowerCase().trim();
-                const selectedBranch = branchSelect.value.toLowerCase().trim();
+
+                const query =
+                    searchInput.value.toLowerCase().trim();
+
+                const selectedCat =
+                    catSelect.value.toLowerCase().trim();
+
+                const selectedBranch =
+                    branchSelect.value.toLowerCase().trim();
 
                 tableRows.forEach(row => {
-                    if (row.cells.length < 8) return;
 
-                    const name = row.cells[1].innerText.toLowerCase();
-                    const category = row.cells[2].innerText.toLowerCase();
-                    const branch = row.cells[3].innerText.toLowerCase();
+                    if (row.cells.length < 8) {
+                        return;
+                    }
 
-                    const matchesSearch = name.includes(query);
-                    const matchesCat = selectedCat === "" || category.includes(selectedCat);
-                    const matchesBranch = selectedBranch === "" || branch.includes(selectedBranch);
+                    const name =
+                        row.cells[1].innerText.toLowerCase();
 
-                    if (matchesSearch && matchesCat && matchesBranch) {
+                    const category =
+                        row.cells[2].innerText.toLowerCase();
+
+                    const branch =
+                        row.cells[3].innerText.toLowerCase();
+
+                    const matchesSearch =
+                        name.includes(query);
+
+                    const matchesCat =
+                        selectedCat === "" ||
+                        category.includes(selectedCat);
+
+                    const matchesBranch =
+                        selectedBranch === "" ||
+                        branch.includes(selectedBranch);
+
+                    if (
+                        matchesSearch &&
+                        matchesCat &&
+                        matchesBranch
+                    ) {
                         row.style.display = "";
-                    } else {
+                    }
+                    else {
                         row.style.display = "none";
                     }
+
                 });
             }
 
-            searchInput.addEventListener("input", filterTable);
-            catSelect.addEventListener("change", filterTable);
-            branchSelect.addEventListener("change", filterTable);
+            searchInput.addEventListener(
+                "input",
+                filterTable
+            );
+
+            catSelect.addEventListener(
+                "change",
+                filterTable
+            );
+
+            branchSelect.addEventListener(
+                "change",
+                filterTable
+            );
+
         });
     </script>
+   
+
 }
+

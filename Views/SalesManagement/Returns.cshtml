@@ -1,111 +1,1471 @@
+```cshtml
 @model IEnumerable<ERP_System.Models.SalesReturn>
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Sales Returns";
+    ViewData["Title"] = "Sales Returns & RMAs";
     var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-arrow-rotate-left text-primary me-2"></i>Sales Returns</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Sales Returns</li>
-                </ol>
-            </nav>
+<style>
+    /* =========================================================
+           SALES RETURNS & RMA - SCOPED ERP UI
+           ========================================================= */
+
+    .sales-return-page {
+        --return-primary: #2563eb;
+        --return-primary-dark: #1d4ed8;
+        --return-success: #16a34a;
+        --return-warning: #d97706;
+        --return-danger: #dc2626;
+        --return-info: #0891b2;
+        --return-text: #172033;
+        --return-muted: #64748b;
+        --return-border: #e5eaf1;
+        --return-soft: #f8fafc;
+        --return-shadow: 0 10px 30px rgba(15, 23, 42, .055);
+        --return-shadow-hover: 0 16px 36px rgba(15, 23, 42, .09);
+        color: var(--return-text);
+    }
+
+        .sales-return-page * {
+            box-sizing: border-box;
+        }
+
+    /* =========================================================
+           HERO
+           ========================================================= */
+
+    .return-hero {
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(circle at 88% 18%, rgba(37, 99, 235, .09), transparent 28%), radial-gradient(circle at 72% 110%, rgba(124, 58, 237, .06), transparent 30%), #fff;
+        border: 1px solid var(--return-border);
+        border-radius: 22px;
+        padding: 26px 28px;
+        margin-bottom: 22px;
+        box-shadow: var(--return-shadow);
+    }
+
+        .return-hero::after {
+            content: "";
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            right: -95px;
+            top: -105px;
+            border: 28px solid rgba(37, 99, 235, .035);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+    .return-hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .return-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .return-title-icon {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: linear-gradient(145deg, #eff6ff, #dbeafe);
+        color: var(--return-primary);
+        font-size: 21px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
+    }
+
+    .return-eyebrow {
+        color: var(--return-primary);
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .return-page-title {
+        color: var(--return-text);
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        font-weight: 800;
+        letter-spacing: -.025em;
+        margin: 0;
+    }
+
+    .return-page-subtitle {
+        color: var(--return-muted);
+        font-size: .9rem;
+        margin: 6px 0 0;
+    }
+
+    .return-breadcrumb {
+        margin-top: 13px;
+    }
+
+        .return-breadcrumb .breadcrumb {
+            margin: 0;
+            font-size: .78rem;
+        }
+
+        .return-breadcrumb a {
+            color: var(--return-primary);
+            font-weight: 600;
+        }
+
+    .return-primary-btn {
+        min-height: 43px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0 16px;
+        border-radius: 11px;
+        border: 1px solid var(--return-primary-dark);
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        font-size: .81rem;
+        font-weight: 800;
+        box-shadow: 0 7px 16px rgba(37, 99, 235, .17);
+        transition: all .2s ease;
+        white-space: nowrap;
+    }
+
+        .return-primary-btn:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(37, 99, 235, .23);
+        }
+
+    /* =========================================================
+           SUCCESS ALERT
+           ========================================================= */
+
+    .return-success-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #16a34a !important;
+        border-radius: 13px;
+        padding: 12px 15px;
+        box-shadow: 0 5px 18px rgba(22, 163, 74, .05);
+    }
+
+    /* =========================================================
+           KPI CARDS
+           ========================================================= */
+
+    .return-kpi {
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid var(--return-border);
+        border-radius: 17px;
+        padding: 18px;
+        box-shadow: var(--return-shadow);
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+        .return-kpi:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--return-shadow-hover);
+            border-color: #d7dee8;
+        }
+
+        .return-kpi::after {
+            content: "";
+            position: absolute;
+            width: 86px;
+            height: 86px;
+            right: -30px;
+            bottom: -35px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .035);
+        }
+
+    .return-kpi-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .return-kpi-label {
+        color: #64748b;
+        font-size: .69rem;
+        font-weight: 800;
+        letter-spacing: .075em;
+        text-transform: uppercase;
+        margin-bottom: 7px;
+    }
+
+    .return-kpi-value {
+        color: #111827;
+        font-size: 1.4rem;
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -.025em;
+        margin: 0;
+    }
+
+    .return-kpi-meta {
+        color: #94a3b8;
+        font-size: .71rem;
+        margin-top: 7px;
+    }
+
+    .return-kpi-icon {
+        width: 43px;
+        height: 43px;
+        min-width: 43px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 17px;
+    }
+
+    .return-kpi-blue .return-kpi-icon {
+        color: #2563eb;
+        background: #eff6ff;
+    }
+
+    .return-kpi-orange .return-kpi-icon {
+        color: #d97706;
+        background: #fffbeb;
+    }
+
+    .return-kpi-green .return-kpi-icon {
+        color: #16a34a;
+        background: #f0fdf4;
+    }
+
+    .return-kpi-red .return-kpi-icon {
+        color: #dc2626;
+        background: #fef2f2;
+    }
+
+    /* =========================================================
+           TABLE CARD
+           ========================================================= */
+
+    .return-table-card {
+        background: #fff;
+        border: 1px solid var(--return-border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: var(--return-shadow);
+    }
+
+    .return-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--return-border);
+    }
+
+    .return-section-title {
+        color: #1e293b;
+        font-size: .95rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+        .return-section-title i {
+            color: var(--return-primary);
+        }
+
+    .return-section-caption {
+        color: #94a3b8;
+        font-size: .73rem;
+        margin-top: 3px;
+    }
+
+    .return-record-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: .72rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .return-table-wrap {
+        overflow-x: auto;
+    }
+
+    .return-table {
+        min-width: 1120px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .return-table thead th {
+            background: #f8fafc;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+            border-top: 0;
+            padding: 13px 14px;
+            font-size: .67rem;
+            font-weight: 800;
+            letter-spacing: .055em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .return-table tbody td {
+            color: #475569;
+            border-bottom: 1px solid #eef2f6;
+            padding: 15px 14px;
+            font-size: .79rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .return-table tbody tr {
+            transition: background .18s ease;
+        }
+
+            .return-table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+            .return-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    /* =========================================================
+           IDENTIFIERS
+           ========================================================= */
+
+    .return-code {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        color: #1e40af;
+        border-radius: 8px;
+        padding: 5px 8px;
+        font-size: .7rem;
+        font-weight: 800;
+    }
+
+    .return-invoice {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: .69rem;
+        font-weight: 700;
+    }
+
+    .return-customer {
+        color: #1e293b;
+        font-weight: 750;
+        max-width: 190px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .return-reason {
+        color: #64748b;
+        font-size: .74rem;
+        max-width: 230px;
+        white-space: normal;
+        line-height: 1.35;
+    }
+
+    .return-date {
+        color: #64748b;
+        font-size: .74rem;
+    }
+
+    .return-refund {
+        color: #dc2626;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* =========================================================
+           CREDIT NOTE
+           ========================================================= */
+
+    .return-credit-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #ecfeff;
+        border: 1px solid #a5f3fc;
+        color: #0e7490;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: .68rem;
+        font-weight: 800;
+    }
+
+    .return-credit-pending {
+        color: #94a3b8;
+        font-size: .7rem;
+        font-style: italic;
+    }
+
+    /* =========================================================
+           STATUS
+           ========================================================= */
+
+    .return-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 9px;
+        font-size: .66rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+        .return-status::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+    .return-status-restocked {
+        color: #15803d;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+    }
+
+    .return-status-refunded {
+        color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+    }
+
+    .return-status-inspecting {
+        color: #b45309;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+    }
+
+    .return-status-other {
+        color: #dc2626;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+    }
+
+    /* =========================================================
+           WORKFLOW ACTIONS
+           ========================================================= */
+
+    .return-approve-btn {
+        min-height: 33px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        border-radius: 8px;
+        padding: 5px 10px;
+        border: 1px solid #16a34a;
+        background: #16a34a;
+        color: #fff;
+        font-size: .69rem;
+        font-weight: 800;
+        box-shadow: 0 5px 12px rgba(22, 163, 74, .12);
+        transition: all .18s ease;
+    }
+
+        .return-approve-btn:hover {
+            color: #fff;
+            background: #15803d;
+            border-color: #15803d;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 16px rgba(22, 163, 74, .18);
+        }
+
+    .return-completed {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #64748b;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 6px 9px;
+        font-size: .67rem;
+        font-weight: 700;
+    }
+
+    /* =========================================================
+           EMPTY STATE
+           ========================================================= */
+
+    .return-empty-state {
+        padding: 65px 20px !important;
+        white-space: normal !important;
+    }
+
+    .return-empty-icon {
+        width: 58px;
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 13px;
+        border-radius: 16px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 22px;
+    }
+
+    .return-empty-title {
+        color: #334155;
+        font-size: .95rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .return-empty-text {
+        color: #94a3b8;
+        font-size: .77rem;
+    }
+
+    /* =========================================================
+           CREATE RETURN MODAL
+           ========================================================= */
+
+    .return-modal .modal-content {
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, .16);
+    }
+
+    .return-modal .modal-header {
+        background: linear-gradient(135deg, #f8fafc, #fff);
+        border-bottom: 1px solid #e5eaf1;
+        padding: 17px 20px;
+    }
+
+    .return-modal-title {
+        color: #1e293b;
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+        .return-modal-title i {
+            color: var(--return-primary);
+        }
+
+    .return-modal-intro {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        color: #475569;
+        border-radius: 11px;
+        padding: 11px 12px;
+        margin-bottom: 18px;
+        font-size: .74rem;
+        line-height: 1.45;
+    }
+
+        .return-modal-intro i {
+            color: var(--return-primary);
+            margin-top: 2px;
+        }
+
+    .return-form-group {
+        margin-bottom: 16px;
+    }
+
+    .return-form-label {
+        display: block;
+        color: #475569;
+        font-size: .74rem;
+        font-weight: 750;
+        margin-bottom: 6px;
+    }
+
+        .return-form-label .required {
+            color: #dc2626;
+        }
+
+    .return-modal .form-control,
+    .return-modal .form-select {
+        min-height: 43px;
+        border: 1px solid #dfe5ec;
+        border-radius: 10px;
+        color: #334155;
+        font-size: .82rem;
+        box-shadow: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+        .return-modal .form-control::placeholder {
+            color: #a1acba;
+        }
+
+        .return-modal .form-control:focus,
+        .return-modal .form-select:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .09);
+        }
+
+    .return-modal-footer {
+        background: #fafbfc;
+        border-top: 1px solid #e5eaf1;
+        padding: 13px 18px;
+    }
+
+        .return-modal-footer .btn {
+            min-height: 40px;
+            border-radius: 9px;
+            font-size: .78rem;
+            font-weight: 700;
+        }
+
+    .return-save-btn {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border-color: #1d4ed8;
+        color: #fff;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, .14);
+    }
+
+        .return-save-btn:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+            color: #fff;
+        }
+
+    /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+    @@media (max-width: 991.98px) {
+        .return-title-row
+
+    {
+        flex-direction: column;
+    }
+
+    .return-primary-btn {
+        width: 100%;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-return-page
+
+    {
+        padding-top: 1rem !important;
+    }
+
+    .return-hero {
+        padding: 20px;
+        border-radius: 17px;
+    }
+
+    .return-title-icon {
+        width: 47px;
+        height: 47px;
+        min-width: 47px;
+        border-radius: 13px;
+        font-size: 18px;
+    }
+
+    .return-page-title {
+        font-size: 1.3rem;
+    }
+
+    .return-page-subtitle {
+        font-size: .78rem;
+    }
+
+    .return-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 15px;
+    }
+
+    .return-table-card {
+        border-radius: 15px;
+    }
+
+    }
+
+    @@media (max-width: 575.98px) {
+        .return-kpi
+
+    {
+        padding: 15px;
+    }
+
+    .return-kpi-value {
+        font-size: 1.18rem;
+    }
+
+    .return-modal .modal-dialog {
+        margin: 10px;
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .return-kpi, .return-primary-btn, .return-approve-btn, .return-table tbody tr
+
+    {
+        transition: none !important;
+    }
+
+    }
+</style>
+
+<div class="container-fluid py-4 text-start sales-return-page">
+
+    <!-- =====================================================
+         PAGE HERO
+         ===================================================== -->
+    <div class="return-hero">
+
+        <div class="return-hero-content">
+
+            <div class="return-title-row">
+
+                <div class="d-flex align-items-start gap-3">
+
+                    <div class="return-title-icon">
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="return-eyebrow">
+                            Sales Operations
+                        </div>
+
+                        <h1 class="return-page-title">
+                            Sales Returns & Restocking
+                        </h1>
+
+                        <p class="return-page-subtitle">
+                            Manage customer returns, warehouse inspection, refunds and credit-note workflows.
+                        </p>
+
+                        <div class="return-breadcrumb">
+
+                            <nav aria-label="breadcrumb">
+
+                                <ol class="breadcrumb">
+
+                                    <li class="breadcrumb-item">
+                                        <a href="/Dashboard" class="text-decoration-none">
+                                            <i class="fa-solid fa-house me-1"></i>
+                                            Dashboard
+                                        </a>
+                                    </li>
+
+                                    <li class="breadcrumb-item active"
+                                        aria-current="page">
+                                        Sales Returns
+                                    </li>
+
+                                </ol>
+
+                            </nav>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <button type="button"
+                        class="btn return-primary-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#createReturnModal">
+
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    Log Sales Return
+
+                </button>
+
+            </div>
+
         </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createReturnModal">
-            <i class="fa-solid fa-clock-rotate-left me-1.5"></i>Log Return
-        </button>
+
     </div>
 
-    <!-- Sales Returns Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+    <!-- =====================================================
+         SUCCESS MESSAGE
+         ===================================================== -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="return-success-alert alert alert-dismissible fade show mb-4"
+             role="alert">
+
+            <i class="fa-solid fa-circle-check"></i>
+
+            <div class="flex-grow-1">
+                @TempData["SuccessMessage"]
+            </div>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"></button>
+
+        </div>
+    }
+
+    <!-- =====================================================
+         KPI SUMMARY
+         ===================================================== -->
+    <div class="row g-3 mb-4">
+
+        <!-- Total Returns -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="return-kpi return-kpi-blue">
+
+                <div class="return-kpi-content">
+
+                    <div>
+                        <div class="return-kpi-label">
+                            Total Returns
+                        </div>
+
+                        <h3 class="return-kpi-value">
+                            @Model.Count()
+                        </h3>
+
+                        <div class="return-kpi-meta">
+                            Customer return records
+                        </div>
+                    </div>
+
+                    <div class="return-kpi-icon">
+                        <i class="fa-solid fa-box-archive"></i>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Under Inspection -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="return-kpi return-kpi-orange">
+
+                <div class="return-kpi-content">
+
+                    <div>
+                        <div class="return-kpi-label">
+                            Under Inspection
+                        </div>
+
+                        <h3 class="return-kpi-value">
+                            @Model.Count(r => r.Status == "Inspecting")
+                        </h3>
+
+                        <div class="return-kpi-meta">
+                            Awaiting warehouse verification
+                        </div>
+                    </div>
+
+                    <div class="return-kpi-icon">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Restocked / Credited -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="return-kpi return-kpi-green">
+
+                <div class="return-kpi-content">
+
+                    <div>
+                        <div class="return-kpi-label">
+                            Restocked / Credited
+                        </div>
+
+                        <h3 class="return-kpi-value">
+                            @Model.Count(r => r.Status == "Restocked" || r.Status == "Refunded")
+                        </h3>
+
+                        <div class="return-kpi-meta">
+                            Completed return workflows
+                        </div>
+                    </div>
+
+                    <div class="return-kpi-icon">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Refund Value -->
+        <div class="col-12 col-sm-6 col-xl-3">
+
+            <div class="return-kpi return-kpi-red">
+
+                <div class="return-kpi-content">
+
+                    <div>
+                        <div class="return-kpi-label">
+                            Total Refund Value
+                        </div>
+
+                        <h3 class="return-kpi-value">
+                            ₹@Model.Sum(r => r.RefundValue).ToString("N0")
+                        </h3>
+
+                        <div class="return-kpi-meta">
+                            Refund and credit exposure
+                        </div>
+                    </div>
+
+                    <div class="return-kpi-icon">
+                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+         SALES RETURNS TABLE
+         ===================================================== -->
+    <div class="return-table-card">
+
+        <div class="return-table-header">
+
+            <div>
+
+                <h2 class="return-section-title">
+                    <i class="fa-solid fa-list-check me-2"></i>
+                    Sales Return Register
+                </h2>
+
+                <div class="return-section-caption">
+                    Review returned goods and complete the warehouse approval workflow.
+                </div>
+
+            </div>
+
+            <div class="return-record-pill">
+
+                <i class="fa-solid fa-database"></i>
+
+                @((Model?.Count() ?? 0)) Records
+
+            </div>
+
+        </div>
+
+        <div class="return-table-wrap">
+
+            <table class="table return-table align-middle mb-0">
+
+                <thead>
+
                     <tr>
                         <th>Return ID</th>
                         <th>Original Invoice</th>
                         <th>Customer</th>
+                        <th>Return Reason</th>
                         <th>Return Date</th>
-                        <th>Refund Value</th>
-                        <th>Status</th>
+                        <th class="text-end">Refund Value</th>
+                        <th class="text-center">Credit Note #</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Workflow Action</th>
                     </tr>
+
                 </thead>
+
                 <tbody>
+
                     @if (Model != null && Model.Any())
                     {
                         @foreach (var ret in Model)
                         {
+                            var badgeClass =
+                            ret.Status == "Restocked"
+                            ? "return-status-restocked"
+                            : ret.Status == "Refunded"
+                            ? "return-status-refunded"
+                            : ret.Status == "Inspecting"
+                            ? "return-status-inspecting"
+                            : "return-status-other";
+
+                            var code =
+                            !string.IsNullOrEmpty(ret.ReturnCode)
+                            ? ret.ReturnCode
+                            : ret.ReturnNo;
+
                             <tr>
-                                <td class="fw-bold text-dark">@ret.ReturnNo</td>
-                                <td>@ret.OriginalInvoiceNo</td>
-                                <td>@ret.CustomerName</td>
-                                <td class="text-muted">@ret.ReturnDate.ToString("dd MMM yyyy")</td>
-                                <td class="fw-bold text-danger">₹@ret.RefundValue.ToString("N0", inCulture)</td>
+
+                                <!-- Return ID -->
                                 <td>
-                                    @{
-                                        var badgeClass = ret.Status == "Refunded" ? "bg-success-subtle text-success" :
-                                                         ret.Status == "Inspecting" ? "bg-warning-subtle text-warning" :
-                                                         "bg-danger-subtle text-danger";
-                                    }
-                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@ret.Status</span>
+
+                                    <span class="return-code">
+                                        <i class="fa-solid fa-arrow-turn-down"></i>
+                                        @code
+                                    </span>
+
                                 </td>
+
+                                <!-- Original Invoice -->
+                                <td>
+
+                                    <span class="return-invoice">
+                                        <i class="fa-regular fa-file-lines"></i>
+                                        @(ret.OriginalInvoiceNumber ?? ret.OriginalInvoiceNo ?? "-")
+                                    </span>
+
+                                </td>
+
+                                <!-- Customer -->
+                                <td>
+
+                                    <div class="return-customer">
+                                        @(ret.Customer?.CustomerName ?? ret.CustomerName)
+                                    </div>
+
+                                </td>
+
+                                <!-- Return Reason -->
+                                <td>
+
+                                    <div class="return-reason">
+                                        @(ret.ReturnReason ?? "Quality defect / damaged in transit")
+                                    </div>
+
+                                </td>
+
+                                <!-- Return Date -->
+                                <td>
+
+                                    <span class="return-date">
+                                        <i class="fa-regular fa-calendar me-1"></i>
+                                        @ret.ReturnDate.ToString("dd MMM yyyy")
+                                    </span>
+
+                                </td>
+
+                                <!-- Refund Value -->
+                                <td class="text-end">
+
+                                    <span class="return-refund">
+                                        ₹@ret.RefundValue.ToString("N2")
+                                    </span>
+
+                                </td>
+
+                                <!-- Credit Note -->
+                                <td class="text-center">
+
+                                    @if (!string.IsNullOrEmpty(ret.CreditNoteNumber))
+                                    {
+                                        <span class="return-credit-note">
+                                            <i class="fa-solid fa-receipt"></i>
+                                            @ret.CreditNoteNumber
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="return-credit-pending">
+                                            Pending Approval
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- Status -->
+                                <td class="text-center">
+
+                                    <span class="return-status @badgeClass">
+                                        @ret.Status
+                                    </span>
+
+                                </td>
+
+                                <!-- Workflow -->
+                                <td class="text-center">
+
+                                    @if (ret.Status == "Inspecting")
+                                    {
+                                        <button type="button"
+                                                class="btn return-approve-btn"
+                                                onclick="approveRestock(@ret.Id, '@code')">
+
+                                            <i class="fa-solid fa-check"></i>
+                                            Approve & Restock
+
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="return-completed">
+
+                                            <i class="fa-solid fa-check-circle"></i>
+                                            Completed
+
+                                        </span>
+                                    }
+
+                                </td>
+
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">No returns found in database.</td>
+
+                            <td colspan="9"
+                                class="return-empty-state text-center">
+
+                                <div class="return-empty-icon">
+                                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                                </div>
+
+                                <div class="return-empty-title">
+                                    No sales return records found
+                                </div>
+
+                                <div class="return-empty-text">
+                                    Customer returns will appear here once they are logged.
+                                </div>
+
+                            </td>
+
                         </tr>
                     }
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>
 
-<!-- Log Return Modal -->
-<div class="modal fade text-start" id="createReturnModal" tabindex="-1" aria-labelledby="createReturnModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- =========================================================
+     LOG RETURN MODAL
+     ========================================================= -->
+<div class="modal fade text-start return-modal"
+     id="createReturnModal"
+     tabindex="-1"
+     aria-labelledby="createReturnModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
         <div class="modal-content">
-            <form action="/SalesManagement/CreateReturn" method="post">
+
+            <form asp-controller="SalesManagement"
+                  asp-action="CreateReturn"
+                  method="post">
+
                 @Html.AntiForgeryToken()
+
+                <!-- Modal Header -->
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="createReturnModalLabel">Log Customer Sales Return</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    <h5 class="modal-title return-modal-title"
+                        id="createReturnModalLabel">
+
+                        <i class="fa-solid fa-arrow-rotate-left me-2"></i>
+                        Log Customer Sales Return
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Original Invoice No</label>
-                        <input type="text" name="OriginalInvoiceNo" class="form-control" placeholder="e.g. INV-10022" required />
+
+                <!-- Modal Body -->
+                <div class="modal-body p-4">
+
+                    <div class="return-modal-intro">
+
+                        <i class="fa-solid fa-circle-info"></i>
+
+                        <div>
+                            Enter the original invoice and customer information.
+                            The return can then be routed through warehouse inspection
+                            before restocking and credit-note processing.
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Customer Name</label>
-                        <input type="text" name="CustomerName" class="form-control" placeholder="e.g. Rahul Enterprises" required />
+
+                    <!-- Original Invoice -->
+                    <div class="return-form-group">
+
+                        <label class="return-form-label">
+                            Original Invoice Number
+                            <span class="required">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="OriginalInvoiceNumber"
+                               class="form-control"
+                               placeholder="e.g. INV-2026-0001"
+                               required />
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Refund Value (INR)</label>
-                        <input type="number" name="RefundValue" class="form-control" placeholder="e.g. 12500" min="0" required />
+
+                    <!-- Customer -->
+                    <div class="return-form-group">
+
+                        <label class="return-form-label">
+                            Customer / Account Name
+                            <span class="required">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="CustomerName"
+                               class="form-control"
+                               placeholder="e.g. Rahul Enterprises"
+                               required />
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Return Status</label>
-                        <select name="Status" class="form-select" required>
-                            <option value="Inspecting">Inspecting</option>
-                            <option value="Refunded">Refunded</option>
-                            <option value="Cancelled">Cancelled</option>
+
+                    <!-- Reason -->
+                    <div class="return-form-group">
+
+                        <label class="return-form-label">
+                            Return Reason
+                        </label>
+
+                        <select name="ReturnReason"
+                                class="form-select">
+
+                            <option value="Damaged in transit">
+                                Damaged in transit
+                            </option>
+
+                            <option value="Defective / Quality specification issue">
+                                Defective / Quality specification issue
+                            </option>
+
+                            <option value="Incorrect item dispatched">
+                                Incorrect item dispatched
+                            </option>
+
+                            <option value="Customer order cancellation">
+                                Customer order cancellation
+                            </option>
+
+                            <option value="Other / Warranty return">
+                                Other / Warranty return
+                            </option>
+
                         </select>
+
                     </div>
+
+                    <!-- Refund Value -->
+                    <div class="return-form-group">
+
+                        <label class="return-form-label">
+                            Refund / Credit Value (₹)
+                            <span class="required">*</span>
+                        </label>
+
+                        <input type="number"
+                               name="RefundValue"
+                               class="form-control"
+                               placeholder="e.g. 12500"
+                               min="0"
+                               step="100"
+                               required />
+
+                    </div>
+
+                    <!-- Initial Status -->
+                    <div class="return-form-group mb-0">
+
+                        <label class="return-form-label">
+                            Initial Return Status
+                        </label>
+
+                        <select name="Status"
+                                class="form-select"
+                                required>
+
+                            <option value="Inspecting">
+                                Inspecting (Warehouse verification)
+                            </option>
+
+                            <option value="Restocked">
+                                Restocked (Approved immediately)
+                            </option>
+
+                        </select>
+
+                    </div>
+
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Log Return</button>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer return-modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn return-save-btn fw-bold px-4">
+
+                        <i class="fa-solid fa-save me-1"></i>
+                        Save Return
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
+
+@section Scripts {
+
+    <script>
+
+        /* =====================================================
+           APPROVE & RESTOCK RETURN
+           ===================================================== */
+
+        async function approveRestock(returnId, returnCode) {
+
+            if (!confirm(
+                "Approve restock for return " +
+                returnCode +
+                "?\nThis will mark the goods as Restocked in warehouse and generate an official Credit Note (CN-YYYY-XXXX)."
+            )) {
+                return;
+            }
+
+            const token =
+                document.querySelector(
+                    'input[name="__RequestVerificationToken"]'
+                ).value;
+
+            const formData = new FormData();
+
+            formData.append(
+                'returnId',
+                returnId
+            );
+
+            formData.append(
+                '__RequestVerificationToken',
+                token
+            );
+
+            try {
+
+                const response = await fetch(
+                    '/SalesManagement/ApproveReturnRestock',
+                    {
+                        method: 'POST',
+                        body: formData
+                    }
+                );
+
+                const res = await response.json();
+
+                if (res.success) {
+
+                    alert(res.message);
+
+                    location.reload();
+
+                }
+                else {
+
+                    alert(
+                        res.message ||
+                        "Failed to approve return."
+                    );
+
+                }
+
+            }
+            catch (err) {
+
+                alert(
+                    "An error occurred while approving the return."
+                );
+
+            }
+
+        }
+
+    </script>
+
+}
+```

@@ -1,65 +1,1116 @@
+```cshtml
+@model ERP_System.Models.ReceivablesAgingReportViewModel
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Receivables Report";
+    ViewData["Title"] = "Receivables Aging Report";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-calendar-check text-primary me-2"></i>Receivables Report</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item">Sales Reports</li>
-                    <li class="breadcrumb-item active" aria-current="page">Receivables Report</li>
-                </ol>
-            </nav>
+<style>
+    .receivables-aging-page {
+        --ra-primary: #2563eb;
+        --ra-primary-soft: #eff6ff;
+        --ra-success: #16a34a;
+        --ra-success-soft: #f0fdf4;
+        --ra-warning: #d97706;
+        --ra-warning-soft: #fffbeb;
+        --ra-danger: #dc2626;
+        --ra-danger-soft: #fef2f2;
+        --ra-text: #172033;
+        --ra-muted: #64748b;
+        --ra-border: #e5e7eb;
+        --ra-surface: #ffffff;
+        --ra-page: #f6f8fb;
+    }
+
+    .receivables-aging-page {
+        min-height: 100vh;
+        background: var(--ra-page);
+        color: var(--ra-text);
+    }
+
+        .receivables-aging-page .ra-header {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--ra-border);
+            border-radius: 18px;
+            padding: 22px 24px;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
+        }
+
+        .receivables-aging-page .ra-title-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--ra-primary-soft);
+            color: var(--ra-primary);
+            font-size: 1.05rem;
+            flex-shrink: 0;
+        }
+
+        .receivables-aging-page .ra-title {
+            font-size: 1.25rem;
+            font-weight: 750;
+            letter-spacing: -0.02em;
+            color: #111827;
+        }
+
+        .receivables-aging-page .breadcrumb {
+            margin-top: 5px;
+        }
+
+        .receivables-aging-page .breadcrumb-item {
+            color: #94a3b8;
+        }
+
+            .receivables-aging-page .breadcrumb-item a {
+                color: var(--ra-primary);
+                font-weight: 600;
+            }
+
+            .receivables-aging-page .breadcrumb-item.active {
+                color: #64748b;
+            }
+
+        .receivables-aging-page .ra-print-btn {
+            border-color: #dbe1ea;
+            background: #fff;
+            color: #475569;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+            .receivables-aging-page .ra-print-btn:hover {
+                background: #f8fafc;
+                border-color: #cbd5e1;
+                transform: translateY(-1px);
+                box-shadow: 0 5px 14px rgba(15, 23, 42, 0.07);
+            }
+
+        .receivables-aging-page .ra-alert {
+            border-radius: 14px;
+            padding: 13px 16px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0 !important;
+            color: #166534;
+        }
+
+        /* KPI CARDS */
+        .receivables-aging-page .ra-kpi {
+            position: relative;
+            height: 100%;
+            background: var(--ra-surface);
+            border: 1px solid var(--ra-border);
+            border-radius: 17px;
+            padding: 19px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.045);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+            .receivables-aging-page .ra-kpi::after {
+                content: "";
+                position: absolute;
+                width: 90px;
+                height: 90px;
+                right: -35px;
+                bottom: -40px;
+                border-radius: 50%;
+                background: rgba(37, 99, 235, 0.035);
+                pointer-events: none;
+            }
+
+            .receivables-aging-page .ra-kpi:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+                border-color: #dbe2ea;
+            }
+
+        .receivables-aging-page .ra-kpi-label {
+            color: #64748b;
+            font-size: 0.77rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.035em;
+        }
+
+        .receivables-aging-page .ra-kpi-icon {
+            width: 39px;
+            height: 39px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.92rem;
+            flex-shrink: 0;
+        }
+
+            .receivables-aging-page .ra-kpi-icon.primary {
+                background: var(--ra-primary-soft);
+                color: var(--ra-primary);
+            }
+
+            .receivables-aging-page .ra-kpi-icon.success {
+                background: var(--ra-success-soft);
+                color: var(--ra-success);
+            }
+
+            .receivables-aging-page .ra-kpi-icon.warning {
+                background: var(--ra-warning-soft);
+                color: var(--ra-warning);
+            }
+
+            .receivables-aging-page .ra-kpi-icon.danger {
+                background: var(--ra-danger-soft);
+                color: var(--ra-danger);
+            }
+
+        .receivables-aging-page .ra-kpi-value {
+            font-size: 1.55rem;
+            line-height: 1.2;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-top: 13px;
+            margin-bottom: 4px;
+            color: #172033;
+        }
+
+            .receivables-aging-page .ra-kpi-value.success {
+                color: var(--ra-success);
+            }
+
+            .receivables-aging-page .ra-kpi-value.warning {
+                color: var(--ra-warning);
+            }
+
+            .receivables-aging-page .ra-kpi-value.danger {
+                color: var(--ra-danger);
+            }
+
+        .receivables-aging-page .ra-kpi-sub {
+            color: #94a3b8;
+            font-size: 0.76rem;
+        }
+
+        /* REPORT CARD */
+        .receivables-aging-page .ra-report-card {
+            background: var(--ra-surface);
+            border: 1px solid var(--ra-border);
+            border-radius: 18px;
+            box-shadow: 0 5px 20px rgba(15, 23, 42, 0.045);
+            overflow: hidden;
+        }
+
+        .receivables-aging-page .ra-report-head {
+            padding: 20px 22px;
+            border-bottom: 1px solid #edf0f4;
+            background: #fff;
+        }
+
+        .receivables-aging-page .ra-section-icon {
+            width: 39px;
+            height: 39px;
+            border-radius: 11px;
+            background: var(--ra-primary-soft);
+            color: var(--ra-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .receivables-aging-page .ra-section-title {
+            font-size: 0.98rem;
+            font-weight: 750;
+            color: #172033;
+            margin-bottom: 3px;
+        }
+
+        .receivables-aging-page .ra-section-subtitle {
+            color: #94a3b8;
+            font-size: 0.77rem;
+            margin: 0;
+        }
+
+        .receivables-aging-page .ra-count-badge {
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 7px 11px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* TABLE */
+        .receivables-aging-page .ra-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .receivables-aging-page .ra-table {
+            min-width: 1120px;
+            margin: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+            .receivables-aging-page .ra-table thead th {
+                background: #f8fafc;
+                border-bottom: 1px solid #e5e7eb;
+                color: #64748b;
+                font-size: 0.68rem;
+                font-weight: 800;
+                letter-spacing: 0.045em;
+                text-transform: uppercase;
+                padding: 13px 14px;
+                white-space: nowrap;
+            }
+
+            .receivables-aging-page .ra-table tbody td {
+                padding: 15px 14px;
+                border-bottom: 1px solid #f0f2f5;
+                vertical-align: middle;
+                color: #334155;
+            }
+
+            .receivables-aging-page .ra-table tbody tr {
+                transition: background 0.16s ease;
+            }
+
+                .receivables-aging-page .ra-table tbody tr:hover {
+                    background: #fafcff;
+                }
+
+                .receivables-aging-page .ra-table tbody tr:last-child td {
+                    border-bottom: 0;
+                }
+
+        .receivables-aging-page .ra-customer-avatar {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            border-radius: 12px;
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            color: #2563eb;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .receivables-aging-page .ra-customer-name {
+            color: #172033;
+            font-size: 0.82rem;
+            font-weight: 750;
+            line-height: 1.25;
+        }
+
+        .receivables-aging-page .ra-customer-meta {
+            color: #94a3b8;
+            font-size: 0.68rem;
+            margin-top: 3px;
+            max-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .receivables-aging-page .ra-amount {
+            font-size: 0.78rem;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .receivables-aging-page .ra-total {
+            color: #2563eb;
+            font-weight: 800;
+        }
+
+        .receivables-aging-page .ra-critical {
+            background: #fff1f2;
+            border-radius: 8px;
+            color: #dc2626 !important;
+        }
+
+        .receivables-aging-page .ra-risk {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.69rem;
+            font-weight: 800;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+
+        .receivables-aging-page .ra-risk-high {
+            color: #b91c1c;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .receivables-aging-page .ra-risk-watch {
+            color: #b45309;
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+
+        .receivables-aging-page .ra-risk-normal {
+            color: #15803d;
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .receivables-aging-page .ra-demand-btn {
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 9px;
+            padding: 6px 10px;
+            transition: all 0.18s ease;
+        }
+
+            .receivables-aging-page .ra-demand-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 5px 12px rgba(220, 38, 38, 0.12);
+            }
+
+        .receivables-aging-page .ra-table tfoot td {
+            padding: 14px;
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .receivables-aging-page .ra-empty {
+            padding: 55px 20px !important;
+            color: #94a3b8;
+        }
+
+        .receivables-aging-page .ra-empty-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 12px;
+            border-radius: 16px;
+            background: #f0fdf4;
+            color: #16a34a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        /* MODAL */
+        .receivables-aging-page .modal-content {
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .receivables-aging-page .ra-modal-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 17px 20px;
+        }
+
+        .receivables-aging-page .ra-modal-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            background: #fef2f2;
+            color: #dc2626;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .receivables-aging-page .ra-modal-title {
+            font-size: 0.98rem;
+            font-weight: 800;
+            color: #172033;
+        }
+
+        .receivables-aging-page .ra-modal-body {
+            padding: 22px;
+        }
+
+        .receivables-aging-page .ra-form-label {
+            color: #475569;
+            font-size: 0.75rem;
+            font-weight: 750;
+            margin-bottom: 6px;
+        }
+
+        .receivables-aging-page .ra-form-control {
+            border-color: #dfe4ea;
+            border-radius: 10px;
+            min-height: 42px;
+            font-size: 0.82rem;
+            box-shadow: none;
+        }
+
+            .receivables-aging-page .ra-form-control:focus {
+                border-color: #93c5fd;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+            }
+
+        .receivables-aging-page .ra-warning-box {
+            border: 1px solid #fde68a;
+            background: #fffbeb;
+            color: #92400e;
+            border-radius: 11px;
+            padding: 11px 13px;
+            font-size: 0.73rem;
+        }
+
+        .receivables-aging-page .ra-modal-footer {
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+            padding: 13px 20px;
+        }
+
+        /* PRINT */
+        .receivables-aging-page .print-only-header {
+            display: none;
+        }
+
+    @@media (max-width: 992px) {
+        .receivables-aging-page .ra-header {
+            padding: 18px;
+        }
+
+        .receivables-aging-page .ra-title {
+            font-size: 1.12rem;
+        }
+
+        .receivables-aging-page .ra-report-head {
+            padding: 17px;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .receivables-aging-page {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+            .receivables-aging-page .ra-header {
+                border-radius: 14px;
+                padding: 16px;
+            }
+
+            .receivables-aging-page .ra-header-actions {
+                width: 100%;
+            }
+
+            .receivables-aging-page .ra-print-btn {
+                width: 100%;
+            }
+
+            .receivables-aging-page .ra-kpi {
+                padding: 16px;
+            }
+
+            .receivables-aging-page .ra-kpi-value {
+                font-size: 1.35rem;
+            }
+
+            .receivables-aging-page .ra-report-card {
+                border-radius: 14px;
+            }
+    }
+
+    @@media print {
+        #sidebar,
+        .sidebar,
+        .topbar,
+        .navbar,
+        footer,
+        .btn,
+        .breadcrumb,
+        nav,
+        .no-print,
+        .modal {
+            display: none !important;
+        }
+
+        body,
+        .container-fluid,
+        .main-content,
+        .receivables-aging-page {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
+            width: 100% !important;
+            min-height: auto !important;
+        }
+
+            .receivables-aging-page .print-only-header {
+                display: block !important;
+                border-bottom: 2px solid #0f172a;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+            }
+
+            .receivables-aging-page .ra-header,
+            .receivables-aging-page .ra-kpi,
+            .receivables-aging-page .ra-report-card {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+
+            .receivables-aging-page .ra-header {
+                display: none !important;
+            }
+
+            .receivables-aging-page .ra-kpi {
+                break-inside: avoid;
+            }
+
+            .receivables-aging-page .ra-report-card {
+                break-inside: auto;
+            }
+
+            .receivables-aging-page .ra-table {
+                min-width: 0 !important;
+                width: 100% !important;
+                font-size: 8pt !important;
+            }
+
+                .receivables-aging-page .ra-table thead th,
+                .receivables-aging-page .ra-table tbody td,
+                .receivables-aging-page .ra-table tfoot td {
+                    padding: 6px 5px !important;
+                }
+
+                .receivables-aging-page .ra-table thead th {
+                    background: #f1f5f9 !important;
+                    color: #334155 !important;
+                }
+
+            .receivables-aging-page .ra-customer-avatar {
+                width: 26px !important;
+                height: 26px !important;
+                min-width: 26px !important;
+                font-size: 0.6rem !important;
+            }
+
+            .receivables-aging-page .ra-customer-meta {
+                max-width: none;
+                white-space: normal;
+            }
+
+            .receivables-aging-page .ra-risk {
+                padding: 3px 6px;
+                font-size: 7pt;
+            }
+    }
+</style>
+
+<div class="container-fluid py-4 text-start receivables-aging-page">
+
+    <!-- Print-only Brand Header -->
+    <div class="print-only-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="fw-bold mb-0 text-dark">OPERAFY ENTERPRISE ERP</h3>
+                <p class="text-muted small mb-0">Accounts Receivable Aging Audit &amp; Credit Risk Exposure</p>
+            </div>
+
+            <div class="text-end small text-muted">
+                <div>
+                    <strong>Generated:</strong>
+                    @DateTime.Now.ToString("dd MMM yyyy HH:mm")
+                </div>
+                <div>
+                    <strong>Overdue Accounts:</strong>
+                    @Model.OverdueAccountsCount
+                </div>
+            </div>
         </div>
-        <button class="btn btn-outline-secondary rounded-pill px-3"><i class="fa-solid fa-download me-1.5"></i>Export PDF</button>
     </div>
 
-    <!-- Receivables Ageing Report Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <h6 class="fw-bold text-dark mb-4">Outstanding Receivables Ageing Analysis</h6>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show ra-alert no-print" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header -->
+    <div class="ra-header d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 no-print">
+
+        <div class="d-flex align-items-center gap-3">
+            <div class="ra-title-icon">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+
+            <div>
+                <div class="ra-title">
+                    Outstanding Receivables Aging Report
+                </div>
+
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0 small">
+                        <li class="breadcrumb-item">
+                            <a href="/SalesDashboard" class="text-decoration-none">
+                                Sales Management
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            Sales Reports
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">
+                            Receivables Report
+                        </li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <div class="ra-header-actions">
+            <button type="button"
+                    onclick="window.print()"
+                    class="btn ra-print-btn rounded-pill px-3 shadow-sm">
+                <i class="fa-solid fa-print me-2"></i>
+                Export PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Summary -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="ra-kpi">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="ra-kpi-label">Total Outstanding Due</span>
+                    <span class="ra-kpi-icon primary">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+                </div>
+
+                <div class="ra-kpi-value">
+                    @Model.TotalOutstanding.ToString("C0", inCulture)
+                </div>
+
+                <div class="ra-kpi-sub">
+                    Across @Model.Customers.Count accounts
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="ra-kpi">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="ra-kpi-label">Current · 0–30 Days</span>
+                    <span class="ra-kpi-icon success">
+                        <i class="fa-solid fa-calendar-day"></i>
+                    </span>
+                </div>
+
+                <div class="ra-kpi-value success">
+                    @Model.Total0_30.ToString("C0", inCulture)
+                </div>
+
+                <div class="ra-kpi-sub">
+                    Within standard credit cycle
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="ra-kpi">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="ra-kpi-label">Moderate · 31–60 Days</span>
+                    <span class="ra-kpi-icon warning">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </span>
+                </div>
+
+                <div class="ra-kpi-value warning">
+                    @Model.Total31_60.ToString("C0", inCulture)
+                </div>
+
+                <div class="ra-kpi-sub">
+                    Follow-up required
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="ra-kpi">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="ra-kpi-label">Critical Risk · 90+ Days</span>
+                    <span class="ra-kpi-icon danger">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </span>
+                </div>
+
+                <div class="ra-kpi-value danger">
+                    @Model.Total90Plus.ToString("C0", inCulture)
+                </div>
+
+                <div class="ra-kpi-sub text-danger fw-bold">
+                    @Model.OverdueAccountsCount delinquent accounts
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Aging Ledger -->
+    <div class="ra-report-card">
+
+        <div class="ra-report-head d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="ra-section-icon">
+                    <i class="fa-solid fa-list-ol"></i>
+                </div>
+
+                <div>
+                    <div class="ra-section-title">
+                        Customer Aging Ledger Breakdown
+                    </div>
+
+                    <p class="ra-section-subtitle">
+                        Time-bucketed distribution of unpaid invoices and outstanding accounts.
+                    </p>
+                </div>
+            </div>
+
+            <span class="ra-count-badge">
+                @Model.Customers.Count Accounts
+            </span>
+
+        </div>
+
+        <div class="ra-table-wrap">
+            <table class="table align-middle ra-table">
+
+                <thead>
                     <tr>
-                        <th>Customer Name</th>
-                        <th>0 - 30 Days</th>
-                        <th>31 - 60 Days</th>
-                        <th>61 - 90 Days</th>
-                        <th>90+ Days</th>
-                        <th>Total Due</th>
+                        <th>Customer / Enterprise Account</th>
+                        <th class="text-end">0–30 Days</th>
+                        <th class="text-end">31–60 Days</th>
+                        <th class="text-end">61–90 Days</th>
+                        <th class="text-end">90+ Days</th>
+                        <th class="text-end">Total Due</th>
+                        <th class="text-center">Risk Profile</th>
+                        <th class="text-center no-print">Action</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Rahul Enterprises</td>
-                        <td>₹45,000</td>
-                        <td>₹0</td>
-                        <td>₹0</td>
-                        <td>₹0</td>
-                        <td class="fw-bold">₹45,000</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Mehta Logistics</td>
-                        <td>₹0</td>
-                        <td>₹55,250</td>
-                        <td>₹0</td>
-                        <td>₹0</td>
-                        <td class="fw-bold">₹55,250</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Rajesh Corp Ltd</td>
-                        <td>₹75,000</td>
-                        <td>₹0</td>
-                        <td>₹0</td>
-                        <td>₹0</td>
-                        <td class="fw-bold">₹75,000</td>
-                    </tr>
+                    @if (Model.Customers.Any())
+                    {
+                        @foreach (var c in Model.Customers)
+                        {
+                            <tr>
+
+                                <!-- Customer -->
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+
+                                        <div class="ra-customer-avatar">
+                                            @(c.CustomerName.Length > 1
+                                                                                ? c.CustomerName.Substring(0, 2).ToUpper()
+                                                                                : "CU")
+                                </div>
+
+                                        <div>
+                                            <div class="ra-customer-name">
+                                                @c.CustomerName
+                                            </div>
+
+                                            <div class="ra-customer-meta">
+                                                @c.CustomerCode
+                                                <span class="mx-1">•</span>
+                                                @c.Email
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </td>
+
+                                <!-- 0 - 30 -->
+                                <td class="text-end ra-amount @(c.Days0_30 > 0 ? "fw-bold text-dark" : "text-muted")">
+                                    @c.Days0_30.ToString("C2", inCulture)
+                                </td>
+
+                                <!-- 31 - 60 -->
+                                <td class="text-end ra-amount @(c.Days31_60 > 0 ? "fw-bold text-warning" : "text-muted")">
+                                    @c.Days31_60.ToString("C2", inCulture)
+                                </td>
+
+                                <!-- 61 - 90 -->
+                                <td class="text-end ra-amount @(c.Days61_90 > 0 ? "fw-bold text-danger" : "text-muted")">
+                                    @c.Days61_90.ToString("C2", inCulture)
+                                </td>
+
+                                <!-- 90+ -->
+                                <td class="text-end ra-amount @(c.Days90Plus > 0 ? "fw-bold ra-critical" : "text-muted")">
+                                    @c.Days90Plus.ToString("C2", inCulture)
+                                </td>
+
+                                <!-- Total -->
+                                <td class="text-end ra-amount ra-total">
+                                    @c.TotalDue.ToString("C2", inCulture)
+                                </td>
+
+                                <!-- Risk -->
+                                <td class="text-center">
+
+                            @if (c.RiskLevel == "High Risk")
+                                    {
+                                        <span class="ra-risk ra-risk-high">
+                                            <i class="fa-solid fa-circle-exclamation"></i>
+                                            High Risk
+                                        </span>
+                                    }
+                                    else if (c.RiskLevel == "Watch")
+                                    {
+                                        <span class="ra-risk ra-risk-watch">
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                            Watch
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ra-risk ra-risk-normal">
+                                            <i class="fa-solid fa-check"></i>
+                                            Normal
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- Action -->
+                                <td class="text-center no-print">
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger ra-demand-btn"
+                                            onclick="openDemandModal('@Html.Raw(c.CustomerName.Replace("'", "\\'"))', '@c.Email', @c.TotalDue)">
+                                        <i class="fa-solid fa-paper-plane me-1"></i>
+                                        Demand Notice
+                                    </button>
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center ra-empty">
+
+                                <div class="ra-empty-icon">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+
+                                <div class="fw-bold text-dark mb-1">
+                                    No Outstanding Receivables
+                                </div>
+
+                                <div class="small">
+                                    No outstanding accounts receivable found. All invoices are fully settled.
+                                </div>
+
+                            </td>
+                        </tr>
+                    }
                 </tbody>
+
+                <tfoot>
+                    <tr>
+                        <td class="fw-bold text-dark">
+                            Total Receivables
+                        </td>
+
+                        <td class="text-end text-dark">
+                            @Model.Total0_30.ToString("C2", inCulture)
+                        </td>
+
+                        <td class="text-end text-warning">
+                            @Model.Total31_60.ToString("C2", inCulture)
+                        </td>
+
+                        <td class="text-end text-danger">
+                            @Model.Total61_90.ToString("C2", inCulture)
+                        </td>
+
+                        <td class="text-end text-danger">
+                            @Model.Total90Plus.ToString("C2", inCulture)
+                        </td>
+
+                        <td class="text-end text-primary fw-bold">
+                            @Model.TotalOutstanding.ToString("C2", inCulture)
+                        </td>
+
+                        <td class="text-center">
+                            @Model.OverdueAccountsCount Overdue
+                        </td>
+
+                        <td class="no-print text-center">
+                            -
+                        </td>
+                    </tr>
+                </tfoot>
+
             </table>
         </div>
     </div>
+
 </div>
+
+<!-- Demand Notice Modal -->
+<div class="modal fade"
+     id="demandNoticeModal"
+     tabindex="-1"
+     aria-labelledby="demandNoticeModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content border-0 shadow">
+
+            <form method="post" asp-action="SendDemandNotice">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header ra-modal-header">
+
+                    <div class="d-flex align-items-center gap-3">
+
+                        <div class="ra-modal-icon">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+
+                        <div>
+                            <h5 class="modal-title ra-modal-title mb-0"
+                                id="demandNoticeModalLabel">
+                                Issue Payment Demand
+                            </h5>
+
+                            <div class="text-muted small mt-1">
+                                Prepare an overdue payment demand notice
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+                <div class="modal-body ra-modal-body">
+
+                    <p class="text-muted small mb-4">
+                        This action will generate and transmit an official overdue reminder
+                        and demand notice with payment terms and the outstanding ledger.
+                    </p>
+
+                    <div class="mb-3">
+
+                        <label class="form-label ra-form-label">
+                            Customer / Enterprise Account
+                        </label>
+
+                        <input type="text"
+                               id="demandCustomerName"
+                               name="customerName"
+                               class="form-control ra-form-control"
+                               readonly />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label ra-form-label">
+                            Recipient Accounts Email
+                        </label>
+
+                        <input type="email"
+                               id="demandEmail"
+                               name="email"
+                               class="form-control ra-form-control"
+                               required />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label ra-form-label">
+                            Outstanding Balance (₹)
+                        </label>
+
+                        <input type="number"
+                               step="0.01"
+                               id="demandAmountDue"
+                               name="amountDue"
+                               class="form-control ra-form-control fw-bold text-danger"
+                               readonly />
+
+                    </div>
+
+                    <div class="ra-warning-box">
+                        <i class="fa-solid fa-clock me-2"></i>
+                        Gives customer 7 business days to remit outstanding dues before
+                        automated credit hold is imposed.
+                    </div>
+
+                </div>
+
+                <div class="modal-footer ra-modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary rounded-pill px-3"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-danger rounded-pill px-4">
+                        <i class="fa-solid fa-paper-plane me-2"></i>
+                        Dispatch Demand Notice
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function openDemandModal(customerName, email, amountDue) {
+        document.getElementById('demandCustomerName').value = customerName;
+        document.getElementById('demandEmail').value = email || '';
+        document.getElementById('demandAmountDue').value = amountDue;
+
+        var myModal = new bootstrap.Modal(
+            document.getElementById('demandNoticeModal')
+        );
+
+        myModal.show();
+    }
+</script>
+```

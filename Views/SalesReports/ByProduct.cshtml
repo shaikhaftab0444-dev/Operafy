@@ -1,60 +1,822 @@
+```cshtml
+@model ERP_System.Models.ProductReportsListViewModel
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales By Product";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-box text-primary me-2"></i>Sales by Product</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item">Sales Reports</li>
-                    <li class="breadcrumb-item active" aria-current="page">Sales by Product</li>
-                </ol>
-            </nav>
+<style>
+    .sales-product-page {
+        --sp-primary: #2563eb;
+        --sp-primary-dark: #1d4ed8;
+        --sp-success: #16a34a;
+        --sp-warning: #d97706;
+        --sp-danger: #dc2626;
+        --sp-text: #172033;
+        --sp-muted: #64748b;
+        --sp-border: #e2e8f0;
+        --sp-soft: #f8fafc;
+        --sp-card-radius: 16px;
+    }
+
+        .sales-product-page .page-header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid var(--sp-border);
+            border-radius: var(--sp-card-radius);
+            padding: 22px 24px;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
+        }
+
+        .sales-product-page .page-title-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eff6ff;
+            color: var(--sp-primary);
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+
+        .sales-product-page .breadcrumb {
+            margin-top: 6px;
+        }
+
+        .sales-product-page .breadcrumb-item + .breadcrumb-item::before {
+            color: #94a3b8;
+        }
+
+        .sales-product-page .report-action {
+            min-height: 40px;
+            border-radius: 10px;
+            font-weight: 600;
+            padding-left: 16px;
+            padding-right: 16px;
+            transition: all 0.18s ease;
+        }
+
+            .sales-product-page .report-action:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 5px 14px rgba(15, 23, 42, 0.09);
+            }
+
+        .sales-product-page .kpi-card {
+            position: relative;
+            overflow: hidden;
+            min-height: 145px;
+            border: 1px solid var(--sp-border);
+            border-radius: var(--sp-card-radius);
+            background: #ffffff;
+            padding: 19px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.045);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+            .sales-product-page .kpi-card::after {
+                content: "";
+                position: absolute;
+                width: 90px;
+                height: 90px;
+                right: -35px;
+                bottom: -35px;
+                border-radius: 50%;
+                background: rgba(37, 99, 235, 0.035);
+            }
+
+            .sales-product-page .kpi-card:hover {
+                transform: translateY(-3px);
+                border-color: #d6deea;
+                box-shadow: 0 10px 26px rgba(15, 23, 42, 0.075);
+            }
+
+        .sales-product-page .kpi-label {
+            color: var(--sp-muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+
+        .sales-product-page .kpi-icon {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        .sales-product-page .kpi-value {
+            font-size: 1.55rem;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        .sales-product-page .kpi-caption {
+            color: #94a3b8;
+            font-size: 0.74rem;
+        }
+
+        .sales-product-page .report-card {
+            background: #ffffff;
+            border: 1px solid var(--sp-border);
+            border-radius: var(--sp-card-radius);
+            box-shadow: 0 5px 20px rgba(15, 23, 42, 0.045);
+            overflow: hidden;
+        }
+
+        .sales-product-page .report-card-header {
+            padding: 20px 22px;
+            border-bottom: 1px solid var(--sp-border);
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+        }
+
+        .sales-product-page .section-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eff6ff;
+            color: var(--sp-primary);
+            flex-shrink: 0;
+        }
+
+        .sales-product-page .section-title {
+            font-size: 0.98rem;
+            font-weight: 750;
+            color: var(--sp-text);
+        }
+
+        .sales-product-page .section-subtitle {
+            font-size: 0.76rem;
+            color: var(--sp-muted);
+        }
+
+        .sales-product-page .table-wrap {
+            overflow-x: auto;
+        }
+
+        .sales-product-page .performance-table {
+            min-width: 1000px;
+            margin-bottom: 0;
+        }
+
+            .sales-product-page .performance-table thead th {
+                background: #f8fafc;
+                color: #64748b;
+                border-bottom: 1px solid #e2e8f0;
+                border-top: 0;
+                font-size: 0.72rem;
+                font-weight: 750;
+                letter-spacing: 0.025em;
+                text-transform: uppercase;
+                padding: 13px 15px;
+                white-space: nowrap;
+            }
+
+            .sales-product-page .performance-table tbody td {
+                padding: 15px;
+                border-color: #eef2f7;
+                color: #334155;
+                vertical-align: middle;
+            }
+
+            .sales-product-page .performance-table tbody tr {
+                transition: background-color 0.15s ease;
+            }
+
+                .sales-product-page .performance-table tbody tr:hover {
+                    background: #f8fbff;
+                }
+
+            .sales-product-page .performance-table tfoot td {
+                padding: 15px;
+                border-top: 1px solid #dbe3ed;
+                color: #334155;
+            }
+
+        .sales-product-page .product-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eff6ff;
+            color: var(--sp-primary);
+            border: 1px solid #dbeafe;
+            flex-shrink: 0;
+        }
+
+        .sales-product-page .product-name {
+            color: #172033;
+            font-size: 0.86rem;
+            font-weight: 700;
+        }
+
+        .sales-product-page .product-sku {
+            color: #94a3b8;
+            font-size: 0.69rem;
+            margin-top: 2px;
+        }
+
+        .sales-product-page .category-badge,
+        .sales-product-page .units-badge,
+        .sales-product-page .stock-badge {
+            font-size: 0.72rem;
+            font-weight: 650;
+            border-radius: 999px;
+            padding: 6px 10px;
+        }
+
+        .sales-product-page .price-text {
+            color: #475569;
+            font-weight: 650;
+        }
+
+        .sales-product-page .revenue-text {
+            color: var(--sp-primary);
+            font-weight: 750;
+        }
+
+        .sales-product-page .contribution-wrapper {
+            min-width: 155px;
+        }
+
+        .sales-product-page .contribution-bar {
+            height: 7px;
+            background: #edf2f7;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+            .sales-product-page .contribution-bar .progress-bar {
+                border-radius: 999px;
+            }
+
+        .sales-product-page .contribution-value {
+            min-width: 45px;
+            text-align: right;
+            font-size: 0.74rem;
+            font-weight: 750;
+            color: #334155;
+        }
+
+        .sales-product-page .empty-state {
+            padding: 55px 20px;
+        }
+
+        .sales-product-page .empty-state-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: #94a3b8;
+            font-size: 1.3rem;
+            margin-bottom: 14px;
+        }
+
+        .sales-product-page .table-footer-label {
+            font-weight: 750;
+            color: #172033;
+        }
+
+        .sales-product-page .report-note {
+            padding: 13px 18px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 0.73rem;
+        }
+
+        .sales-product-page .stock-success {
+            background: #ecfdf3;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .sales-product-page .stock-danger {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+    @@media (max-width: 991.98px) {
+        .sales-product-page .page-header {
+            padding: 18px;
+        }
+
+        .sales-product-page .kpi-card {
+            min-height: 135px;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .sales-product-page {
+            padding-left: 2px;
+            padding-right: 2px;
+        }
+
+            .sales-product-page .page-header {
+                padding: 16px;
+            }
+
+            .sales-product-page .page-title {
+                font-size: 1.05rem;
+            }
+
+            .sales-product-page .page-title-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 11px;
+            }
+
+            .sales-product-page .report-action {
+                width: 100%;
+            }
+
+            .sales-product-page .kpi-card {
+                padding: 16px;
+            }
+
+            .sales-product-page .kpi-value {
+                font-size: 1.35rem;
+            }
+
+            .sales-product-page .report-card-header {
+                padding: 17px;
+            }
+    }
+
+    @@media print {
+        #sidebar,
+        .sidebar,
+        .topbar,
+        .navbar,
+        .btn,
+        .breadcrumb,
+        nav,
+        footer,
+        .no-print {
+            display: none !important;
+        }
+
+        body,
+        .container-fluid,
+        .main-content {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
+            width: 100% !important;
+        }
+
+        .sales-product-page .page-header {
+            display: none !important;
+        }
+
+        .print-only-header {
+            display: block !important;
+            border-bottom: 2px solid #0f172a;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+
+        .sales-product-page .kpi-card,
+        .sales-product-page .report-card {
+            box-shadow: none !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+
+        .sales-product-page .performance-table {
+            min-width: 0 !important;
+        }
+
+        .sales-product-page .report-card-header {
+            background: #fff !important;
+        }
+
+        .sales-product-page .report-note {
+            display: none !important;
+        }
+    }
+
+    .print-only-header {
+        display: none;
+    }
+</style>
+
+<div class="container-fluid py-4 text-start sales-product-page">
+
+    <!-- Print-only Brand Header -->
+    <div class="print-only-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="fw-bold mb-0 text-dark">OPERAFY ENTERPRISE ERP</h3>
+                <p class="text-muted small mb-0">Product Sales Volume & Category Margin Breakdown</p>
+            </div>
+            <div class="text-end small text-muted">
+                <div>
+                    <strong>Generated:</strong>
+                    @DateTime.Now.ToString("dd MMM yyyy HH:mm")
+                </div>
+                <div>
+                    <strong>Products Audited:</strong>
+                    @Model.Products.Count
+                </div>
+            </div>
         </div>
-        <button class="btn btn-outline-secondary rounded-pill px-3"><i class="fa-solid fa-download me-1.5"></i>Export PDF</button>
     </div>
 
-    <!-- Sales By Product Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Product Name</th>
-                        <th>Category</th>
-                        <th>Units Sold</th>
-                        <th>Total Product Sales</th>
-                        <th>Contribution</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">Dell XPS Laptop 15</td>
-                        <td>Electronics</td>
-                        <td>24 Units</td>
-                        <td class="fw-bold text-primary">₹15,60,000</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">62.8%</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">Logitech MX Master 3 Mouse</td>
-                        <td>Office Supplies</td>
-                        <td>80 Units</td>
-                        <td class="fw-bold text-primary">₹64,000</td>
-                        <td><span class="badge bg-info-subtle text-info rounded-pill px-2.5 py-1">3.2%</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">HP Backlit Keyboard</td>
-                        <td>Office Supplies</td>
-                        <td>45 Units</td>
-                        <td class="fw-bold text-primary">₹67,500</td>
-                        <td><span class="badge bg-info-subtle text-info rounded-pill px-2.5 py-1">3.6%</span></td>
-                    </tr>
-                </tbody>
-            </table>
+    <!-- Page Header -->
+    <div class="page-header mb-4 no-print">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="page-title-icon">
+                    <i class="fa-solid fa-box"></i>
+                </div>
+
+                <div>
+                    <h4 class="page-title fw-bold mb-1 text-dark">
+                        Sales by Product
+                    </h4>
+
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0 small">
+                            <li class="breadcrumb-item">
+                                <a href="/SalesDashboard"
+                                   class="text-decoration-none text-muted">
+                                    Sales Management
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item text-muted">
+                                Sales Reports
+                            </li>
+                            <li class="breadcrumb-item active fw-semibold"
+                                aria-current="page">
+                                Sales by Product
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <button type="button"
+                    onclick="window.print()"
+                    class="btn btn-outline-secondary report-action shadow-sm">
+                <i class="fa-solid fa-print me-2"></i>
+                Export PDF
+            </button>
+
         </div>
     </div>
+
+    <!-- KPI Summary -->
+    <div class="row g-3 mb-4">
+
+        <!-- Gross Revenue -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="kpi-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="kpi-label">
+                        Gross Product Revenue
+                    </span>
+
+                    <span class="kpi-icon bg-primary-subtle text-primary">
+                        <i class="fa-solid fa-coins"></i>
+                    </span>
+                </div>
+
+                <h3 class="kpi-value fw-bold text-dark mb-2">
+                    @Model.TotalProductRevenue.ToString("C0", inCulture)
+                </h3>
+
+                <span class="kpi-caption">
+                    Total catalog sales realized
+                </span>
+            </div>
+        </div>
+
+        <!-- Units Sold -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="kpi-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="kpi-label">
+                        Total Units Dispatched
+                    </span>
+
+                    <span class="kpi-icon bg-success-subtle text-success">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </span>
+                </div>
+
+                <h3 class="kpi-value fw-bold text-success mb-2">
+                    @Model.TotalUnitsSold.ToString("N0")
+                    <span class="fs-6 fw-semibold">Units</span>
+                </h3>
+
+                <span class="kpi-caption">
+                    Items sold across all orders
+                </span>
+            </div>
+        </div>
+
+        <!-- Top Product -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="kpi-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="kpi-label">
+                        Top Revenue Generator
+                    </span>
+
+                    <span class="kpi-icon bg-warning-subtle text-warning">
+                        <i class="fa-solid fa-trophy"></i>
+                    </span>
+                </div>
+
+                <h3 class="kpi-value fw-bold text-dark text-truncate mb-2"
+                    style="font-size: 1.22rem;"
+                    title="@Model.TopSellingProduct">
+                    @Model.TopSellingProduct
+                </h3>
+
+                <span class="kpi-caption">
+                    Highest grossing line item
+                </span>
+            </div>
+        </div>
+
+        <!-- Dominant Category -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="kpi-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="kpi-label">
+                        Primary Product Line
+                    </span>
+
+                    <span class="kpi-icon bg-info-subtle text-info">
+                        <i class="fa-solid fa-tags"></i>
+                    </span>
+                </div>
+
+                <h3 class="kpi-value fw-bold text-info text-truncate mb-2"
+                    style="font-size: 1.22rem;"
+                    title="@Model.DominantCategory">
+                    @Model.DominantCategory
+                </h3>
+
+                <span class="kpi-caption">
+                    Dominant category by revenue
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Product Performance -->
+    <div class="report-card">
+
+        <!-- Card Header -->
+        <div class="report-card-header">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div class="d-flex align-items-center gap-3">
+                    <div class="section-icon">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+
+                    <div>
+                        <h6 class="section-title mb-1">
+                            Product Portfolio Performance
+                        </h6>
+
+                        <p class="section-subtitle mb-0">
+                            Ranked by gross sales volume and individual inventory turnover.
+                        </p>
+                    </div>
+                </div>
+
+                <span class="badge bg-light text-secondary border rounded-pill px-3 py-2">
+                    <i class="fa-solid fa-barcode me-1"></i>
+                    @Model.Products.Count SKUs Listed
+                </span>
+
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+            <table class="table table-hover align-middle performance-table">
+
+                <thead>
+                    <tr>
+                        <th>Product Item & Model</th>
+                        <th>Category</th>
+                        <th class="text-end">Unit Price</th>
+                        <th class="text-center">Units Sold</th>
+                        <th class="text-end">Total Product Sales</th>
+                        <th style="min-width: 190px;">Contribution %</th>
+                        <th class="text-center">Inventory Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @if (Model.Products.Any())
+                    {
+                        @foreach (var p in Model.Products)
+                        {
+                            <tr>
+
+                                <!-- Product -->
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+
+                                        <div class="product-avatar">
+                                            <i class="fa-solid fa-cube"></i>
+                                        </div>
+
+                                        <div>
+                                            <div class="product-name">
+                                                @p.ProductName
+                                            </div>
+
+                                            <div class="product-sku">
+                                                SKU: PRD-@p.ProductId.ToString("D4")
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </td>
+
+                                <!-- Category -->
+                                <td>
+                                    <span class="badge bg-light text-dark border category-badge">
+                                        <i class="fa-solid fa-layer-group me-1 text-primary"></i>
+                                        @p.Category
+                                    </span>
+                                </td>
+
+                                <!-- Unit Price -->
+                                <td class="text-end">
+                                    <span class="price-text">
+                                        @p.UnitSellingPrice.ToString("C2", inCulture)
+                                    </span>
+                                </td>
+
+                                <!-- Units Sold -->
+                                <td class="text-center">
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle units-badge">
+                                        <i class="fa-solid fa-boxes-stacked me-1"></i>
+                                        @p.UnitsSold Units
+                                    </span>
+                                </td>
+
+                                <!-- Total Sales -->
+                                <td class="text-end">
+                                    <span class="revenue-text">
+                                        @p.TotalSales.ToString("C2", inCulture)
+                                    </span>
+                                </td>
+
+                                <!-- Contribution -->
+                                <td>
+                                    <div class="contribution-wrapper">
+
+                                        <div class="d-flex align-items-center gap-2">
+
+                                            <div class="progress contribution-bar flex-grow-1">
+                                                <div class="progress-bar @(p.ContributionPercentage > 40 ? "bg-success" : p.ContributionPercentage > 15 ? "bg-primary" : "bg-info")"
+                                                     role="progressbar"
+                                                     style="width: @Math.Min(100, Math.Max(5, p.ContributionPercentage))%;">
+                                                </div>
+                                            </div>
+
+                                            <span class="contribution-value">
+                                                @p.ContributionPercentage%
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+                                </td>
+
+                                <!-- Inventory Status -->
+                                <td class="text-center">
+
+                                    @if (p.StockStatus == "In Stock")
+                                    {
+                                        <span class="badge stock-badge stock-success">
+                                            <i class="fa-solid fa-circle-check me-1"></i>
+                                            @p.StockStatus
+                                            <span class="opacity-75">
+                                                (@p.FreeStock Avail)
+                                            </span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge stock-badge stock-danger">
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                                            @p.StockStatus
+                                            <span class="opacity-75">
+                                                (@p.FreeStock Avail)
+                                            </span>
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7">
+
+                                <div class="empty-state text-center">
+
+                                    <div class="empty-state-icon">
+                                        <i class="fa-solid fa-box-open"></i>
+                                    </div>
+
+                                    <h6 class="fw-bold text-dark mb-1">
+                                        No Product Sales Records
+                                    </h6>
+
+                                    <p class="text-muted small mb-0">
+                                        No product sales records are currently available for this report.
+                                    </p>
+
+                                </div>
+
+                            </td>
+                        </tr>
+                    }
+
+                </tbody>
+
+                <!-- Footer -->
+                <tfoot class="table-light">
+
+                    <tr>
+                        <td>
+                            <span class="table-footer-label">
+                                Total Catalog
+                            </span>
+                        </td>
+
+                        <td>-</td>
+
+                        <td class="text-end">
+                            -
+                        </td>
+
+                        <td class="text-center">
+                            <span class="fw-bold text-dark">
+                                @Model.TotalUnitsSold Units
+                            </span>
+                        </td>
+
+                        <td class="text-end">
+                            <span class="fw-bold text-primary">
+                                @Model.TotalProductRevenue.ToString("C2", inCulture)
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="fw-semibold text-secondary">
+                                100.0% Cumulative
+                            </span>
+                        </td>
+
+                        <td class="text-center">
+                            -
+                        </td>
+                    </tr>
+
+                </tfoot>
+
+            </table>
+        </div>
+
+        <!-- Report Note -->
+        <div class="report-note">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            Product performance is presented using the sales and inventory values available in the current report dataset.
+        </div>
+
+    </div>
+
 </div>
+```

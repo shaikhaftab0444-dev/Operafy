@@ -1,86 +1,1552 @@
-@model IEnumerable<ERP_System.Models.Lead>
+
+@model IEnumerable<ERP_System.Models.SalesLead>
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Leads Management";
+    ViewData["Title"] = "Sales Leads & Pipeline";
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+    var preselectedCust = ViewBag.PreselectedCustomerName as string;
+    var preselectedComp = ViewBag.PreselectedCompany as string;
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-filter text-primary me-2"></i>Leads</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Leads</li>
-                </ol>
-            </nav>
+<style>
+    /* =========================================================
+           SALES LEADS & PIPELINE
+           Scoped to prevent conflicts with Dashboard Layout
+           ========================================================= */
+
+    .sales-pipeline-page {
+        --sp-primary: #4f46e5;
+        --sp-primary-dark: #4338ca;
+        --sp-primary-soft: #eef2ff;
+        --sp-success: #16a34a;
+        --sp-success-soft: #ecfdf3;
+        --sp-info: #0284c7;
+        --sp-info-soft: #eff6ff;
+        --sp-warning: #d97706;
+        --sp-warning-soft: #fffbeb;
+        --sp-danger: #dc2626;
+        --sp-danger-soft: #fef2f2;
+        --sp-text: #172033;
+        --sp-muted: #64748b;
+        --sp-border: #e5e7eb;
+        --sp-surface: #ffffff;
+        --sp-page: #f6f8fc;
+        --sp-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.045);
+        --sp-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        --sp-radius: 16px;
+        color: var(--sp-text);
+    }
+
+        .sales-pipeline-page .page-heading {
+            font-size: 1.45rem;
+            letter-spacing: -0.025em;
+            color: var(--sp-text);
+        }
+
+        .sales-pipeline-page .page-subtitle {
+            color: var(--sp-muted);
+            font-size: 0.88rem;
+            margin-top: 0.25rem;
+        }
+
+        .sales-pipeline-page .breadcrumb {
+            --bs-breadcrumb-divider-color: #94a3b8;
+        }
+
+        .sales-pipeline-page .breadcrumb-item,
+        .sales-pipeline-page .breadcrumb-item a {
+            color: #64748b;
+            font-size: 0.78rem;
+        }
+
+            .sales-pipeline-page .breadcrumb-item.active {
+                color: #475569;
+                font-weight: 600;
+            }
+
+        /* Header */
+        .sales-pipeline-page .page-header {
+            padding: 0.25rem 0 0.75rem;
+        }
+
+        .sales-pipeline-page .page-title-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            color: var(--sp-primary);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* Buttons */
+        .sales-pipeline-page .btn-create-lead {
+            background: var(--sp-primary);
+            border: 1px solid var(--sp-primary);
+            color: #fff;
+            min-height: 42px;
+            padding: 0.55rem 1rem;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            box-shadow: 0 5px 14px rgba(79, 70, 229, 0.18);
+            transition: all 0.2s ease;
+        }
+
+            .sales-pipeline-page .btn-create-lead:hover {
+                background: var(--sp-primary-dark);
+                border-color: var(--sp-primary-dark);
+                color: #fff;
+                transform: translateY(-1px);
+                box-shadow: 0 8px 18px rgba(79, 70, 229, 0.24);
+            }
+
+        .sales-pipeline-page .view-switcher {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 4px;
+            background: #fff;
+            border: 1px solid var(--sp-border);
+            border-radius: 11px;
+            box-shadow: var(--sp-shadow-sm);
+        }
+
+        .sales-pipeline-page .view-toggle-btn {
+            border: 0;
+            background: transparent;
+            color: #64748b;
+            border-radius: 8px;
+            padding: 0.48rem 0.8rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+            .sales-pipeline-page .view-toggle-btn:hover {
+                color: var(--sp-primary);
+                background: #f8faff;
+            }
+
+            .sales-pipeline-page .view-toggle-btn.active {
+                background: var(--sp-primary);
+                color: #fff !important;
+                box-shadow: 0 3px 8px rgba(79, 70, 229, 0.2);
+            }
+
+        /* Alert */
+        .sales-pipeline-page .success-alert {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-left: 4px solid var(--sp-success) !important;
+            color: #166534;
+            border-radius: 12px;
+        }
+
+        /* KPI Cards */
+        .sales-pipeline-page .pipeline-kpi {
+            position: relative;
+            height: 100%;
+            background: var(--sp-surface);
+            border: 1px solid var(--sp-border);
+            border-radius: var(--sp-radius);
+            padding: 1.15rem 1.2rem;
+            box-shadow: var(--sp-shadow-sm);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+            .sales-pipeline-page .pipeline-kpi:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--sp-shadow);
+            }
+
+            .sales-pipeline-page .pipeline-kpi::after {
+                content: "";
+                position: absolute;
+                width: 90px;
+                height: 90px;
+                border-radius: 50%;
+                right: -38px;
+                top: -42px;
+                background: rgba(79, 70, 229, 0.045);
+            }
+
+        .sales-pipeline-page .kpi-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .sales-pipeline-page .kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+            .sales-pipeline-page .kpi-icon.primary {
+                background: var(--sp-primary-soft);
+                color: var(--sp-primary);
+            }
+
+            .sales-pipeline-page .kpi-icon.info {
+                background: var(--sp-info-soft);
+                color: var(--sp-info);
+            }
+
+            .sales-pipeline-page .kpi-icon.success {
+                background: var(--sp-success-soft);
+                color: var(--sp-success);
+            }
+
+            .sales-pipeline-page .kpi-icon.warning {
+                background: var(--sp-warning-soft);
+                color: var(--sp-warning);
+            }
+
+        .sales-pipeline-page .kpi-label {
+            color: #64748b;
+            font-size: 0.69rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+        }
+
+        .sales-pipeline-page .kpi-value {
+            font-size: 1.5rem;
+            line-height: 1.1;
+            font-weight: 800;
+            color: var(--sp-text);
+            letter-spacing: -0.025em;
+        }
+
+        .sales-pipeline-page .kpi-description {
+            margin-top: 0.4rem;
+            color: #94a3b8;
+            font-size: 0.72rem;
+        }
+
+        /* Kanban */
+        .sales-pipeline-page .kanban-wrapper {
+            position: relative;
+        }
+
+        .sales-pipeline-page .kanban-board-container {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 0.25rem 0.1rem 1.25rem;
+            min-height: 520px;
+            align-items: flex-start;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+
+            .sales-pipeline-page .kanban-board-container::-webkit-scrollbar {
+                height: 8px;
+            }
+
+            .sales-pipeline-page .kanban-board-container::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .sales-pipeline-page .kanban-board-container::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 20px;
+            }
+
+        .sales-pipeline-page .kanban-col {
+            flex: 0 0 320px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--sp-radius);
+            display: flex;
+            flex-direction: column;
+            max-height: 750px;
+            overflow: hidden;
+            box-shadow: var(--sp-shadow-sm);
+        }
+
+        .sales-pipeline-page .kanban-col-header {
+            padding: 0.95rem 1rem;
+            background: #fff;
+            border-bottom: 1px solid #e8edf3;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 64px;
+        }
+
+        .sales-pipeline-page .kanban-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            min-width: 0;
+        }
+
+        .sales-pipeline-page .stage-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
+        }
+
+            .sales-pipeline-page .stage-dot.new {
+                background: var(--sp-primary);
+            }
+
+            .sales-pipeline-page .stage-dot.qualified {
+                background: var(--sp-info);
+                box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.08);
+            }
+
+            .sales-pipeline-page .stage-dot.negotiation {
+                background: var(--sp-warning);
+                box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.08);
+            }
+
+            .sales-pipeline-page .stage-dot.closed {
+                background: var(--sp-success);
+                box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.08);
+            }
+
+        .sales-pipeline-page .kanban-stage-name {
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .sales-pipeline-page .kanban-count {
+            min-width: 28px;
+            text-align: center;
+            padding: 0.22rem 0.48rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            border: 1px solid transparent;
+        }
+
+            .sales-pipeline-page .kanban-count.new {
+                color: var(--sp-primary);
+                background: var(--sp-primary-soft);
+                border-color: #c7d2fe;
+            }
+
+            .sales-pipeline-page .kanban-count.qualified {
+                color: var(--sp-info);
+                background: var(--sp-info-soft);
+                border-color: #bfdbfe;
+            }
+
+            .sales-pipeline-page .kanban-count.negotiation {
+                color: #a16207;
+                background: var(--sp-warning-soft);
+                border-color: #fde68a;
+            }
+
+            .sales-pipeline-page .kanban-count.closed {
+                color: var(--sp-success);
+                background: var(--sp-success-soft);
+                border-color: #bbf7d0;
+            }
+
+        .sales-pipeline-page .kanban-col-body {
+            padding: 0.8rem;
+            overflow-y: auto;
+            flex-grow: 1;
+            min-height: 390px;
+            transition: background 0.2s ease, border 0.2s ease;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+
+            .sales-pipeline-page .kanban-col-body.drag-over {
+                background: rgba(79, 70, 229, 0.055);
+                box-shadow: inset 0 0 0 2px rgba(79, 70, 229, 0.25);
+            }
+
+        /* Cards */
+        .sales-pipeline-page .kanban-card {
+            position: relative;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 13px;
+            padding: 0.95rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 7px rgba(15, 23, 42, 0.045);
+            cursor: grab;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+            .sales-pipeline-page .kanban-card:last-child {
+                margin-bottom: 0;
+            }
+
+            .sales-pipeline-page .kanban-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 9px 20px rgba(15, 23, 42, 0.08);
+                border-color: #c7d2fe;
+            }
+
+            .sales-pipeline-page .kanban-card:active {
+                cursor: grabbing;
+            }
+
+            .sales-pipeline-page .kanban-card.dragging {
+                opacity: 0.45;
+                transform: rotate(1deg) scale(0.99);
+            }
+
+        .sales-pipeline-page .lead-code {
+            display: inline-flex;
+            align-items: center;
+            max-width: 135px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.25rem 0.5rem;
+            border-radius: 7px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            font-size: 0.67rem;
+            font-weight: 800;
+            letter-spacing: 0.025em;
+        }
+
+        .sales-pipeline-page .source-badge {
+            max-width: 125px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.66rem;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 0.27rem 0.55rem;
+        }
+
+        .sales-pipeline-page .lead-name {
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #172033;
+            margin-bottom: 0.2rem;
+        }
+
+        .sales-pipeline-page .lead-company {
+            color: #64748b;
+            font-size: 0.74rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+            .sales-pipeline-page .lead-company span {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+        .sales-pipeline-page .lead-footer {
+            margin-top: 0.8rem;
+            padding-top: 0.7rem;
+            border-top: 1px solid #edf0f4;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+
+        .sales-pipeline-page .value-label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.61rem;
+            font-weight: 800;
+            letter-spacing: 0.07em;
+            margin-bottom: 0.1rem;
+        }
+
+        .sales-pipeline-page .deal-value {
+            color: #15803d;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .sales-pipeline-page .quote-btn {
+            border-radius: 8px;
+            font-size: 0.69rem;
+            font-weight: 700;
+            padding: 0.3rem 0.55rem;
+            white-space: nowrap;
+        }
+
+        /* Table */
+        .sales-pipeline-page .table-panel {
+            background: #fff;
+            border: 1px solid var(--sp-border);
+            border-radius: var(--sp-radius);
+            box-shadow: var(--sp-shadow-sm);
+            overflow: hidden;
+        }
+
+        .sales-pipeline-page .table-panel-header {
+            padding: 1rem 1.15rem;
+            border-bottom: 1px solid #edf0f4;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .sales-pipeline-page .table-panel-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .sales-pipeline-page .table-panel-subtitle {
+            color: #94a3b8;
+            font-size: 0.72rem;
+            margin-top: 0.15rem;
+        }
+
+        .sales-pipeline-page .pipeline-table {
+            min-width: 900px;
+            margin: 0;
+        }
+
+            .sales-pipeline-page .pipeline-table thead th {
+                background: #f8fafc;
+                border-bottom: 1px solid #e2e8f0;
+                color: #64748b;
+                font-size: 0.66rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.045em;
+                padding: 0.85rem 0.8rem;
+                white-space: nowrap;
+            }
+
+            .sales-pipeline-page .pipeline-table tbody td {
+                padding: 0.85rem 0.8rem;
+                border-bottom: 1px solid #f1f5f9;
+                color: #475569;
+                font-size: 0.78rem;
+                vertical-align: middle;
+            }
+
+            .sales-pipeline-page .pipeline-table tbody tr {
+                transition: background 0.15s ease;
+            }
+
+                .sales-pipeline-page .pipeline-table tbody tr:hover {
+                    background: #fafbff;
+                }
+
+                .sales-pipeline-page .pipeline-table tbody tr:last-child td {
+                    border-bottom: 0;
+                }
+
+        .sales-pipeline-page .table-lead-name {
+            color: #1e293b;
+            font-weight: 800;
+        }
+
+        .sales-pipeline-page .table-company {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .sales-pipeline-page .table-badge {
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            border-radius: 999px;
+            padding: 0.28rem 0.58rem;
+            font-size: 0.66rem;
+            font-weight: 750;
+            border: 1px solid transparent;
+        }
+
+            .sales-pipeline-page .table-badge.neutral {
+                background: #f8fafc;
+                color: #64748b;
+                border-color: #e2e8f0;
+            }
+
+            .sales-pipeline-page .table-badge.new {
+                background: #eef2ff;
+                color: #4338ca;
+                border-color: #c7d2fe;
+            }
+
+            .sales-pipeline-page .table-badge.contacted {
+                background: #eff6ff;
+                color: #0369a1;
+                border-color: #bfdbfe;
+            }
+
+            .sales-pipeline-page .table-badge.qualified {
+                background: #ecfdf3;
+                color: #15803d;
+                border-color: #bbf7d0;
+            }
+
+            .sales-pipeline-page .table-badge.negotiation {
+                background: #fffbeb;
+                color: #a16207;
+                border-color: #fde68a;
+            }
+
+            .sales-pipeline-page .table-badge.closed {
+                background: #f1f5f9;
+                color: #475569;
+                border-color: #cbd5e1;
+            }
+
+        .sales-pipeline-page .probability-wrap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            min-width: 92px;
+        }
+
+        .sales-pipeline-page .probability-track {
+            width: 52px;
+            height: 5px;
+            overflow: hidden;
+            border-radius: 99px;
+            background: #e2e8f0;
+        }
+
+            .sales-pipeline-page .probability-track .progress-bar {
+                border-radius: inherit;
+            }
+
+        /* Empty state */
+        .sales-pipeline-page .empty-state {
+            padding: 3.5rem 1.5rem;
+            text-align: center;
+        }
+
+        .sales-pipeline-page .empty-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: #94a3b8;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .sales-pipeline-page .empty-title {
+            color: #334155;
+            font-weight: 800;
+            font-size: 0.95rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .sales-pipeline-page .empty-text {
+            color: #94a3b8;
+            font-size: 0.78rem;
+            margin-bottom: 0;
+        }
+
+        /* Modal */
+        .sales-pipeline-page .modal-content {
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16) !important;
+        }
+
+        .sales-pipeline-page .modal-header {
+            padding: 1.1rem 1.25rem;
+            background: #fff;
+        }
+
+        .sales-pipeline-page .modal-title {
+            font-size: 1rem;
+            color: #172033;
+        }
+
+        .sales-pipeline-page .modal-title-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--sp-primary-soft);
+            color: var(--sp-primary);
+            margin-right: 0.55rem;
+        }
+
+        .sales-pipeline-page .modal-body {
+            background: #fff;
+        }
+
+        .sales-pipeline-page .form-label {
+            color: #334155;
+            font-size: 0.73rem;
+            font-weight: 750;
+            margin-bottom: 0.4rem;
+        }
+
+        .sales-pipeline-page .form-control,
+        .sales-pipeline-page .form-select {
+            min-height: 42px;
+            border: 1px solid #dbe2ea;
+            border-radius: 9px;
+            color: #334155;
+            font-size: 0.8rem;
+            box-shadow: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+            .sales-pipeline-page .form-control:focus,
+            .sales-pipeline-page .form-select:focus {
+                border-color: #a5b4fc;
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            }
+
+        .sales-pipeline-page .modal-footer {
+            padding: 0.9rem 1.25rem;
+            background: #f8fafc;
+            border-top: 1px solid #edf0f4 !important;
+        }
+
+            .sales-pipeline-page .modal-footer .btn {
+                border-radius: 9px;
+                font-size: 0.78rem;
+                min-height: 39px;
+            }
+
+        /* Toast */
+        .sales-pipeline-page .pipeline-toast {
+            background: #172033 !important;
+            border-radius: 11px;
+        }
+
+            .sales-pipeline-page .pipeline-toast .toast-body {
+                font-size: 0.78rem;
+                font-weight: 600;
+                padding: 0.8rem 1rem;
+            }
+
+    /* Responsive */
+    @@media (max-width: 991.98px) {
+        .sales-pipeline-page .page-header
+
+    {
+        align-items: flex-start !important;
+    }
+
+    .sales-pipeline-page .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .sales-pipeline-page .kanban-col {
+        flex-basis: 300px;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-pipeline-page .page-heading
+
+    {
+        font-size: 1.2rem;
+    }
+
+    .sales-pipeline-page .page-title-icon {
+        width: 39px;
+        height: 39px;
+        border-radius: 11px;
+    }
+
+    .sales-pipeline-page .header-actions {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .sales-pipeline-page .view-switcher {
+        width: 100%;
+    }
+
+    .sales-pipeline-page .view-toggle-btn {
+        flex: 1;
+    }
+
+    .sales-pipeline-page .btn-create-lead {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .sales-pipeline-page .pipeline-kpi {
+        padding: 1rem;
+    }
+
+    .sales-pipeline-page .kpi-value {
+        font-size: 1.3rem;
+    }
+
+    .sales-pipeline-page .kanban-board-container {
+        margin-right: -0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    .sales-pipeline-page .kanban-col {
+        flex-basis: calc(100vw - 2rem);
+        max-width: calc(100vw - 2rem);
+    }
+
+    .sales-pipeline-page .table-panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .sales-pipeline-page .modal-dialog {
+        margin: 0.75rem;
+    }
+
+    }
+
+    @@media (max-width: 575.98px) {
+        .sales-pipeline-page .kpi-top
+
+    {
+        margin-bottom: 0.65rem;
+    }
+
+    .sales-pipeline-page .kpi-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .sales-pipeline-page .kpi-description {
+        display: none;
+    }
+
+    .sales-pipeline-page .kanban-col {
+        flex-basis: calc(100vw - 1.5rem);
+        max-width: calc(100vw - 1.5rem);
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .sales-pipeline-page *, .sales-pipeline-page *::before, .sales-pipeline-page *::after
+
+    {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+    }
+
+    }
+
+    @@media print {
+        .sales-pipeline-page .header-actions, .sales-pipeline-page .view-switcher, .sales-pipeline-page .btn-create-lead, .sales-pipeline-page .quote-btn
+
+    {
+        display: none !important;
+    }
+
+    .sales-pipeline-page .kanban-board-container {
+        overflow: visible;
+    }
+
+    .sales-pipeline-page .kanban-col {
+        break-inside: avoid;
+        box-shadow: none;
+    }
+
+    }</style>
+
+<div class="container-fluid py-4 text-start sales-pipeline-page">
+
+    <!-- =========================================================
+         PAGE HEADER
+         ========================================================= -->
+    <div class="page-header d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3 mb-4">
+
+        <div class="d-flex align-items-start gap-3">
+            <div class="page-title-icon">
+                <i class="fa-solid fa-filter"></i>
+            </div>
+
+            <div>
+                <h4 class="page-heading fw-bold mb-0">
+                    Sales Leads &amp; Pipeline
+                </h4>
+
+                <div class="page-subtitle">
+                    Track prospects, manage deal stages and move opportunities through your sales pipeline.
+                </div>
+
+                <nav aria-label="breadcrumb" class="mt-2">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item">
+                            <a href="/Dashboard" class="text-decoration-none">
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">
+                            Leads Pipeline
+                        </li>
+                    </ol>
+                </nav>
+            </div>
         </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createLeadModal">
-            <i class="fa-solid fa-plus me-1.5"></i>Create Lead
-        </button>
+
+        <div class="header-actions d-flex align-items-center gap-2">
+
+            <!-- View Mode Switcher -->
+            <div class="view-switcher" role="group" aria-label="Pipeline view">
+                <button type="button"
+                        class="view-toggle-btn active"
+                        id="btnKanbanView"
+                        onclick="switchView('kanban')">
+                    <i class="fa-solid fa-table-columns me-1"></i>
+                    Kanban Board
+                </button>
+
+                <button type="button"
+                        class="view-toggle-btn"
+                        id="btnTableView"
+                        onclick="switchView('table')">
+                    <i class="fa-solid fa-list me-1"></i>
+                    Data Table
+                </button>
+            </div>
+
+            <button type="button"
+                    class="btn btn-create-lead d-inline-flex align-items-center justify-content-center fw-bold"
+                    data-bs-toggle="modal"
+                    data-bs-target="#createLeadModal">
+                <i class="fa-solid fa-plus me-2"></i>
+                Create Lead
+            </button>
+        </div>
     </div>
 
-    <!-- Leads Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">New Leads</div>
-                <h3 class="fw-bold text-primary mb-0 mt-1">@Model.Count(l => l.Status == "New")</h3>
-            </div>
+    <!-- =========================================================
+         SUCCESS ALERT
+         ========================================================= -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert success-alert border-0 shadow-sm alert-dismissible fade show mb-4 small text-start"
+             role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            @TempData["SuccessMessage"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
+            </button>
         </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Contacted</div>
-                <h3 class="fw-bold text-warning mb-0 mt-1">@Model.Count(l => l.Status == "Contacted")</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Qualified</div>
-                <h3 class="fw-bold text-success mb-0 mt-1">@Model.Count(l => l.Status == "Qualified")</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="bg-white border rounded-3 p-3 shadow-sm">
-                <div class="text-muted fw-semibold small">Total Leads</div>
-                <h3 class="fw-bold text-dark mb-0 mt-1">@Model.Count()</h3>
+    }
+
+    <!-- =========================================================
+         TOAST NOTIFICATION
+         ========================================================= -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
+        <div id="liveToast"
+             class="toast pipeline-toast align-items-center text-white border-0 shadow-lg"
+             role="alert"
+             aria-live="assertive"
+             aria-atomic="true">
+
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">
+                    Lead stage updated successfully.
+                </div>
+
+                <button type="button"
+                        class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"
+                        aria-label="Close">
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Leads Grid Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
+    <!-- =========================================================
+         KPI CARDS
+         ========================================================= -->
+    <div class="row g-3 mb-4">
+
+        <!-- Total -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="pipeline-kpi">
+
+                <div class="kpi-top">
+                    <div class="kpi-label">
+                        Total In Pipeline
+                    </div>
+
+                    <div class="kpi-icon primary">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                </div>
+
+                <div class="kpi-value" id="kpiTotalCount">
+                    @Model.Count()
+                </div>
+
+                <div class="kpi-description">
+                    All active and closed lead records
+                </div>
+            </div>
+        </div>
+
+        <!-- New & Active -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="pipeline-kpi">
+
+                <div class="kpi-top">
+                    <div class="kpi-label">
+                        New &amp; Active
+                    </div>
+
+                    <div class="kpi-icon info">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                </div>
+
+                <div class="kpi-value">
+                    @Model.Count(l => l.Stage == "New" || l.Stage == "Contacted")
+                </div>
+
+                <div class="kpi-description">
+                    Newly captured and contacted prospects
+                </div>
+            </div>
+        </div>
+
+        <!-- Qualified -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="pipeline-kpi">
+
+                <div class="kpi-top">
+                    <div class="kpi-label">
+                        Qualified Leads
+                    </div>
+
+                    <div class="kpi-icon success">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+
+                <div class="kpi-value">
+                    @Model.Count(l => l.Stage == "Qualified")
+                </div>
+
+                <div class="kpi-description">
+                    Opportunities ready for sales progression
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Value -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="pipeline-kpi">
+
+                <div class="kpi-top">
+                    <div class="kpi-label">
+                        Pipeline Value
+                    </div>
+
+                    <div class="kpi-icon warning">
+                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                    </div>
+                </div>
+
+                <div class="kpi-value">
+                    ₹@Model.Sum(l => l.EstimatedDealValue).ToString("N0")
+                </div>
+
+                <div class="kpi-description">
+                    Combined estimated opportunity value
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =========================================================
+         KANBAN BOARD
+         ========================================================= -->
+    <div id="kanbanContainerWrapper" class="kanban-wrapper">
+
+        <div class="kanban-board-container">
+
+            <!-- =====================================================
+                 NEW COLUMN
+                 ===================================================== -->
+            <div class="kanban-col">
+
+                <div class="kanban-col-header">
+                    <div class="kanban-title-wrap">
+                        <span class="stage-dot new"></span>
+                        <span class="kanban-stage-name">
+                            New Leads
+                        </span>
+                    </div>
+
+                    <span class="kanban-count new" id="count-col-new">
+                        @Model.Count(l => l.Stage == "New" || l.Stage == "Draft")
+                    </span>
+                </div>
+
+                <div class="kanban-col-body"
+                     id="col-New"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, 'New')">
+
+                    @foreach (var lead in Model.Where(l => l.Stage == "New" || l.Stage == "Draft"))
+                    {
+                        <div class="kanban-card"
+                             id="lead-card-@lead.Id"
+                             draggable="true"
+                             ondragstart="handleDragStart(event, @lead.Id)"
+                             ondragend="handleDragEnd(event)">
+
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+
+                                <span class="lead-code">
+                                    @(string.IsNullOrEmpty(lead.LeadCode) ? $"LD-{lead.Id}" : lead.LeadCode)
+                                </span>
+
+                                <span class="source-badge bg-primary-subtle text-primary border">
+                                    @lead.Source
+                                </span>
+                            </div>
+
+                            <div class="lead-name">
+                                @lead.ContactName
+                            </div>
+
+                            <div class="lead-company">
+                                <i class="fa-regular fa-building"></i>
+                                <span>@lead.Company</span>
+                            </div>
+
+                            <div class="lead-footer">
+
+                                <div>
+                                    <span class="value-label">
+                                        EST. VALUE
+                                    </span>
+
+                                    <span class="deal-value">
+                                        ₹@lead.EstimatedDealValue.ToString("N0")
+                                    </span>
+                                </div>
+
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary quote-btn"
+                                        onclick="convertLead(@lead.Id, '@lead.LeadCode')">
+                                    <i class="fa-solid fa-arrow-right me-1"></i>
+                                    Quote
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 QUALIFIED COLUMN
+                 ===================================================== -->
+            <div class="kanban-col">
+
+                <div class="kanban-col-header">
+                    <div class="kanban-title-wrap">
+                        <span class="stage-dot qualified"></span>
+                        <span class="kanban-stage-name">
+                            Qualified
+                        </span>
+                    </div>
+
+                    <span class="kanban-count qualified" id="count-col-qualified">
+                        @Model.Count(l => l.Stage == "Qualified" || l.Stage == "Contacted")
+                    </span>
+                </div>
+
+                <div class="kanban-col-body"
+                     id="col-Qualified"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, 'Qualified')">
+
+                    @foreach (var lead in Model.Where(l => l.Stage == "Qualified" || l.Stage == "Contacted"))
+                    {
+                        <div class="kanban-card"
+                             id="lead-card-@lead.Id"
+                             draggable="true"
+                             ondragstart="handleDragStart(event, @lead.Id)"
+                             ondragend="handleDragEnd(event)">
+
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+
+                                <span class="lead-code">
+                                    @(string.IsNullOrEmpty(lead.LeadCode) ? $"LD-{lead.Id}" : lead.LeadCode)
+                                </span>
+
+                                <span class="source-badge bg-info-subtle text-info border">
+                                    @lead.Source
+                                </span>
+                            </div>
+
+                            <div class="lead-name">
+                                @lead.ContactName
+                            </div>
+
+                            <div class="lead-company">
+                                <i class="fa-regular fa-building"></i>
+                                <span>@lead.Company</span>
+                            </div>
+
+                            <div class="lead-footer">
+
+                                <div>
+                                    <span class="value-label">
+                                        EST. VALUE
+                                    </span>
+
+                                    <span class="deal-value">
+                                        ₹@lead.EstimatedDealValue.ToString("N0")
+                                    </span>
+                                </div>
+
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary quote-btn"
+                                        onclick="convertLead(@lead.Id, '@lead.LeadCode')">
+                                    <i class="fa-solid fa-arrow-right me-1"></i>
+                                    Quote
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 NEGOTIATION COLUMN
+                 ===================================================== -->
+            <div class="kanban-col">
+
+                <div class="kanban-col-header">
+                    <div class="kanban-title-wrap">
+                        <span class="stage-dot negotiation"></span>
+                        <span class="kanban-stage-name">
+                            Negotiation
+                        </span>
+                    </div>
+
+                    <span class="kanban-count negotiation" id="count-col-negotiation">
+                        @Model.Count(l => l.Stage == "Negotiation" || l.Stage == "Quotation Sent")
+                    </span>
+                </div>
+
+                <div class="kanban-col-body"
+                     id="col-Negotiation"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, 'Negotiation')">
+
+                    @foreach (var lead in Model.Where(l => l.Stage == "Negotiation" || l.Stage == "Quotation Sent"))
+                    {
+                        <div class="kanban-card"
+                             id="lead-card-@lead.Id"
+                             draggable="true"
+                             ondragstart="handleDragStart(event, @lead.Id)"
+                             ondragend="handleDragEnd(event)">
+
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+
+                                <span class="lead-code">
+                                    @(string.IsNullOrEmpty(lead.LeadCode) ? $"LD-{lead.Id}" : lead.LeadCode)
+                                </span>
+
+                                <span class="source-badge bg-warning-subtle text-warning-emphasis border">
+                                    @lead.Stage
+                                </span>
+                            </div>
+
+                            <div class="lead-name">
+                                @lead.ContactName
+                            </div>
+
+                            <div class="lead-company">
+                                <i class="fa-regular fa-building"></i>
+                                <span>@lead.Company</span>
+                            </div>
+
+                            <div class="lead-footer">
+
+                                <div>
+                                    <span class="value-label">
+                                        EST. VALUE
+                                    </span>
+
+                                    <span class="deal-value">
+                                        ₹@lead.EstimatedDealValue.ToString("N0")
+                                    </span>
+                                </div>
+
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary quote-btn"
+                                        onclick="convertLead(@lead.Id, '@lead.LeadCode')">
+                                    <i class="fa-solid fa-arrow-right me-1"></i>
+                                    Quote
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 CLOSED COLUMN
+                 ===================================================== -->
+            <div class="kanban-col">
+
+                <div class="kanban-col-header">
+                    <div class="kanban-title-wrap">
+                        <span class="stage-dot closed"></span>
+                        <span class="kanban-stage-name">
+                            Closed
+                        </span>
+                    </div>
+
+                    <span class="kanban-count closed" id="count-col-closed">
+                        @Model.Count(l => l.Stage == "Closed" || l.Stage == "Closed Won" || l.Stage == "Closed Lost")
+                    </span>
+                </div>
+
+                <div class="kanban-col-body"
+                     id="col-Closed"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, 'Closed')">
+
+                    @foreach (var lead in Model.Where(l => l.Stage == "Closed" || l.Stage == "Closed Won" || l.Stage == "Closed Lost"))
+                    {
+                        var isWon = lead.Stage == "Closed Won";
+
+                        <div class="kanban-card"
+                             id="lead-card-@lead.Id"
+                             draggable="true"
+                             ondragstart="handleDragStart(event, @lead.Id)"
+                             ondragend="handleDragEnd(event)">
+
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+
+                                <span class="lead-code">
+                                    @(string.IsNullOrEmpty(lead.LeadCode) ? $"LD-{lead.Id}" : lead.LeadCode)
+                                </span>
+
+                                <span class="source-badge @(isWon ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary") border">
+                                    @lead.Stage
+                                </span>
+                            </div>
+
+                            <div class="lead-name">
+                                @lead.ContactName
+                            </div>
+
+                            <div class="lead-company">
+                                <i class="fa-regular fa-building"></i>
+                                <span>@lead.Company</span>
+                            </div>
+
+                            <div class="lead-footer">
+
+                                <div>
+                                    <span class="value-label">
+                                        FINAL VALUE
+                                    </span>
+
+                                    <span class="deal-value text-dark">
+                                        ₹@lead.EstimatedDealValue.ToString("N0")
+                                    </span>
+                                </div>
+
+                                <span class="table-badge closed">
+                                    Closed
+                                </span>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =========================================================
+         DATA TABLE VIEW
+         ========================================================= -->
+    <div id="tableContainerWrapper" class="table-panel d-none">
+
+        <div class="table-panel-header">
+
+            <div>
+                <h6 class="table-panel-title">
+                    <i class="fa-solid fa-list-check text-primary me-2"></i>
+                    Lead Records
+                </h6>
+
+                <div class="table-panel-subtitle">
+                    Detailed view of all sales leads and opportunity stages.
+                </div>
+            </div>
+
+            <span class="table-badge neutral">
+                @Model.Count() Records
+            </span>
+        </div>
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
+            <table class="table pipeline-table table-hover align-middle mb-0">
+
+                <thead>
                     <tr>
-                        <th>Lead ID</th>
+                        <th>Lead Code</th>
                         <th>Contact Name</th>
                         <th>Company</th>
                         <th>Source</th>
+                        <th class="text-end">Est. Deal Value</th>
+                        <th class="text-center">Win %</th>
+                        <th class="text-center">Stage</th>
                         <th>Created Date</th>
-                        <th>Status</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
+
                 <tbody>
+
                     @if (Model != null && Model.Any())
                     {
                         @foreach (var lead in Model)
                         {
+                            var badgeClass =
+                            lead.Stage == "New" ? "new" :
+                            lead.Stage == "Contacted" ? "contacted" :
+                            lead.Stage == "Qualified" ? "qualified" :
+                            lead.Stage == "Negotiation" ? "negotiation" :
+                            lead.Stage == "Quotation Sent" ? "negotiation" :
+                            lead.Stage == "Closed Won" ? "qualified" :
+                            "closed";
+
                             <tr>
-                                <td class="fw-bold text-dark">LD-@lead.LeadId</td>
-                                <td>@lead.ContactName</td>
-                                <td>@lead.Company</td>
-                                <td>@lead.Source</td>
-                                <td class="text-muted">@(lead.CreatedAt?.ToString("dd MMM yyyy") ?? "N/A")</td>
+
                                 <td>
-                                    @{
-                                        var badgeClass = lead.Status == "New" ? "bg-primary-subtle text-primary" :
-                                                         lead.Status == "Contacted" ? "bg-warning-subtle text-warning" :
-                                                         lead.Status == "Qualified" ? "bg-success-subtle text-success" :
-                                                         "bg-danger-subtle text-danger";
+                                    <span class="table-badge neutral">
+                                        @(string.IsNullOrEmpty(lead.LeadCode) ? $"LD-{lead.Id}" : lead.LeadCode)
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="table-lead-name">
+                                        @lead.ContactName
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="table-company">
+                                        @lead.Company
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="table-badge neutral">
+                                        @lead.Source
+                                    </span>
+                                </td>
+
+                                <td class="text-end">
+                                    <span class="fw-bold text-dark">
+                                        ₹@lead.EstimatedDealValue.ToString("N2")
+                                    </span>
+                                </td>
+
+                                <td class="text-center">
+
+                                    <div class="probability-wrap">
+
+                                        <div class="probability-track">
+                                            <div class="progress-bar bg-success"
+                                                 role="progressbar"
+                                                 style="width: @lead.WinProbability%">
+                                            </div>
+                                        </div>
+
+                                        <small class="fw-bold text-muted">
+                                            @lead.WinProbability%
+                                        </small>
+
+                                    </div>
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="table-badge @badgeClass">
+                                        @lead.Stage
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="text-muted">
+                                        @(lead.CreatedDate.ToString("dd MMM yyyy"))
+                                    </span>
+                                </td>
+
+                                <td class="text-center">
+
+                                    @if (lead.Stage != "Quotation Sent" &&
+                                                                lead.Stage != "Closed Won" &&
+                                                                lead.Stage != "Closed Lost")
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary fw-semibold px-3 py-1"
+                                                onclick="convertLead(@lead.Id, '@lead.LeadCode')">
+                                            <i class="fa-solid fa-arrow-right me-1"></i>
+                                            Convert to Quote
+                                        </button>
                                     }
-                                    <span class="badge @badgeClass rounded-pill px-2.5 py-1">@lead.Status</span>
+                                    else
+                                    {
+                                        <span class="table-badge neutral">
+                                            <i class="fa-solid fa-check me-1"></i>
+                                            Converted
+                                        </span>
+                                    }
+
                                 </td>
                             </tr>
                         }
@@ -88,59 +1554,512 @@
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">No leads found in database.</td>
+                            <td colspan="9">
+
+                                <div class="empty-state">
+
+                                    <div class="empty-icon">
+                                        <i class="fa-solid fa-inbox"></i>
+                                    </div>
+
+                                    <div class="empty-title">
+                                        No sales lead records found
+                                    </div>
+
+                                    <p class="empty-text">
+                                        There are currently no lead records available in the pipeline.
+                                    </p>
+
+                                </div>
+
+                            </td>
                         </tr>
                     }
+
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
 
-<!-- Create Lead Modal -->
-<div class="modal fade text-start" id="createLeadModal" tabindex="-1" aria-labelledby="createLeadModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- =============================================================
+     HIDDEN FORM FOR CONVERTING LEAD
+     ============================================================= -->
+<form id="convertLeadForm"
+      asp-controller="SalesManagement"
+      asp-action="ConvertLeadToQuotation"
+      method="post"
+      style="display:none;">
+
+    @Html.AntiForgeryToken()
+
+    <input type="hidden"
+           name="leadId"
+           id="convertLeadId"
+           value="" />
+</form>
+
+<!-- =============================================================
+     CREATE LEAD MODAL
+     ============================================================= -->
+<div class="modal fade text-start"
+     id="createLeadModal"
+     tabindex="-1"
+     aria-labelledby="createLeadModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
         <div class="modal-content">
-            <form action="/SalesManagement/CreateLead" method="post">
+
+            <form asp-controller="SalesManagement"
+                  asp-action="CreateLead"
+                  method="post">
+
                 @Html.AntiForgeryToken()
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="createLeadModalLabel">Create New Lead</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                <div class="modal-header border-bottom">
+
+                    <h5 class="modal-title fw-bold d-flex align-items-center"
+                        id="createLeadModalLabel">
+
+                        <span class="modal-title-icon">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </span>
+
+                        Create New Sales Lead
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
                 </div>
-                <div class="modal-body">
+
+                <div class="modal-body p-4">
+
+                    <!-- Contact -->
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Contact Name</label>
-                        <input type="text" name="ContactName" class="form-control" placeholder="e.g. Rajesh Kumar" required />
+                        <label class="form-label">
+                            Contact Person Name
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="ContactName"
+                               class="form-control"
+                               value="@preselectedCust"
+                               placeholder="e.g. Vikram Malhotra"
+                               required />
                     </div>
+
+                    <!-- Company -->
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Company Name</label>
-                        <input type="text" name="Company" class="form-control" placeholder="e.g. Rajesh Corp Ltd" required />
+                        <label class="form-label">
+                            Company / Organization
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="Company"
+                               class="form-control"
+                               value="@preselectedComp"
+                               placeholder="e.g. Bharat Tech Solutions"
+                               required />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Lead Source</label>
-                        <select name="Source" class="form-select" required>
-                            <option value="Website Referral">Website Referral</option>
-                            <option value="Cold Email">Cold Email</option>
-                            <option value="Direct Call">Direct Call</option>
-                            <option value="LinkedIn">LinkedIn</option>
-                            <option value="Other">Other</option>
-                        </select>
+
+                    <!-- Value + Probability -->
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Estimated Deal Value (₹)
+                            </label>
+
+                            <input type="number"
+                                   name="EstimatedDealValue"
+                                   class="form-control"
+                                   placeholder="100000"
+                                   step="500"
+                                   value="150000"
+                                   required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Win Probability (%)
+                            </label>
+
+                            <input type="number"
+                                   name="WinProbability"
+                                   class="form-control"
+                                   min="0"
+                                   max="100"
+                                   value="50"
+                                   required />
+                        </div>
+
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Status</label>
-                        <select name="Status" class="form-select" required>
-                            <option value="New">New</option>
-                            <option value="Contacted">Contacted</option>
-                            <option value="Qualified">Qualified</option>
-                            <option value="Lost">Lost</option>
-                        </select>
+
+                    <!-- Source + Stage -->
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Lead Source
+                            </label>
+
+                            <select name="Source"
+                                    class="form-select"
+                                    required>
+
+                                <option value="Website Referral">
+                                    Website Referral
+                                </option>
+
+                                <option value="Inbound Query">
+                                    Inbound Query
+                                </option>
+
+                                <option value="Cold Email">
+                                    Cold Email
+                                </option>
+
+                                <option value="Direct Call">
+                                    Direct Call
+                                </option>
+
+                                <option value="LinkedIn">
+                                    LinkedIn
+                                </option>
+
+                                <option value="Trade Expo">
+                                    Trade Expo
+                                </option>
+
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Initial Stage
+                            </label>
+
+                            <select name="Stage"
+                                    class="form-select"
+                                    required>
+
+                                <option value="New">
+                                    New
+                                </option>
+
+                                <option value="Contacted">
+                                    Contacted
+                                </option>
+
+                                <option value="Qualified">
+                                    Qualified
+                                </option>
+
+                                <option value="Negotiation">
+                                    Negotiation
+                                </option>
+
+                            </select>
+
+                        </div>
                     </div>
+
                 </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-3 btn-sm">Save Lead</button>
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary fw-bold px-4">
+                        <i class="fa-solid fa-save me-1"></i>
+                        Save Lead
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+
+        let draggedCardId = null;
+
+        /* =========================================================
+           DRAG START
+           ========================================================= */
+        function handleDragStart(ev, leadId) {
+
+            draggedCardId = leadId;
+
+            ev.dataTransfer.setData("text/plain", leadId);
+
+            ev.currentTarget.classList.add("dragging");
+        }
+
+        /* =========================================================
+           DRAG END
+           ========================================================= */
+        function handleDragEnd(ev) {
+
+            ev.currentTarget.classList.remove("dragging");
+        }
+
+        /* =========================================================
+           DRAG OVER
+           ========================================================= */
+        function handleDragOver(ev) {
+
+            ev.preventDefault();
+
+            ev.currentTarget.classList.add("drag-over");
+        }
+
+        /* =========================================================
+           DRAG LEAVE
+           ========================================================= */
+        function handleDragLeave(ev) {
+
+            ev.currentTarget.classList.remove("drag-over");
+        }
+
+        /* =========================================================
+           DROP
+           ========================================================= */
+        async function handleDrop(ev, targetStage) {
+
+            ev.preventDefault();
+
+            ev.currentTarget.classList.remove("drag-over");
+
+            const leadId =
+                ev.dataTransfer.getData("text/plain") ||
+                draggedCardId;
+
+            if (!leadId) {
+                return;
+            }
+
+            const cardElement =
+                document.getElementById("lead-card-" + leadId);
+
+            if (!cardElement) {
+                return;
+            }
+
+            /*
+             * Move element into target column DOM.
+             * Existing behavior intentionally preserved.
+             */
+            ev.currentTarget.appendChild(cardElement);
+
+            /*
+             * Persist stage change through existing AJAX endpoint.
+             */
+            try {
+
+                const response =
+                    await fetch("/SalesManagement/UpdateLeadStageAjax", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            leadId: parseInt(leadId),
+                            stage: targetStage
+                        })
+                    });
+
+                const data = await response.json();
+
+                if (data.success) {
+
+                    showToast(
+                        data.message ||
+                        `Lead moved to ${targetStage}`
+                    );
+
+                    updateColumnCounts();
+
+                } else {
+
+                    alert(
+                        data.message ||
+                        "Failed to update lead stage."
+                    );
+
+                    location.reload();
+                }
+
+            } catch (err) {
+
+                console.error(
+                    "Stage update error:",
+                    err
+                );
+
+                showToast(
+                    "Error updating stage: " + err
+                );
+            }
+        }
+
+        /* =========================================================
+           UPDATE COLUMN COUNTS
+           ========================================================= */
+        function updateColumnCounts() {
+
+            document
+                .querySelectorAll(".kanban-col")
+                .forEach(col => {
+
+                    const badge =
+                        col.querySelector(
+                            ".kanban-col-header .kanban-count"
+                        );
+
+                    const count =
+                        col.querySelectorAll(
+                            ".kanban-card"
+                        ).length;
+
+                    if (badge) {
+                        badge.textContent = count;
+                    }
+                });
+        }
+
+        /* =========================================================
+           TOAST
+           ========================================================= */
+        function showToast(msg) {
+
+            const toastEl =
+                document.getElementById("liveToast");
+
+            const toastMessage =
+                document.getElementById("toastMessage");
+
+            toastMessage.textContent = msg;
+
+            const toast =
+                new bootstrap.Toast(toastEl);
+
+            toast.show();
+        }
+
+        /* =========================================================
+           VIEW SWITCHER
+           ========================================================= */
+        function switchView(mode) {
+
+            const kanbanWrapper =
+                document.getElementById(
+                    "kanbanContainerWrapper"
+                );
+
+            const tableWrapper =
+                document.getElementById(
+                    "tableContainerWrapper"
+                );
+
+            const btnKanban =
+                document.getElementById(
+                    "btnKanbanView"
+                );
+
+            const btnTable =
+                document.getElementById(
+                    "btnTableView"
+                );
+
+            if (mode === "kanban") {
+
+                kanbanWrapper.classList.remove("d-none");
+                tableWrapper.classList.add("d-none");
+
+                btnKanban.classList.add("active");
+
+                btnTable.classList.remove("active");
+
+            } else {
+
+                kanbanWrapper.classList.add("d-none");
+                tableWrapper.classList.remove("d-none");
+
+                btnTable.classList.add("active");
+
+                btnKanban.classList.remove("active");
+            }
+        }
+
+        /* =========================================================
+           CONVERT LEAD
+           ========================================================= */
+        function convertLead(leadId, leadCode) {
+
+            if (
+                confirm(
+                    "Convert lead " +
+                    leadCode +
+                    " to a formal Quotation draft?"
+                )
+            ) {
+
+                document.getElementById(
+                    "convertLeadId"
+                ).value = leadId;
+
+                document.getElementById(
+                    "convertLeadForm"
+                ).submit();
+            }
+        }
+
+        /* =========================================================
+           PAGE INITIALIZATION
+           ========================================================= */
+        document.addEventListener(
+            "DOMContentLoaded",
+            () => {
+
+                @if (!string.IsNullOrEmpty(preselectedCust))
+                {
+                        <text>
+                        const createLeadModal =
+                            document.getElementById(
+                                "createLeadModal"
+                            );
+
+                        if (createLeadModal) {
+
+                            new bootstrap.Modal(
+                                createLeadModal
+                            ).show();
+                        }
+                        </text>
+                }
+
+            }
+        );
+
+    </script>
+}
+

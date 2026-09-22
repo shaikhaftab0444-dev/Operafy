@@ -1,3 +1,4 @@
+```cshtml
 @model List<ERP_System.Models.HierarchicalTask>
 @{
     Layout = "_DashboardLayout";
@@ -6,180 +7,1064 @@
 }
 
 <style>
-    .sales-table-card {
-        background: #ffffff;
-        border-radius: 14px;
-        border: 1px solid var(--border-warm, #e2e8f0);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
-        overflow: hidden;
+    /* =========================================================
+           SALES TARGET & TASK DELEGATION
+           Scoped UI styles - backend/Razor logic unchanged
+           ========================================================= */
+
+    .sales-delegation-page {
+        --sd-primary: #2563eb;
+        --sd-primary-dark: #1d4ed8;
+        --sd-primary-soft: #eff6ff;
+        --sd-success: #16a34a;
+        --sd-success-soft: #f0fdf4;
+        --sd-warning: #d97706;
+        --sd-warning-soft: #fffbeb;
+        --sd-danger: #dc2626;
+        --sd-danger-soft: #fef2f2;
+        --sd-info: #0891b2;
+        --sd-info-soft: #ecfeff;
+        --sd-text: #172033;
+        --sd-muted: #64748b;
+        --sd-border: #e5eaf1;
+        --sd-bg: #f6f8fc;
+        --sd-white: #ffffff;
+        --sd-radius: 16px;
+        --sd-shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
+        --sd-shadow-hover: 0 14px 32px rgba(15, 23, 42, 0.09);
+    }
+
+    .sales-delegation-page {
+        min-height: calc(100vh - 70px);
+        background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.045), transparent 30%), linear-gradient(180deg, #f8faff 0%, #f6f8fc 100%);
+        padding-bottom: 32px;
+    }
+
+        .sales-delegation-page .page-shell {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .sales-delegation-page .page-header {
+            padding: 6px 0 20px;
+        }
+
+        .sales-delegation-page .breadcrumb-line {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-bottom: 8px;
+            color: var(--sd-muted);
+            font-size: 0.78rem;
+        }
+
+            .sales-delegation-page .breadcrumb-line a {
+                color: var(--sd-muted);
+                text-decoration: none;
+                transition: color 0.2s ease;
+            }
+
+                .sales-delegation-page .breadcrumb-line a:hover {
+                    color: var(--sd-primary);
+                }
+
+        .sales-delegation-page .breadcrumb-separator {
+            color: #cbd5e1;
+        }
+
+        .sales-delegation-page .page-title {
+            color: var(--sd-text);
+            font-size: clamp(1.35rem, 2vw, 1.75rem);
+            font-weight: 750;
+            letter-spacing: -0.025em;
+            margin: 0;
+        }
+
+        .sales-delegation-page .page-subtitle {
+            color: var(--sd-muted);
+            font-size: 0.86rem;
+            margin: 5px 0 0;
+        }
+
+        .sales-delegation-page .header-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--sd-primary-soft);
+            color: var(--sd-primary);
+            margin-right: 10px;
+            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+        }
+
+        /* Main button */
+        .sales-delegation-page .btn-assign {
+            border: 0;
+            border-radius: 11px;
+            padding: 10px 17px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            font-weight: 650;
+            font-size: 0.84rem;
+            box-shadow: 0 7px 16px rgba(37, 99, 235, 0.18);
+            transition: all 0.2s ease;
+        }
+
+            .sales-delegation-page .btn-assign:hover {
+                color: #fff;
+                transform: translateY(-1px);
+                box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24);
+            }
+
+            .sales-delegation-page .btn-assign:active {
+                transform: translateY(0);
+            }
+
+        /* Alerts */
+        .sales-delegation-page .status-alert {
+            border-radius: 12px;
+            padding: 12px 15px;
+            font-size: 0.84rem;
+            margin-bottom: 18px;
+        }
+
+        /* KPI cards */
+        .sales-delegation-page .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .sales-delegation-page .summary-card {
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--sd-border);
+            border-radius: var(--sd-radius);
+            padding: 17px 18px;
+            box-shadow: var(--sd-shadow);
+            transition: all 0.22s ease;
+        }
+
+            .sales-delegation-page .summary-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--sd-shadow-hover);
+            }
+
+            .sales-delegation-page .summary-card::after {
+                content: "";
+                position: absolute;
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                right: -30px;
+                top: -30px;
+                background: rgba(37, 99, 235, 0.035);
+            }
+
+            .sales-delegation-page .summary-card.warning::after {
+                background: rgba(217, 119, 6, 0.045);
+            }
+
+            .sales-delegation-page .summary-card.success::after {
+                background: rgba(22, 163, 74, 0.045);
+            }
+
+        .sales-delegation-page .summary-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+            .sales-delegation-page .summary-icon.primary {
+                background: var(--sd-primary-soft);
+                color: var(--sd-primary);
+            }
+
+            .sales-delegation-page .summary-icon.warning {
+                background: var(--sd-warning-soft);
+                color: var(--sd-warning);
+            }
+
+            .sales-delegation-page .summary-icon.success {
+                background: var(--sd-success-soft);
+                color: var(--sd-success);
+            }
+
+        .sales-delegation-page .summary-label {
+            color: var(--sd-muted);
+            font-size: 0.75rem;
+            font-weight: 650;
+            text-transform: uppercase;
+            letter-spacing: 0.055em;
+            margin-bottom: 3px;
+        }
+
+        .sales-delegation-page .summary-value {
+            color: var(--sd-text);
+            font-size: 1.35rem;
+            line-height: 1.2;
+            font-weight: 750;
+        }
+
+        /* Main table card */
+        .sales-delegation-page .delegation-card {
+            background: var(--sd-white);
+            border: 1px solid var(--sd-border);
+            border-radius: 17px;
+            box-shadow: var(--sd-shadow);
+            overflow: hidden;
+        }
+
+        .sales-delegation-page .card-toolbar {
+            padding: 17px 19px;
+            border-bottom: 1px solid var(--sd-border);
+            background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+        }
+
+        .sales-delegation-page .toolbar-title {
+            color: var(--sd-text);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .sales-delegation-page .toolbar-subtitle {
+            color: var(--sd-muted);
+            font-size: 0.76rem;
+            margin-top: 2px;
+        }
+
+        .sales-delegation-page .count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 24px;
+            padding: 0 8px;
+            border-radius: 999px;
+            background: var(--sd-primary-soft);
+            color: var(--sd-primary);
+            font-size: 0.72rem;
+            font-weight: 750;
+        }
+
+        .sales-delegation-page .toolbar-status {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        .sales-delegation-page .status-summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.72rem;
+            font-weight: 650;
+            border: 1px solid transparent;
+        }
+
+            .sales-delegation-page .status-summary.pending {
+                color: var(--sd-warning);
+                background: var(--sd-warning-soft);
+                border-color: #fde68a;
+            }
+
+            .sales-delegation-page .status-summary.completed {
+                color: var(--sd-success);
+                background: var(--sd-success-soft);
+                border-color: #bbf7d0;
+            }
+
+        /* Table */
+        .sales-delegation-page .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .sales-delegation-page .delegation-table {
+            min-width: 920px;
+        }
+
+            .sales-delegation-page .delegation-table thead th {
+                background: #f8fafc;
+                color: #64748b;
+                border-bottom: 1px solid var(--sd-border);
+                border-top: 0;
+                padding: 12px 16px;
+                font-size: 0.68rem;
+                font-weight: 750;
+                letter-spacing: 0.065em;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            .sales-delegation-page .delegation-table tbody td {
+                padding: 15px 16px;
+                border-color: #eef2f7;
+                color: var(--sd-text);
+                vertical-align: middle;
+            }
+
+            .sales-delegation-page .delegation-table tbody tr {
+                transition: background-color 0.18s ease;
+            }
+
+                .sales-delegation-page .delegation-table tbody tr:hover {
+                    background: #f8fbff;
+                }
+
+        .sales-delegation-page .task-title {
+            color: var(--sd-text);
+            font-size: 0.84rem;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .sales-delegation-page .task-description {
+            color: var(--sd-muted);
+            font-size: 0.73rem;
+            line-height: 1.45;
+            max-width: 330px;
+            margin-top: 3px;
+        }
+
+        .sales-delegation-page .executive-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.79rem;
+            font-weight: 650;
+            color: #334155;
+        }
+
+        .sales-delegation-page .executive-avatar {
+            width: 31px;
+            height: 31px;
+            flex: 0 0 31px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--sd-primary-soft);
+            color: var(--sd-primary);
+            font-size: 0.7rem;
+        }
+
+        .sales-delegation-page .priority-badge,
+        .sales-delegation-page .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 999px;
+            padding: 6px 9px;
+            font-size: 0.69rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .sales-delegation-page .priority-high {
+            color: var(--sd-danger);
+            background: var(--sd-danger-soft);
+            border: 1px solid #fecaca;
+        }
+
+        .sales-delegation-page .priority-medium {
+            color: var(--sd-warning);
+            background: var(--sd-warning-soft);
+            border: 1px solid #fde68a;
+        }
+
+        .sales-delegation-page .priority-low {
+            color: var(--sd-info);
+            background: var(--sd-info-soft);
+            border: 1px solid #a5f3fc;
+        }
+
+        .sales-delegation-page .status-completed {
+            color: #fff;
+            background: var(--sd-success);
+            border: 1px solid var(--sd-success);
+        }
+
+        .sales-delegation-page .status-active {
+            color: var(--sd-primary);
+            background: var(--sd-primary-soft);
+            border: 1px solid #bfdbfe;
+        }
+
+        .sales-delegation-page .date-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: #475569;
+            font-size: 0.77rem;
+            white-space: nowrap;
+        }
+
+            .sales-delegation-page .date-cell i {
+                color: #94a3b8;
+            }
+
+        .sales-delegation-page .created-date {
+            color: #64748b;
+            font-size: 0.76rem;
+            white-space: nowrap;
+        }
+
+        /* Empty state */
+        .sales-delegation-page .empty-state {
+            padding: 65px 20px !important;
+            text-align: center;
+        }
+
+        .sales-delegation-page .empty-icon {
+            width: 62px;
+            height: 62px;
+            margin: 0 auto 14px;
+            border-radius: 17px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: #94a3b8;
+            font-size: 1.45rem;
+        }
+
+        .sales-delegation-page .empty-title {
+            color: var(--sd-text);
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .sales-delegation-page .empty-text {
+            color: var(--sd-muted);
+            font-size: 0.78rem;
+            margin: 0;
+        }
+
+        /* Modal */
+        .sales-delegation-page + .modal,
+        #assignTargetModal {
+            --modal-radius: 18px;
+        }
+
+            #assignTargetModal .modal-dialog {
+                max-width: 600px;
+            }
+
+            #assignTargetModal .modal-content {
+                border: 0;
+                border-radius: 18px;
+                overflow: hidden;
+                box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+            }
+
+            #assignTargetModal .modal-header {
+                position: relative;
+                padding: 19px 21px;
+                border: 0;
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            }
+
+                #assignTargetModal .modal-header::after {
+                    content: "";
+                    position: absolute;
+                    width: 150px;
+                    height: 150px;
+                    right: -60px;
+                    top: -85px;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.07);
+                }
+
+            #assignTargetModal .modal-title {
+                position: relative;
+                z-index: 1;
+                font-size: 1rem;
+                letter-spacing: -0.01em;
+            }
+
+            #assignTargetModal .btn-close {
+                position: relative;
+                z-index: 2;
+                opacity: 0.85;
+            }
+
+            #assignTargetModal .modal-body {
+                padding: 23px;
+                background: #ffffff;
+            }
+
+            #assignTargetModal .form-label {
+                color: #475569 !important;
+                font-size: 0.75rem;
+                font-weight: 700 !important;
+                margin-bottom: 7px;
+            }
+
+            #assignTargetModal .form-control,
+            #assignTargetModal .form-select {
+                min-height: 43px;
+                border-radius: 10px;
+                border: 1px solid #dbe2ea;
+                color: #1e293b;
+                font-size: 0.82rem;
+                background-color: #fff;
+                box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+                transition: all 0.18s ease;
+            }
+
+            #assignTargetModal textarea.form-control {
+                min-height: auto;
+                resize: vertical;
+            }
+
+            #assignTargetModal .form-control::placeholder {
+                color: #a0aec0;
+            }
+
+            #assignTargetModal .form-control:focus,
+            #assignTargetModal .form-select:focus {
+                border-color: #93c5fd;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.09);
+            }
+
+            #assignTargetModal .modal-footer {
+                padding: 15px 21px;
+                border-top: 1px solid #e8edf3;
+                background: #f8fafc !important;
+            }
+
+                #assignTargetModal .modal-footer .btn {
+                    border-radius: 9px;
+                    font-size: 0.8rem;
+                    font-weight: 650;
+                    padding: 9px 15px;
+                }
+
+                #assignTargetModal .modal-footer .btn-primary {
+                    border: 0;
+                    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+                    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.16);
+                }
+
+                #assignTargetModal .modal-footer .btn-secondary {
+                    background: #fff;
+                    color: #475569;
+                    border: 1px solid #dbe2ea;
+                }
+
+    /* Responsive */
+    @@media (max-width: 992px) {
+        .sales-delegation-page .summary-grid
+
+    {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .sales-delegation-page
+
+    {
+        padding-bottom: 20px;
+    }
+
+    .sales-delegation-page .page-header {
+        padding-top: 2px;
+    }
+
+    .sales-delegation-page .header-content {
+        width: 100%;
+    }
+
+    .sales-delegation-page .header-action {
+        width: 100%;
+    }
+
+    .sales-delegation-page .btn-assign {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .sales-delegation-page .summary-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .sales-delegation-page .summary-card {
+        padding: 14px 16px;
+    }
+
+    .sales-delegation-page .summary-icon {
+        margin-bottom: 8px;
+    }
+
+    .sales-delegation-page .card-toolbar {
+        align-items: flex-start !important;
+        flex-direction: column;
+    }
+
+    .sales-delegation-page .toolbar-status {
+        width: 100%;
+    }
+
+    .sales-delegation-page .status-summary {
+        flex: 1;
+        justify-content: center;
+    }
+
+    #assignTargetModal .modal-dialog {
+        margin: 10px;
+    }
+
+    #assignTargetModal .modal-body {
+        padding: 18px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .sales-delegation-page .page-title
+
+    {
+        font-size: 1.25rem;
+    }
+
+    .sales-delegation-page .header-icon {
+        width: 37px;
+        height: 37px;
+        border-radius: 10px;
+        margin-right: 7px;
+    }
+
+    .sales-delegation-page .toolbar-status {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sales-delegation-page .status-summary {
+        justify-content: flex-start;
+    }
+
+    #assignTargetModal .modal-footer {
+        flex-direction: column-reverse;
+    }
+
+        #assignTargetModal .modal-footer .btn {
+            width: 100%;
+        }
+
+    }
+
+    /* Print */
+    @@media print {
+        .sales-delegation-page
+
+    {
+        background: #fff !important;
+    }
+
+    .sales-delegation-page .page-header .header-action,
+    .sales-delegation-page .summary-grid,
+    #assignTargetModal {
+        display: none !important;
+    }
+
+    .sales-delegation-page .delegation-card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+
     }
 </style>
 
-<div class="container-fluid py-3 px-3 px-md-4">
-    <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-            <div class="text-muted small mb-1">
-                <a href="@Url.Action("Index", "SalesManagerDashboard")" class="text-decoration-none text-muted">Sales Manager Portal</a> / <span>Team Operations</span>
-            </div>
-            <h4 class="fw-bold mb-0 text-dark">
-                <i class="fa-solid fa-list-check text-primary me-2"></i>Sales Target & Task Delegation
-            </h4>
-        </div>
-        <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#assignTargetModal">
-            <i class="fa-solid fa-plus me-1.5"></i> Assign Target / Task
-        </button>
-    </div>
+<div class="sales-delegation-page">
+    <div class="container-fluid py-3 px-3 px-md-4 page-shell">
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
-            <i class="fa-solid fa-circle-exclamation me-2"></i> @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
+        <!-- Header -->
+        <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="header-content">
+                <div class="breadcrumb-line">
+                    <a href="@Url.Action("Index", "SalesManagerDashboard")">
+                        <i class="fa-solid fa-chart-line me-1"></i> Sales Manager Portal
+                    </a>
+                    <span class="breadcrumb-separator">/</span>
+                    <span>Team Operations</span>
+                </div>
 
-    <!-- Delegation Table Card -->
-    <div class="sales-table-card">
-        <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3 bg-light-subtle">
-            <div class="d-flex align-items-center gap-2">
-                <span class="fw-bold small text-secondary">Active Sales Delegations:</span>
-                <span class="badge bg-primary rounded-pill">@Model.Count</span>
+                <div class="d-flex align-items-center">
+                    <span class="header-icon">
+                        <i class="fa-solid fa-list-check"></i>
+                    </span>
+
+                    <div>
+                        <h4 class="page-title">Sales Target & Task Delegation</h4>
+                        <p class="page-subtitle">Assign, monitor and manage operational targets across your sales team.</p>
+                    </div>
+                </div>
             </div>
-            <div class="d-flex gap-2">
-                <span class="badge bg-warning-subtle text-warning px-2.5 py-1 rounded-pill small">
-                    Pending: @Model.Count(t => t.Status == "Pending" || t.Status == "Assigned")
-                </span>
-                <span class="badge bg-success-subtle text-success px-2.5 py-1 rounded-pill small">
-                    Completed: @Model.Count(t => t.Status == "Completed")
-                </span>
+
+            <div class="header-action">
+                <button type="button"
+                        class="btn btn-assign"
+                        data-bs-toggle="modal"
+                        data-bs-target="#assignTargetModal">
+                    <i class="fa-solid fa-plus me-2"></i>
+                    Assign Target / Task
+                </button>
             </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr class="small text-uppercase text-muted">
-                        <th>Target / Task Title</th>
-                        <th>Assigned Sales Executive</th>
-                        <th>Priority</th>
-                        <th>Due Date</th>
-                        <th>Delegated On</th>
-                        <th class="text-end">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!Model.Any())
-                    {
+        <!-- Alerts -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 status-alert" role="alert">
+                <i class="fa-solid fa-circle-check me-2"></i>
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 status-alert" role="alert">
+                <i class="fa-solid fa-circle-exclamation me-2"></i>
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Summary -->
+        <div class="summary-grid">
+
+            <div class="summary-card">
+                <div class="summary-icon primary">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div class="summary-label">Active Delegations</div>
+                <div class="summary-value">@Model.Count</div>
+            </div>
+
+            <div class="summary-card warning">
+                <div class="summary-icon warning">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+                <div class="summary-label">Pending / Assigned</div>
+                <div class="summary-value">
+                    @Model.Count(t => t.Status == "Pending" || t.Status == "Assigned")
+                </div>
+            </div>
+
+            <div class="summary-card success">
+                <div class="summary-icon success">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div class="summary-label">Completed</div>
+                <div class="summary-value">
+                    @Model.Count(t => t.Status == "Completed")
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Delegation Table -->
+        <div class="delegation-card">
+
+            <div class="card-toolbar d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="toolbar-title">Team Delegations</span>
+                        <span class="count-badge">@Model.Count</span>
+                    </div>
+                    <div class="toolbar-subtitle">
+                        Current targets and operational tasks assigned to sales executives.
+                    </div>
+                </div>
+
+                <div class="toolbar-status">
+                    <span class="status-summary pending">
+                        <i class="fa-solid fa-clock"></i>
+                        Pending: @Model.Count(t => t.Status == "Pending" || t.Status == "Assigned")
+                    </span>
+
+                    <span class="status-summary completed">
+                        <i class="fa-solid fa-check"></i>
+                        Completed: @Model.Count(t => t.Status == "Completed")
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table delegation-table table-hover align-middle mb-0">
+                    <thead>
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="fa-solid fa-tasks fs-2 d-block mb-2 text-secondary"></i>
-                                No operational targets or tasks delegated yet.
-                            </td>
+                            <th>Target / Task Title</th>
+                            <th>Assigned Sales Executive</th>
+                            <th>Priority</th>
+                            <th>Due Date</th>
+                            <th>Delegated On</th>
+                            <th class="text-end">Status</th>
                         </tr>
-                    }
-                    else
-                    {
-                        @foreach (var task in Model)
-                        {
-                            var exec = teamMembers.FirstOrDefault(t => t.UserId.ToString() == task.AssignedToUserId || t.UserName == task.AssignedToUserId || t.FullName == task.AssignedToUserId);
-                            var execName = exec?.FullName ?? (!string.IsNullOrEmpty(task.AssignedToUserId) ? task.AssignedToUserId : "All Team");
-                            var priorityBadge = task.Priority == "High" ? "bg-danger-subtle text-danger border border-danger" : (task.Priority == "Medium" ? "bg-warning-subtle text-warning border border-warning" : "bg-info-subtle text-info border border-info");
-                            var statusBadge = task.Status == "Completed" ? "bg-success text-white" : "bg-primary-subtle text-primary border border-primary";
+                    </thead>
 
+                    <tbody>
+                        @if (!Model.Any())
+                        {
                             <tr>
-                                <td>
-                                    <div class="fw-bold text-dark">@task.Title</div>
-                                    <div class="text-muted extra-small">@task.Description</div>
-                                </td>
-                                <td>
-                                    <span class="small fw-semibold text-dark">
-                                        <i class="fa-regular fa-user me-1.5 text-primary"></i>@execName
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge @priorityBadge px-2 py-1 rounded-pill small">@task.Priority</span>
-                                </td>
-                                <td>
-                                    <span class="small font-monospace text-dark">
-                                        <i class="fa-regular fa-calendar me-1 text-muted"></i>@(task.DueDate?.ToString("dd MMM yyyy") ?? "N/A")
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="text-muted small">@(task.CreatedAt?.ToString("dd MMM yyyy") ?? "N/A")</span>
-                                </td>
-                                <td class="text-end">
-                                    <span class="badge @statusBadge px-2.5 py-1 rounded-pill small">@task.Status</span>
+                                <td colspan="6" class="empty-state">
+                                    <div class="empty-icon">
+                                        <i class="fa-solid fa-list-check"></i>
+                                    </div>
+
+                                    <div class="empty-title">
+                                        No operational targets or tasks yet
+                                    </div>
+
+                                    <p class="empty-text">
+                                        Use the Assign Target / Task button to create the first team delegation.
+                                    </p>
                                 </td>
                             </tr>
                         }
-                    }
-                </tbody>
-            </table>
+                        else
+                        {
+                            @foreach (var task in Model)
+                            {
+                                var exec = teamMembers.FirstOrDefault(t => t.UserId.ToString() == task.AssignedToUserId || t.UserName == task.AssignedToUserId || t.FullName == task.AssignedToUserId);
+                                var execName = exec?.FullName ?? (!string.IsNullOrEmpty(task.AssignedToUserId) ? task.AssignedToUserId : "All Team");
+                                var priorityBadge = task.Priority == "High" ? "priority-high" : (task.Priority == "Medium" ? "priority-medium" : "priority-low");
+                                var statusBadge = task.Status == "Completed" ? "status-completed" : "status-active";
+
+                                <tr>
+                                    <td>
+                                        <div class="task-title">
+                                            @task.Title
+                                        </div>
+
+                                        @if (!string.IsNullOrEmpty(task.Description))
+                                        {
+                                            <div class="task-description">
+                                                @task.Description
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        <span class="executive-cell">
+                                            <span class="executive-avatar">
+                                                <i class="fa-regular fa-user"></i>
+                                            </span>
+                                            <span>@execName</span>
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="priority-badge @priorityBadge">
+                                            @if (task.Priority == "High")
+                                            {
+                                                <i class="fa-solid fa-arrow-up"></i>
+                                            }
+                                            else if (task.Priority == "Medium")
+                                            {
+                                                <i class="fa-solid fa-minus"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            }
+
+                                            @task.Priority
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="date-cell">
+                                            <i class="fa-regular fa-calendar"></i>
+                                            @(task.DueDate?.ToString("dd MMM yyyy") ?? "N/A")
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="created-date">
+                                            @(task.CreatedAt?.ToString("dd MMM yyyy") ?? "N/A")
+                                        </span>
+                                    </td>
+
+                                    <td class="text-end">
+                                        <span class="status-badge @statusBadge">
+                                            @if (task.Status == "Completed")
+                                            {
+                                                <i class="fa-solid fa-check"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-clock"></i>
+                                            }
+
+                                            @task.Status
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
+
     </div>
 </div>
 
 <!-- Modal: Assign New Target / Task -->
-<div class="modal fade" id="assignTargetModal" tabindex="-1" aria-labelledby="assignTargetModalLabel" aria-hidden="true">
+<div class="modal fade"
+     id="assignTargetModal"
+     tabindex="-1"
+     aria-labelledby="assignTargetModalLabel"
+     aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
+
+        <div class="modal-content">
+
+            <div class="modal-header text-white">
+
                 <h5 class="modal-title fw-bold" id="assignTargetModalLabel">
-                    <i class="fa-solid fa-bullseye me-2"></i>Assign Sales Target / Task
+                    <i class="fa-solid fa-bullseye me-2"></i>
+                    Assign Sales Target / Task
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+
             </div>
-            <form asp-action="AssignTask" asp-controller="SalesManagerDashboard" method="post">
+
+            <form asp-action="AssignTask"
+                  asp-controller="SalesManagerDashboard"
+                  method="post">
+
                 @Html.AntiForgeryToken()
-                <div class="modal-body p-4">
+
+                <div class="modal-body">
+
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Assign To Sales Executive <span class="text-danger">*</span></label>
-                        <select name="assignedToUserId" class="form-select" required>
+                        <label class="form-label">
+                            Assign To Sales Executive
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select name="assignedToUserId"
+                                class="form-select"
+                                required>
+
                             <option value="">-- Choose Sales Executive --</option>
+
                             @foreach (var user in teamMembers)
                             {
-                                <option value="@user.UserId">@user.FullName (@user.Email)</option>
+                                <option value="@user.UserId">
+                                    @user.FullName (@user.Email)
+                                </option>
                             }
+
                         </select>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Target / Task Title <span class="text-danger">*</span></label>
-                        <input type="text" name="title" class="form-control" placeholder="e.g. Q3 Healthcare Sector Lead Conversion" required />
+                        <label class="form-label">
+                            Target / Task Title
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="title"
+                               class="form-control"
+                               placeholder="e.g. Q3 Healthcare Sector Lead Conversion"
+                               required />
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">Description / Operational Objective</label>
-                        <textarea name="description" class="form-control" rows="3" placeholder="Specify KPIs, expected revenue, or deliverable details..."></textarea>
+                        <label class="form-label">
+                            Description / Operational Objective
+                        </label>
+
+                        <textarea name="description"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Specify KPIs, expected revenue, or deliverable details..."></textarea>
                     </div>
-                    <div class="row g-3 mb-3">
+
+                    <div class="row g-3 mb-1">
+
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Priority</label>
-                            <select name="priority" class="form-select">
+                            <label class="form-label">
+                                Priority
+                            </label>
+
+                            <select name="priority"
+                                    class="form-select">
+
                                 <option value="High">High</option>
                                 <option value="Medium" selected>Medium</option>
                                 <option value="Low">Low</option>
+
                             </select>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Due Date <span class="text-danger">*</span></label>
-                            <input type="date" name="dueDate" class="form-control" value="@DateTime.Today.AddDays(7).ToString("yyyy-MM-dd")" required />
+                            <label class="form-label">
+                                Due Date
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="date"
+                                   name="dueDate"
+                                   class="form-control"
+                                   value="@DateTime.Today.AddDays(7).ToString("yyyy-MM-dd")"
+                                   required />
                         </div>
+
                     </div>
+
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary px-4">
-                        <i class="fa-solid fa-paper-plane me-1.5"></i> Assign Target
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
                     </button>
+
+                    <button type="submit"
+                            class="btn btn-primary px-4">
+                        <i class="fa-solid fa-paper-plane me-2"></i>
+                        Assign Target
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
 </div>
+```

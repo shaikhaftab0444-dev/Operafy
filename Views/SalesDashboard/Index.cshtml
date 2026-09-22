@@ -1,429 +1,2216 @@
-@model ERP_System.Models.SalesDashboardViewModel
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Sales Executive Dashboard";
+    ViewData["Title"] = "Sales Executive Cockpit";
+
     var inCulture = new System.Globalization.CultureInfo("en-IN");
-    var now = DateTime.Now;
-    var activeMonthName = now.ToString("MMMM yyyy");
+
+    var pendingQuotations = ViewBag.PendingQuotations as List<ERP_System.Models.SalesQuotation>
+        ?? new List<ERP_System.Models.SalesQuotation>();
+
+    var todaysFollowUps = ViewBag.TodaysFollowUps as List<ERP_System.Models.SalesLead>
+        ?? new List<ERP_System.Models.SalesLead>();
+
+    var recentInvoices = ViewBag.RecentInvoices as List<ERP_System.Models.SalesInvoice>
+        ?? new List<ERP_System.Models.SalesInvoice>();
+
+    decimal targetPct = ViewBag.TargetAchievementPct != null
+        ? Convert.ToDecimal(ViewBag.TargetAchievementPct)
+        : 0m;
+
+    decimal achievedRev = ViewBag.AchievedRevenue != null
+        ? Convert.ToDecimal(ViewBag.AchievedRevenue)
+        : 0m;
+
+    decimal targetRev = ViewBag.MonthlyTarget != null
+        ? Convert.ToDecimal(ViewBag.MonthlyTarget)
+        : 0m;
+
+    decimal pipelineVal = ViewBag.ActivePipelineValue != null
+        ? Convert.ToDecimal(ViewBag.ActivePipelineValue)
+        : 0m;
 }
 
 <style>
-    .dashboard-title-bar {
-        text-align: left;
-        margin-bottom: 1.5rem;
+    /* ============================================================
+           SALES EXECUTIVE COCKPIT
+           Scoped styles - designed to avoid dashboard layout conflicts
+           ============================================================ */
+
+    .sales-cockpit {
+        --sec-primary: #2563eb;
+        --sec-primary-dark: #1d4ed8;
+        --sec-primary-soft: #eff6ff;
+        --sec-success: #16a34a;
+        --sec-success-soft: #f0fdf4;
+        --sec-warning: #d97706;
+        --sec-warning-soft: #fffbeb;
+        --sec-danger: #dc2626;
+        --sec-danger-soft: #fef2f2;
+        --sec-info: #0891b2;
+        --sec-info-soft: #ecfeff;
+        --sec-purple: #7c3aed;
+        --sec-purple-soft: #f5f3ff;
+        --sec-dark: #0f172a;
+        --sec-text: #1e293b;
+        --sec-muted: #64748b;
+        --sec-border: #e2e8f0;
+        --sec-bg: #f8fafc;
+        --sec-white: #ffffff;
+        --sec-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+        --sec-shadow-hover: 0 18px 42px rgba(15, 23, 42, .11);
+        --sec-radius: 18px;
+        --sec-radius-sm: 12px;
+        position: relative;
+        min-height: 100%;
+        color: var(--sec-text);
     }
 
-    .dashboard-title {
-        font-size: 1.8rem;
-        font-weight: 500;
-        color: #555555;
-        margin: 0;
-    }
+        /* ============================================================
+           PAGE BASE
+           ============================================================ */
 
-    /* 4 KPI Cards Grid Layout */
-    .kpi-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1.25rem;
-        margin-bottom: 2rem;
-    }
-
-    @@media (max-width: 1200px) {
-        .kpi-row {
-            grid-template-columns: repeat(2, 1fr);
+        .sales-cockpit * {
+            box-sizing: border-box;
         }
-    }
 
-    @@media (max-width: 600px) {
-        .kpi-row {
-            grid-template-columns: 1fr;
+        .sales-cockpit .text-muted {
+            color: var(--sec-muted) !important;
         }
-    }
 
-    /* KPI Card Style */
-    .screenshot-card {
-        border-radius: 6px;
-        color: #ffffff !important;
-        display: flex;
-        align-items: stretch;
-        min-height: 100px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        .sales-cockpit .btn {
+            transition: transform .22s ease, box-shadow .22s ease, background-color .22s ease, border-color .22s ease;
+        }
+
+            .sales-cockpit .btn:hover {
+                transform: translateY(-1px);
+            }
+
+        .sales-cockpit .container-fluid {
+            position: relative;
+            z-index: 2;
+        }
+
+    /* ============================================================
+           PAGE INTRO
+           ============================================================ */
+
+    .sec-page-intro {
+        position: relative;
         overflow: hidden;
-        text-align: left;
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(226, 232, 240, .9);
+        border-radius: 22px;
+        background: radial-gradient(circle at 92% 10%, rgba(37, 99, 235, .09), transparent 28%), radial-gradient(circle at 8% 100%, rgba(124, 58, 237, .055), transparent 25%), linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: var(--sec-shadow);
+        animation: secFadeUp .55s ease both;
     }
 
-    .card-left-block {
-        width: 34%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+        .sec-page-intro::before {
+            content: "";
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            right: -75px;
+            top: -85px;
+            border: 1px solid rgba(37, 99, 235, .10);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .sec-page-intro::after {
+            content: "";
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            right: 35px;
+            top: -45px;
+            border: 1px solid rgba(37, 99, 235, .08);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+    .sec-title-wrap {
+        position: relative;
+        z-index: 1;
+    }
+
+    .sec-title-icon {
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
         align-items: center;
-        border-right: 1px solid rgba(255, 255, 255, 0.25);
-        background: rgba(0, 0, 0, 0.08);
-        padding: 0.5rem;
-        text-align: center;
-    }
-
-    .card-left-month {
-        font-size: 0.7rem;
-        font-weight: 500;
-        opacity: 0.9;
-        text-transform: capitalize;
-    }
-
-    .card-left-year {
-        font-size: 1.05rem;
-        font-weight: 700;
-        line-height: 1.1;
-    }
-
-    .card-left-icon {
-        font-size: 1.8rem;
-        opacity: 0.85;
-    }
-
-    .card-right-block {
-        width: 66%;
-        padding: 0.75rem 1rem;
-        display: flex;
-        flex-direction: column;
         justify-content: center;
+        border-radius: 14px;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--sec-primary), #4f46e5);
+        box-shadow: 0 9px 22px rgba(37, 99, 235, .23);
+        flex: 0 0 auto;
+    }
+
+    .sec-page-title {
+        margin: 0;
+        font-size: clamp(1.25rem, 2vw, 1.55rem);
+        font-weight: 800;
+        letter-spacing: -.025em;
+        color: var(--sec-dark);
+    }
+
+    .sec-page-subtitle {
+        margin: 4px 0 0;
+        color: var(--sec-muted);
+        font-size: .82rem;
+    }
+
+    .sec-breadcrumb {
+        margin: 8px 0 0;
+    }
+
+        .sec-breadcrumb .breadcrumb {
+            margin: 0;
+            font-size: .74rem;
+        }
+
+        .sec-breadcrumb a {
+            color: var(--sec-primary);
+            font-weight: 600;
+        }
+
+    .sec-user-chip {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 13px;
+        min-height: 43px;
+        border: 1px solid var(--sec-border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .88);
+        box-shadow: 0 5px 18px rgba(15, 23, 42, .045);
+    }
+
+    .sec-user-avatar {
+        width: 31px;
+        height: 31px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: var(--sec-primary);
+        background: var(--sec-primary-soft);
+    }
+
+    .sec-user-name {
+        font-size: .78rem;
+        font-weight: 800;
+        color: var(--sec-dark);
+    }
+
+    .sec-user-region {
+        color: var(--sec-muted);
+        font-size: .7rem;
+    }
+
+    .sec-code-badge {
+        padding: 3px 7px;
+        border-radius: 999px;
+        color: var(--sec-primary);
+        background: var(--sec-primary-soft);
+        font-size: .65rem;
+        font-weight: 800;
+    }
+
+    .sec-action-group {
+        position: relative;
+        z-index: 2;
+    }
+
+    .sec-action {
+        min-height: 42px;
+        padding: 9px 15px;
+        border-radius: 12px !important;
+        font-size: .76rem;
+        font-weight: 700;
+    }
+
+    .sec-action-primary {
+        border: 0;
+        color: #fff;
+        background: linear-gradient(135deg, var(--sec-primary), var(--sec-primary-dark));
+        box-shadow: 0 8px 18px rgba(37, 99, 235, .18);
+    }
+
+        .sec-action-primary:hover {
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(37, 99, 235, .26);
+        }
+
+    .sec-action-outline {
+        color: var(--sec-primary);
+        border-color: rgba(37, 99, 235, .22);
+        background: #fff;
+    }
+
+        .sec-action-outline:hover {
+            color: var(--sec-primary-dark);
+            background: var(--sec-primary-soft);
+            border-color: rgba(37, 99, 235, .35);
+        }
+
+    /* ============================================================
+           SUCCESS ALERT
+           ============================================================ */
+
+    .sec-success-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 16px;
+        border: 1px solid rgba(22, 163, 74, .16) !important;
+        border-radius: 14px !important;
+        background: linear-gradient(135deg, #f0fdf4, #ffffff);
+        color: #166534;
+        animation: secFadeUp .45s ease both;
+    }
+
+    .sec-success-icon {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: rgba(22, 163, 74, .10);
+        flex: 0 0 auto;
+    }
+
+    /* ============================================================
+           TARGET CARD
+           ============================================================ */
+
+    .sec-target-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--sec-border);
+        border-radius: 20px;
+        background: radial-gradient(circle at 100% 0%, rgba(37, 99, 235, .09), transparent 24%), linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: var(--sec-shadow);
+        animation: secFadeUp .6s .08s ease both;
+    }
+
+        .sec-target-card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--sec-primary), #6366f1);
+        }
+
+    .sec-target-body {
+        position: relative;
+        padding: 22px 24px;
+    }
+
+    .sec-section-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 4px;
+        color: var(--sec-muted);
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+    }
+
+    .sec-target-description {
+        margin: 0;
+        color: var(--sec-muted);
+        font-size: .75rem;
+    }
+
+    .sec-target-percent {
+        padding: 8px 13px;
+        border-radius: 999px;
+        font-size: .76rem;
+        font-weight: 800;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, .05);
+    }
+
+    .sec-progress-track {
+        height: 15px !important;
+        overflow: hidden;
+        border-radius: 999px !important;
+        background: #e8eef6 !important;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .07);
+    }
+
+    .sec-progress-bar {
+        position: relative;
+        overflow: hidden;
+        border-radius: 999px !important;
+        background: linear-gradient(90deg, #2563eb, #4f46e5) !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, .20);
+        animation: secProgressGrow 1.1s ease both;
+    }
+
+        .sec-progress-bar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient( 110deg, transparent 20%, rgba(255,255,255,.28) 50%, transparent 80% );
+            transform: translateX(-100%);
+            animation: secProgressShine 2.4s 1s ease-in-out infinite;
+        }
+
+    .sec-progress-success {
+        background: linear-gradient(90deg, #16a34a, #22c55e) !important;
+    }
+
+    .sec-target-metric {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+        .sec-target-metric i {
+            font-size: .68rem;
+        }
+
+    /* ============================================================
+           KPI CARDS
+           ============================================================ */
+
+    .sec-kpi-card {
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        padding: 20px;
+        border: 1px solid var(--sec-border);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: var(--sec-shadow);
+        transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease;
+        animation: secFadeUp .6s ease both;
+    }
+
+        .sec-kpi-card:nth-child(2) {
+            animation-delay: .08s;
+        }
+
+        .sec-kpi-card:nth-child(3) {
+            animation-delay: .16s;
+        }
+
+        .sec-kpi-card::after {
+            content: "";
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            right: -42px;
+            bottom: -45px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, .045);
+            transition: transform .3s ease;
+        }
+
+        .sec-kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(37, 99, 235, .16);
+            box-shadow: var(--sec-shadow-hover);
+        }
+
+            .sec-kpi-card:hover::after {
+                transform: scale(1.35);
+            }
+
+    .sec-kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 13px;
+    }
+
+    .sec-kpi-label {
+        margin: 0;
+        color: var(--sec-muted);
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .075em;
+        text-transform: uppercase;
+    }
+
+    .sec-kpi-icon {
+        width: 39px;
+        height: 39px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: .9rem;
+        transition: transform .25s ease;
+    }
+
+    .sec-kpi-card:hover .sec-kpi-icon {
+        transform: rotate(-5deg) scale(1.07);
+    }
+
+    .sec-kpi-blue .sec-kpi-icon {
+        color: var(--sec-primary);
+        background: var(--sec-primary-soft);
+    }
+
+    .sec-kpi-green .sec-kpi-icon {
+        color: var(--sec-success);
+        background: var(--sec-success-soft);
+    }
+
+    .sec-kpi-orange .sec-kpi-icon {
+        color: var(--sec-warning);
+        background: var(--sec-warning-soft);
+    }
+
+    .sec-kpi-value {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        color: var(--sec-dark);
+        font-size: 1.65rem;
+        font-weight: 850;
+        letter-spacing: -.035em;
+        line-height: 1.15;
+    }
+
+    .sec-kpi-blue .sec-kpi-value {
+        color: var(--sec-primary);
+    }
+
+    .sec-kpi-green .sec-kpi-value {
+        color: var(--sec-success);
+    }
+
+    .sec-kpi-orange .sec-kpi-value {
+        color: var(--sec-warning);
+    }
+
+    .sec-kpi-description {
+        position: relative;
+        z-index: 1;
+        display: block;
+        margin-top: 6px;
+        color: var(--sec-muted);
+        font-size: .71rem;
+    }
+
+    /* ============================================================
+           PANELS
+           ============================================================ */
+
+    .sec-panel {
+        height: 100%;
+        overflow: hidden;
+        border: 1px solid var(--sec-border);
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: var(--sec-shadow);
+        transition: box-shadow .28s ease, transform .28s ease;
+        animation: secFadeUp .65s .12s ease both;
+    }
+
+        .sec-panel:hover {
+            box-shadow: 0 15px 35px rgba(15, 23, 42, .075);
+        }
+
+    .sec-panel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 20px 20px 16px;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .sec-panel-title-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+    }
+
+    .sec-panel-icon {
+        width: 37px;
+        height: 37px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 11px;
+        flex: 0 0 auto;
+    }
+
+    .sec-panel-icon-warning {
+        color: var(--sec-warning);
+        background: var(--sec-warning-soft);
+    }
+
+    .sec-panel-icon-primary {
+        color: var(--sec-primary);
+        background: var(--sec-primary-soft);
+    }
+
+    .sec-panel-icon-success {
+        color: var(--sec-success);
+        background: var(--sec-success-soft);
+    }
+
+    .sec-panel-title {
+        margin: 0;
+        color: var(--sec-dark);
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .sec-panel-subtitle {
+        margin: 3px 0 0;
+        color: var(--sec-muted);
+        font-size: .7rem;
+        line-height: 1.5;
+    }
+
+    .sec-count-badge {
+        padding: 6px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+        font-size: .68rem;
+        font-weight: 800;
+    }
+
+    .sec-panel-body {
+        padding: 0 20px 20px;
+    }
+
+    .sec-panel-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border: 1px solid rgba(37, 99, 235, .18);
+        border-radius: 999px;
+        color: var(--sec-primary);
+        background: #fff;
+        font-size: .67rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all .22s ease;
+    }
+
+        .sec-panel-link:hover {
+            color: var(--sec-primary-dark);
+            background: var(--sec-primary-soft);
+            border-color: rgba(37, 99, 235, .3);
+            transform: translateX(2px);
+        }
+
+    /* ============================================================
+           TABLES
+           ============================================================ */
+
+    .sec-table-wrap {
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+
+    .sec-table {
+        min-width: 560px;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .76rem;
+    }
+
+        .sec-table th {
+            padding: 11px 10px;
+            border-bottom: 1px solid #e8edf4 !important;
+            color: #64748b;
+            background: #f8fafc;
+            font-size: .64rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+            .sec-table th:first-child {
+                padding-left: 14px;
+            }
+
+            .sec-table th:last-child {
+                padding-right: 14px;
+            }
+
+        .sec-table td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #f0f3f7;
+            color: var(--sec-text);
+            vertical-align: middle;
+        }
+
+            .sec-table td:first-child {
+                padding-left: 14px;
+            }
+
+            .sec-table td:last-child {
+                padding-right: 14px;
+            }
+
+        .sec-table tbody tr {
+            transition: background-color .2s ease, transform .2s ease;
+        }
+
+            .sec-table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+            .sec-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+    .sec-document-cell {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 120px;
+    }
+
+    .sec-document-icon {
+        width: 31px;
+        height: 31px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        color: var(--sec-primary);
+        background: var(--sec-primary-soft);
+        flex: 0 0 auto;
+        font-size: .72rem;
+    }
+
+    .sec-document-number {
+        color: var(--sec-dark);
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .sec-customer-name {
+        color: var(--sec-dark);
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .sec-secondary-code {
+        margin-top: 2px;
+        color: var(--sec-muted);
+        font-size: .63rem;
+    }
+
+    .sec-amount {
+        color: var(--sec-primary);
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .sec-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 5px 9px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: .62rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .sec-status-warning {
+        color: #a16207;
+        background: #fef9c3;
+        border-color: #fde68a;
+    }
+
+    .sec-status-success {
+        color: #15803d;
+        background: #dcfce7;
+        border-color: #bbf7d0;
+    }
+
+    .sec-status-danger {
+        color: #b91c1c;
+        background: #fee2e2;
+        border-color: #fecaca;
+    }
+
+    .sec-status-info {
+        color: #0e7490;
+        background: #cffafe;
+        border-color: #a5f3fc;
+    }
+
+    .sec-status-primary {
+        color: #1d4ed8;
+        background: #dbeafe;
+        border-color: #bfdbfe;
+    }
+
+    .sec-status-secondary {
+        color: #475569;
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+    }
+
+    .sec-row-action {
+        min-height: 31px;
+        padding: 5px 10px !important;
+        border-radius: 999px !important;
+        color: #475569;
+        border-color: #dbe2ea;
+        background: #fff;
+        font-size: .64rem !important;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+        .sec-row-action:hover {
+            color: var(--sec-primary);
+            border-color: rgba(37, 99, 235, .25);
+            background: var(--sec-primary-soft);
+        }
+
+    /* ============================================================
+           EMPTY STATES
+           ============================================================ */
+
+    .sec-empty {
+        padding: 38px 18px !important;
+        text-align: center;
+        color: var(--sec-muted);
+    }
+
+    .sec-empty-icon {
+        width: 48px;
+        height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+        border-radius: 14px;
+        color: var(--sec-success);
+        background: var(--sec-success-soft);
+        font-size: 1rem;
+    }
+
+    .sec-empty-title {
+        display: block;
+        color: var(--sec-dark);
+        font-size: .76rem;
+        font-weight: 750;
+    }
+
+    .sec-empty-text {
+        display: block;
+        margin-top: 3px;
+        color: var(--sec-muted);
+        font-size: .68rem;
+    }
+
+    /* ============================================================
+           DATA ISOLATION FOOTER
+           ============================================================ */
+
+    .sec-data-note {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-top: 18px;
+        padding: 12px 14px;
+        border: 1px solid #e5eaf0;
+        border-radius: 13px;
+        background: linear-gradient(135deg, #f8fafc, #ffffff);
+    }
+
+    .sec-data-note-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
         min-width: 0;
     }
 
-    .card-val {
-        font-size: clamp(0.95rem, 1.6vw, 1.25rem);
-        font-weight: 700;
-        margin: 0;
-        line-height: 1.25;
+    .sec-data-note-icon {
+        color: var(--sec-success);
+        font-size: .82rem;
+        margin-top: 2px;
+    }
+
+    .sec-data-note-text {
+        color: var(--sec-muted);
+        font-size: .66rem;
+        line-height: 1.45;
+    }
+
+    .sec-data-note-title {
+        color: var(--sec-dark);
+        font-weight: 800;
+    }
+
+    .sec-report-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--sec-primary);
+        font-size: .68rem;
+        font-weight: 800;
+        text-decoration: none;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
-    .card-label {
-        font-size: 0.72rem;
-        font-weight: 500;
-        opacity: 0.95;
-        margin-top: 3px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Card Background Colors */
-    .bg-kpi-blue {
-        background-color: #3b82f6;
-    }
-
-    .bg-kpi-indigo {
-        background-color: #6366f1;
-    }
-
-    .bg-kpi-purple {
-        background-color: #a855f7;
-    }
-
-    .bg-kpi-teal-dark {
-        background-color: #0d9488;
-    }
-
-    .bg-kpi-green {
-        background-color: #10b981;
-    }
-
-    .bg-kpi-slate {
-        background-color: #475569;
-    }
-
-    .bg-kpi-violet {
-        background-color: #8b5cf6;
-    }
-
-    .bg-kpi-teal-light {
-        background-color: #14b8a6;
-    }
-
-    /* Summary Modules (Grid Tables) */
-    .summary-module {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 8px;
-        margin-bottom: 2rem;
-        text-align: left;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-    }
-
-    .summary-header {
-        background-color: #fafafa;
-        border-bottom: 1px solid var(--border-warm);
-        padding: 0.75rem 1.25rem;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #666666;
-    }
-
-    .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        border-collapse: collapse;
-    }
-
-    @@media (max-width: 1000px) {
-        .summary-grid {
-            grid-template-columns: repeat(3, 1fr);
+        .sec-report-link:hover {
+            color: var(--sec-primary-dark);
         }
+
+    /* ============================================================
+           MODAL
+           ============================================================ */
+
+    .sec-modal .modal-dialog {
+        max-width: 520px;
     }
 
-    @@media (max-width: 600px) {
-        .summary-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
+    .sec-modal .modal-content {
+        overflow: hidden;
+        border: 0;
+        border-radius: 20px;
+        box-shadow: 0 30px 70px rgba(15, 23, 42, .20);
     }
 
-    .summary-box {
-        text-align: center;
-        padding: 1.25rem 0.5rem;
-        border-right: 1px solid var(--border-warm);
+    .sec-modal .modal-header {
+        position: relative;
+        padding: 19px 22px;
+        border: 0;
+        background: radial-gradient(circle at 100% 0%, rgba(37, 99, 235, .09), transparent 30%), #f8fafc;
+    }
+
+    .sec-modal-title-wrap {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sec-modal-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
+        border-radius: 11px;
+        color: var(--sec-primary);
+        background: var(--sec-primary-soft);
     }
 
-    .summary-box:last-child {
-        border-right: none;
+    .sec-modal .modal-title {
+        color: var(--sec-dark);
+        font-size: .94rem;
+        font-weight: 800;
     }
 
-    .summary-title {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #3b82f6;
-        margin-bottom: 0.5rem;
+    .sec-modal .modal-body {
+        padding: 22px;
     }
 
-    .summary-title.pending {
-        color: #ef4444;
+    .sec-modal .form-label {
+        margin-bottom: 7px;
+        color: #475569;
+        font-size: .69rem;
+        font-weight: 800;
     }
 
-    .summary-title.success {
-        color: #10b981;
+    .sec-modal .form-control,
+    .sec-modal .form-select {
+        min-height: 44px;
+        border: 1px solid #dbe2ea;
+        border-radius: 11px;
+        color: var(--sec-dark);
+        background-color: #fff;
+        font-size: .77rem;
+        box-shadow: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
     }
 
-    .summary-val {
+        .sec-modal .form-control:focus,
+        .sec-modal .form-select:focus {
+            border-color: rgba(37, 99, 235, .45);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .08);
+        }
+
+        .sec-modal .form-control[readonly] {
+            background: #f8fafc;
+            color: #475569;
+        }
+
+    .sec-modal-info {
+        display: flex;
+        gap: 9px;
+        padding: 12px 13px;
+        border: 1px solid #bae6fd;
+        border-radius: 11px;
+        background: #f0f9ff;
+        color: #0369a1;
+        font-size: .68rem;
+        line-height: 1.5;
+    }
+
+        .sec-modal-info i {
+            margin-top: 2px;
+        }
+
+    .sec-modal .modal-footer {
+        padding: 14px 22px;
+        border-top: 1px solid #eef2f7;
+        background: #f8fafc;
+    }
+
+    .sec-modal-btn {
+        min-height: 39px;
+        padding: 8px 15px;
+        border-radius: 10px !important;
+        font-size: .72rem;
+        font-weight: 750;
+    }
+
+    /* ============================================================
+           ANIMATIONS
+           ============================================================ */
+
+    @@keyframes secFadeUp {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    @@keyframes secProgressGrow {
+        from
+
+    {
+        width: 0 !important;
+    }
+
+    }
+
+    @@keyframes secProgressShine {
+        0%
+
+    {
+        transform: translateX(-120%);
+    }
+
+    45%,
+    100% {
+        transform: translateX(120%);
+    }
+
+    }
+
+    /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+
+    @@media (max-width: 1199.98px) {
+        .sec-page-intro
+
+    {
+        padding: 20px;
+    }
+
+    .sec-target-body {
+        padding: 20px;
+    }
+
+    .sec-kpi-card {
+        padding: 18px;
+    }
+
+    }
+
+    @@media (max-width: 991.98px) {
+        .sec-page-intro
+
+    {
+        border-radius: 18px;
+    }
+
+    .sec-header-actions {
+        width: 100%;
+    }
+
+    .sec-action-group {
+        width: 100%;
+    }
+
+    .sec-user-chip {
+        flex: 1 1 auto;
+    }
+
+    .sec-action {
+        flex: 0 1 auto;
+    }
+
+    .sec-panel {
+        border-radius: 17px;
+    }
+
+    .sec-data-note {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-cockpit
+
+    {
+        font-size: 14px;
+    }
+
+    .sec-page-intro {
+        padding: 17px;
+        border-radius: 16px;
+    }
+
+    .sec-title-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+    }
+
+    .sec-page-title {
         font-size: 1.15rem;
-        font-weight: 700;
-        color: #333333;
     }
 
-    .detail-card {
-        background: #ffffff;
-        border: 1px solid var(--border-warm);
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        padding: 1.5rem;
-        height: 100%;
-        text-align: left;
+    .sec-page-subtitle {
+        font-size: .72rem;
     }
-</style>
 
-<!-- Header & Context Area -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 text-start">
-    <div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-color);">Dashboard</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Sales Executive</li>
-            </ol>
-        </nav>
-    </div>
-    
-    <div class="d-flex flex-column flex-sm-row gap-2">
-        <div class="px-3 py-2 bg-white border rounded-3 text-start small shadow-sm">
-            <div class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Active Role</div>
-            <div class="fw-bold text-dark"><i class="fa-solid fa-user-tie me-1.5 text-primary"></i>@Model.CurrentUserRole</div>
+    .sec-header-actions {
+        gap: 8px !important;
+    }
+
+    .sec-user-chip {
+        width: 100%;
+    }
+
+    .sec-action-group {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    .sec-action {
+        width: 100%;
+    }
+
+    .sec-target-body {
+        padding: 18px;
+    }
+
+    .sec-target-header {
+        align-items: flex-start !important;
+        flex-direction: column;
+    }
+
+    .sec-target-percent {
+        align-self: flex-start;
+    }
+
+    .sec-target-values {
+        gap: 8px;
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .sec-kpi-value {
+        font-size: 1.45rem;
+    }
+
+    .sec-panel-head {
+        padding: 17px 16px 14px;
+    }
+
+    .sec-panel-body {
+        padding: 0 16px 16px;
+    }
+
+    .sec-panel-title {
+        font-size: .82rem;
+    }
+
+    .sec-panel-subtitle {
+        font-size: .66rem;
+    }
+
+    .sec-table {
+        min-width: 640px;
+    }
+
+        .sec-table th,
+        .sec-table td {
+            padding-left: 9px;
+            padding-right: 9px;
+        }
+
+            .sec-table th:first-child,
+            .sec-table td:first-child {
+                padding-left: 11px;
+            }
+
+    .sec-data-note {
+        padding: 11px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .sec-action-group
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .sec-user-chip {
+        padding: 8px 10px;
+    }
+
+    .sec-user-region {
+        display: none;
+    }
+
+    .sec-target-metric {
+        font-size: .72rem;
+    }
+
+    .sec-kpi-card {
+        padding: 16px;
+        border-radius: 15px;
+    }
+
+    .sec-kpi-icon {
+        width: 35px;
+        height: 35px;
+    }
+
+    .sec-panel-head {
+        flex-direction: column;
+    }
+
+    .sec-count-badge {
+        align-self: flex-start;
+    }
+
+    .sec-panel-head .sec-panel-link {
+        align-self: flex-start;
+    }
+
+    .sec-modal .modal-body {
+        padding: 18px;
+    }
+
+    .sec-modal .modal-footer {
+        padding: 12px 18px;
+    }
+
+    }
+
+    /* ============================================================
+           REDUCED MOTION
+           ============================================================ */
+
+    @@media (prefers-reduced-motion: reduce) {
+        .sales-cockpit *, .sales-cockpit *::before, .sales-cockpit *::after
+
+    {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+
+    }
+
+    /* ============================================================
+           PRINT
+           ============================================================ */
+
+    @@media print {
+        .sales-cockpit
+
+    {
+        background: #fff !important;
+    }
+
+    .sec-action-group,
+    .sec-panel-link,
+    .sec-row-action,
+    .sec-report-link {
+        display: none !important;
+    }
+
+    .sec-page-intro,
+    .sec-target-card,
+    .sec-kpi-card,
+    .sec-panel {
+        box-shadow: none !important;
+    }
+
+    .sec-table-wrap {
+        overflow: visible !important;
+    }
+
+    .sec-table {
+        min-width: 0 !important;
+    }
+
+    }</style>
+
+<div class="sales-cockpit">
+    <div class="container-fluid py-4 text-start">
+
+        <!-- ======================================================
+             SUCCESS MESSAGE
+             ====================================================== -->
+@if (TempData["SuccessMessage"] != null)
+{
+            <div class="alert sec-success-alert alert-dismissible fade show mb-4" role="alert">
+                <span class="sec-success-icon">
+                    <i class="fa-solid fa-circle-check"></i>
+                </span>
+
+                <span class="small fw-semibold flex-grow-1">
+                    @TempData["SuccessMessage"]
+                </span>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+            </div>
+}
+
+        <!-- ======================================================
+             PAGE HEADER
+             ====================================================== -->
+        <div class="sec-page-intro">
+
+            <div class="d-flex flex-column flex-xl-row justify-content-between align-items-start gap-4">
+
+                <div class="sec-title-wrap d-flex align-items-start gap-3">
+
+                    <div class="sec-title-icon">
+                        <i class="fa-solid fa-gauge-high"></i>
+                    </div>
+
+                    <div>
+                        <h1 class="sec-page-title">
+                            Sales Executive Dashboard
+                        </h1>
+
+                        <p class="sec-page-subtitle">
+                            Monitor your sales pipeline, quotations, follow-ups and invoice performance.
+                        </p>
+
+                        <div class="sec-breadcrumb">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item">
+                                        <a href="/SalesDashboard"
+                                           class="text-decoration-none">
+                                            Sales Management
+                                        </a>
+                                    </li>
+
+                                    <li class="breadcrumb-item active"
+                                        aria-current="page">
+                                        Sales Executive
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="sec-header-actions d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100 w-xl-auto">
+
+                    <div class="sec-user-chip">
+                        <span class="sec-user-avatar">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </span>
+
+                        <div class="flex-grow-1">
+                            <div class="sec-user-name">
+                                @ViewBag.ExecutiveName
+                            </div>
+
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                <span class="sec-code-badge">
+                                    @ViewBag.ExecCode
+                                </span>
+
+                                <span class="sec-user-region">
+                                    @ViewBag.Region
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sec-action-group d-flex align-items-center gap-2">
+
+                        <a href="/SalesManagement/Leads"
+                           class="btn sec-action sec-action-outline">
+                            <i class="fa-solid fa-plus me-1"></i>
+                            Add Lead
+                        </a>
+
+                        <a href="/SalesManagement/Quotations"
+                           class="btn sec-action sec-action-primary">
+                            <i class="fa-solid fa-file-circle-plus me-1"></i>
+                            Create Quotation
+                        </a>
+
+                    </div>
+
+                </div>
+            </div>
         </div>
-        <div class="px-3 py-2 bg-white border rounded-3 text-start small shadow-sm">
-            <div class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Current Scope</div>
-            <div class="fw-bold text-dark"><i class="fa-solid fa-building me-1.5 text-info"></i>@Model.CurrentCompany</div>
+
+        <!-- ======================================================
+             MONTHLY TARGET
+             ====================================================== -->
+        <div class="sec-target-card mb-4">
+
+            <div class="sec-target-body">
+
+                <div class="sec-target-header d-flex justify-content-between align-items-center gap-3 mb-3">
+
+                    <div>
+                        <div class="sec-section-eyebrow">
+                            <i class="fa-solid fa-bullseye text-primary"></i>
+                            Monthly Sales Quota
+                        </div>
+
+                        <p class="sec-target-description">
+                            Tracking individual verified billings against monthly target
+                        </p>
+                    </div>
+
+                    <span class="sec-target-percent
+                        @(targetPct >= 100
+                                                      ? "bg-success-subtle text-success"
+                                                      : targetPct >= 75
+                                                          ? "bg-primary-subtle text-primary"
+                                                          : "bg-warning-subtle text-warning")">
+
+                        <i class="fa-solid fa-chart-simple me-1"></i>
+                        @targetPct% Achieved
+                    </span>
+
+                </div>
+
+                <div class="progress sec-progress-track mb-3"
+                     role="progressbar"
+                     aria-valuenow="@targetPct"
+                     aria-valuemin="0"
+                     aria-valuemax="100">
+
+                    <div class="progress-bar sec-progress-bar
+                        @(targetPct >= 100 ? "sec-progress-success" : "")"
+                         style="width: @Math.Min(100, Math.Max(5, targetPct))%;">
+                    </div>
+                </div>
+
+                <div class="sec-target-values d-flex justify-content-between align-items-center">
+
+                    <span class="sec-target-metric text-dark">
+                        <i class="fa-solid fa-circle-check text-success"></i>
+                        Achieved:
+                        <span>
+                            ₹@achievedRev.ToString("N0", inCulture)
+                        </span>
+                    </span>
+
+                    <span class="sec-target-metric text-muted">
+                        <i class="fa-solid fa-flag-checkered text-primary"></i>
+                        Target:
+                        <span>
+                            ₹@targetRev.ToString("N0", inCulture)
+                        </span>
+                    </span>
+
+                </div>
+
+            </div>
         </div>
+
+        <!-- ======================================================
+             KPI SNAPSHOT
+             ====================================================== -->
+        <div class="row g-3 mb-4">
+
+            <!-- Open Opportunities -->
+            <div class="col-12 col-md-4">
+                <div class="sec-kpi-card sec-kpi-blue">
+
+                    <div class="sec-kpi-top">
+                        <p class="sec-kpi-label">
+                            Open Opportunities
+                        </p>
+
+                        <span class="sec-kpi-icon">
+                            <i class="fa-solid fa-filter-circle-dollar"></i>
+                        </span>
+                    </div>
+
+                    <h2 class="sec-kpi-value">
+                        @ViewBag.ActiveLeadsCount
+                    </h2>
+
+                    <span class="sec-kpi-description">
+                        Active customer deals in funnel
+                    </span>
+
+                </div>
+            </div>
+
+            <!-- Pipeline Value -->
+            <div class="col-12 col-md-4">
+                <div class="sec-kpi-card sec-kpi-green">
+
+                    <div class="sec-kpi-top">
+                        <p class="sec-kpi-label">
+                            Active Pipeline Value
+                        </p>
+
+                        <span class="sec-kpi-icon">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </span>
+                    </div>
+
+                    <h2 class="sec-kpi-value">
+                        ₹@pipelineVal.ToString("N0", inCulture)
+                    </h2>
+
+                    <span class="sec-kpi-description">
+                        Total estimated deal value
+                    </span>
+
+                </div>
+            </div>
+
+            <!-- Pending Approvals -->
+            <div class="col-12 col-md-4">
+                <div class="sec-kpi-card sec-kpi-orange">
+
+                    <div class="sec-kpi-top">
+                        <p class="sec-kpi-label">
+                            Pending Approvals
+                        </p>
+
+                        <span class="sec-kpi-icon">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </span>
+                    </div>
+
+                    <h2 class="sec-kpi-value">
+                        @pendingQuotations.Count
+                    </h2>
+
+                    <span class="sec-kpi-description">
+                        Quotations awaiting manager clearance
+                    </span>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ======================================================
+             MAIN EXECUTION AREA
+             ====================================================== -->
+        <div class="row g-4">
+
+            <!-- ==================================================
+                 LEFT COLUMN
+                 ================================================== -->
+            <div class="col-12 col-xl-6">
+
+                <!-- ==============================================
+                     PENDING QUOTATIONS
+                     ============================================== -->
+                <div class="sec-panel mb-4">
+
+                    <div class="sec-panel-head">
+
+                        <div class="sec-panel-title-row">
+
+                            <span class="sec-panel-icon sec-panel-icon-warning">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </span>
+
+                            <div>
+                                <h3 class="sec-panel-title">
+                                    Pending Manager Approvals
+                                </h3>
+
+                                <p class="sec-panel-subtitle">
+                                    Quotations requiring discount or policy exception sign-off.
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <span class="sec-count-badge bg-warning-subtle text-warning">
+                            @pendingQuotations.Count Awaiting
+                        </span>
+
+                    </div>
+
+                    <div class="sec-panel-body">
+
+                        <div class="sec-table-wrap">
+
+                            <table class="table sec-table align-middle">
+
+                                <thead>
+                                    <tr>
+                                        <th>Quote #</th>
+                                        <th>Customer</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    @if (pendingQuotations.Any())
+                                    {
+                                        @foreach (var q in pendingQuotations)
+                                        {
+                                            <tr>
+
+                                                <td>
+                                                    <div class="sec-document-cell">
+
+                                                        <span class="sec-document-icon">
+                                                            <i class="fa-solid fa-file-lines"></i>
+                                                        </span>
+
+                                                        <span class="sec-document-number">
+                                                            @q.QuotationNumber
+                                                        </span>
+
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <span class="sec-customer-name">
+                                                        @q.CustomerName
+                                                    </span>
+                                                </td>
+
+                                                <td class="text-end">
+                                                    <span class="sec-amount">
+                                                        ₹@q.TotalAmount.ToString("N0", inCulture)
+                                                    </span>
+                                                </td>
+
+                                                <td class="text-center">
+
+                                                    <span class="sec-status sec-status-warning"
+                                                          title="Cannot be dispatched to client until manager signs off">
+
+                                                        <i class="fa-solid fa-lock"></i>
+                                                        Pending Review
+
+                                                    </span>
+
+                                                </td>
+
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="sec-empty">
+
+                                                <span class="sec-empty-icon">
+                                                    <i class="fa-solid fa-circle-check"></i>
+                                                </span>
+
+                                                <span class="sec-empty-title">
+                                                    No Pending Approvals
+                                                </span>
+
+                                                <span class="sec-empty-text">
+                                                    All quotations are approved or cleared.
+                                                </span>
+
+                                            </td>
+                                        </tr>
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ==============================================
+                     TODAY'S FOLLOW UPS
+                     ============================================== -->
+                <div class="sec-panel">
+
+                    <div class="sec-panel-head">
+
+                        <div class="sec-panel-title-row">
+
+                            <span class="sec-panel-icon sec-panel-icon-primary">
+                                <i class="fa-solid fa-list-check"></i>
+                            </span>
+
+                            <div>
+                                <h3 class="sec-panel-title">
+                                    Today's Priority Follow-Ups
+                                </h3>
+
+                                <p class="sec-panel-subtitle">
+                                    High-priority leads currently in negotiation or qualification.
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <a href="/SalesManagement/Leads"
+                           class="sec-panel-link">
+                            View All Leads
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                    <div class="sec-panel-body">
+
+                        <div class="sec-table-wrap">
+
+                            <table class="table sec-table align-middle">
+
+                                <thead>
+                                    <tr>
+                                        <th>Lead Contact</th>
+                                        <th>Company</th>
+                                        <th>Stage</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    @if (todaysFollowUps.Any())
+                                    {
+                                        @foreach (var lead in todaysFollowUps)
+                                        {
+                                            <tr>
+
+                                                <td>
+
+                                                    <div class="sec-customer-name">
+                                                        @(
+                                                                                                        !string.IsNullOrWhiteSpace(lead.ContactName)
+                                                                                                        ? lead.ContactName
+                                                                                                        : (!string.IsNullOrWhiteSpace(lead.LeadTitle)
+                                                                                                        ? lead.LeadTitle
+                                                                                                        : "Lead #" + lead.Id)
+                                                                                                        )
+                                                    </div>
+
+                                                    <div class="sec-secondary-code">
+                                                        @lead.LeadCode
+                                                    </div>
+
+                                                </td>
+
+                                                <td>
+                                                    <span class="text-secondary fw-semibold">
+                                                        @(
+                                                                                                        !string.IsNullOrWhiteSpace(lead.Company)
+                                                                                                        ? lead.Company
+                                                                                                        : lead.CustomerName
+                                                                                                        )
+                                                    </span>
+                                                </td>
+
+                                                <td>
+
+                                                    <span class="sec-status
+                                                                @(lead.Stage == "Negotiation"
+                                                                                                                      ? "sec-status-primary"
+                                                                                                                      : lead.Stage == "Qualified"
+                                                                                                                          ? "sec-status-info"
+                                                                                                                          : "sec-status-secondary")">
+
+                                                @if (lead.Stage == "Negotiation")
+                                                        {
+                                                            <i class="fa-solid fa-handshake"></i>
+                                                        }
+                                                        else if (lead.Stage == "Qualified")
+                                                        {
+                                                            <i class="fa-solid fa-circle-check"></i>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="fa-solid fa-circle"></i>
+                                                        }
+
+                                                        @lead.Stage
+
+                                                    </span>
+
+                                                </td>
+
+                                                <td class="text-center">
+
+                                                    <button type="button"
+                                                            class="btn sec-row-action"
+                                                            onclick="openStageModal(
+                                                                        @lead.Id,
+                                                                        '@Html.Raw(lead.LeadCode)',
+                                                                        '@Html.Raw(lead.ContactName ?? lead.CustomerName)',
+                                                                        '@lead.Stage'
+                                                                    )">
+
+                                                        <i class="fa-solid fa-pen-to-square me-1"></i>
+                                                        Update Stage
+
+                                                    </button>
+
+                                                </td>
+
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="sec-empty">
+
+                                                <span class="sec-empty-icon">
+                                                    <i class="fa-solid fa-calendar-check"></i>
+                                                </span>
+
+                                                <span class="sec-empty-title">
+                                                    No Follow-Ups Scheduled
+                                                </span>
+
+                                                <span class="sec-empty-text">
+                                                    No active follow-ups are scheduled for today.
+                                                </span>
+
+                                            </td>
+                                        </tr>
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ==================================================
+                 RIGHT COLUMN
+                 ================================================== -->
+            <div class="col-12 col-xl-6">
+
+                <div class="sec-panel">
+
+                    <div class="sec-panel-head">
+
+                        <div class="sec-panel-title-row">
+
+                            <span class="sec-panel-icon sec-panel-icon-success">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                            </span>
+
+                            <div>
+                                <h3 class="sec-panel-title">
+                                    My Recent Invoices
+                                </h3>
+
+                                <p class="sec-panel-subtitle">
+                                    Strictly filtered to transactions created by your account.
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <a href="/SalesManagement/Invoices"
+                           class="sec-panel-link">
+                            All Invoices
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                    <div class="sec-panel-body">
+
+                        <div class="sec-table-wrap">
+
+                            <table class="table sec-table align-middle">
+
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    @if (recentInvoices.Any())
+                                    {
+                                        @foreach (var inv in recentInvoices)
+                                        {
+                                            <tr>
+
+                                                <td>
+
+                                                    <div class="sec-document-cell">
+
+                                                        <span class="sec-document-icon">
+                                                            <i class="fa-solid fa-file-invoice"></i>
+                                                        </span>
+
+                                                        <span class="sec-document-number">
+                                                            @inv.InvoiceNumber
+                                                        </span>
+
+                                                    </div>
+
+                                                </td>
+
+                                                <td>
+                                                    <span class="sec-customer-name">
+                                                        @inv.CustomerName
+                                                    </span>
+                                                </td>
+
+                                                <td>
+                                                    <span class="text-muted fw-semibold">
+                                                        @inv.InvoiceDate.ToString("dd MMM yyyy")
+                                                    </span>
+                                                </td>
+
+                                                <td class="text-end">
+                                                    <span class="sec-amount">
+                                                        ₹@inv.TotalAmount.ToString("N0", inCulture)
+                                                    </span>
+                                                </td>
+
+                                                <td class="text-center">
+
+                                                    <span class="sec-status
+                                                                @(inv.Status == "Paid"
+                                                                                                                      ? "sec-status-success"
+                                                                                                                      : inv.Status == "Overdue"
+                                                                                                                          ? "sec-status-danger"
+                                                                                                                          : "sec-status-warning")">
+
+                                                @if (inv.Status == "Paid")
+                                                        {
+                                                            <i class="fa-solid fa-circle-check"></i>
+                                                        }
+                                                        else if (inv.Status == "Overdue")
+                                                        {
+                                                            <i class="fa-solid fa-circle-exclamation"></i>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="fa-solid fa-clock"></i>
+                                                        }
+
+                                                        @inv.Status
+
+                                                    </span>
+
+                                                </td>
+
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="sec-empty">
+
+                                                <span class="sec-empty-icon">
+                                                    <i class="fa-solid fa-file-circle-check"></i>
+                                                </span>
+
+                                                <span class="sec-empty-title">
+                                                    No Recent Invoices
+                                                </span>
+
+                                                <span class="sec-empty-text">
+                                                    No sales invoices have been issued by your account yet.
+                                                </span>
+
+                                            </td>
+                                        </tr>
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                        <!-- Data Isolation -->
+                        <div class="sec-data-note">
+
+                            <div class="sec-data-note-content">
+
+                                <i class="fa-solid fa-shield-halved sec-data-note-icon"></i>
+
+                                <div class="sec-data-note-text">
+
+                                    <span class="sec-data-note-title">
+                                        Data Isolation Guaranteed:
+                                    </span>
+
+                                    You are viewing only records assigned to your executive code.
+
+                                </div>
+
+                            </div>
+
+                            <a href="/SalesReports/Summary"
+                               class="sec-report-link">
+
+                                View Reports
+                                <i class="fa-solid fa-arrow-right"></i>
+
+                            </a>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 </div>
 
-<!-- 4 KPI Cards Grid -->
-<div class="kpi-row">
-    <!-- Total Revenue -->
-    <div class="screenshot-card bg-kpi-blue">
-        <div class="card-left-block">
-            <span class="card-left-month">@activeMonthName.Split(' ')[0]</span>
-            <span class="card-left-year">@activeMonthName.Split(' ')[1]</span>
+<!-- ============================================================
+     MODAL: UPDATE LEAD STAGE
+     ============================================================ -->
+
+<div class="modal fade sec-modal"
+     id="updateStageModal"
+     tabindex="-1"
+     aria-labelledby="updateStageModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form method="post" asp-action="UpdateLeadStage">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       id="modalLeadId"
+                       name="leadId" />
+
+                <!-- Modal Header -->
+                <div class="modal-header">
+
+                    <div class="sec-modal-title-wrap">
+
+                        <span class="sec-modal-icon">
+                            <i class="fa-solid fa-arrows-spin"></i>
+                        </span>
+
+                        <div>
+                            <h5 class="modal-title"
+                                id="updateStageModalLabel">
+                                Update Lead Pipeline Stage
+                            </h5>
+
+                            <small class="text-muted">
+                                Manage the current opportunity stage
+                            </small>
+                        </div>
+
+                    </div>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body">
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Lead / Prospect
+                        </label>
+
+                        <input type="text"
+                               id="modalLeadName"
+                               class="form-control"
+                               readonly />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Pipeline Funnel Stage
+                        </label>
+
+                        <select id="modalLeadStage"
+                                name="stage"
+                                class="form-select"
+                                required>
+
+                            <option value="New">
+                                New
+                            </option>
+
+                            <option value="Contacted">
+                                Contacted
+                            </option>
+
+                            <option value="Qualified">
+                                Qualified
+                            </option>
+
+                            <option value="Quotation Sent">
+                                Quotation Sent
+                            </option>
+
+                            <option value="Negotiation">
+                                Negotiation
+                            </option>
+
+                            <option value="Closed Won">
+                                Closed Won
+                            </option>
+
+                            <option value="Closed Lost">
+                                Closed Lost
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="sec-modal-info">
+
+                        <i class="fa-solid fa-circle-info"></i>
+
+                        <span>
+                            Updating to "Closed Won" or "Closed Lost" will update deal probability and archive from the active pipeline.
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary sec-modal-btn"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary sec-modal-btn px-4">
+
+                        <i class="fa-solid fa-check me-1"></i>
+                        Save Changes
+
+                    </button>
+
+                </div>
+
+            </form>
+
         </div>
-        <div class="card-right-block">
-            <h4 class="card-val">₹@Model.TotalSalesRevenue.ToString("N0", inCulture)</h4>
-            <span class="card-label">My Sales Revenue</span>
-        </div>
+
     </div>
 
-    <!-- Total Invoices -->
-    <div class="screenshot-card bg-kpi-indigo">
-        <div class="card-left-block">
-            <i class="fa-solid fa-file-invoice card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@Model.TotalInvoicesCount</h4>
-            <span class="card-label">My Invoices Issued</span>
-        </div>
-    </div>
-
-    <!-- Total Customers -->
-    <div class="screenshot-card bg-kpi-green">
-        <div class="card-left-block">
-            <i class="fa-solid fa-users card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@Model.TotalCustomers</h4>
-            <span class="card-label">My Clients Assigned</span>
-        </div>
-    </div>
-
-    <!-- Stock Alerts -->
-    <div class="screenshot-card bg-kpi-teal-light">
-        <div class="card-left-block">
-            <i class="fa-solid fa-boxes-stacked card-left-icon"></i>
-        </div>
-        <div class="card-right-block">
-            <h4 class="card-val">@Model.TotalProducts</h4>
-            <span class="card-label">Items In Stock</span>
-        </div>
-    </div>
 </div>
 
-<!-- Today's Sales Summary Portal -->
-<div class="summary-module">
-    <div class="summary-header">
-        <i class="fa-solid fa-calendar-day me-2 text-primary"></i> My Today's Invoice Summary
-    </div>
-    <div class="summary-grid">
-        <div class="summary-box">
-            <span class="summary-title">My Today's Sales</span>
-            <span class="summary-val">₹@Model.TodaySales.ToString("N0", inCulture)</span>
-        </div>
-        <div class="summary-box">
-            <span class="summary-title pending">My Today's Pending</span>
-            <span class="summary-val">₹@Model.TodaySalesPending.ToString("N0", inCulture)</span>
-        </div>
-        <div class="summary-box">
-            <span class="summary-title success">My Today's Paid</span>
-            <span class="summary-val">₹@Model.TodaySalesPaid.ToString("N0", inCulture)</span>
-        </div>
-        <div class="summary-box">
-            <span class="summary-title">Total Products Catalog</span>
-            <span class="summary-val">@Model.TotalProducts</span>
-        </div>
-        <div class="summary-box">
-            <span class="summary-title pending">Low Stock Items</span>
-            <span class="summary-val">@Model.LowStockCount</span>
-        </div>
-        <div class="summary-box">
-            <span class="summary-title pending">Out of Stock Items</span>
-            <span class="summary-val text-danger">@Model.OutOfStockCount</span>
-        </div>
-    </div>
-</div>
+<script>
+    function openStageModal(id, code, name, stage) {
 
-<!-- Details Grid -->
-<div class="row g-4 mb-5">
-    <!-- Left Column: Recent Sales Invoices -->
-    <div class="col-lg-7">
-        <div class="detail-card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-receipt me-2 text-warning"></i>My Recent Invoices</h5>
-                <a href="/Sales" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">View All</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Invoice No</th>
-                            <th>Customer</th>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.RecentSales != null && Model.RecentSales.Any())
-                        {
-                            @foreach (var sales in Model.RecentSales)
-                            {
-                                <tr>
-                                    <td class="fw-bold text-dark">@sales.TransactionNo</td>
-                                    <td>@sales.PartyName</td>
-                                    <td class="text-muted">@sales.Date.ToString("dd MMM yyyy")</td>
-                                    <td class="fw-bold">₹@sales.Amount.ToString("N0", inCulture)</td>
-                                    <td>
-                                        <span class="badge rounded-pill @(sales.Status == "Paid" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning") px-2.5 py-1">
-                                            @sales.Status
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No sales invoices registered yet.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+        document.getElementById('modalLeadId').value = id;
 
-    <!-- Right Column: Top Products -->
-    <div class="col-lg-5">
-        <div class="detail-card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-fire me-2 text-danger"></i>My Top Sold Products</h5>
-                <a href="/Products" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">Products</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Product</th>
-                            <th>Sold Qty</th>
-                            <th>Stock</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.TopProducts != null && Model.TopProducts.Any())
-                        {
-                            @foreach (var prod in Model.TopProducts)
-                            {
-                                <tr>
-                                    <td class="fw-bold text-dark">@prod.ProductName</td>
-                                    <td>@prod.SoldQty</td>
-                                    <td>@prod.StockQty</td>
-                                    <td>
-                                        <span class="badge @(prod.Status == "In Stock" ? "bg-success-subtle text-success" : prod.Status == "Low Stock" ? "bg-warning-subtle text-warning" : "bg-danger-subtle text-danger") px-2 py-1 small">
-                                            @prod.Status
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">No products catalog found.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+        document.getElementById('modalLeadName').value =
+            (code ? code + ' - ' : '') + name;
+
+        document.getElementById('modalLeadStage').value = stage;
+
+        var modalElement =
+            document.getElementById('updateStageModal');
+
+        var myModal =
+            new bootstrap.Modal(modalElement);
+
+        myModal.show();
+    }
+</script>

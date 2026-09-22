@@ -1,56 +1,1420 @@
+```cshtml
+@model IEnumerable<ERP_System.Models.SalesCoordinatorProfile>
+
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Sales Coordinators";
+    var unassignedExecutives = ViewBag.UnassignedExecutives as List<ERP_System.Models.SalesExecutiveProfile> ?? new List<ERP_System.Models.SalesExecutiveProfile>();
 }
 
-<div class="container-fluid py-4 text-start">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-tie text-primary me-2"></i>Sales Coordinators</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="/SalesDashboard" class="text-decoration-none">Sales Management</a></li>
-                    <li class="breadcrumb-item">Sales Team</li>
-                    <li class="breadcrumb-item active" aria-current="page">Coordinators</li>
-                </ol>
-            </nav>
-        </div>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm"><i class="fa-solid fa-plus me-1.5"></i>Add Coordinator</button>
-    </div>
+<style>
+    .sales-coordinator-page {
+        --sc-primary: #2563eb;
+        --sc-primary-dark: #1d4ed8;
+        --sc-primary-soft: #eff6ff;
+        --sc-success: #16a34a;
+        --sc-success-soft: #f0fdf4;
+        --sc-warning: #d97706;
+        --sc-warning-soft: #fffbeb;
+        --sc-danger: #dc2626;
+        --sc-info: #0891b2;
+        --sc-text: #172033;
+        --sc-muted: #64748b;
+        --sc-border: #e5eaf1;
+        --sc-surface: #ffffff;
+        --sc-soft: #f8fafc;
+        --sc-shadow: 0 10px 30px rgba(15, 23, 42, .055);
+        --sc-shadow-hover: 0 16px 38px rgba(15, 23, 42, .09);
+        color: var(--sc-text);
+    }
 
-    <!-- Grid Table -->
-    <div class="bg-white border rounded-3 p-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th>Cord ID</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Assigned Executives</th>
-                        <th>Primary Territory</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold text-dark">SC-301</td>
-                        <td>Karan Johar</td>
-                        <td>karan@erp.com</td>
-                        <td>EX-104, EX-107</td>
-                        <td>North Zone</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span></td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold text-dark">SC-302</td>
-                        <td>Shalini Sen</td>
-                        <td>shalini@erp.com</td>
-                        <td>EX-105, EX-106</td>
-                        <td>West & South Zone</td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span></td>
-                    </tr>
-                </tbody>
-            </table>
+        .sales-coordinator-page * {
+            box-sizing: border-box;
+        }
+
+        .sales-coordinator-page .page-shell {
+            padding: 1.5rem 0 2rem;
+        }
+
+        /* ---------------------------------------------------------
+           HERO
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .coordinator-hero {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 52%, #f3f7ff 100%);
+            border: 1px solid var(--sc-border);
+            border-radius: 20px;
+            padding: 1.45rem 1.55rem;
+            margin-bottom: 1.35rem;
+            box-shadow: var(--sc-shadow);
+        }
+
+            .sales-coordinator-page .coordinator-hero::before {
+                content: "";
+                position: absolute;
+                width: 220px;
+                height: 220px;
+                right: -90px;
+                top: -120px;
+                border-radius: 50%;
+                background: rgba(37, 99, 235, .055);
+                pointer-events: none;
+            }
+
+            .sales-coordinator-page .coordinator-hero::after {
+                content: "";
+                position: absolute;
+                width: 150px;
+                height: 150px;
+                right: 100px;
+                bottom: -120px;
+                border-radius: 50%;
+                background: rgba(14, 165, 233, .035);
+                pointer-events: none;
+            }
+
+        .sales-coordinator-page .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .sales-coordinator-page .hero-icon {
+            width: 50px;
+            height: 50px;
+            flex: 0 0 50px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            background: linear-gradient(145deg, #eff6ff, #e0ecff);
+            color: var(--sc-primary);
+            font-size: 1.25rem;
+            border: 1px solid #dbeafe;
+            box-shadow: 0 7px 18px rgba(37, 99, 235, .08);
+        }
+
+        .sales-coordinator-page .hero-eyebrow {
+            color: var(--sc-primary);
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .11em;
+            text-transform: uppercase;
+            margin-bottom: .18rem;
+        }
+
+        .sales-coordinator-page .page-title {
+            color: var(--sc-text);
+            font-size: 1.45rem;
+            line-height: 1.2;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -.02em;
+        }
+
+        .sales-coordinator-page .page-subtitle {
+            color: var(--sc-muted);
+            font-size: .84rem;
+            margin: .32rem 0 0;
+            max-width: 690px;
+        }
+
+        .sales-coordinator-page .breadcrumb {
+            margin-top: .7rem;
+        }
+
+        .sales-coordinator-page .breadcrumb-item {
+            font-size: .75rem;
+        }
+
+            .sales-coordinator-page .breadcrumb-item + .breadcrumb-item::before {
+                color: #94a3b8;
+            }
+
+        .sales-coordinator-page .breadcrumb a {
+            color: #64748b;
+        }
+
+            .sales-coordinator-page .breadcrumb a:hover {
+                color: var(--sc-primary);
+            }
+
+        .sales-coordinator-page .hero-actions {
+            position: relative;
+            z-index: 2;
+        }
+
+        .sales-coordinator-page .primary-action {
+            border: 0;
+            border-radius: 12px;
+            padding: .72rem 1rem;
+            background: linear-gradient(135deg, var(--sc-primary), var(--sc-primary-dark));
+            color: #fff;
+            font-size: .82rem;
+            font-weight: 700;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, .18);
+            transition: all .2s ease;
+        }
+
+            .sales-coordinator-page .primary-action:hover {
+                color: #fff;
+                transform: translateY(-1px);
+                box-shadow: 0 12px 24px rgba(37, 99, 235, .23);
+            }
+
+        /* ---------------------------------------------------------
+           ALERTS
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .system-alert {
+            border-radius: 13px;
+            border: 1px solid transparent;
+            padding: .85rem 1rem;
+            font-size: .82rem;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, .035);
+        }
+
+        .sales-coordinator-page .success-alert {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .sales-coordinator-page .error-alert {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        /* ---------------------------------------------------------
+           KPI CARDS
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .kpi-card {
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+            background: var(--sc-surface);
+            border: 1px solid var(--sc-border);
+            border-radius: 16px;
+            padding: 1.1rem 1.15rem;
+            box-shadow: var(--sc-shadow);
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        }
+
+            .sales-coordinator-page .kpi-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--sc-shadow-hover);
+            }
+
+            .sales-coordinator-page .kpi-card::after {
+                content: "";
+                position: absolute;
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                right: -45px;
+                bottom: -55px;
+                background: rgba(37, 99, 235, .035);
+                pointer-events: none;
+            }
+
+        .sales-coordinator-page .kpi-primary {
+            border-top: 3px solid var(--sc-primary);
+        }
+
+        .sales-coordinator-page .kpi-success {
+            border-top: 3px solid var(--sc-success);
+        }
+
+        .sales-coordinator-page .kpi-warning {
+            border-top: 3px solid var(--sc-warning);
+        }
+
+        .sales-coordinator-page .kpi-label {
+            color: var(--sc-muted);
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .065em;
+            text-transform: uppercase;
+        }
+
+        .sales-coordinator-page .kpi-icon {
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 11px;
+            font-size: .95rem;
+        }
+
+        .sales-coordinator-page .kpi-primary .kpi-icon {
+            background: var(--sc-primary-soft);
+            color: var(--sc-primary);
+        }
+
+        .sales-coordinator-page .kpi-success .kpi-icon {
+            background: var(--sc-success-soft);
+            color: var(--sc-success);
+        }
+
+        .sales-coordinator-page .kpi-warning .kpi-icon {
+            background: var(--sc-warning-soft);
+            color: var(--sc-warning);
+        }
+
+        .sales-coordinator-page .kpi-value {
+            color: var(--sc-text);
+            font-size: 1.7rem;
+            line-height: 1.15;
+            font-weight: 800;
+            letter-spacing: -.035em;
+            margin: .55rem 0 .22rem;
+        }
+
+        .sales-coordinator-page .kpi-success .kpi-value {
+            color: var(--sc-success);
+        }
+
+        .sales-coordinator-page .kpi-warning .kpi-value {
+            color: var(--sc-warning);
+        }
+
+        .sales-coordinator-page .kpi-description {
+            color: var(--sc-muted);
+            font-size: .74rem;
+        }
+
+        /* ---------------------------------------------------------
+           DIRECTORY CARD
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .directory-card {
+            background: var(--sc-surface);
+            border: 1px solid var(--sc-border);
+            border-radius: 18px;
+            box-shadow: var(--sc-shadow);
+            overflow: hidden;
+        }
+
+        .sales-coordinator-page .directory-header {
+            padding: 1.1rem 1.2rem;
+            border-bottom: 1px solid var(--sc-border);
+            background: linear-gradient(180deg, #ffffff, #fbfcfe);
+        }
+
+        .sales-coordinator-page .directory-title {
+            color: var(--sc-text);
+            font-size: .92rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .sales-coordinator-page .directory-title-icon {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            background: #f1f5f9;
+            color: #475569;
+            margin-right: .55rem;
+        }
+
+        .sales-coordinator-page .directory-meta {
+            color: var(--sc-muted);
+            font-size: .74rem;
+        }
+
+        .sales-coordinator-page .directory-count {
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: .34rem .65rem;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+
+        /* ---------------------------------------------------------
+           TABLE
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .sales-coordinator-page .coordinator-table {
+            min-width: 1000px;
+            margin: 0;
+            color: var(--sc-text);
+            font-size: .82rem;
+        }
+
+            .sales-coordinator-page .coordinator-table thead th {
+                background: #f8fafc;
+                color: #64748b;
+                border-bottom: 1px solid var(--sc-border);
+                border-top: 0;
+                padding: .85rem .9rem;
+                font-size: .67rem;
+                font-weight: 800;
+                letter-spacing: .055em;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            .sales-coordinator-page .coordinator-table tbody td {
+                padding: .92rem .9rem;
+                border-color: #edf1f5;
+                vertical-align: middle;
+            }
+
+            .sales-coordinator-page .coordinator-table tbody tr {
+                transition: background-color .18s ease, box-shadow .18s ease;
+            }
+
+                .sales-coordinator-page .coordinator-table tbody tr:hover {
+                    background: #fbfdff;
+                    box-shadow: inset 3px 0 0 rgba(37, 99, 235, .55);
+                }
+
+        .sales-coordinator-page .code-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 72px;
+            background: #f8fafc;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: .42rem .58rem;
+            font-size: .71rem;
+            font-weight: 800;
+            letter-spacing: .01em;
+        }
+
+        .sales-coordinator-page .person-cell {
+            min-width: 170px;
+        }
+
+        .sales-coordinator-page .person-avatar {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: linear-gradient(145deg, #eff6ff, #e0ecff);
+            color: var(--sc-primary);
+            font-size: .82rem;
+            font-weight: 800;
+            border: 1px solid #dbeafe;
+        }
+
+        .sales-coordinator-page .person-name {
+            color: var(--sc-text);
+            font-size: .82rem;
+            font-weight: 750;
+            line-height: 1.25;
+        }
+
+        .sales-coordinator-page .person-sub {
+            color: var(--sc-muted);
+            font-size: .7rem;
+            margin-top: .18rem;
+        }
+
+        .sales-coordinator-page .email-cell {
+            color: #64748b;
+            font-size: .76rem;
+            white-space: nowrap;
+        }
+
+        .sales-coordinator-page .email-icon {
+            color: #94a3b8;
+            margin-right: .35rem;
+        }
+
+        .sales-coordinator-page .territory-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            background: #f8fafc;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: .42rem .62rem;
+            font-size: .72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+            .sales-coordinator-page .territory-badge i {
+                color: var(--sc-primary);
+            }
+
+        /* ---------------------------------------------------------
+           EXECUTIVE TAGS
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .executive-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .38rem;
+            min-width: 245px;
+        }
+
+        .sales-coordinator-page .executive-tag {
+            display: inline-flex;
+            align-items: center;
+            max-width: 225px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: .34rem .42rem .34rem .55rem;
+            font-size: .7rem;
+            font-weight: 700;
+            line-height: 1.25;
+        }
+
+        .sales-coordinator-page .executive-tag-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sales-coordinator-page .unassign-button {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: .3rem;
+            padding: 0;
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            color: #dc2626;
+            font-size: .82rem;
+            line-height: 1;
+            transition: background-color .15s ease, color .15s ease;
+        }
+
+            .sales-coordinator-page .unassign-button:hover {
+                background: #fee2e2;
+                color: #b91c1c;
+            }
+
+        .sales-coordinator-page .empty-assignment {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            color: #94a3b8;
+            font-size: .72rem;
+            font-style: italic;
+        }
+
+        /* ---------------------------------------------------------
+           STATUS
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .38rem;
+            border-radius: 999px;
+            padding: .4rem .7rem;
+            font-size: .69rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+            .sales-coordinator-page .status-pill::before {
+                content: "";
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: currentColor;
+                opacity: .85;
+            }
+
+        .sales-coordinator-page .status-active {
+            background: #ecfdf3;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .sales-coordinator-page .status-inactive {
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* ---------------------------------------------------------
+           ACTION BUTTON
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .assign-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-radius: 9px;
+            padding: .46rem .72rem;
+            font-size: .72rem;
+            font-weight: 750;
+            white-space: nowrap;
+            transition: all .18s ease;
+        }
+
+            .sales-coordinator-page .assign-button:hover {
+                background: var(--sc-primary);
+                border-color: var(--sc-primary);
+                color: #fff;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 14px rgba(37, 99, 235, .16);
+            }
+
+        /* ---------------------------------------------------------
+           EMPTY STATE
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .empty-state {
+            padding: 3.4rem 1rem !important;
+        }
+
+        .sales-coordinator-page .empty-state-icon {
+            width: 58px;
+            height: 58px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 1.25rem;
+            margin-bottom: .85rem;
+        }
+
+        .sales-coordinator-page .empty-state-title {
+            color: var(--sc-text);
+            font-size: .9rem;
+            font-weight: 800;
+            margin-bottom: .25rem;
+        }
+
+        .sales-coordinator-page .empty-state-text {
+            color: var(--sc-muted);
+            font-size: .76rem;
+            margin: 0;
+        }
+
+        /* ---------------------------------------------------------
+           MODALS
+        --------------------------------------------------------- */
+
+        .sales-coordinator-page .modal-content,
+        .sales-coordinator-modal {
+            border: 1px solid var(--sc-border) !important;
+            border-radius: 17px !important;
+            overflow: hidden;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, .16) !important;
+        }
+
+        .sales-coordinator-page .modal-header {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid rgba(255,255,255,.1);
+        }
+
+        .sales-coordinator-page .modal-header-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+        }
+
+        .sales-coordinator-page .modal-title {
+            font-size: .94rem;
+            font-weight: 800;
+        }
+
+        .sales-coordinator-page .modal-body {
+            padding: 1.3rem;
+            background: #fff;
+        }
+
+        .sales-coordinator-page .modal-footer {
+            padding: .9rem 1.2rem;
+            background: #f8fafc;
+            border-top: 1px solid var(--sc-border) !important;
+        }
+
+        .sales-coordinator-page .form-label {
+            color: #334155;
+            font-size: .72rem;
+            font-weight: 800;
+            margin-bottom: .42rem;
+        }
+
+        .sales-coordinator-page .form-control,
+        .sales-coordinator-page .form-select {
+            min-height: 42px;
+            border: 1px solid #dbe2ea;
+            border-radius: 9px;
+            color: #1e293b;
+            font-size: .8rem;
+            box-shadow: none;
+            transition: border-color .16s ease, box-shadow .16s ease;
+        }
+
+            .sales-coordinator-page .form-control::placeholder {
+                color: #a0aec0;
+            }
+
+            .sales-coordinator-page .form-control:focus,
+            .sales-coordinator-page .form-select:focus {
+                border-color: #93c5fd;
+                box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .09);
+            }
+
+        .sales-coordinator-page .modal-info {
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1e40af;
+            border-radius: 10px;
+            padding: .75rem .85rem;
+            font-size: .75rem;
+        }
+
+        .sales-coordinator-page .modal-secondary-button {
+            border-radius: 9px;
+            padding: .55rem .9rem;
+            font-size: .76rem;
+            font-weight: 700;
+        }
+
+        .sales-coordinator-page .modal-primary-button {
+            border: 0;
+            border-radius: 9px;
+            padding: .55rem 1rem;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            font-size: .76rem;
+            font-weight: 750;
+            box-shadow: 0 6px 15px rgba(37, 99, 235, .16);
+        }
+
+            .sales-coordinator-page .modal-primary-button:hover {
+                color: #fff;
+                background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            }
+
+    /* ---------------------------------------------------------
+           RESPONSIVE
+        --------------------------------------------------------- */
+
+    @@media (max-width: 991.98px) {
+        .sales-coordinator-page .coordinator-hero
+
+    {
+        padding: 1.25rem;
+    }
+
+    .sales-coordinator-page .page-title {
+        font-size: 1.25rem;
+    }
+
+    .sales-coordinator-page .hero-actions {
+        width: 100%;
+    }
+
+    .sales-coordinator-page .primary-action {
+        width: 100%;
+    }
+
+    .sales-coordinator-page .directory-header {
+        align-items: flex-start !important;
+        gap: .7rem;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .sales-coordinator-page .page-shell
+
+    {
+        padding-top: 1rem;
+    }
+
+    .sales-coordinator-page .coordinator-hero {
+        border-radius: 15px;
+        padding: 1rem;
+    }
+
+    .sales-coordinator-page .hero-icon {
+        width: 43px;
+        height: 43px;
+        flex-basis: 43px;
+        border-radius: 12px;
+        font-size: 1rem;
+    }
+
+    .sales-coordinator-page .page-title {
+        font-size: 1.1rem;
+    }
+
+    .sales-coordinator-page .page-subtitle {
+        font-size: .76rem;
+    }
+
+    .sales-coordinator-page .kpi-card {
+        padding: .95rem;
+        border-radius: 14px;
+    }
+
+    .sales-coordinator-page .kpi-value {
+        font-size: 1.45rem;
+    }
+
+    .sales-coordinator-page .directory-card {
+        border-radius: 14px;
+    }
+
+    .sales-coordinator-page .directory-header {
+        padding: .95rem;
+    }
+
+    .sales-coordinator-page .directory-meta {
+        display: none;
+    }
+
+    .sales-coordinator-page .directory-count {
+        font-size: .66rem;
+    }
+
+    .sales-coordinator-page .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .sales-coordinator-page *, .sales-coordinator-page *::before, .sales-coordinator-page *::after
+
+    {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+    }
+
+    }</style>
+
+<div class="sales-coordinator-page">
+    <div class="container-fluid page-shell text-start">
+
+        <!-- Alerts -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert system-alert success-alert alert-dismissible fade show mb-3" role="alert">
+                <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert system-alert error-alert alert-dismissible fade show mb-3" role="alert">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Hero Header -->
+        <section class="coordinator-hero">
+            <div class="hero-content">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="hero-icon">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+
+                        <div>
+                            <div class="hero-eyebrow">Sales Team Management</div>
+                            <h1 class="page-title">Sales Coordinators</h1>
+                            <p class="page-subtitle">
+                                Manage regional coordination desks, executive assignments and territory ownership.
+                            </p>
+
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item">
+                                        <a href="/SalesDashboard" class="text-decoration-none">
+                                            Sales Management
+                                        </a>
+                                    </li>
+                                    <li class="breadcrumb-item text-muted">Sales Team</li>
+                                    <li class="breadcrumb-item active fw-semibold" aria-current="page">
+                                        Coordinators
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+
+                    <div class="hero-actions">
+                        <button type="button"
+                                class="btn primary-action"
+                                data-bs-toggle="modal"
+                                data-bs-target="#addCoordinatorModal">
+                            <i class="fa-solid fa-plus me-1"></i>
+                            Add Coordinator
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-4">
+
+            <div class="col-sm-6 col-xl-4">
+                <div class="kpi-card kpi-primary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="kpi-label">Total Coordinators</span>
+                        <span class="kpi-icon">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </span>
+                    </div>
+
+                    <div class="kpi-value">@Model.Count()</div>
+
+                    <div class="kpi-description">
+                        Regional territory operational leads
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-xl-4">
+                <div class="kpi-card kpi-success">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="kpi-label">Assigned Executives</span>
+                        <span class="kpi-icon">
+                            <i class="fa-solid fa-network-wired"></i>
+                        </span>
+                    </div>
+
+                    <div class="kpi-value">
+                        @Model.Sum(c => c.AssignedExecutives.Count)
+                    </div>
+
+                    <div class="kpi-description">
+                        Field reps under active coordination
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-xl-4">
+                <div class="kpi-card kpi-warning">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="kpi-label">Unassigned Executives</span>
+                        <span class="kpi-icon">
+                            <i class="fa-solid fa-user-clock"></i>
+                        </span>
+                    </div>
+
+                    <div class="kpi-value">
+                        @unassignedExecutives.Count
+                    </div>
+
+                    <div class="kpi-description">
+                        Reps awaiting coordinator mapping
+                    </div>
+                </div>
+            </div>
+
         </div>
+
+        <!-- Coordinator Directory -->
+        <section class="directory-card">
+
+            <div class="directory-header">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+
+                    <div class="d-flex align-items-center">
+                        <span class="directory-title-icon">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </span>
+
+                        <div>
+                            <h2 class="directory-title">
+                                Territory Coordination Desk
+                            </h2>
+                            <div class="directory-meta">
+                                Manage coordinator ownership and assigned sales executives
+                            </div>
+                        </div>
+                    </div>
+
+                    <span class="directory-count">
+                        @Model.Count() coordination zones
+                    </span>
+
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table coordinator-table align-middle mb-0">
+
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Coord ID</th>
+                            <th>Coordinator</th>
+                            <th>Email</th>
+                            <th style="min-width: 250px;">Assigned Executives</th>
+                            <th>Primary Territory</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center" style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var item in Model)
+                            {
+                                var badgeClass = item.Status == "Active"
+                                ? "status-active"
+                                : "status-inactive";
+
+                                <tr>
+
+                                    <!-- Coordinator ID -->
+                                    <td>
+                                        <span class="code-badge">
+                                            @item.CoordinatorCode
+                                        </span>
+                                    </td>
+
+                                    <!-- Coordinator -->
+                                    <td>
+                                        <div class="person-cell d-flex align-items-center gap-2">
+
+                                            <div class="person-avatar">
+                                                <i class="fa-solid fa-user-tie"></i>
+                                            </div>
+
+                                            <div>
+                                                <div class="person-name">
+                                                    @(item.User?.FullName ?? item.CoordinatorCode)
+                                                </div>
+
+                                                <div class="person-sub">
+                                                    @(item.User?.MobileNumber ?? "Regional Coordinator")
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </td>
+
+                                    <!-- Email -->
+                                    <td>
+                                        <div class="email-cell">
+                                            <i class="fa-regular fa-envelope email-icon"></i>
+                                            @(item.User?.Email ?? "-")
+                                        </div>
+                                    </td>
+
+                                    <!-- Assigned Executives -->
+                                    <td>
+                                        <div class="executive-list">
+
+                                            @if (item.AssignedExecutives != null && item.AssignedExecutives.Any())
+                                            {
+                                                foreach (var exec in item.AssignedExecutives)
+                                                {
+                                                    <span class="executive-tag">
+
+                                                        <span class="executive-tag-name">
+                                                            @exec.ExecCode: @(exec.User?.FullName ?? "Executive")
+                                                        </span>
+
+                                                        <form asp-action="UnassignExecutive"
+                                                              method="post"
+                                                              class="d-inline ms-1"
+                                                              onsubmit="return confirm('Unassign executive @exec.ExecCode from coordinator @item.CoordinatorCode?');">
+
+                                                            @Html.AntiForgeryToken()
+
+                                                            <input type="hidden"
+                                                                   name="executiveId"
+                                                                   value="@exec.Id" />
+
+                                                            <button type="submit"
+                                                                    class="unassign-button"
+                                                                    title="Unassign Executive"
+                                                                    aria-label="Unassign Executive">
+                                                                &times;
+                                                            </button>
+
+                                                        </form>
+
+                                                    </span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="empty-assignment">
+                                                    <i class="fa-regular fa-circle-minus"></i>
+                                                    No executives assigned yet
+                                                </span>
+                                            }
+
+                                        </div>
+                                    </td>
+
+                                    <!-- Territory -->
+                                    <td>
+                                        <span class="territory-badge">
+                                            <i class="fa-solid fa-compass"></i>
+                                            @item.PrimaryTerritory
+                                        </span>
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td class="text-center">
+                                        <span class="status-pill @badgeClass">
+                                            @item.Status
+                                        </span>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-center">
+                                        <button type="button"
+                                                class="btn assign-button"
+                                                onclick="openAssignModal('@item.Id', '@item.CoordinatorCode', '@(item.User?.FullName)')">
+
+                                            <i class="fa-solid fa-user-plus"></i>
+                                            Assign Exec
+
+                                        </button>
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center empty-state">
+
+                                    <div class="empty-state-icon">
+                                        <i class="fa-solid fa-user-tie"></i>
+                                    </div>
+
+                                    <div class="empty-state-title">
+                                        No sales coordinators configured
+                                    </div>
+
+                                    <p class="empty-state-text">
+                                        Click "Add Coordinator" above to initialize a regional coordination desk.
+                                    </p>
+
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+
+        </section>
+
     </div>
 </div>
+
+<!-- =========================================================
+     MODAL: ADD COORDINATOR
+========================================================= -->
+
+<div class="modal fade"
+     id="addCoordinatorModal"
+     tabindex="-1"
+     aria-labelledby="addCoordinatorModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form asp-action="SaveCoordinator" method="post">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="Id" value="0" />
+
+                <div class="modal-header modal-header-primary">
+
+                    <h5 class="modal-title" id="addCoordinatorModalLabel">
+                        <i class="fa-solid fa-user-shield me-2"></i>
+                        Add Sales Coordinator
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Full Name <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               name="fullName"
+                               class="form-control"
+                               placeholder="e.g. Shalini Sen"
+                               required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Email Address <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="email"
+                               name="email"
+                               class="form-control"
+                               placeholder="shalini@erp.com"
+                               required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Primary Territory <span class="text-danger">*</span>
+                        </label>
+
+                        <select name="PrimaryTerritory"
+                                class="form-select"
+                                required>
+
+                            <option value="North Zone">
+                                North Zone
+                            </option>
+
+                            <option value="West & South Zone">
+                                West & South Zone
+                            </option>
+
+                            <option value="East Zone">
+                                East Zone
+                            </option>
+
+                            <option value="Central & Western Zone">
+                                Central & Western Zone
+                            </option>
+
+                            <option value="National Accounts">
+                                National Accounts
+                            </option>
+
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label">
+                            Status
+                        </label>
+
+                        <select name="Status"
+                                class="form-select">
+
+                            <option value="Active">
+                                Active
+                            </option>
+
+                            <option value="Inactive">
+                                Inactive
+                            </option>
+
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary modal-secondary-button"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn modal-primary-button">
+                        <i class="fa-solid fa-check me-1"></i>
+                        Save Coordinator
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL: ASSIGN EXECUTIVE
+========================================================= -->
+
+<div class="modal fade"
+     id="assignExecModal"
+     tabindex="-1"
+     aria-labelledby="assignExecModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form asp-action="AssignExecutiveToCoordinator" method="post">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       id="assignCoordinatorId"
+                       name="coordinatorId"
+                       value="" />
+
+                <div class="modal-header modal-header-primary">
+
+                    <h5 class="modal-title" id="assignExecModalLabel">
+                        <i class="fa-solid fa-user-plus me-2"></i>
+                        Assign Executive to Coordinator
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Target Coordinator
+                        </label>
+
+                        <input type="text"
+                               id="assignCoordinatorName"
+                               class="form-control bg-light fw-bold"
+                               readonly />
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Select Executive to Assign
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        @if (unassignedExecutives != null && unassignedExecutives.Any())
+                        {
+                            <select name="executiveId"
+                                    class="form-select fw-semibold"
+                                    required>
+
+                                <option value="">
+                                    -- Choose Unassigned Executive --
+                                </option>
+
+                                @foreach (var exec in unassignedExecutives)
+                                {
+                                    <option value="@exec.Id">
+                                        @exec.ExecCode - @(exec.User?.FullName ?? "Executive") (@exec.Region)
+                                    </option>
+                                }
+
+                            </select>
+                        }
+                        else
+                        {
+                            <div class="modal-info">
+
+                                <i class="fa-solid fa-circle-check me-1"></i>
+
+                                All sales executives are currently assigned to coordinators.
+                                To reassign, remove an executive from their existing coordinator first.
+
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary modal-secondary-button"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn modal-primary-button"
+                            @(unassignedExecutives.Any() ? "" : "disabled")>
+                        <i class="fa-solid fa-link me-1"></i>
+                        Assign to Desk
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script>
+        function openAssignModal(coordId, coordCode, coordName) {
+
+            document.getElementById('assignCoordinatorId').value = coordId;
+
+            document.getElementById('assignCoordinatorName').value =
+                coordCode + ' - ' + (coordName || 'Coordinator');
+
+            var modalElement = document.getElementById('assignExecModal');
+
+            var modal = new bootstrap.Modal(modalElement);
+
+            modal.show();
+        }
+    </script>
+
+}
+```

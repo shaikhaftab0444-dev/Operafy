@@ -34,28 +34,38 @@ namespace ERP_System.Models
     public class SalesReturn
     {
         [Key]
+        [Column("SalesReturnId")]
         public int SalesReturnId { get; set; }
 
-        [Required]
-        [StringLength(50)]
-        public string ReturnNo { get; set; } = string.Empty;
+        [NotMapped]
+        public int Id { get => SalesReturnId; set => SalesReturnId = value; }
 
-        [Required]
-        [StringLength(50)]
-        public string OriginalInvoiceNo { get; set; } = string.Empty;
+        public string ReturnCode { get; set; } = string.Empty; // e.g. "SR-7001"
 
-        [Required]
-        [StringLength(100)]
+        [NotMapped]
+        public string ReturnNo { get => ReturnCode; set => ReturnCode = value; }
+
+        public string OriginalInvoiceNumber { get; set; } = string.Empty;
+
+        [NotMapped]
+        public string OriginalInvoiceNo { get => OriginalInvoiceNumber; set => OriginalInvoiceNumber = value; }
+
+        public int CustomerId { get; set; }
+        [ForeignKey("CustomerId")]
+        public virtual Customer? Customer { get; set; }
+
         public string CustomerName { get; set; } = string.Empty;
 
-        public DateTime ReturnDate { get; set; }
+        public DateTime ReturnDate { get; set; } = DateTime.UtcNow;
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal RefundValue { get; set; }
 
-        [Required]
-        [StringLength(50)]
-        public string Status { get; set; } = "Inspecting"; // Inspecting, Refunded, Cancelled
+        public string ReturnReason { get; set; } = "Defective"; // "Defective", "Transit Damage", "Wrong Item", "Customer Rejection"
+
+        public string Status { get; set; } = "Inspecting"; // "Inspecting", "Restocked", "Refunded", "Rejected"
+
+        public string? CreditNoteNumber { get; set; } // e.g. "CN-2026-0001"
     }
 
     [Table("erp_PaymentReceipts")]
