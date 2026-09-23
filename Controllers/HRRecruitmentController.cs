@@ -550,7 +550,11 @@ namespace ERP_System.Controllers
                 .Where(a => a.Status == "Active")
                 .ToListAsync();
 
-            ViewBag.Interviewers = await _context.Users.Where(u => u.IsActive).ToListAsync();
+            ViewBag.Interviewers = await _context.Users
+                .Where(u => u.IsActive && u.Role != null && (u.Role.RoleName == "HR" || u.Role.RoleName == "Admin" || u.Role.RoleName == "Super Admin" || u.Role.RoleName.Contains("Manager") || u.Role.RoleName.Contains("Lead")))
+                .OrderBy(u => u.FullName)
+                .Select(u => new { Id = u.UserId, DisplayName = $"{u.FullName} ({(string.IsNullOrEmpty(u.DepartmentName) ? "Staff" : u.DepartmentName)})" })
+                .ToListAsync();
             ViewBag.JobOpenings = await _context.JobOpenings.ToListAsync();
             ViewBag.SelectedJobId = jobId;
             ViewBag.SelectedStatus = status;
@@ -581,6 +585,19 @@ namespace ERP_System.Controllers
             string safeInterviewType = interviewType ?? interviewRound ?? "General";
             string safeInterviewRound = interviewRound ?? "First Round";
 
+            // Parse HTML5 time input (24-hour format like "14:30") to display format ("02:30 PM")
+            string formattedStartTime = "10:00 AM";
+            if (!string.IsNullOrWhiteSpace(startTime) && DateTime.TryParse(startTime, out DateTime st))
+            {
+                formattedStartTime = st.ToString("hh:mm tt");
+            }
+            
+            string formattedEndTime = "11:00 AM";
+            if (!string.IsNullOrWhiteSpace(endTime) && DateTime.TryParse(endTime, out DateTime et))
+            {
+                formattedEndTime = et.ToString("hh:mm tt");
+            }
+
             var schedule = new InterviewSchedule
             {
                 ApplicationId = app.ApplicationId,
@@ -590,8 +607,8 @@ namespace ERP_System.Controllers
                 InterviewType = safeInterviewType,
                 InterviewMode = interviewMode ?? "Virtual",
                 ScheduledDate = scheduledDate,
-                StartTime = string.IsNullOrWhiteSpace(startTime) ? "10:00 AM" : startTime,
-                EndTime = string.IsNullOrWhiteSpace(endTime) ? "11:00 AM" : endTime,
+                StartTime = formattedStartTime,
+                EndTime = formattedEndTime,
                 InterviewerId = interviewerId,
                 InterviewerNames = interviewerName,
                 MeetingLink = meetingLink,
@@ -603,23 +620,8 @@ namespace ERP_System.Controllers
 
             _context.InterviewSchedules.Add(schedule);
 
-            // Move candidate stage if applicable
-            if (safeInterviewType.Contains("Technical", StringComparison.OrdinalIgnoreCase) || safeInterviewRound.Contains("Technical", StringComparison.OrdinalIgnoreCase))
-            {
-                app.Stage = "Technical Interview";
-            }
-            else if (safeInterviewType.Contains("Manager", StringComparison.OrdinalIgnoreCase) || safeInterviewRound.Contains("Manager", StringComparison.OrdinalIgnoreCase))
-            {
-                app.Stage = "Manager Interview";
-            }
-            else if (safeInterviewType.Contains("Final", StringComparison.OrdinalIgnoreCase))
-            {
-                app.Stage = "Final Interview";
-            }
-            else
-            {
-                app.Stage = "HR Interview";
-            }
+            // Auto-update candidate pipeline status
+            app.Stage = "Interview Scheduled";
             _context.CandidateApplications.Update(app);
 
             await _context.SaveChangesAsync();
@@ -642,7 +644,7 @@ namespace ERP_System.Controllers
                 
                 if (result.Success)
                 {
-                    TempData["SuccessMessage"] = $"Interview scheduled for '{app.CandidateName}' and invite dispatched via Mailtrap!";
+                    TempData["SuccessMessage"] = $"Interview scheduled for '{app.CandidateName}' and invite dispatched via Gmail SMTP!";
                 }
                 else
                 {
