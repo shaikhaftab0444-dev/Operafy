@@ -4,11 +4,11 @@
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Offer Letter Generation (ATS)";
 
-    var selectedCandidates = ViewBag.SelectedCandidates as List<ERP_System.Models.CandidateApplication> ?? new List<ERP_System.Models.CandidateApplication>();
+    var eligibleCandidates = ViewBag.EligibleCandidates as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
     var jobOpenings = ViewBag.JobOpenings as List<ERP_System.Models.JobOpening> ?? new List<ERP_System.Models.JobOpening>();
     var designations = ViewBag.Designations as List<ERP_System.Models.Designation> ?? new List<ERP_System.Models.Designation>();
     var departments = ViewBag.Departments as List<ERP_System.Models.Department> ?? new List<ERP_System.Models.Department>();
-    var managers = ViewBag.Managers as List<ERP_System.Models.User> ?? new List<ERP_System.Models.User>();
+    var managers = ViewBag.Managers as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
     var roles = ViewBag.Roles as List<ERP_System.Models.Role> ?? new List<ERP_System.Models.Role>();
 }
 
@@ -665,42 +665,25 @@
             </div>
         </div>
 
-        <form method="get" action="/HRRecruitment/OfferLetters" class="row g-3 align-items-end">
+        <form method="get" action="/HRRecruitment/OfferLetters" class="row g-3 align-items-end" id="filterForm">
 
-            <div class="col-xl-4 col-md-6">
+            <div class="col-xl-3 col-md-6">
                 <label class="offer-filter-label">Search</label>
-
                 <div class="input-group offer-search">
                     <span class="input-group-text">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </span>
-
                     <input type="text"
                            name="search"
                            class="form-control"
-                           placeholder="Offer code, candidate, job..."
-                           value="@ViewBag.Search" />
+                           placeholder="Offer code, candidate..."
+                           value="@ViewBag.Search"
+                           oninput="debounceSubmit()" />
                 </div>
             </div>
 
             <div class="col-xl-3 col-md-6">
-                <label class="offer-filter-label">Job Opening</label>
-
-                <select name="jobId" class="form-select offer-select" onchange="this.form.submit()">
-                    <option value="">All Job Openings</option>
-
-                    @foreach (var j in jobOpenings)
-                    {
-                        <option value="@j.JobId" selected="@(ViewBag.SelectedJobId == j.JobId ? "selected" : null)">
-                            @j.JobCode - @j.JobTitle
-                        </option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-xl-3 col-md-6">
                 <label class="offer-filter-label">Offer Status</label>
-
                 <select name="status" class="form-select offer-select" onchange="this.form.submit()">
                     <option value="All">All Offer Statuses</option>
                     <option value="Approved" selected="@(ViewBag.SelectedStatus == "Approved" ? "selected" : null)">Approved</option>
@@ -711,16 +694,21 @@
                 </select>
             </div>
 
-            <div class="col-xl-2 col-md-6">
-                <div class="offer-filter-actions d-flex gap-2 justify-content-md-end">
-                    <button type="submit" class="btn btn-primary offer-filter-btn px-3 flex-grow-1">
-                        <i class="fa-solid fa-filter me-1"></i>
-                        Filter
-                    </button>
+            <div class="col-xl-2 col-md-4">
+                <label class="offer-filter-label">From Date</label>
+                <input type="date" name="fromDate" class="form-control offer-select" value="@ViewBag.FromDate" onchange="this.form.submit()" />
+            </div>
 
+            <div class="col-xl-2 col-md-4">
+                <label class="offer-filter-label">To Date</label>
+                <input type="date" name="toDate" class="form-control offer-select" value="@ViewBag.ToDate" onchange="this.form.submit()" />
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="offer-filter-actions d-flex gap-2 justify-content-md-end">
                     <a href="/HRRecruitment/OfferLetters"
-                       class="btn btn-outline-secondary offer-filter-btn px-3">
-                        <i class="fa-solid fa-rotate-left"></i>
+                       class="btn btn-outline-secondary offer-filter-btn px-3 w-100" title="Reset Filters">
+                        <i class="fa-solid fa-rotate-left me-1"></i> Reset
                     </a>
                 </div>
             </div>
@@ -897,67 +885,51 @@
                                             @if (offer.Status == "Approved" || offer.Status == "Draft")
                                             {
                                                 <li>
-                                                    <form method="post" action="/HRRecruitment/ChangeOfferStatus">
-                                                        @Html.AntiForgeryToken()
-
-                                                        <input type="hidden" name="offerId" value="@offer.OfferId" />
-                                                        <input type="hidden" name="status" value="Sent" />
-
-                                                        <button type="submit" class="dropdown-item text-primary">
-                                                            <i class="fa-solid fa-paper-plane me-2"></i>
-                                                            Mark Sent to Candidate
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" class="dropdown-item text-primary" onclick="updateOfferStatus(@offer.OfferId, 'Sent')">
+                                                        <i class="fa-solid fa-paper-plane me-2"></i>
+                                                        Mark Sent to Candidate
+                                                    </button>
                                                 </li>
                                             }
 
                                             @if (offer.Status == "Sent")
                                             {
                                                 <li>
-                                                    <form method="post" action="/HRRecruitment/ChangeOfferStatus">
-                                                        @Html.AntiForgeryToken()
-
-                                                        <input type="hidden" name="offerId" value="@offer.OfferId" />
-                                                        <input type="hidden" name="status" value="Accepted" />
-
-                                                        <button type="submit" class="dropdown-item text-success">
-                                                            <i class="fa-solid fa-circle-check me-2"></i>
-                                                            Mark Candidate Accepted
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" class="dropdown-item text-success" onclick="updateOfferStatus(@offer.OfferId, 'Accepted')">
+                                                        <i class="fa-solid fa-circle-check me-2"></i>
+                                                        Mark Candidate Accepted
+                                                    </button>
                                                 </li>
 
                                                 <li>
-                                                    <form method="post" action="/HRRecruitment/ChangeOfferStatus">
-                                                        @Html.AntiForgeryToken()
+                                                    <button type="button" class="dropdown-item text-danger" onclick="updateOfferStatus(@offer.OfferId, 'Rejected')">
+                                                        <i class="fa-solid fa-circle-xmark me-2"></i>
+                                                        Mark Candidate Rejected
+                                                    </button>
+                                                </li>
+                                            }
 
-                                                        <input type="hidden" name="offerId" value="@offer.OfferId" />
-                                                        <input type="hidden" name="status" value="Rejected" />
-
-                                                        <button type="submit" class="dropdown-item text-danger">
-                                                            <i class="fa-solid fa-circle-xmark me-2"></i>
-                                                            Mark Candidate Rejected
-                                                        </button>
-                                                    </form>
+                                            @if (offer.Status == "Sent" || offer.Status == "Pending")
+                                            {
+                                                <li>
+                                                    <button type="button" class="dropdown-item text-primary" onclick="resendOfferEmail(@offer.OfferId)">
+                                                        <i class="fa-solid fa-paper-plane me-2"></i>
+                                                        Resend Offer Email
+                                                    </button>
                                                 </li>
                                             }
 
                                             <li><hr class="dropdown-divider" /></li>
 
-                                            <li>
-                                                <form method="post" action="/HRRecruitment/ChangeOfferStatus">
-                                                    @Html.AntiForgeryToken()
-
-                                                    <input type="hidden" name="offerId" value="@offer.OfferId" />
-                                                    <input type="hidden" name="status" value="Withdrawn" />
-
-                                                    <button type="submit" class="dropdown-item text-secondary">
+                                            @if (offer.Status != "Withdrawn" && offer.Status != "Declined" && offer.Status != "Rejected")
+                                            {
+                                                <li>
+                                                    <button type="button" class="dropdown-item text-secondary" onclick="revokeOffer(@offer.OfferId)">
                                                         <i class="fa-solid fa-ban me-2"></i>
                                                         Revoke / Withdraw Offer
                                                     </button>
-                                                </form>
-                                            </li>
-
+                                                </li>
+                                            }
                                         </ul>
                                     </div>
                                 </td>
@@ -985,7 +957,7 @@
                                             </button>
                                         </div>
 
-                                        <form method="post" action="/HRRecruitment/ConvertCandidateToEmployee">
+                                        <form method="post" action="/HRRecruitment/ConvertToEmployee">
                                             @Html.AntiForgeryToken()
 
                                             <input type="hidden" name="offerId" value="@offer.OfferId" />
@@ -999,23 +971,6 @@
                                                         assigned a unique Employee Code, provided default credentials, and the
                                                         candidate pipeline stage will be updated to <strong>Hired</strong>.
                                                     </p>
-                                                </div>
-
-                                                <div class="mb-3">
-                                                    <label class="form-label">
-                                                        Assign Employee Role
-                                                        <span class="text-danger">*</span>
-                                                    </label>
-
-                                                    <select name="roleId" class="form-select" required>
-                                                        @foreach (var r in roles)
-                                                        {
-                                                            <option value="@r.RoleId"
-                                                                    selected="@(r.RoleName == "Employee" ? "selected" : null)">
-                                                                @r.RoleName
-                                                            </option>
-                                                        }
-                                                    </select>
                                                 </div>
                                             </div>
 
@@ -1085,7 +1040,7 @@
                 </button>
             </div>
 
-            <form method="post" action="/HRRecruitment/CreateOffer">
+            <form method="post" action="/HRRecruitment/GenerateOfferLetter" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
 
                 <div class="modal-body p-4 text-start">
@@ -1094,17 +1049,17 @@
 
                         <div class="col-md-12">
                             <label class="form-label">
-                                Selected Candidate
+                                Select Eligible Candidate
                                 <span class="text-danger">*</span>
                             </label>
 
-                            <select name="applicationId" class="form-select" required>
-                                <option value="">-- Select Selected Candidate --</option>
+                            <select name="jobApplicationId" class="form-select" required>
+                                <option value="">-- Select Eligible Candidate --</option>
 
-                                @foreach (var cand in selectedCandidates)
+                                @foreach (var cand in eligibleCandidates)
                                 {
-                                    <option value="@cand.ApplicationId">
-                                        @cand.Candidate?.FullName - @cand.JobOpening?.JobTitle (Stage: @cand.Stage)
+                                    <option value="@cand.Id">
+                                        @cand.DisplayName
                                     </option>
                                 }
                             </select>
@@ -1112,14 +1067,16 @@
 
                         <div class="col-md-6">
                             <label class="form-label">
-                                Offered CTC (Annual INR)
+                                Offered Annual CTC (₹)
                                 <span class="text-danger">*</span>
                             </label>
 
                             <input type="number"
-                                   name="offeredCTC"
+                                   id="annualCtcInput"
+                                   name="annualCtc"
                                    class="form-control"
                                    required
+                                   oninput="calculateSalaryBreakdown()"
                                    placeholder="e.g. 850000" />
                         </div>
 
@@ -1130,7 +1087,7 @@
                             </label>
 
                             <input type="date"
-                                   name="proposedJoiningDate"
+                                   name="joiningDate"
                                    class="form-control"
                                    value="@DateTime.Now.AddDays(15).ToString("yyyy-MM-dd")"
                                    required />
@@ -1139,6 +1096,7 @@
                         <div class="col-md-6">
                             <label class="form-label">
                                 Offer Expiry Date
+                                <span class="text-danger">*</span>
                             </label>
 
                             <input type="date"
@@ -1151,74 +1109,60 @@
                         <div class="col-md-6">
                             <label class="form-label">
                                 Reporting Manager
+                                <span class="text-danger">*</span>
                             </label>
 
-                            <select name="reportingManagerId" class="form-select">
+                            <select name="reportingManagerId" class="form-select" required>
                                 <option value="">-- Select Manager --</option>
 
                                 @foreach (var m in managers)
                                 {
-                                    <option value="@m.UserId">
-                                        @m.FullName (@m.UserName)
+                                    <option value="@m.Id">
+                                        @m.FullName
                                     </option>
                                 }
                             </select>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">
-                                Designation
-                            </label>
-
-                            <select name="designationId" class="form-select">
-                                <option value="">-- Auto-detect from Job --</option>
-
-                                @foreach (var d in designations)
-                                {
-                                    <option value="@d.DesignationId">
-                                        @d.JobTitle
-                                    </option>
-                                }
-                            </select>
+                        <div class="col-md-12 mt-4">
+                            <h6 class="mb-3">Auto-Calculated Salary Breakdown</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-light border rounded">
+                                        <div class="text-muted small">Monthly Gross</div>
+                                        <div class="fw-bold fs-5 text-primary" id="lblMonthlyGross">₹0</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-light border rounded">
+                                        <div class="text-muted small">Basic (50%)</div>
+                                        <div class="fw-bold fs-5 text-success" id="lblBasic">₹0</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-light border rounded">
+                                        <div class="text-muted small">HRA (25%)</div>
+                                        <div class="fw-bold fs-5 text-warning" id="lblHra">₹0</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-12 mt-4">
                             <label class="form-label">
-                                Department
-                            </label>
-
-                            <select name="departmentId" class="form-select">
-                                <option value="">-- Auto-detect from Job --</option>
-
-                                @foreach (var dept in departments)
-                                {
-                                    <option value="@dept.DepartmentId">
-                                        @dept.DepartmentName
-                                    </option>
-                                }
-                            </select>
-                        </div>
-
-                        <div class="col-md-12">
-                            <label class="form-label">
-                                Salary Structure Breakdown
-                            </label>
-
-                            <textarea name="salaryStructure"
-                                      class="form-control"
-                                      rows="3"
-                                      placeholder="Basic: 50%, HRA: 25%, Special Allowance: 25%"></textarea>
-                        </div>
-
-                        <div class="col-md-12">
-                            <label class="form-label">
-                                Terms & Conditions
+                                Terms & Conditions / Special Clauses
                             </label>
 
                             <textarea name="termsAndConditions"
                                       class="form-control"
-                                      rows="4"
-                                      placeholder="Standard employment contract terms, probation period, notice period requirements..."></textarea>
+                                      rows="3"
+                                      placeholder="Standard employment contract terms, probation period of 3 months applies."></textarea>
+                        </div>
+
+                        <div class="col-md-12 mt-3">
+                            <label class="form-label">Upload Authorized Signature (PNG/JPG)</label>
+                            <input type="file" name="signatureImage" class="form-control form-control-sm border-0 bg-light" accept=".png,.jpg,.jpeg" />
+                            <div class="form-text small">Will be printed on the official offer letter above Authorized Signatory.</div>
                         </div>
 
                     </div>
@@ -1233,8 +1177,8 @@
 
                     <button type="submit"
                             class="btn btn-primary px-4">
-                        <i class="fa-solid fa-file-circle-plus me-1"></i>
-                        Generate Offer
+                        <i class="fa-solid fa-paper-plane me-1"></i>
+                        Generate & Send Offer
                     </button>
                 </div>
             </form>
@@ -1243,11 +1187,118 @@
 </div>
 
 <script>
+    let searchTimeout;
+    function debounceSubmit() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const form = document.getElementById('filterForm');
+            const url = new URL(form.action, window.location.origin);
+            const formData = new FormData(form);
+            for (let [key, value] of formData.entries()) {
+                url.searchParams.append(key, value);
+            }
+
+            fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.text())
+            .then(html => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const newTable = tempDiv.querySelector('.offer-table');
+                if (newTable) {
+                    const oldTable = document.querySelector('.offer-table');
+                    if (oldTable) {
+                        oldTable.parentNode.replaceChild(newTable, oldTable);
+                    }
+                }
+            })
+            .catch(err => console.error(err));
+        }, 500);
+    }
+
+    function updateOfferStatus(offerId, status) {
+        if (!confirm(`Are you sure you want to mark this offer as ${status}?`)) return;
+        
+        fetch('/HRRecruitment/UpdateOfferStatus', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ offerId: offerId, status: status })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                location.reload();
+            } else {
+                alert("Error: " + res.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Network request failed.");
+        });
+    }
+
+    function revokeOffer(offerId) {
+        if (!confirm('Are you sure you want to withdraw this offer? This candidate will immediately become eligible to receive a new offer.')) return;
+        
+        fetch('/HRRecruitment/RevokeOffer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ offerId: offerId })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                location.reload();
+            } else {
+                alert("Error: " + res.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Network request failed.");
+        });
+    }
+
+    function resendOfferEmail(offerId) {
+        if (!confirm('Are you sure you want to resend the offer email to this candidate?')) return;
+        
+        fetch('/HRRecruitment/ResendOfferEmail', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ offerId: offerId })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                alert("Success: " + res.message);
+            } else {
+                alert("Error: " + res.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Network request failed.");
+        });
+    }
+
+    function calculateSalaryBreakdown() {
+        const annualCtc = parseFloat(document.getElementById('annualCtcInput').value) || 0;
+        const monthlyGross = Math.round((annualCtc / 12) * 100) / 100;
+        const basic = Math.round((monthlyGross * 0.50) * 100) / 100;
+        const hra = Math.round((monthlyGross * 0.25) * 100) / 100;
+        
+        document.getElementById('lblMonthlyGross').innerText = '₹' + monthlyGross.toLocaleString('en-IN');
+        document.getElementById('lblBasic').innerText = '₹' + basic.toLocaleString('en-IN');
+        document.getElementById('lblHra').innerText = '₹' + hra.toLocaleString('en-IN');
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         const urlParams = new URLSearchParams(window.location.search);
         const candidateId = urlParams.get('candidateId');
         if (candidateId) {
-            const selectApp = document.querySelector('select[name="applicationId"]');
+            const selectApp = document.querySelector('select[name="jobApplicationId"]');
             if (selectApp) {
                 for (let i = 0; i < selectApp.options.length; i++) {
                     if (selectApp.options[i].value === candidateId) {
@@ -1260,6 +1311,30 @@
             if (modalEl) {
                 new bootstrap.Modal(modalEl).show();
             }
+        }
+
+        // SignalR Setup
+        if (typeof signalR !== 'undefined') {
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/erpNotificationHub")
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+            connection.on("OfferStatusChanged", function (data) {
+                // data = { offerId, offerCode, candidateName, status }
+                const badgeId = `status-badge-${data.offerCode}`;
+                const badgeEl = document.getElementById(badgeId);
+                
+                if (badgeEl) {
+                    badgeEl.innerText = data.status;
+                    badgeEl.className = `badge-status bg-${data.status === 'Accepted' ? 'success' : data.status === 'Declined' ? 'danger' : 'warning'}-subtle text-${data.status === 'Accepted' ? 'success' : data.status === 'Declined' ? 'danger' : 'warning'}`;
+                    
+                    // Show a toast or notification
+                    alert(`Real-Time Update: ${data.candidateName} has ${data.status} their offer (${data.offerCode}).`);
+                }
+            });
+
+            connection.start().catch(err => console.error(err.toString()));
         }
     });
 </script>

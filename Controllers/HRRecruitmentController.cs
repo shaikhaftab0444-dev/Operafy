@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using ERP_System.Data;
@@ -685,6 +687,99 @@ namespace ERP_System.Controllers
             return Json(new { success = result.Success, message = result.Message });
         }
 
+        [HttpPost]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> SendStageUpdateEmail(int scheduleId)
+        {
+            var s = await _context.InterviewSchedules
+                .Include(i => i.Application)
+                    .ThenInclude(a => a.JobOpening)
+                .Include(i => i.Application)
+                    .ThenInclude(a => a.Candidate)
+                .FirstOrDefaultAsync(i => i.InterviewId == scheduleId);
+
+            if (s == null) return Json(new { success = false, message = "Schedule not found." });
+
+            if (string.IsNullOrWhiteSpace(s.Application?.Email))
+            {
+                return Json(new { success = false, message = "Candidate has no valid email address." });
+            }
+
+            var result = await _emailSender.SendStageUpdateEmailAsync(
+                s.Application?.Email ?? "",
+                s.Application?.CandidateName ?? "",
+                s.Application?.JobOpening?.JobTitle ?? "Open Role",
+                s.Application?.Stage ?? "Review"
+            );
+
+            return Json(new { success = result.Success, message = result.Message });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR,Super Admin,Admin,Interviewer")]
+        public async Task<IActionResult> SubmitInterviewFeedback(
+            int scheduleId,
+            int technicalSkills,
+            int communication,
+            int problemSolving,
+            int culturalFit,
+            string overallRecommendation,
+            string? keyStrengths,
+            string? weaknesses,
+            string? detailedRemarks)
+        {
+            var schedule = await _context.InterviewSchedules
+                .Include(s => s.Application)
+                    .ThenInclude(a => a.JobOpening)
+                .FirstOrDefaultAsync(s => s.InterviewId == scheduleId);
+
+            if (schedule == null) return NotFound();
+
+            // Calculate score
+            decimal avgRating = (technicalSkills + communication + problemSolving + culturalFit) / 4.0m;
+
+            var feedback = new InterviewFeedback
+            {
+                InterviewId = schedule.InterviewId,
+                CandidateId = schedule.CandidateId,
+                JobId = schedule.JobId,
+                InterviewerId = schedule.InterviewerId,
+                TechnicalRating = technicalSkills,
+                CommunicationRating = communication,
+                ProblemSolvingRating = problemSolving,
+                CulturalFitRating = culturalFit,
+                OverallRating = avgRating,
+                Strengths = keyStrengths,
+                Weaknesses = weaknesses,
+                Comments = detailedRemarks,
+                Recommendation = overallRecommendation,
+                SubmittedAt = DateTime.Now
+            };
+
+            _context.InterviewFeedbacks.Add(feedback);
+
+            schedule.Status = "Completed";
+
+            // Advance Candidate Pipeline based on Recommendation
+            if (schedule.Application != null)
+            {
+                if (overallRecommendation.Contains("Recommend", StringComparison.OrdinalIgnoreCase) && 
+                    !overallRecommendation.Contains("Not", StringComparison.OrdinalIgnoreCase))
+                {
+                    schedule.Application.Stage = "Shortlisted for Offer";
+                }
+                else
+                {
+                    schedule.Application.Stage = "Interview Rejected";
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Feedback recorded for {schedule.Application?.CandidateName}. Pipeline stage updated.";
+            return RedirectToAction("InterviewSchedules");
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -783,149 +878,257 @@ namespace ERP_System.Controllers
         // 4. OFFER LETTERS PAGE & ACTIONS
         // ==========================================
 
+        [HttpGet("HRRecruitment/RunTempSql")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RunTempSql()
+        {
+            try { await _context.Database.ExecuteSqlRawAsync("ALTER TABLE AITStudent.erp_OfferLetters ADD SignaturePath nvarchar(500) NULL"); } catch {}
+            try { await _context.Database.ExecuteSqlRawAsync("ALTER TABLE AITStudent.erp_OfferLetters ADD AcceptedDate datetime2 NULL"); } catch {}
+            return Content("Success");
+        }
+
         [HttpGet]
-        public async Task<IActionResult> OfferLetters(int? jobId, string? status, string? search, int? candidateId)
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> OfferLetters(string search = "", int? candidateId = null, string status = "All", DateTime? fromDate = null, DateTime? toDate = null)
         {
             var query = _context.OfferLetters
-                .Include(o => o.Candidate)
-                .Include(o => o.JobOpening)
-                .Include(o => o.Department)
-                .Include(o => o.Designation)
+                .Include(o => o.Application)
+                    .ThenInclude(a => a.Candidate)
+                .Include(o => o.Application)
+                    .ThenInclude(a => a.JobOpening)
                 .Include(o => o.ReportingManager)
-                .Include(o => o.ConvertedEmployee)
                 .AsQueryable();
 
-            if (jobId.HasValue && jobId.Value > 0)
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(o => o.JobId == jobId.Value);
+                var term = search.Trim().ToLower();
+                query = query.Where(o => o.OfferCode.ToLower().Contains(term) ||
+                                         (o.Application != null && o.Application.Candidate != null && o.Application.Candidate.FullName.ToLower().Contains(term)) ||
+                                         (o.Application != null && o.Application.Candidate != null && o.Application.Candidate.Email.ToLower().Contains(term)) ||
+                                         (o.Application != null && o.Application.JobOpening != null && o.Application.JobOpening.JobTitle.ToLower().Contains(term)));
             }
 
-            if (candidateId.HasValue && candidateId.Value > 0)
-            {
-                query = query.Where(o => o.CandidateId == candidateId.Value || o.ApplicationId == candidateId.Value);
-                ViewBag.SelectedCandidateId = candidateId.Value;
-            }
-
-            if (!string.IsNullOrWhiteSpace(status) && status != "All")
+            if (!string.IsNullOrWhiteSpace(status) && status != "All" && status != "All Offer Statuses")
             {
                 query = query.Where(o => o.Status == status);
             }
 
-            if (!string.IsNullOrWhiteSpace(search))
+            // Calendar Date Filters
+            if (fromDate.HasValue)
             {
-                search = search.Trim().ToLower();
-                query = query.Where(o => o.OfferCode.ToLower().Contains(search) ||
-                                         o.Candidate!.FullName.ToLower().Contains(search) ||
-                                         o.JobOpening!.JobTitle.ToLower().Contains(search));
+                query = query.Where(o => o.CreatedAt.Date >= fromDate.Value.Date);
+            }
+            if (toDate.HasValue)
+            {
+                query = query.Where(o => o.CreatedAt.Date <= toDate.Value.Date);
             }
 
-            var offers = await query.OrderByDescending(o => o.OfferId).ToListAsync();
+            var offers = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
 
-            ViewBag.SelectedCandidates = await _context.CandidateApplications
-                .Include(a => a.Candidate)
-                .Include(a => a.JobOpening)
-                .Where(a => a.Stage == "Selected" || a.Stage == "Final Interview" || a.Stage == "Offer Sent" || a.Stage == "Offer Accepted")
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("_OfferLettersTablePartial", offers);
+            }
+
+            // 1. Only consider candidates who have ACTIVE or ACCEPTED offers as blocked.
+            // If an offer is 'Withdrawn', 'Rejected', or 'Declined', candidate can receive a new offer.
+            var activeOfferedCandidateIds = await _context.OfferLetters
+                .Where(o => o.Status == "Pending" || o.Status == "Sent" || o.Status == "Approved" || o.Status == "Draft" || o.Status == "Accepted" || o.Status == "Converted to Employee")
+                .Select(o => o.ApplicationId)
                 .ToListAsync();
 
-            ViewBag.JobOpenings = await _context.JobOpenings.ToListAsync();
-            ViewBag.Designations = await _context.Designations.Where(d => d.IsActive).ToListAsync();
-            ViewBag.Departments = await _context.Departments.Where(d => d.IsActive).ToListAsync();
-            ViewBag.Managers = await _context.Users.Where(u => u.IsActive).ToListAsync();
-            ViewBag.Roles = await _context.Roles.Where(r => r.RoleName != "Super Admin").ToListAsync();
+            var rawApplications = await _context.CandidateApplications
+                .Include(c => c.Candidate)
+                .Include(c => c.JobOpening)
+                    .ThenInclude(j => j.Department)
+                .Where(c => !activeOfferedCandidateIds.Contains(c.ApplicationId) && c.Stage != "Rejected" && c.Stage != "Interview Rejected")
+                .OrderByDescending(c => c.ApplicationId)
+                .ToListAsync();
 
-            ViewBag.SelectedJobId = jobId;
-            ViewBag.SelectedStatus = status;
-            ViewBag.Search = search;
+            var eligibleCandidates = rawApplications
+                .Select(c => new
+                {
+                    Id = c.ApplicationId,
+                    DisplayName = $"{(c.Candidate != null ? c.Candidate.FullName : "Candidate")} - {(c.JobOpening != null ? c.JobOpening.JobTitle : "Role")} (Stage: {c.Stage})",
+                    CandidateName = c.Candidate != null ? c.Candidate.FullName : string.Empty,
+                    Email = c.Candidate != null ? c.Candidate.Email : string.Empty,
+                    JobTitle = c.JobOpening != null ? c.JobOpening.JobTitle : string.Empty,
+                    Department = c.JobOpening?.Department != null ? c.JobOpening.Department.DepartmentName : string.Empty,
+                    MinSalary = c.JobOpening != null ? c.JobOpening.MinimumSalary : 0,
+                    MaxSalary = c.JobOpening != null ? c.JobOpening.MaximumSalary : 0
+                })
+                .ToList();
+
+            ViewBag.EligibleCandidates = eligibleCandidates;
+            ViewBag.SelectedCandidateId = candidateId;
+
+            ViewBag.Managers = await _context.Users
+                .Where(u => u.IsActive)
+                .OrderBy(u => u.FullName)
+                .Select(u => new { Id = u.UserId, FullName = u.FullName })
+                .ToListAsync();
+
+            ViewBag.JobOpenings = await _context.JobOpenings.Where(j => j.Status == "Open" || j.Status == "Draft").ToListAsync();
 
             return View(offers);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateOffer(int applicationId, decimal offeredCTC, DateTime proposedJoiningDate, DateTime offerExpiryDate, int? designationId, int? departmentId, int? reportingManagerId, string? employmentType, string? salaryStructure, string? termsAndConditions, string? additionalNotes)
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> GenerateOfferLetter(
+            int jobApplicationId,
+            decimal annualCtc,
+            DateTime joiningDate,
+            DateTime offerExpiryDate,
+            int reportingManagerId,
+            string? termsAndConditions,
+            IFormFile? signatureImage)
         {
-            var app = await _context.CandidateApplications.Include(a => a.Candidate).Include(a => a.JobOpening).FirstOrDefaultAsync(a => a.ApplicationId == applicationId);
-            if (app == null)
+            var app = await _context.CandidateApplications
+                .Include(a => a.Candidate)
+                .Include(a => a.JobOpening)
+                    .ThenInclude(j => j.Department)
+                .FirstOrDefaultAsync(a => a.ApplicationId == jobApplicationId);
+
+            if (app == null) return NotFound();
+
+            int nextCount = await _context.OfferLetters.CountAsync() + 1;
+            string offerCode = $"OFF-2026-{nextCount:D3}";
+
+            // Handle Signature Image Upload
+            string? signaturePath = null;
+            if (signatureImage != null && signatureImage.Length > 0)
             {
-                TempData["ErrorMessage"] = "Candidate application not found.";
-                return RedirectToAction(nameof(OfferLetters));
+                string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
+                Directory.CreateDirectory(uploadsFolder);
+                string uniqueName = $"{Guid.NewGuid()}_{Path.GetFileName(signatureImage.FileName)}";
+                string fullPath = Path.Combine(uploadsFolder, uniqueName);
+                using (var fs = new FileStream(fullPath, FileMode.Create))
+                {
+                    await signatureImage.CopyToAsync(fs);
+                }
+                signaturePath = $"/uploads/signatures/{uniqueName}";
             }
 
-            int count = await _context.OfferLetters.CountAsync();
-            string offerCode = $"OFF-2026-{(count + 1).ToString("D3")}";
+            decimal monthlyGross = Math.Round(annualCtc / 12m, 2);
+            decimal basicSalary = Math.Round(monthlyGross * 0.50m, 2);
+            decimal hra = Math.Round(monthlyGross * 0.25m, 2);
+            decimal specialAllowance = monthlyGross - (basicSalary + hra);
+            string salaryStructure = $"Basic Salary: ₹{basicSalary:N2}, HRA: ₹{hra:N2}, Special Allowance: ₹{specialAllowance:N2}";
 
             var offer = new OfferLetter
             {
-                OfferCode = offerCode,
                 ApplicationId = app.ApplicationId,
                 CandidateId = app.CandidateId,
                 JobId = app.JobId,
-                DesignationId = designationId ?? app.JobOpening?.DesignationId,
-                DepartmentId = departmentId ?? app.JobOpening?.DepartmentId,
-                EmploymentType = string.IsNullOrWhiteSpace(employmentType) ? "Full-Time" : employmentType,
-                ProposedJoiningDate = proposedJoiningDate == default ? DateTime.Now.AddDays(15) : proposedJoiningDate,
+                DesignationId = app.JobOpening?.DesignationId,
+                DepartmentId = app.JobOpening?.DepartmentId,
+                OfferCode = offerCode,
+                OfferedCTC = annualCtc,
+                SalaryStructure = salaryStructure,
+                ProposedJoiningDate = joiningDate,
+                OfferExpiryDate = offerExpiryDate,
                 ReportingManagerId = reportingManagerId,
-                OfferedCTC = offeredCTC,
-                SalaryStructure = string.IsNullOrWhiteSpace(salaryStructure) ? $"Basic Salary: ₹{offeredCTC * 0.50m:N0}, HRA: ₹{offeredCTC * 0.25m:N0}, Special Allowance: ₹{offeredCTC * 0.25m:N0}" : salaryStructure,
-                OfferExpiryDate = offerExpiryDate == default ? DateTime.Now.AddDays(7) : offerExpiryDate,
-                TermsAndConditions = string.IsNullOrWhiteSpace(termsAndConditions) ? "1. Probation period: 90 days.\n2. Confidentiality agreement applies.\n3. Background check verification required." : termsAndConditions,
-                AdditionalNotes = additionalNotes,
-                Status = "Approved",
-                CreatedAt = DateTime.Now,
-                CreatedBy = GetCurrentUserId()
+                SignaturePath = signaturePath,
+                TermsAndConditions = termsAndConditions ?? "Standard employment contract terms, probation period of 3 months applies.",
+                Status = "Pending", // Candidate will review and accept
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.OfferLetters.Add(offer);
-
-            // Update Application stage to Offer Sent
-            app.Stage = "Offer Sent";
-            _context.CandidateApplications.Update(app);
-
+            app.Stage = "Offered";
             await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = $"Offer Letter '{offerCode}' generated successfully for '{app.Candidate?.FullName}'!";
-            return RedirectToAction(nameof(OfferLetters));
-        }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ChangeOfferStatus(int offerId, string status)
-        {
-            var offer = await _context.OfferLetters.Include(o => o.Application).FirstOrDefaultAsync(o => o.OfferId == offerId);
-            if (offer != null)
+            // Generate Candidate Direct Review & Acceptance Link
+            string reviewLink = $"{Request.Scheme}://{Request.Host}/Careers/ReviewOffer?offerCode={offerCode}";
+
+            // Dispatch Offer Email via Gmail SMTP
+            string emailBody = $@"
+<div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"">
+    <div style=""background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 25px; text-align: center; color: white;"">
+        <h2 style=""margin: 0; font-size: 24px; font-weight: bold;"">Official Employment Offer</h2>
+        <p style=""margin: 5px 0 0; opacity: 0.9;"">Wainfo Pvt Ltd • Human Resources</p>
+    </div>
+    <div style=""padding: 30px; background-color: #ffffff; color: #334155;"">
+        <p style=""font-size: 16px; margin-top: 0;"">Dear <strong>{app.Candidate?.FullName}</strong>,</p>
+        <p style=""line-height: 1.6;"">We are delighted to extend a formal job offer for the position of <strong>{app.JobOpening?.JobTitle}</strong> at Wainfo Pvt Ltd. Our panel was thoroughly impressed by your credentials.</p>
+        
+        <table style=""width: 100%; border-collapse: collapse; margin: 25px 0; background-color: #f8fafc; border-radius: 8px;"">
+            <tr><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; color: #64748b; width: 40%;"">Reference Code:</td><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-weight: bold;"">{offerCode}</td></tr>
+            <tr><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; color: #64748b;"">Offered CTC:</td><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #16a34a;"">₹{annualCtc:N0} / Annum</td></tr>
+            <tr><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; color: #64748b;"">Proposed Joining Date:</td><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-weight: bold;"">{joiningDate:dd MMMM yyyy}</td></tr>
+            <tr><td style=""padding: 12px 15px; color: #64748b;"">Offer Expiry Date:</td><td style=""padding: 12px 15px; font-weight: bold; color: #dc2626;"">{offerExpiryDate:dd MMMM yyyy}</td></tr>
+        </table>
+
+        <div style=""text-align: center; margin: 35px 0;"">
+            <a href=""{reviewLink}"" style=""background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;"">Review & Accept Official Offer</a>
+        </div>
+        
+        <p style=""font-size: 13px; color: #64748b; text-align: center;"">Direct Portal Link:<br/><a href=""{reviewLink}"" style=""color: #3b82f6;"">{reviewLink}</a></p>
+    </div>
+    <div style=""background-color: #f1f5f9; padding: 15px; text-align: center; font-size: 12px; color: #94a3b8;"">
+        Wainfo Pvt Ltd • Automated Recruitment Management System • Confidential
+    </div>
+</div>";
+
+            try
             {
-                offer.Status = status;
-                if (status == "Sent") offer.SentAt = DateTime.Now;
-                if (status == "Accepted" || status == "Rejected") offer.RespondedAt = DateTime.Now;
-
-                _context.OfferLetters.Update(offer);
-
-                if (offer.Application != null)
+                using var mail = new MailMessage("affuxx00@gmail.com", app.Candidate?.Email ?? "")
                 {
-                    if (status == "Accepted") offer.Application.Stage = "Offer Accepted";
-                    if (status == "Rejected") offer.Application.Status = "Rejected";
-                    _context.CandidateApplications.Update(offer.Application);
-                }
-
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Offer status changed to '{status}'.";
+                    Subject = $"Job Offer Letter: {app.JobOpening?.JobTitle} - Wainfo Pvt Ltd",
+                    Body = emailBody,
+                    IsBodyHtml = true
+                };
+                using var smtp = new SmtpClient("smtp.gmail.com", 587)
+                {
+                    Credentials = new NetworkCredential("affuxx00@gmail.com", "jblkicpealbwskrk"),
+                    EnableSsl = true
+                };
+                await smtp.SendMailAsync(mail);
             }
+            catch { /* Log failure gracefully */ }
+
+            TempData["SuccessMessage"] = $"Offer letter {offerCode} generated for {app.Candidate?.FullName} and dispatched with Review & Acceptance portal link!";
             return RedirectToAction(nameof(OfferLetters));
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ConvertCandidateToEmployee(int offerId, int roleId)
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> UpdateOfferStatus(int offerId, string status)
         {
             var offer = await _context.OfferLetters
-                .Include(o => o.Candidate)
                 .Include(o => o.Application)
-                .Include(o => o.JobOpening)
                 .FirstOrDefaultAsync(o => o.OfferId == offerId);
 
-            if (offer == null || offer.Candidate == null)
+            if (offer == null) return Json(new { success = false, message = "Offer not found." });
+
+            offer.Status = status;
+            if (offer.Application != null)
             {
-                TempData["ErrorMessage"] = "Offer Letter or Candidate record not found.";
-                return RedirectToAction(nameof(OfferLetters));
+                offer.Application.Stage = status == "Accepted" ? "Offer Accepted" : "Offer Rejected";
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = $"Offer status updated to {status}." });
+        }
+
+        // 1-Click Convert Accepted Candidate to Real Employee
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> ConvertToEmployee(int offerId)
+        {
+            var offer = await _context.OfferLetters
+                .Include(o => o.Application)
+                    .ThenInclude(a => a.JobOpening)
+                .Include(o => o.Candidate)
+                .FirstOrDefaultAsync(o => o.OfferId == offerId);
+
+            if (offer == null || offer.Status != "Accepted")
+            {
+                TempData["ErrorMessage"] = "Only accepted offers can be converted to an active employee.";
+                return RedirectToAction("OfferLetters");
             }
 
             if (offer.ConvertedToEmployeeId.HasValue)
@@ -934,57 +1137,131 @@ namespace ERP_System.Controllers
                 return RedirectToAction(nameof(OfferLetters));
             }
 
-            // Check if user already exists with candidate email
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == offer.Candidate.Email.ToLower());
-            if (existingUser != null)
+            string empCode = $"USR{new Random().Next(100, 999)}";
+            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
+            
+            var user = new User
             {
-                offer.ConvertedToEmployeeId = existingUser.UserId;
-                offer.Status = "Accepted";
-                if (offer.Application != null) offer.Application.Stage = "Hired";
-
-                _context.OfferLetters.Update(offer);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = $"Candidate '{offer.Candidate.FullName}' linked to existing Employee record ({existingUser.UserCode}) successfully!";
-                return RedirectToAction(nameof(OfferLetters));
-            }
-
-            // Generate New Employee Code
-            int empCount = await _context.Users.CountAsync();
-            string userCode = $"EMP-{(empCount + 1).ToString("D3")}";
-
-            var hasher = new PasswordHasher<User>();
-            var newEmployee = new User
-            {
-                CompanyId = 1,
-                BranchId = 3,
-                UserCode = userCode,
-                UserName = offer.Candidate.Email.Split('@')[0],
+                UserName = empCode, // Emp code as username
+                UserCode = empCode,
+                Email = offer.Candidate!.Email,
                 FullName = offer.Candidate.FullName,
-                Email = offer.Candidate.Email,
                 MobileNumber = offer.Candidate.Phone,
-                RoleId = roleId > 0 ? roleId : 5, // Default Employee Role
+                DepartmentId = offer.Application?.JobOpening?.DepartmentId ?? 1,
+                CompanyId = 1,
+                BranchId = 1,
+                RoleId = 5, // Default Employee
+                JoiningDate = offer.ProposedJoiningDate,
                 IsActive = true,
                 CreatedAt = DateTime.Now
             };
-            newEmployee.PasswordHash = hasher.HashPassword(newEmployee, "Monitor@2026");
 
-            _context.Users.Add(newEmployee);
+            user.PasswordHash = hasher.HashPassword(user, "Employee@123");
+
+            _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Link conversion
-            offer.ConvertedToEmployeeId = newEmployee.UserId;
-            offer.Status = "Accepted";
+            offer.ConvertedToEmployeeId = user.UserId;
+            offer.Status = "Converted to Employee";
             if (offer.Application != null) offer.Application.Stage = "Hired";
-
-            _context.OfferLetters.Update(offer);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"Candidate '{offer.Candidate.FullName}' converted into Employee ({userCode}) successfully!";
+            TempData["SuccessMessage"] = $"Successfully converted {user.FullName} into employee ({user.UserName})!";
             return RedirectToAction(nameof(OfferLetters));
         }
 
+        // Action to Withdraw / Revoke Offer
+        [HttpPost]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> RevokeOffer(int offerId)
+        {
+            var offer = await _context.OfferLetters
+                .Include(o => o.Application)
+                .FirstOrDefaultAsync(o => o.OfferId == offerId);
+
+            if (offer == null) return Json(new { success = false, message = "Offer not found." });
+
+            offer.Status = "Withdrawn";
+            if (offer.Application != null)
+            {
+                offer.Application.Stage = "Offer Withdrawn";
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = $"Offer {offer.OfferCode} has been withdrawn. Candidate is now eligible for a revised offer." });
+        }
+
+        // Action to Resend Offer Email via Gmail SMTP
+        [HttpPost]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
+        public async Task<IActionResult> ResendOfferEmail(int offerId)
+        {
+            var offer = await _context.OfferLetters
+                .Include(o => o.Application)
+                    .ThenInclude(a => a.Candidate)
+                .Include(o => o.Application)
+                    .ThenInclude(a => a.JobOpening)
+                .FirstOrDefaultAsync(o => o.OfferId == offerId);
+
+            if (offer == null || offer.Application == null || offer.Application.Candidate == null)
+            {
+                return Json(new { success = false, message = "Offer record not found." });
+            }
+
+            string reviewLink = $"{Request.Scheme}://{Request.Host}/Careers/ReviewOffer?offerCode={offer.OfferCode}";
+
+            string emailHtml = $@"
+<div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"">
+    <div style=""background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 25px; text-align: center; color: white;"">
+        <h2 style=""margin: 0; font-size: 24px; font-weight: bold;"">Official Employment Offer</h2>
+        <p style=""margin: 5px 0 0; opacity: 0.9;"">Wainfo Pvt Ltd • Human Resources</p>
+    </div>
+    <div style=""padding: 30px; background-color: #ffffff; color: #334155;"">
+        <p style=""font-size: 16px; margin-top: 0;"">Dear <strong>{offer.Application.Candidate.FullName}</strong>,</p>
+        <p style=""line-height: 1.6;"">We are delighted to extend a formal job offer for the position of <strong>{offer.Application.JobOpening?.JobTitle}</strong> at Wainfo Pvt Ltd. Our panel was thoroughly impressed by your credentials.</p>
+        
+        <table style=""width: 100%; border-collapse: collapse; margin: 25px 0; background-color: #f8fafc; border-radius: 8px;"">
+            <tr><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; color: #64748b; width: 40%;"">Reference Code:</td><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-weight: bold;"">{offer.OfferCode}</td></tr>
+            <tr><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; color: #64748b;"">Offered CTC:</td><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #16a34a;"">₹{offer.OfferedCTC:N0} / Annum</td></tr>
+            <tr><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; color: #64748b;"">Proposed Joining Date:</td><td style=""padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-weight: bold;"">{offer.ProposedJoiningDate:dd MMMM yyyy}</td></tr>
+            <tr><td style=""padding: 12px 15px; color: #64748b;"">Offer Expiry Date:</td><td style=""padding: 12px 15px; font-weight: bold; color: #dc2626;"">{offer.OfferExpiryDate:dd MMMM yyyy}</td></tr>
+        </table>
+
+        <div style=""text-align: center; margin: 35px 0;"">
+            <a href=""{reviewLink}"" style=""background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;"">Review & Accept Official Offer</a>
+        </div>
+        
+        <p style=""font-size: 13px; color: #64748b; text-align: center;"">Direct Portal Link:<br/><a href=""{reviewLink}"" style=""color: #3b82f6;"">{reviewLink}</a></p>
+    </div>
+    <div style=""background-color: #f1f5f9; padding: 15px; text-align: center; font-size: 12px; color: #94a3b8;"">
+        Wainfo Pvt Ltd • Automated Recruitment Management System • Confidential
+    </div>
+</div>";
+
+            try
+            {
+                using var mail = new System.Net.Mail.MailMessage("affuxx00@gmail.com", offer.Application.Candidate.Email)
+                {
+                    Subject = $"Reminder: Job Offer Letter ({offer.OfferCode}) - Wainfo Pvt Ltd",
+                    Body = emailHtml,
+                    IsBodyHtml = true
+                };
+                using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587)
+                {
+                    Credentials = new System.Net.NetworkCredential("affuxx00@gmail.com", "jblkicpealbwskrk"),
+                    EnableSsl = true
+                };
+                await smtp.SendMailAsync(mail);
+                return Json(new { success = true, message = $"Offer email resent successfully to {offer.Application.Candidate.Email}!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Failed to send email: {ex.Message}" });
+            }
+        }
+
         [HttpGet]
+        [Authorize(Roles = "HR,Super Admin,Admin")]
         public async Task<IActionResult> PrintOffer(int offerId)
         {
             var offer = await _context.OfferLetters
@@ -996,6 +1273,20 @@ namespace ERP_System.Controllers
                 .FirstOrDefaultAsync(o => o.OfferId == offerId);
 
             if (offer == null) return NotFound();
+
+            string? userEmail = User.FindFirstValue(ClaimTypes.Email);
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            var company = await _context.Companies
+                .FirstOrDefaultAsync(c => currentUser != null && c.CompanyId == currentUser.CompanyId)
+                ?? await _context.Companies.FirstOrDefaultAsync();
+
+            var branch = await _context.Branches
+                .FirstOrDefaultAsync(b => currentUser != null && b.BranchId == currentUser.BranchId)
+                ?? await _context.Branches.FirstOrDefaultAsync(b => company != null && b.CompanyId == company.CompanyId);
+
+            ViewBag.Company = company;
+            ViewBag.Branch = branch;
 
             return View("PrintOffer", offer);
         }

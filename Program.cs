@@ -41,6 +41,28 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
 
+        // Custom User Request: OfferLetters Schema Check
+        try
+        {
+            context.Database.ExecuteSqlRaw(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_OfferLetters') AND name = 'SignaturePath')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_OfferLetters ADD SignaturePath NVARCHAR(500) NULL;
+                END;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.erp_OfferLetters') AND name = 'AcceptedDate')
+                BEGIN
+                    ALTER TABLE AITStudent.erp_OfferLetters ADD AcceptedDate DATETIME2 NULL;
+                END;
+            ");
+        }
+        catch (Exception ex)
+        {
+            // Log gracefully if already applied
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning(ex, "OfferLetters schema patch already applied or failed.");
+        }
+
         // Safe automatic raw SQL schema patch BEFORE any LINQ queries execute
         string schemaPatchSql = @"
             -- 1. Ensure ShiftId, JoiningDate, and Discriminator exist on erp_Users in AITStudent schema
