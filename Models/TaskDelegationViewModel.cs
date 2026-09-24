@@ -6,6 +6,7 @@ namespace ERP_System.Models
     public class TaskDelegationViewModel
     {
         public List<DepartmentTask> Tasks { get; set; } = new();
+        public List<HierarchicalTask> HierarchicalTasks { get; set; } = new();
         public int TotalTasksCount { get; set; }
         public int InProgressCount { get; set; }
         public int InReviewCount { get; set; }

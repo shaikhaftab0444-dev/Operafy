@@ -1,370 +1,1199 @@
+
+@model IEnumerable<ERP_System.Models.Product>
+
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Request Material / PR";
+    ViewData["Title"] = "Product Inventory Manager";
+
+    var inCulture = new System.Globalization.CultureInfo("en-IN");
+
+    var branches = ViewBag.BranchesList as IEnumerable<ERP_System.Models.Branch>
+                   ?? Enumerable.Empty<ERP_System.Models.Branch>();
+
+    var categories = ViewBag.CategoriesList as IEnumerable<string>
+                     ?? Enumerable.Empty<string>();
+
+    var productCount = Model?.Count() ?? 0;
 }
 
 <style>
-    .pr-create-page {
-        animation: prCreateFadeIn 0.55s ease both;
+    .product-inventory-page {
+        --pi-primary: #2563eb;
+        --pi-primary-dark: #1d4ed8;
+        --pi-primary-soft: #eff6ff;
+        --pi-success: #16a34a;
+        --pi-success-soft: #f0fdf4;
+        --pi-warning: #d97706;
+        --pi-warning-soft: #fffbeb;
+        --pi-danger: #dc2626;
+        --pi-danger-soft: #fef2f2;
+        --pi-info: #0891b2;
+        --pi-info-soft: #ecfeff;
+        --pi-text: #172033;
+        --pi-muted: #64748b;
+        --pi-border: #e5eaf1;
+        --pi-white: #ffffff;
+        --pi-shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
+        min-height: calc(100vh - 70px);
+        background: radial-gradient( circle at 100% 0%, rgba(37, 99, 235, 0.045), transparent 28% ), linear-gradient(180deg, #f8faff 0%, #f6f8fc 100%);
+        padding-bottom: 35px;
     }
 
-    @@keyframes prCreateFadeIn {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: translateY(0); }
+        .product-inventory-page .page-shell {
+            max-width: 1700px;
+            margin: 0 auto;
+        }
+
+        /* =========================
+           PAGE HEADER
+           ========================= */
+
+        .product-inventory-page .page-header {
+            padding: 8px 0 20px;
+        }
+
+        .product-inventory-page .breadcrumb-line {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-bottom: 9px;
+            color: var(--pi-muted);
+            font-size: 0.77rem;
+        }
+
+            .product-inventory-page .breadcrumb-line a {
+                color: var(--pi-muted);
+                text-decoration: none;
+                transition: color 0.2s ease;
+            }
+
+                .product-inventory-page .breadcrumb-line a:hover {
+                    color: var(--pi-primary);
+                }
+
+        .product-inventory-page .breadcrumb-separator {
+            color: #cbd5e1;
+        }
+
+        .product-inventory-page .title-row {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .product-inventory-page .title-icon {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--pi-primary-soft);
+            color: var(--pi-primary);
+            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+        }
+
+        .product-inventory-page .page-title {
+            color: var(--pi-text);
+            font-size: clamp(1.4rem, 2vw, 1.75rem);
+            font-weight: 750;
+            letter-spacing: -0.025em;
+            margin: 0;
+        }
+
+        .product-inventory-page .page-subtitle {
+            color: var(--pi-muted);
+            font-size: 0.82rem;
+            margin: 4px 0 0;
+        }
+
+        .product-inventory-page .add-product-btn {
+            border: 0;
+            border-radius: 11px;
+            padding: 10px 17px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 650;
+            box-shadow: 0 7px 17px rgba(37, 99, 235, 0.18);
+            transition: all 0.2s ease;
+        }
+
+            .product-inventory-page .add-product-btn:hover {
+                color: #fff;
+                transform: translateY(-1px);
+                box-shadow: 0 11px 24px rgba(37, 99, 235, 0.24);
+            }
+
+        /* =========================
+           ALERT
+           ========================= */
+
+        .product-inventory-page .success-alert {
+            border: 1px solid #bbf7d0 !important;
+            border-left: 4px solid #16a34a !important;
+            border-radius: 11px;
+            background: #f0fdf4 !important;
+            color: #15803d !important;
+            padding: 12px 15px;
+            font-size: 0.82rem;
+        }
+
+        /* =========================
+           FILTER CARD
+           ========================= */
+
+        .product-inventory-page .filter-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--pi-border);
+            border-radius: 16px;
+            padding: 17px;
+            margin-bottom: 18px;
+            box-shadow: var(--pi-shadow);
+        }
+
+        .product-inventory-page .filter-heading {
+            color: var(--pi-text);
+            font-size: 0.83rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+            .product-inventory-page .filter-heading i {
+                color: var(--pi-primary);
+                margin-right: 7px;
+            }
+
+        .product-inventory-page .filter-control {
+            min-height: 43px;
+            border: 1px solid #dbe2ea;
+            border-radius: 10px;
+            background-color: #fff;
+            color: #334155;
+            font-size: 0.8rem;
+            transition: all 0.18s ease;
+        }
+
+            .product-inventory-page .filter-control:focus {
+                border-color: #93c5fd;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.09);
+            }
+
+        .product-inventory-page .search-wrapper {
+            position: relative;
+        }
+
+            .product-inventory-page .search-wrapper .search-icon {
+                position: absolute;
+                left: 14px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #94a3b8;
+                pointer-events: none;
+                z-index: 2;
+            }
+
+            .product-inventory-page .search-wrapper .filter-control {
+                padding-left: 39px;
+            }
+
+        .product-inventory-page .clear-filter-btn {
+            min-height: 43px;
+            border: 1px solid #dbe2ea;
+            border-radius: 10px;
+            background: #fff;
+            color: #64748b;
+            font-size: 0.78rem;
+            font-weight: 650;
+            transition: all 0.18s ease;
+        }
+
+            .product-inventory-page .clear-filter-btn:hover {
+                background: #f8fafc;
+                color: var(--pi-primary);
+                border-color: #bfdbfe;
+            }
+
+        /* =========================
+           INVENTORY CARD
+           ========================= */
+
+        .product-inventory-page .inventory-card {
+            background: var(--pi-white);
+            border: 1px solid var(--pi-border);
+            border-radius: 17px;
+            box-shadow: var(--pi-shadow);
+            overflow: hidden;
+        }
+
+        .product-inventory-page .inventory-header {
+            padding: 17px 19px;
+            border-bottom: 1px solid var(--pi-border);
+            background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
+        }
+
+        .product-inventory-page .inventory-title {
+            color: var(--pi-text);
+            font-size: 0.94rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .product-inventory-page .inventory-description {
+            color: var(--pi-muted);
+            font-size: 0.74rem;
+            margin-top: 3px;
+        }
+
+        .product-inventory-page .record-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 29px;
+            height: 24px;
+            padding: 0 8px;
+            border-radius: 999px;
+            background: var(--pi-primary-soft);
+            color: var(--pi-primary);
+            font-size: 0.71rem;
+            font-weight: 750;
+        }
+
+        .product-inventory-page .inventory-scroll {
+            overflow-x: auto;
+        }
+
+        .product-inventory-page .products-table {
+            min-width: 1450px;
+            margin: 0;
+            font-size: 0.78rem;
+        }
+
+            .product-inventory-page .products-table thead th {
+                background: #f8fafc;
+                color: #64748b;
+                border-top: 0;
+                border-bottom: 1px solid var(--pi-border);
+                padding: 12px 14px;
+                font-size: 0.65rem;
+                font-weight: 750;
+                text-transform: uppercase;
+                letter-spacing: 0.055em;
+                white-space: nowrap;
+            }
+
+            .product-inventory-page .products-table tbody td {
+                padding: 14px;
+                border-color: #eef2f7;
+                vertical-align: middle;
+                color: #475569;
+            }
+
+            .product-inventory-page .products-table tbody tr {
+                transition: background-color 0.18s ease;
+            }
+
+                .product-inventory-page .products-table tbody tr:hover {
+                    background: #f8fbff;
+                }
+
+        /* =========================
+           PRODUCT DATA
+           ========================= */
+
+        .product-inventory-page .product-id {
+            display: inline-flex;
+            padding: 5px 8px;
+            border-radius: 7px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            font-size: 0.69rem;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .product-inventory-page .product-name {
+            color: var(--pi-text);
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .product-inventory-page .product-branch {
+            color: #94a3b8;
+            font-size: 0.68rem;
+            margin-top: 3px;
+            white-space: nowrap;
+        }
+
+        .product-inventory-page .category-badge {
+            display: inline-flex;
+            padding: 5px 9px;
+            border-radius: 7px;
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            font-size: 0.68rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .product-inventory-page .price-value {
+            color: var(--pi-text);
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .product-inventory-page .gst-badge {
+            display: inline-flex;
+            padding: 5px 8px;
+            border-radius: 7px;
+            background: var(--pi-info-soft);
+            color: var(--pi-info);
+            border: 1px solid #a5f3fc;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        .product-inventory-page .stock-number {
+            font-weight: 750;
+            color: var(--pi-text);
+        }
+
+            .product-inventory-page .stock-number.low {
+                color: var(--pi-danger);
+            }
+
+        .product-inventory-page .quantity-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 65px;
+            padding: 5px 8px;
+            border-radius: 7px;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        .product-inventory-page .free-stock {
+            background: var(--pi-success-soft);
+            color: var(--pi-success);
+            border: 1px solid #bbf7d0;
+        }
+
+        .product-inventory-page .reserved-stock {
+            background: var(--pi-warning-soft);
+            color: var(--pi-warning);
+            border: 1px solid #fde68a;
+        }
+
+        /* =========================
+           AVAILABILITY
+           ========================= */
+
+        .product-inventory-page .availability-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.67rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .product-inventory-page .badge-in-stock {
+            background: var(--pi-success-soft);
+            color: var(--pi-success);
+            border: 1px solid #bbf7d0;
+        }
+
+        .product-inventory-page .badge-low-stock {
+            background: var(--pi-warning-soft);
+            color: var(--pi-warning);
+            border: 1px solid #fde68a;
+        }
+
+        .product-inventory-page .badge-out-stock {
+            background: var(--pi-danger-soft);
+            color: var(--pi-danger);
+            border: 1px solid #fecaca;
+        }
+
+        /* =========================
+           ACTION BUTTONS
+           ========================= */
+
+        .product-inventory-page .edit-btn {
+            border: 1px solid #dbe2ea;
+            background: #fff;
+            color: #475569;
+            font-size: 0.7rem;
+            font-weight: 650;
+            border-radius: 8px;
+            padding: 6px 9px;
+            transition: all 0.18s ease;
+            white-space: nowrap;
+        }
+
+            .product-inventory-page .edit-btn:hover {
+                background: var(--pi-primary-soft);
+                border-color: #bfdbfe;
+                color: var(--pi-primary);
+            }
+
+        .product-inventory-page .delete-btn {
+            border: 1px solid #fecaca;
+            background: #fff;
+            color: var(--pi-danger);
+            font-size: 0.7rem;
+            font-weight: 650;
+            border-radius: 8px;
+            padding: 6px 9px;
+            transition: all 0.18s ease;
+            white-space: nowrap;
+        }
+
+            .product-inventory-page .delete-btn:hover {
+                background: var(--pi-danger-soft);
+                border-color: #fca5a5;
+            }
+
+        .product-inventory-page .readonly-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 9px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #94a3b8;
+            font-size: 0.68rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        /* =========================
+           EMPTY STATE
+           ========================= */
+
+        .product-inventory-page .empty-state {
+            padding: 65px 20px !important;
+        }
+
+        .product-inventory-page .empty-icon {
+            width: 62px;
+            height: 62px;
+            margin: 0 auto 14px;
+            border-radius: 17px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: #94a3b8;
+            font-size: 1.4rem;
+        }
+
+        .product-inventory-page .empty-title {
+            color: var(--pi-text);
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .product-inventory-page .empty-text {
+            color: var(--pi-muted);
+            font-size: 0.77rem;
+            margin: 0;
+        }
+
+    /* =========================
+           RESPONSIVE
+           ========================= */
+
+    @@media (max-width: 768px) {
+        .product-inventory-page .page-header {
+            padding-top: 2px;
+        }
+
+        .product-inventory-page .header-action {
+            width: 100%;
+        }
+
+        .product-inventory-page .add-product-btn {
+            width: 100%;
+        }
+
+        .product-inventory-page .filter-card {
+            padding: 14px;
+        }
+
+        .product-inventory-page .inventory-header {
+            padding: 15px 16px;
+        }
     }
 
-    .pr-header {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
-        border: 1px solid #e7ecf3;
-        border-radius: 18px;
-        padding: 22px 26px;
-        margin-bottom: 22px;
-        box-shadow: 0 8px 28px rgba(15, 23, 42, 0.045);
+    @@media (max-width: 480px) {
+        .product-inventory-page .title-icon {
+            width: 38px;
+            height: 38px;
+            flex-basis: 38px;
+            border-radius: 10px;
+        }
+
+        .product-inventory-page .page-title {
+            font-size: 1.25rem;
+        }
+
+        .product-inventory-page .page-subtitle {
+            font-size: 0.75rem;
+        }
     }
 
-    .header-icon {
-        width: 48px;
-        height: 48px;
-        min-width: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 14px;
-        background: #eef5ff;
-        color: #2563eb;
-        font-size: 1.25rem;
-        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.1);
-    }
+    /* =========================
+           PRINT
+           ========================= */
 
-    .pr-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 18px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-        overflow: hidden;
-    }
+    @@media print {
+        .product-inventory-page {
+            background: #fff !important;
+        }
 
-    .pr-card-header {
-        background: #f8fafc;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 16px 24px;
-    }
+            .product-inventory-page .header-action,
+            .product-inventory-page .filter-card,
+            .product-inventory-page .inventory-header,
+            .product-inventory-page .edit-btn,
+            .product-inventory-page .delete-btn,
+            .product-inventory-page .readonly-badge {
+                display: none !important;
+            }
 
-    .info-callout {
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        border-radius: 14px;
-        padding: 16px 20px;
+            .product-inventory-page .inventory-card {
+                border: 1px solid #ddd;
+                box-shadow: none;
+            }
     }
 </style>
 
-<div class="container-fluid px-0 pr-create-page">
-    <!-- Header -->
-    <div class="pr-header d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="header-icon">
-                <i class="fa-solid fa-cart-plus"></i>
-            </div>
+<div class="product-inventory-page">
+
+    <div class="container-fluid py-3 px-3 px-md-4 page-shell">
+
+        <!-- Page Header -->
+        <div class="page-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+
             <div>
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <h4 class="fw-bold mb-0 text-dark">Material &amp; Purchase Requisition</h4>
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-bold rounded-pill">Department Catalog</span>
+
+                <div class="breadcrumb-line">
+
+                    <a href="/Dashboard">
+                        <i class="fa-solid fa-chart-line me-1"></i>
+                        Dashboard
+                    </a>
+
+                    <span class="breadcrumb-separator">/</span>
+
+                    <span>Products</span>
+
                 </div>
-                <p class="text-muted small mb-0">Select pre-approved catalog materials mapped directly to your department.</p>
-            </div>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <a href="@Url.Action("Index", "ESSPurchase")" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-semibold">
-                <i class="fa-solid fa-clock-rotate-left me-1"></i> My PR History
-            </a>
-        </div>
-    </div>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
-            <div class="d-flex align-items-center gap-2">
-                <i class="fa-solid fa-circle-check text-success fs-5"></i>
-                <div class="fw-semibold">@TempData["SuccessMessage"]</div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
+                <div class="title-row">
 
-    <div class="row g-4">
-        <!-- Requisition Form -->
-        <div class="col-lg-8">
-            <div class="pr-card">
-                <div class="pr-card-header d-flex align-items-center justify-content-between">
-                    <span class="fw-bold text-dark"><i class="fa-solid fa-clipboard-list text-primary me-2"></i> New Requisition Order</span>
-                    <span class="badge bg-light text-muted border px-2.5 py-1">Auto-Pricing Enabled</span>
+                    <span class="title-icon">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </span>
+
+                    <div>
+
+                        <h4 class="page-title">
+                            Product Management
+                        </h4>
+
+                        <p class="page-subtitle">
+                            Manage product pricing, stock availability, branches and inventory levels.
+                        </p>
+
+                    </div>
+
                 </div>
-                <div class="p-4">
-                    <form id="essPrForm" method="post" asp-action="Create" asp-controller="ESSPurchase">
-                        @Html.AntiForgeryToken()
 
-                        <div class="row g-3">
-                            <!-- 1. Logged-in Employee -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold small text-dark">Requesting Employee / Submitter</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fa fa-user text-muted"></i></span>
-                                    <input type="text" class="form-control bg-light text-dark fw-semibold" value="@ViewBag.EmployeeName" readonly disabled />
-                                </div>
-                            </div>
-
-                            <!-- 2. Auto-bound & Permanently Locked Department -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold small text-dark">Department (Locked to Profile)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fa fa-building text-muted"></i></span>
-                                    <input type="text" class="form-control bg-light text-dark fw-semibold" value="@ViewBag.DepartmentName" readonly disabled />
-                                    <input type="hidden" name="DepartmentId" value="@ViewBag.DepartmentId" />
-                                </div>
-                            </div>
-
-                            <!-- 3. Catalog Dropdown with Live Pricing -->
-                            <div class="col-12 mb-3">
-                                <label class="form-label fw-bold small text-dark">Select Requisition Item *</label>
-                                <select id="catalogItemSelect" name="catalogItemId" class="form-select" required onchange="handleItemChange(this)">
-                                    <option value="" data-price="0">-- Select Pre-Approved Catalog Material --</option>
-                                    @if (ViewBag.CatalogItems != null)
-                                    {
-                                        foreach (var item in ViewBag.CatalogItems)
-                                        {
-                                            <option value="@item.Id" data-price="@item.UnitPrice" data-uom="@item.UnitOfMeasure">
-                                                @item.ItemName (₹ @item.UnitPrice.ToString("N2") / @item.UnitOfMeasure)
-                                            </option>
-                                        }
-                                    }
-                                </select>
-                                <div class="form-text">Filtered automatically for <strong>@ViewBag.DepartmentName</strong> catalog items.</div>
-                            </div>
-
-                            <!-- 4. Quantity Input -->
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold small text-dark">Quantity *</label>
-                                <div class="input-group">
-                                    <input type="number" id="itemQuantity" name="quantity" class="form-control fw-bold text-center" value="1" min="1" max="500" required oninput="calculateTotalCost()" />
-                                    <span class="input-group-text bg-light" id="uomLabel">Unit</span>
-                                </div>
-                            </div>
-
-                            <!-- 5. Unit Price (Read-Only) -->
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold small text-dark">Unit Price</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light">₹</span>
-                                    <input type="text" id="displayUnitPrice" class="form-control bg-light fw-semibold text-dark" value="0.00" readonly />
-                                </div>
-                            </div>
-
-                            <!-- 6. Estimated Total Cost (Live Calculated) -->
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold small text-dark">Estimated Total Cost</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light fw-bold text-success">₹</span>
-                                    <input type="text" id="displayTotalCost" class="form-control bg-light fw-bold text-success fs-6" value="0.00" readonly />
-                                </div>
-                            </div>
-
-                            <!-- 7. Urgency Level -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold small text-dark">Urgency Level *</label>
-                                <select id="urgencyLevel" name="urgencyLevel" class="form-select" required>
-                                    <option value="Normal Priority">Normal Priority (7-10 Business Days)</option>
-                                    <option value="Medium Priority" selected="selected">Medium Priority (3-5 Business Days)</option>
-                                    <option value="High Priority">High Priority (Within 48 Hours)</option>
-                                    <option value="Urgent (Same-Day)">Urgent (Same-Day Procurement)</option>
-                                </select>
-                            </div>
-
-                            <!-- 8. Cost Center / Budget Code (Auto-generated & Locked) -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold small text-dark">Cost Center / Budget Code</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fa fa-barcode text-muted"></i></span>
-                                    <input type="text" id="costCenterCode" name="CostCenterCode" class="form-control bg-light text-dark fw-bold" value="@ViewBag.AutoCostCenter" readonly />
-                                </div>
-                            </div>
-
-                            <div class="col-12 mb-3">
-                                <label class="form-label fw-bold small text-dark">Business Purpose &amp; Justification</label>
-                                <textarea id="justification" name="justification" class="form-control" rows="3" placeholder="Provide business justification or specific project requirement..."></textarea>
-                            </div>
-
-                            <div class="col-12 mt-2">
-                                <div class="p-3 bg-light rounded-3 border">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="complianceCheck" checked required />
-                                        <label class="form-check-label small text-muted" for="complianceCheck">
-                                            I confirm that this procurement complies with fiscal budget provisions and approved vendor sourcing policies.
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 mt-4 d-flex justify-content-between align-items-center">
-                                <a href="@Url.Action("Index", "ESSPurchase")" class="btn btn-light px-4 rounded-pill">
-                                    Cancel
-                                </a>
-                                <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-bold shadow-sm" id="btnSubmit">
-                                    <i class="fa-solid fa-paper-plane me-2"></i> Submit Requisition
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar Info & SLA Policy -->
-        <div class="col-lg-4">
-            <div class="info-callout mb-4">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <i class="fa-solid fa-circle-info text-success fs-5"></i>
-                    <h6 class="fw-bold text-success mb-0">Catalog Automation</h6>
-                </div>
-                <p class="small text-muted mb-0">
-                    Material prices are standardized in the master catalog. Requisitions are automatically forwarded to the <strong>Purchase Manager</strong> console for review and PO generation.
-                </p>
             </div>
 
-            <div class="pr-card p-4">
-                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-layer-group text-primary me-2"></i> Available Materials</h6>
-                <div class="small text-muted mb-3">
-                    Showing catalog items for <strong>@ViewBag.DepartmentName</strong>.
+            <div class="header-action">
+
+                @if (User.IsInRole("Sales Manager") ||
+                                User.IsInRole("Admin") ||
+                                User.IsInRole("Super Admin"))
+                {
+                    <a href="/Products/Create"
+                       class="btn add-product-btn">
+
+                        <i class="fa-solid fa-plus me-2"></i>
+                        Add New Product
+
+                    </a>
+                }
+
+            </div>
+
+        </div>
+
+        <!-- Alerts -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm success-alert mb-4"
+                 role="alert">
+
+                <i class="fa-solid fa-circle-check me-2"></i>
+
+                @TempData["SuccessMessage"]
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close">
+                </button>
+
+            </div>
+        }
+
+        <!-- Search & Filters -->
+        <div class="filter-card">
+
+            <div class="filter-heading">
+
+                <i class="fa-solid fa-sliders"></i>
+
+                Inventory Filters
+
+            </div>
+
+            <div class="row g-3">
+
+                <!-- Search -->
+                <div class="col-lg-5 col-md-6">
+
+                    <div class="search-wrapper">
+
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+
+                        <input type="text"
+                               id="searchProduct"
+                               class="form-control filter-control"
+                               placeholder="Search products by name..." />
+
+                    </div>
+
                 </div>
-                <ul class="list-group list-group-flush small">
-                    @if (ViewBag.CatalogItems != null)
-                    {
-                        foreach (var item in ViewBag.CatalogItems)
+
+                <!-- Category -->
+                <div class="col-lg-3 col-md-6">
+
+                    <select id="filterCategory"
+                            class="form-select filter-control">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        @foreach (var cat in categories)
                         {
-                            <li class="list-group-item px-0 d-flex justify-content-between align-items-center bg-transparent">
-                                <div>
-                                    <i class="fa-solid fa-box text-muted me-1.5"></i>
-                                    <span class="fw-semibold text-dark">@item.ItemName</span>
-                                </div>
-                                <span class="badge bg-light text-primary border fw-bold">₹ @item.UnitPrice.ToString("N0") / @item.UnitOfMeasure</span>
-                            </li>
+                            <option value="@cat">
+                                @cat
+                            </option>
                         }
-                    }
-                </ul>
+
+                    </select>
+
+                </div>
+
+                <!-- Branch -->
+                <div class="col-lg-3 col-md-6">
+
+                    <select id="filterBranch"
+                            class="form-select filter-control">
+
+                        <option value="">
+                            All Branches
+                        </option>
+
+                        @foreach (var branch in branches)
+                        {
+                            <option value="@branch.BranchName">
+                                @branch.BranchName
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <!-- Clear -->
+                <div class="col-lg-1 col-md-6">
+
+                    <button type="button"
+                            id="clearFilters"
+                            class="btn clear-filter-btn w-100"
+                            title="Clear filters">
+
+                        <i class="fa-solid fa-rotate-left"></i>
+
+                    </button>
+
+                </div>
+
             </div>
+
         </div>
+
+        <!-- Inventory Card -->
+        <div class="inventory-card">
+
+            <div class="inventory-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div>
+
+                    <div class="d-flex align-items-center gap-2">
+
+                        <h6 class="inventory-title">
+                            Product Inventory
+                        </h6>
+
+                        <span class="record-count">
+                            @productCount
+                        </span>
+
+                    </div>
+
+                    <div class="inventory-description">
+                        Current product stock, pricing and availability across branches.
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="inventory-scroll">
+
+                <table class="table table-hover products-table"
+                       id="productsTable">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Product ID
+                            </th>
+
+                            <th>
+                                Product Name
+                            </th>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th class="text-end">
+                                Unit Price (₹)
+                            </th>
+
+                            <th class="text-center">
+                                GST Rate
+                            </th>
+
+                            <th class="text-center">
+                                Free Available
+                            </th>
+
+                            <th class="text-center">
+                                Reserved
+                            </th>
+
+                            <th class="text-center">
+                                Total Stock
+                            </th>
+
+                            <th class="text-center">
+                                Sold Qty
+                            </th>
+
+                            <th>
+                                Availability
+                            </th>
+
+                            <th class="text-center">
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var prod in Model)
+                            {
+                                var badgeClass =
+                                prod.Status == "In Stock"
+                                ? "badge-in-stock"
+                                : prod.Status == "Low Stock"
+                                ? "badge-low-stock"
+                                : "badge-out-stock";
+
+                                var price =
+                                prod.UnitSellingPrice > 0
+                                ? prod.UnitSellingPrice
+                                : (
+                                prod.StockQty > 0
+                                ? prod.Revenue / Math.Max(1, prod.SoldQty)
+                                : 1000m
+                                );
+
+                                var freeStock = prod.FreeAvailableStock;
+                                var reservedStock = prod.ReservedStockQty;
+
+                                <tr>
+
+                                    <!-- Product ID -->
+                                    <td>
+
+                                        <span class="product-id">
+                                            PROD#@prod.ProductId.ToString("D3")
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Product Name / Branch -->
+                                    <td>
+
+                                        <div class="product-name">
+                                            @prod.ProductName
+                                        </div>
+
+                                        <div class="product-branch">
+
+                                            <i class="fa-solid fa-location-dot me-1"></i>
+
+                                            @(prod.Branch?.BranchName ?? "Head Office")
+
+                                        </div>
+
+                                    </td>
+
+                                    <!-- Category -->
+                                    <td>
+
+                                        <span class="category-badge">
+                                            @prod.Category
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Price -->
+                                    <td class="text-end">
+
+                                        <span class="price-value">
+                                            ₹@price.ToString("N2", inCulture)
+                                        </span>
+
+                                    </td>
+
+                                    <!-- GST -->
+                                    <td class="text-center">
+
+                                        <span class="gst-badge">
+
+                                            @(prod.GstRate > 0
+                                                                                ? prod.GstRate.ToString("0.##")
+                                                                                : "18")%
+
+                                </span>
+
+                                    </td>
+
+                                    <!-- Free Stock -->
+                                    <td class="text-center">
+
+                                        <span class="quantity-badge free-stock">
+                                            @freeStock Units
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Reserved -->
+                                    <td class="text-center">
+
+                                        <span class="quantity-badge reserved-stock">
+                                            @reservedStock Units
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Total Stock -->
+                                    <td class="text-center">
+
+                                        <span class="stock-number @(prod.StockQty <= 50 ? "low" : "")">
+                                            @prod.StockQty
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Sold -->
+                                    <td class="text-center">
+
+                                        <span class="fw-semibold text-secondary">
+                                            @prod.SoldQty
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Availability -->
+                                    <td>
+
+                                        <span class="availability-badge @badgeClass">
+
+                                    @if (prod.Status == "In Stock")
+                                            {
+                                                <i class="fa-solid fa-circle-check"></i>
+                                            }
+                                            else if (prod.Status == "Low Stock")
+                                            {
+                                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-circle-xmark"></i>
+                                            }
+
+                                            @prod.Status
+
+                                        </span>
+
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-center">
+
+                                        <div class="d-flex justify-content-center align-items-center gap-2">
+
+                                            @if (User.IsInRole("Sales Manager") ||
+                                                                                User.IsInRole("Admin") ||
+                                                                                User.IsInRole("Super Admin"))
+                                            {
+                                                <a href="/Products/Edit/@prod.ProductId"
+                                                   class="btn edit-btn">
+
+                                                    <i class="fa-solid fa-pen-to-square me-1"></i>
+                                                    Edit
+
+                                                </a>
+
+                                                @if (User.IsInRole("Super Admin") ||
+                                                                                    User.IsInRole("Admin"))
+                                                {
+                                                    <form asp-action="Delete"
+                                                          asp-route-id="@prod.ProductId"
+                                                          method="post"
+                                                          onsubmit="return confirm('Are you sure you want to delete this product?');"
+                                                          style="display:inline;">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <button type="submit"
+                                                                class="btn delete-btn">
+
+                                                            <i class="fa-solid fa-trash-can me-1"></i>
+                                                            Delete
+
+                                                        </button>
+
+                                                    </form>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="readonly-badge">
+
+                                                    <i class="fa-solid fa-lock"></i>
+
+                                                    Read-Only
+
+                                                </span>
+                                            }
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="11"
+                                    class="text-center empty-state">
+
+                                    <div class="empty-icon">
+
+                                        <i class="fa-solid fa-box-open"></i>
+
+                                    </div>
+
+                                    <div class="empty-title">
+                                        No product records found
+                                    </div>
+
+                                    <p class="empty-text">
+                                        No products are currently available in the warehouse inventory.
+                                    </p>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
     </div>
+
 </div>
 
 @section Scripts {
+
     <script>
-        let currentUnitPrice = 0;
+        document.addEventListener("DOMContentLoaded", function () {
 
-        function handleItemChange(selectEl) {
-            const selectedOption = selectEl.options[selectEl.selectedIndex];
-            currentUnitPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-            const uom = selectedOption.getAttribute('data-uom') || 'Unit';
+            const searchInput = document.getElementById("searchProduct");
+            const categorySelect = document.getElementById("filterCategory");
+            const branchSelect = document.getElementById("filterBranch");
+            const clearButton = document.getElementById("clearFilters");
+            const table = document.getElementById("productsTable");
 
-            const uomLabel = document.getElementById('uomLabel');
-            if (uomLabel) {
-                uomLabel.textContent = uom;
-            }
+            function filterTable() {
 
-            const unitPriceEl = document.getElementById('displayUnitPrice');
-            if (unitPriceEl) {
-                unitPriceEl.value = currentUnitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-            }
-
-            calculateTotalCost();
-        }
-
-        function calculateTotalCost() {
-            const qtyInput = document.getElementById('itemQuantity');
-            let qty = parseInt(qtyInput.value, 10);
-            if (isNaN(qty) || qty < 1) {
-                qty = 1;
-            }
-            const total = (currentUnitPrice * qty).toFixed(2);
-            const totalCostEl = document.getElementById('displayTotalCost');
-            if (totalCostEl) {
-                totalCostEl.value = Number(total).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-            }
-        }
-
-        // AJAX Form Submission
-        document.addEventListener('DOMContentLoaded', function () {
-            const form = document.getElementById('essPrForm');
-            if (!form) return;
-
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
-
-                const selectEl = document.getElementById('catalogItemSelect');
-                if (!selectEl || !selectEl.value) {
-                    if (typeof toastr !== 'undefined') {
-                        toastr.warning('Please select a catalog item.');
-                    } else {
-                        alert('Please select a catalog item.');
-                    }
+                if (!searchInput || !categorySelect || !branchSelect || !table) {
                     return;
                 }
 
-                const btn = document.getElementById('btnSubmit');
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Submitting...';
-                }
+                const query =
+                    searchInput.value.toLowerCase().trim();
 
-                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-                const token = tokenInput ? tokenInput.value : '';
+                const selectedCategory =
+                    categorySelect.value.toLowerCase().trim();
 
-                const formData = new FormData();
-                formData.append('catalogItemId', selectEl.value);
-                formData.append('quantity', document.getElementById('itemQuantity').value);
-                formData.append('urgencyLevel', document.getElementById('urgencyLevel').value);
-                formData.append('justification', document.getElementById('justification').value);
-                formData.append('costCenterCode', document.getElementById('costCenterCode')?.value || '');
-                formData.append('__RequestVerificationToken', token);
+                const selectedBranch =
+                    branchSelect.value.toLowerCase().trim();
 
-                fetch('@Url.Action("SubmitPR", "ESSPurchase")', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.success) {
-                        if (typeof toastr !== 'undefined') {
-                            toastr.success(data.message || 'Requisition submitted successfully!');
-                        }
-                        setTimeout(function () {
-                            window.location.href = '@Url.Action("Index", "ESSPurchase")';
-                        }, 1000);
-                    } else {
-                        if (typeof toastr !== 'undefined') {
-                            toastr.error(data.message || 'Failed to submit requisition.');
-                        } else {
-                            alert(data.message || 'Failed to submit requisition.');
-                        }
-                        if (btn) {
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i> Submit Requisition';
-                        }
+                const rows =
+                    table.querySelectorAll("tbody tr");
+
+                rows.forEach(function (row) {
+
+                    if (row.cells.length < 11) {
+                        return;
                     }
-                })
-                .catch(err => {
-                    console.error(err);
-                    if (typeof toastr !== 'undefined') {
-                        toastr.error('Network error while submitting requisition.');
-                    } else {
-                        alert('Network error while submitting requisition.');
-                    }
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i> Submit Requisition';
-                    }
+
+                    /*
+                     * Product name and branch are both
+                     * inside the Product Name cell.
+                     */
+
+                    const productName =
+                        row.cells[1].innerText.toLowerCase();
+
+                    const category =
+                        row.cells[2].innerText.toLowerCase();
+
+                    const branchText =
+                        row.cells[1]
+                            .querySelector(".product-branch")
+                            ?.innerText
+                            .toLowerCase() || "";
+
+                    const matchesSearch =
+                        productName.includes(query);
+
+                    const matchesCategory =
+                        selectedCategory === "" ||
+                        category.includes(selectedCategory);
+
+                    const matchesBranch =
+                        selectedBranch === "" ||
+                        branchText.includes(selectedBranch);
+
+                    row.style.display =
+                        matchesSearch &&
+                        matchesCategory &&
+                        matchesBranch
+                            ? ""
+                            : "none";
                 });
-            });
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener(
+                    "input",
+                    filterTable
+                );
+            }
+
+            if (categorySelect) {
+                categorySelect.addEventListener(
+                    "change",
+                    filterTable
+                );
+            }
+
+            if (branchSelect) {
+                branchSelect.addEventListener(
+                    "change",
+                    filterTable
+                );
+            }
+
+            if (clearButton) {
+
+                clearButton.addEventListener(
+                    "click",
+                    function () {
+
+                        if (searchInput) {
+                            searchInput.value = "";
+                        }
+
+                        if (categorySelect) {
+                            categorySelect.value = "";
+                        }
+
+                        if (branchSelect) {
+                            branchSelect.value = "";
+                        }
+
+                        filterTable();
+
+                        if (searchInput) {
+                            searchInput.focus();
+                        }
+
+                    }
+                );
+            }
+
         });
     </script>
+
 }

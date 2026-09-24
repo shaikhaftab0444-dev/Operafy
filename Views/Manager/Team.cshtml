@@ -1,4 +1,4 @@
-@model ERP_System.Models.ManagerDashboardViewModel
+@model IEnumerable<ERP_System.Models.ExecutiveDirectoryViewModel>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Team Directory - Operations Hub";
@@ -696,7 +696,6 @@
 
 <div class="container-fluid py-4 text-start team-directory-page">
 
-    ```
     <!-- =========================================
          HEADER
     ========================================= -->
@@ -742,7 +741,7 @@
                 </div>
 
                 <div class="team-member-counter">
-                    <span class="counter-number">@Model.TeamAttendance.Count()</span>
+                    <span class="counter-number">@(ViewBag.TotalMembers ?? Model?.Count() ?? 0)</span>
                     <span class="counter-label">Team Members</span>
                 </div>
 
@@ -764,7 +763,7 @@
             </div>
 
             <div>
-                <div class="team-summary-value">@Model.TeamAttendance.Count()</div>
+                <div class="team-summary-value">@(ViewBag.TotalMembers ?? Model?.Count() ?? 0)</div>
                 <div class="team-summary-text">Total Members</div>
             </div>
 
@@ -777,7 +776,7 @@
             </div>
 
             <div>
-                <div class="team-summary-value">@Model.TeamAttendance.Count(x => x.Status == "Present")</div>
+                <div class="team-summary-value">@(ViewBag.PresentToday ?? Model?.Count(x => x.AttendanceStatus == "Present" || x.AttendanceStatus == "Late") ?? 0)</div>
                 <div class="team-summary-text">Present Today</div>
             </div>
 
@@ -790,7 +789,7 @@
             </div>
 
             <div>
-                <div class="team-summary-value">@Model.TeamAttendance.Count(x => x.Status == "Late")</div>
+                <div class="team-summary-value">@(ViewBag.LateCheckIns ?? Model?.Count(x => x.AttendanceStatus == "Late" || x.IsLate) ?? 0)</div>
                 <div class="team-summary-text">Late Check-ins</div>
             </div>
 
@@ -803,7 +802,7 @@
             </div>
 
             <div>
-                <div class="team-summary-value">@Model.TeamAttendance.Count(x => x.Status != "Present" && x.Status != "Late")</div>
+                <div class="team-summary-value">@(ViewBag.Unavailable ?? Model?.Count(x => x.AttendanceStatus == "Unavailable" || x.AttendanceStatus == "On Leave") ?? 0)</div>
                 <div class="team-summary-text">Unavailable</div>
             </div>
 
@@ -816,23 +815,22 @@
     ========================================= -->
     <div class="row g-4 mt-1">
 
-        @if (Model.TeamAttendance != null && Model.TeamAttendance.Any())
+        @if (Model != null && Model.Any())
         {
             var cardIndex = 0;
 
-            @foreach (var m in Model.TeamAttendance)
+            @foreach (var m in Model)
             {
                 cardIndex++;
 
-                string statusClass = m.Status switch
+                string statusClass = m.AttendanceStatus switch
                 {
                     "Present" => "team-status-present",
                     "Late" => "team-status-late",
-                    "Absent" => "team-status-absent",
+                    "Unavailable" => "team-status-absent",
+                    "On Leave" => "team-status-absent",
                     _ => "team-status-default"
                 };
-
-                var activeTasks = Model.TeamTasks.Count(t => t.AssignedTo == m.Name);
 
                 <div class="col-xl-4 col-lg-4 col-md-6 team-animate-up"
                      style="animation-delay:@(Math.Min(cardIndex * 0.07, 0.6))s">
@@ -847,10 +845,10 @@
                                 <div class="team-avatar-wrapper">
 
                                     <div class="team-avatar">
-                                        @m.Avatar
+                                        @(string.IsNullOrWhiteSpace(m.AvatarInitials) ? "EM" : m.AvatarInitials)
                                     </div>
 
-                                    @if (m.Status == "Present" || m.Status == "Late")
+                                    @if (m.AttendanceStatus == "Present" || m.AttendanceStatus == "Late")
                                     {
                                         <span class="team-avatar-online-dot"></span>
                                     }
@@ -866,7 +864,7 @@
 
                             <span class="team-status @statusClass">
                                 <span class="team-status-dot"></span>
-                                @m.Status
+                                @m.AttendanceStatus
                             </span>
 
                         </div>
@@ -884,7 +882,7 @@
                                 </div>
 
                                 <div class="team-info-value">
-                                    @m.ClockInTime
+                                    @(string.IsNullOrWhiteSpace(m.ClockInTime) ? "--:--" : m.ClockInTime)
                                 </div>
 
                             </div>
@@ -892,12 +890,12 @@
                             <div class="team-info-box">
 
                                 <div class="team-info-label">
-                                    <i class="fa-solid fa-list-check"></i>
-                                    Active Tasks
+                                    <i class="fa-solid fa-phone"></i>
+                                    Contact
                                 </div>
 
-                                <div class="team-info-value team-task-value">
-                                    @activeTasks Task@(activeTasks == 1 ? "" : "s")
+                                <div class="team-info-value team-task-value text-truncate" title="@m.MobileNumber">
+                                    @(string.IsNullOrWhiteSpace(m.MobileNumber) ? m.Email : m.MobileNumber)
                                 </div>
 
                             </div>
@@ -909,12 +907,12 @@
 
                             <div class="team-member-tag">
                                 <i class="fa-solid fa-user-shield"></i>
-                                Team Member
+                                @(string.IsNullOrWhiteSpace(m.Department) ? "Operations" : m.Department)
                             </div>
 
-                            <div class="team-footer-text">
-                                <i class="fa-solid fa-chart-line me-1"></i>
-                                Operations Hub
+                            <div class="team-footer-text text-truncate" style="max-width: 150px;" title="@m.Email">
+                                <i class="fa-solid fa-envelope me-1"></i>
+                                @m.Email
                             </div>
 
                         </div>

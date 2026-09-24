@@ -75,6 +75,23 @@ namespace ERP_System.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? ActionedAt { get; set; }
+
+        [NotMapped]
+        private string? _requestType;
+
+        [NotMapped]
+        public string RequestType
+        {
+            get => !string.IsNullOrEmpty(_requestType) ? _requestType : (LeaveType?.Name ?? "Leave");
+            set => _requestType = value;
+        }
+
+        [NotMapped]
+        public string UserIdStr
+        {
+            get => UserId.ToString();
+            set { if (int.TryParse(value, out int u)) UserId = u; }
+        }
     }
 
     [Table("CompanyHolidays")]

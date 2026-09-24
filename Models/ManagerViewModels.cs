@@ -61,4 +61,18 @@ namespace ERP_System.Models
         public int ProgressPercent { get; set; }
         public string Status { get; set; } = "Pending";
     }
+
+    public class ExecutiveDirectoryViewModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string AttendanceStatus { get; set; } = "Present"; // Present, Late, On Leave, Unavailable
+        public bool IsLate { get; set; } = false;
+        public string Role { get; set; } = "Department Manager";
+        public string Email { get; set; } = string.Empty;
+        public string ClockInTime { get; set; } = "--:--";
+        public string MobileNumber { get; set; } = string.Empty;
+        public string AvatarInitials { get; set; } = string.Empty;
+    }
 }

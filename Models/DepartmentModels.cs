@@ -41,6 +41,8 @@ namespace ERP_System.Models
 
         [NotMapped]
         public string Name => DepartmentName;
+
+        public override string ToString() => DepartmentName;
     }
 
     public class DepartmentViewModel

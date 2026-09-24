@@ -90,6 +90,9 @@ namespace ERP_System.Models
         [StringLength(50)]
         public string? ReportingManagerId { get; set; }
 
+        [NotMapped]
+        public virtual User? ReportingManager { get; set; }
+
         [StringLength(150)]
         public string? ReportingManagerName { get; set; }
 

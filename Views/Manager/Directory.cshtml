@@ -1,0 +1,449 @@
+﻿@model IEnumerable<ERP_System.Models.ExecutiveDirectoryViewModel>
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Executive Directory & Leadership Radar";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    .exec-dir-page {
+        --dir-primary: #2563eb;
+        --dir-primary-dark: #1d4ed8;
+        --dir-primary-soft: #eff6ff;
+        --dir-success: #10b981;
+        --dir-success-soft: #ecfdf5;
+        --dir-warning: #f59e0b;
+        --dir-warning-soft: #fffbeb;
+        --dir-danger: #ef4444;
+        --dir-danger-soft: #fef2f2;
+        --dir-text: #1e293b;
+        --dir-muted: #64748b;
+        --dir-border: #e2e8f0;
+        --dir-card: #ffffff;
+        color: var(--dir-text);
+    }
+
+    .dir-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #2563eb 100%);
+        color: #ffffff;
+        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.12);
+    }
+
+    .dir-title-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        font-size: 1.3rem;
+    }
+
+    .dir-stat-card {
+        border: 0;
+        border-radius: 20px;
+        background: var(--dir-card);
+        padding: 22px 24px;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .dir-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+
+    .dir-stat-icon {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.2rem;
+    }
+
+    .dir-stat-icon.blue { background: #eff6ff; color: #2563eb; }
+    .dir-stat-icon.green { background: #ecfdf5; color: #10b981; }
+    .dir-stat-icon.amber { background: #fffbeb; color: #f59e0b; }
+    .dir-stat-icon.rose { background: #fef2f2; color: #ef4444; }
+
+    .dir-stat-val {
+        font-size: 1.85rem;
+        font-weight: 800;
+        margin: 6px 0 2px;
+        color: #0f172a;
+    }
+
+    .dir-stat-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--dir-muted);
+    }
+
+    .exec-card {
+        border: 1px solid var(--dir-border);
+        border-radius: 20px;
+        background: var(--dir-card);
+        padding: 24px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+        transition: all 0.25s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .exec-card:hover {
+        border-color: #bfdbfe;
+        transform: translateY(-4px);
+        box-shadow: 0 14px 30px rgba(37, 99, 235, 0.10);
+    }
+
+    .exec-avatar {
+        width: 58px;
+        height: 58px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #ffffff;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25);
+    }
+
+    .exec-badge-present {
+        background: #ecfdf5;
+        color: #059669;
+        font-weight: 700;
+        font-size: 0.72rem;
+        padding: 6px 12px;
+        border-radius: 30px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .exec-badge-late {
+        background: #fffbeb;
+        color: #d97706;
+        font-weight: 700;
+        font-size: 0.72rem;
+        padding: 6px 12px;
+        border-radius: 30px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .exec-badge-leave {
+        background: #eff6ff;
+        color: #2563eb;
+        font-weight: 700;
+        font-size: 0.72rem;
+        padding: 6px 12px;
+        border-radius: 30px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .exec-badge-unavailable {
+        background: #fef2f2;
+        color: #dc2626;
+        font-weight: 700;
+        font-size: 0.72rem;
+        padding: 6px 12px;
+        border-radius: 30px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .pulse-dot-green {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    }
+
+    .pulse-dot-amber {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #f59e0b;
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+    }
+
+    .pulse-dot-red {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+    }
+
+    .info-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.82rem;
+        color: var(--dir-muted);
+        margin-bottom: 6px;
+    }
+
+    .info-row i {
+        width: 16px;
+        color: #94a3b8;
+    }
+</style>
+
+<div class="container-fluid py-4 exec-dir-page text-start">
+
+    <!-- Hero Header -->
+    <div class="dir-hero">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a href="/Manager" class="text-white-50 text-decoration-none">Manager Portal</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">Executive Directory</li>
+                    </ol>
+                </nav>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="dir-title-icon">
+                        <i class="fa-solid fa-sitemap"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1 fw-bold text-white">Executive Leadership Directory</h4>
+                        <p class="mb-0 text-white-50 small">Direct subordinate department heads, operational status, and executive contact radar.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <a href="/Manager/Tasks" class="btn btn-light fw-bold px-3 py-2 rounded-pill shadow-sm">
+                    <i class="fa-solid fa-list-check me-1 text-primary"></i> Sprint Delegations
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="dir-stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="dir-stat-label">Department Heads</div>
+                        <div class="dir-stat-val text-primary">@ViewBag.TotalMembers</div>
+                        <small class="text-muted">Direct Reports</small>
+                    </div>
+                    <div class="dir-stat-icon blue">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="dir-stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="dir-stat-label">Active On-Duty</div>
+                        <div class="dir-stat-val text-success">@ViewBag.PresentToday</div>
+                        <small class="text-success"><i class="fa-solid fa-arrow-trend-up me-1"></i>Operational</small>
+                    </div>
+                    <div class="dir-stat-icon green">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="dir-stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="dir-stat-label">Late Check-Ins</div>
+                        <div class="dir-stat-val text-warning">@ViewBag.LateCheckIns</div>
+                        <small class="text-warning">After 09:30 AM</small>
+                    </div>
+                    <div class="dir-stat-icon amber">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="dir-stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="dir-stat-label">Unavailable / Leave</div>
+                        <div class="dir-stat-val text-danger">@ViewBag.Unavailable</div>
+                        <small class="text-muted">Out of Office</small>
+                    </div>
+                    <div class="dir-stat-icon rose">
+                        <i class="fa-solid fa-user-xmark"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white mb-4">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 rounded-start-pill text-muted ps-3">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" id="execSearch" class="form-control bg-light border-start-0 rounded-end-pill py-2" placeholder="Search department manager by name, department, or email..." onkeyup="filterExecs()" />
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-7 text-md-end">
+                <div class="btn-group rounded-pill p-1 bg-light" role="group" id="statusButtonGroup">
+                    <button type="button" class="btn btn-sm btn-white rounded-pill fw-bold shadow-sm px-3 active" onclick="filterByStatus('All', this)">All</button>
+                    <button type="button" class="btn btn-sm text-secondary rounded-pill fw-bold px-3" onclick="filterByStatus('Present', this)">Present</button>
+                    <button type="button" class="btn btn-sm text-secondary rounded-pill fw-bold px-3" onclick="filterByStatus('Late', this)">Late</button>
+                    <button type="button" class="btn btn-sm text-secondary rounded-pill fw-bold px-3" onclick="filterByStatus('On Leave', this)">On Leave</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive Directory Grid -->
+    <div class="row g-4" id="execGrid">
+        @if (Model != null && Model.Any())
+        {
+            foreach (var exec in Model)
+            {
+                <div class="col-md-6 col-xl-3 exec-col" data-status="@exec.AttendanceStatus" data-search="@(exec.Name.ToLower()) @(exec.Department.ToLower()) @(exec.Email.ToLower())">
+                    <div class="exec-card">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="exec-avatar">
+                                    @exec.AvatarInitials
+                                </div>
+                                <div>
+                                    @if (exec.AttendanceStatus == "Present")
+                                    {
+                                        <span class="exec-badge-present">
+                                            <span class="pulse-dot-green"></span> Present
+                                        </span>
+                                    }
+                                    else if (exec.AttendanceStatus == "Late")
+                                    {
+                                        <span class="exec-badge-late">
+                                            <span class="pulse-dot-amber"></span> Late
+                                        </span>
+                                    }
+                                    else if (exec.AttendanceStatus == "On Leave")
+                                    {
+                                        <span class="exec-badge-leave">
+                                            <i class="fa-solid fa-umbrella-beach text-primary"></i> On Leave
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="exec-badge-unavailable">
+                                            <span class="pulse-dot-red"></span> Unavailable
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <h5 class="fw-bold mb-1 text-dark">@exec.Name</h5>
+                            <div class="mb-3">
+                                <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-2 py-1 rounded-pill small">
+                                    @(exec.Department) Head
+                                </span>
+                            </div>
+
+                            <div class="info-row">
+                                <i class="fa-regular fa-clock"></i>
+                                <span>Clock-In: <strong class="text-dark">@exec.ClockInTime</strong></span>
+                            </div>
+                            <div class="info-row">
+                                <i class="fa-regular fa-envelope"></i>
+                                <a href="mailto:@exec.Email" class="text-decoration-none text-muted text-truncate">@exec.Email</a>
+                            </div>
+                            <div class="info-row">
+                                <i class="fa-solid fa-phone"></i>
+                                <span>@exec.MobileNumber</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex gap-2">
+                            <a href="/Manager/Tasks" class="btn btn-outline-primary btn-sm flex-fill rounded-pill fw-bold">
+                                <i class="fa-solid fa-plus me-1"></i> Assign Task
+                            </a>
+                            <a href="/Manager/Approvals" class="btn btn-light btn-sm flex-fill rounded-pill fw-bold text-secondary">
+                                <i class="fa-solid fa-check me-1"></i> Approvals
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                    <div class="mb-3 text-muted"><i class="fa-solid fa-users-slash fa-3x"></i></div>
+                    <h5>No Subordinate Managers Assigned</h5>
+                    <p class="text-muted small">No department managers report to this account yet.</p>
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
+
+<script>
+    let activeFilter = 'All';
+
+    function filterByStatus(status, btn) {
+        activeFilter = status;
+        document.querySelectorAll('#statusButtonGroup button').forEach(b => {
+            b.classList.remove('btn-white', 'shadow-sm', 'text-dark', 'active');
+            b.classList.add('text-secondary');
+        });
+        btn.classList.add('btn-white', 'shadow-sm', 'text-dark', 'active');
+        btn.classList.remove('text-secondary');
+        filterExecs();
+    }
+
+    function filterExecs() {
+        const query = (document.getElementById('execSearch')?.value || '').trim().toLowerCase();
+        const cards = document.querySelectorAll('.exec-col');
+
+        cards.forEach(card => {
+            const status = card.getAttribute('data-status') || '';
+            const searchData = card.getAttribute('data-search') || '';
+
+            const matchesStatus = (activeFilter === 'All') || (status === activeFilter);
+            const matchesQuery = query === '' || searchData.includes(query);
+
+            if (matchesStatus && matchesQuery) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>

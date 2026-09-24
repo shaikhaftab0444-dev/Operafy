@@ -1,4 +1,4 @@
-@model IEnumerable<ERP_System.Models.ApprovalItemViewModel>
+@model IEnumerable<ERP_System.Models.LeaveRequest>
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Unified Approval Center";
@@ -1592,8 +1592,8 @@
 
                             </th>
 
-                            <th style="width:20%;">
-                                Employee Details
+                            <th style="width:22%;">
+                                MANAGER & DEPARTMENT
                             </th>
 
                             <th style="width:15%;">
@@ -1614,9 +1614,7 @@
 
                             <th style="width:17%;"
                                 class="text-center">
-
                                 Actions
-
                             </th>
 
                         </tr>
@@ -1629,172 +1627,105 @@
                         @if (!Model.Any())
                         {
                             <tr>
-
                                 <td colspan="7"
                                     class="text-center empty-state">
-
                                     <div class="empty-state-icon">
                                         <i class="fa-solid fa-clipboard-check"></i>
                                     </div>
-
                                     <h6>
                                         All caught up!
                                     </h6>
-
                                     <p>
-                                        No pending approval requests were found in this category.
+                                        No pending approval requests were found from your subordinate managers.
                                     </p>
-
                                 </td>
-
                             </tr>
                         }
                         else
                         {
-                            @foreach (var request in Model)
+                            @foreach (var req in Model)
                             {
-                                <tr id="approval-tr-row-@request.Id"
+                                var initials = string.IsNullOrEmpty(req.User?.FullName) ? "MG" : (req.User.FullName.Length >= 2 ? req.User.FullName.Substring(0, 2).ToUpper() : req.User.FullName.ToUpper());
+                                <tr id="approval-tr-row-@req.Id"
                                     class="approval-data-row">
 
                                     <!-- SELECT -->
                                     <td class="text-center">
-
                                         <input type="checkbox"
                                                class="form-check-input approval-checkbox row-selection-checkbox"
-                                               data-id="@request.Id"
-                                               data-category="@request.CategoryKey" />
-
+                                               data-id="@req.Id"
+                                               data-category="Leave" />
                                     </td>
 
-
-                                    <!-- EMPLOYEE -->
+                                    <!-- MANAGER & DEPARTMENT -->
                                     <td>
-
                                         <div class="employee-cell">
-
                                             <div class="employee-avatar text-uppercase">
-                                                @request.Avatar
+                                                @initials
                                             </div>
-
                                             <div>
-
                                                 <span class="employee-name">
-                                                    @request.EmployeeName
+                                                    @(req.User?.FullName ?? "Department Manager")
                                                 </span>
-
                                                 <span class="employee-role">
-                                                    @request.Role
+                                                    @(req.User?.Department?.DepartmentName ?? req.User?.DepartmentName ?? "Operations") Head
                                                 </span>
-
                                             </div>
-
                                         </div>
-
                                     </td>
 
-
-                                    <!-- CATEGORY -->
+                                    <!-- CATEGORY / REQUEST TYPE -->
                                     <td>
-
                                         <span class="category-badge">
-
                                             <i class="fa-solid fa-tag"></i>
-
-                                            @request.ClaimCategory
-
+                                            @req.RequestType
                                         </span>
-
                                     </td>
-
 
                                     <!-- DURATION -->
                                     <td>
-
                                         <span class="duration-text">
-                                            @request.Duration
+                                            @req.StartDate.ToString("dd MMM") – @req.EndDate.ToString("dd MMM yyyy") (@req.TotalDays Days)
                                         </span>
-
                                         <span class="submitted-text">
-
                                             <i class="fa-regular fa-clock me-1"></i>
-
                                             Submitted:
-                                            @request.SubmittedDate
-
+                                            @req.CreatedAt.ToString("dd MMM yyyy")
                                         </span>
-
                                     </td>
-
 
                                     <!-- REASON -->
                                     <td>
-
                                         <div class="reason-text">
-                                            @request.Reason
+                                            @req.Reason
                                         </div>
-
                                     </td>
-
 
                                     <!-- ATTACHMENT -->
                                     <td>
-
-                                        @if (request.HasAttachment)
-                                        {
-                                            <a href="/Manager/DownloadReceipt?filename=@request.AttachmentName"
-                                               target="_blank"
-                                               class="receipt-link">
-
-                                                <i class="fa-solid fa-file-pdf"></i>
-
-                                                <span>
-                                                    Receipt
-                                                </span>
-
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <span class="no-attachment">
-
-                                                <i class="fa-solid fa-minus me-1"></i>
-
-                                                N/A
-
-                                            </span>
-                                        }
-
+                                        <span class="no-attachment">
+                                            <i class="fa-solid fa-minus me-1"></i>
+                                            N/A
+                                        </span>
                                     </td>
-
 
                                     <!-- ACTIONS -->
                                     <td class="text-center">
-
                                         <div class="approval-actions">
-
-                                            <a href="javascript:void(0);"
-                                               class="btn approve-btn d-inline-flex align-items-center justify-content-center"
-                                               onclick="handleApproval(@request.Id, '@request.CategoryKey', 'Approved')">
-
+                                            <button type="button"
+                                                    class="btn approve-btn d-inline-flex align-items-center justify-content-center"
+                                                    onclick="approveRequest(@req.Id)">
                                                 <i class="fa-solid fa-check me-1"></i>
-
                                                 Approve
+                                            </button>
 
-                                            </a>
-
-
-                                            <a href="javascript:void(0);"
-                                               class="btn reject-btn d-inline-flex align-items-center justify-content-center"
-                                               onclick="handleApproval(@request.Id, '@request.CategoryKey', 'Rejected')">
-
+                                            <button type="button"
+                                                    class="btn reject-btn d-inline-flex align-items-center justify-content-center"
+                                                    onclick="handleApproval(@req.Id, 'Leave', 'Rejected')">
                                                 <i class="fa-solid fa-xmark me-1"></i>
-
                                                 Reject
-
-                                            </a>
-
+                                            </button>
                                         </div>
-
                                     </td>
 
                                 </tr>
@@ -2118,6 +2049,56 @@
 
     };
 
+
+    // =========================================================
+    // JOURNAL MANAGER DIRECT APPROVAL
+    // =========================================================
+
+    function approveRequest(id) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Approve Leave Request?',
+                text: 'Confirm approval for this subordinate manager request?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#16a34a',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Approve'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeApproveRequest(id);
+                }
+            });
+        } else {
+            if (confirm('Approve this leave request?')) {
+                executeApproveRequest(id);
+            }
+        }
+    }
+
+    function executeApproveRequest(id) {
+        $.ajax({
+            url: '/Manager/ApproveRequest',
+            type: 'POST',
+            data: { id: id },
+            success: function (res) {
+                if (res.success) {
+                    if (typeof toastr !== 'undefined') toastr.success(res.message);
+                    const row = document.getElementById('approval-tr-row-' + id);
+                    if (row) {
+                        row.style.transition = 'all 0.4s ease';
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 400);
+                    }
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(res.message);
+                }
+            },
+            error: function () {
+                sendApprovalAjax(id, 'Leave', 'Approved');
+            }
+        });
+    }
 
     // =========================================================
     // SINGLE APPROVAL ACTION

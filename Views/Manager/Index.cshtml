@@ -1345,7 +1345,7 @@
                 </div>
 
                 <h3 class="ops-stat-value">
-                    @Model.TotalTeamCount Staff
+                    @(ViewBag.DirectHeadcount ?? Model.TotalTeamCount) Staff
                 </h3>
 
                 <div class="ops-stat-bottom">
@@ -1389,7 +1389,7 @@
                 <h3 class="ops-stat-value"
                     id="pendingApprovalsCounter">
 
-                    @Model.PendingApprovalsCount Approvals
+                    @(ViewBag.PendingApprovals ?? Model.PendingApprovalsCount) Approvals
 
                 </h3>
 
@@ -1397,7 +1397,7 @@
 
                     <span class="ops-warning-chip">
                         <i class="fa-solid fa-bolt"></i>
-                        2 Leave • 1 Expense
+                        @(ViewBag.PendingApprovals ?? Model.PendingApprovalsCount) Direct Requests Pending
                     </span>
 
                 </div>
@@ -1425,7 +1425,7 @@
                 </div>
 
                 <h3 class="ops-stat-value">
-                    @Model.ActiveTasksCount Active Tasks
+                    @(ViewBag.ActiveTasks ?? Model.ActiveTasksCount) Active Tasks
                 </h3>
 
                 <div class="ops-sprint-meta">
@@ -1628,8 +1628,19 @@
                 <div class="ops-card-body">
 
                     <div class="ops-attendance-list">
+                        @{
+                            var radarMembers = (ViewBag.LiveRadar as IEnumerable<ERP_System.Models.ExecutiveDirectoryViewModel>)?.Select(e => new ERP_System.Models.TeamMemberStatus
+                            {
+                                Name = e.Name,
+                                Role = e.Role,
+                                Department = e.Department,
+                                Status = e.AttendanceStatus,
+                                ClockInTime = e.ClockInTime,
+                                Avatar = e.AvatarInitials
+                            }) ?? Model.TeamAttendance;
+                        }
 
-                        @foreach (var m in Model.TeamAttendance)
+                        @foreach (var m in radarMembers)
                         {
                             var attendanceStatusClass =
                             m.Status == "Present"
@@ -1672,6 +1683,10 @@
                                         else if (m.Status == "Late")
                                         {
                                             <span class="ops-pulse-amber"></span>
+                                        }
+                                        else
+                                        {
+                                            <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-right:4px;"></span>
                                         }
 
                                         @m.Status

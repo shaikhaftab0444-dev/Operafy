@@ -92,6 +92,7 @@ namespace ERP_System.Data
         public DbSet<SalesCoordinatorProfile> SalesCoordinatorProfiles { get; set; }
         public DbSet<SalesTargetAllocation> SalesTargetAllocations { get; set; }
         public DbSet<HierarchicalTask> HierarchicalTasks { get; set; }
+        public DbSet<HierarchicalTask> Tasks { get => HierarchicalTasks; set => HierarchicalTasks = value; }
         public DbSet<DepartmentTask> DepartmentTasks { get; set; }
         public DbSet<WorkShift> WorkShifts { get; set; }
 
