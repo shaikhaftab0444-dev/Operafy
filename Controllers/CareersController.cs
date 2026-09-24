@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ERP_System.Controllers
 {
@@ -270,6 +271,60 @@ namespace ERP_System.Controllers
             ViewBag.CompanyName = (await _context.Companies.FirstOrDefaultAsync())?.CompanyName ?? "Operafy ERP Systems";
 
             return View("ApplicationSuccess", job);
+        }
+
+        // GET: /Careers/ReviewOffer
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> ReviewOffer(string offerCode)
+        {
+            var offer = await _context.OfferLetters
+                .Include(o => o.Application)
+                    .ThenInclude(a => a.Candidate)
+                .Include(o => o.Application)
+                    .ThenInclude(a => a.JobOpening)
+                        .ThenInclude(j => j.Department)
+                .FirstOrDefaultAsync(o => o.OfferCode == offerCode);
+
+            if (offer == null) return NotFound("Invalid or expired offer link.");
+            return View(offer);
+        }
+
+        // POST: /Careers/AcceptOfferAction
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> AcceptOfferAction(
+            string offerCode, 
+            bool accept, 
+            [FromServices] IHubContext<ERP_System.Hubs.ErpNotificationHub> hubContext)
+        {
+            var offer = await _context.OfferLetters
+                .Include(o => o.Application)
+                    .ThenInclude(a => a.Candidate)
+                .FirstOrDefaultAsync(o => o.OfferCode == offerCode);
+
+            if (offer == null) return Json(new { success = false, message = "Offer not found." });
+
+            offer.Status = accept ? "Accepted" : "Declined";
+            offer.AcceptedDate = DateTime.UtcNow;
+
+            if (offer.Application != null)
+            {
+                offer.Application.Stage = accept ? "Offer Accepted" : "Offer Declined";
+            }
+
+            await _context.SaveChangesAsync();
+
+            // PUSH REAL-TIME SIGNALR BROADCAST TO HR (NO PAGE REFRESH NEEDED)
+            await hubContext.Clients.All.SendAsync("OfferStatusChanged", new
+            {
+                offerId = offer.OfferId,
+                offerCode = offer.OfferCode,
+                candidateName = offer.Application?.Candidate?.FullName,
+                status = offer.Status
+            });
+
+            return Json(new { success = true, status = offer.Status, message = accept ? "Thank you! You have accepted the offer." : "You have declined the offer." });
         }
     }
 }

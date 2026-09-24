@@ -825,6 +825,13 @@
                                             </li>
 
                                             <li>
+                                                <button type="button" class="dropdown-item" onclick="sendStageUpdateEmail(@interview.InterviewId)">
+                                                    <i class="fa-solid fa-paper-plane text-success me-2"></i>
+                                                    Send Stage Update Email
+                                                </button>
+                                            </li>
+
+                                            <li>
                                                 <form method="post" action="/HRRecruitment/ChangeInterviewStatus">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="interviewId" value="@interview.InterviewId" />
@@ -874,7 +881,7 @@
                                         <form method="post" action="/HRRecruitment/SubmitInterviewFeedback">
                                             @Html.AntiForgeryToken()
 
-                                            <input type="hidden" name="interviewId" value="@interview.InterviewId" />
+                                            <input type="hidden" name="scheduleId" value="@interview.InterviewId" />
 
                                             <div class="modal-body p-4 text-start">
 
@@ -899,7 +906,7 @@
 
                                                     <div class="col-md-4">
                                                         <label class="form-label">Technical Skills (1-5)</label>
-                                                        <select name="technicalRating" class="form-select">
+                                                        <select name="technicalSkills" class="form-select">
                                                             <option value="5">5 - Outstanding</option>
                                                             <option value="4" selected>4 - Exceeds Expectations</option>
                                                             <option value="3">3 - Meets Expectations</option>
@@ -910,7 +917,7 @@
 
                                                     <div class="col-md-4">
                                                         <label class="form-label">Communication (1-5)</label>
-                                                        <select name="communicationRating" class="form-select">
+                                                        <select name="communication" class="form-select">
                                                             <option value="5">5 - Outstanding</option>
                                                             <option value="4" selected>4 - Exceeds Expectations</option>
                                                             <option value="3">3 - Meets Expectations</option>
@@ -921,7 +928,7 @@
 
                                                     <div class="col-md-4">
                                                         <label class="form-label">Problem Solving (1-5)</label>
-                                                        <select name="problemSolvingRating" class="form-select">
+                                                        <select name="problemSolving" class="form-select">
                                                             <option value="5">5 - Outstanding</option>
                                                             <option value="4" selected>4 - Exceeds Expectations</option>
                                                             <option value="3">3 - Meets Expectations</option>
@@ -936,7 +943,7 @@
                                                             <span class="text-danger">*</span>
                                                         </label>
 
-                                                        <select name="recommendation" class="form-select" required>
+                                                        <select name="overallRecommendation" class="form-select" required>
                                                             <option value="Strongly Recommend">Strongly Recommend</option>
                                                             <option value="Recommend" selected>Recommend</option>
                                                             <option value="Neutral">Neutral</option>
@@ -948,7 +955,7 @@
                                                     <div class="col-md-6">
                                                         <label class="form-label">Cultural Fit & Attitude (1-5)</label>
 
-                                                        <select name="culturalFitRating" class="form-select">
+                                                        <select name="culturalFit" class="form-select">
                                                             <option value="5">5 - Outstanding</option>
                                                             <option value="4" selected>4 - Exceeds Expectations</option>
                                                             <option value="3">3 - Meets Expectations</option>
@@ -958,7 +965,7 @@
                                                     <div class="col-md-6">
                                                         <label class="form-label">Key Strengths</label>
 
-                                                        <textarea name="strengths"
+                                                        <textarea name="keyStrengths"
                                                           class="form-control"
                                                           rows="3"
                                                           placeholder="e.g. Excellent domain knowledge, confident communicator..."></textarea>
@@ -976,7 +983,7 @@
                                                     <div class="col-md-12">
                                                         <label class="form-label">Detailed Evaluation Comments</label>
 
-                                                        <textarea name="comments"
+                                                        <textarea name="detailedRemarks"
                                                           class="form-control"
                                                           rows="4"
                                                           placeholder="Detailed interviewer remarks..."></textarea>
@@ -1213,6 +1220,28 @@
             } else {
                 if (typeof toastr !== 'undefined') toastr.error(res.message, "Mailtrap Delivery Notice");
                 alert(res.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            if (typeof toastr !== 'undefined') toastr.error("Network request failed.");
+            else alert("Network request failed.");
+        });
+    }
+    function sendStageUpdateEmail(scheduleId) {
+        fetch('/HRRecruitment/SendStageUpdateEmail', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ scheduleId: scheduleId })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                if (typeof toastr !== 'undefined') toastr.success(res.message, "Email Sent");
+                else alert("Success: " + res.message);
+            } else {
+                if (typeof toastr !== 'undefined') toastr.error(res.message, "Delivery Error");
+                else alert("Error: " + res.message);
             }
         })
         .catch(err => {

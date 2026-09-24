@@ -489,6 +489,11 @@ namespace ERP_System.Models
         [ForeignKey("ConvertedToEmployeeId")]
         public User? ConvertedEmployee { get; set; }
 
+        [StringLength(500)]
+        public string? SignaturePath { get; set; }
+
+        public DateTime? AcceptedDate { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public int? CreatedBy { get; set; }

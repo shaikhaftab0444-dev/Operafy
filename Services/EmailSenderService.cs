@@ -18,6 +18,12 @@ namespace ERP_System.Services
             string timeStr, 
             string meetLink, 
             string interviewer);
+            
+        Task<(bool Success, string Message)> SendStageUpdateEmailAsync(
+            string toEmail, 
+            string candidateName, 
+            string jobTitle,
+            string stage);
     }
 
     public class EmailSenderService : IEmailSenderService
@@ -109,6 +115,70 @@ namespace ERP_System.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send email via Gmail SMTP to {Recipient}", toEmail);
+                return (false, $"Gmail SMTP Error: {ex.Message}");
+            }
+        }
+        
+        public async Task<(bool Success, string Message)> SendStageUpdateEmailAsync(
+            string toEmail, 
+            string candidateName, 
+            string jobTitle,
+            string stage)
+        {
+            var host = _config["SmtpSettings:Host"] ?? "smtp.gmail.com";
+            var port = _config.GetValue("SmtpSettings:Port", 587);
+            var enableSsl = _config.GetValue("SmtpSettings:EnableSsl", true);
+            var senderEmail = _config["SmtpSettings:SenderEmail"] ?? "affuxx00@gmail.com";
+            var senderName = _config["SmtpSettings:SenderName"] ?? "Wainfo Recruitment Team";
+            var username = _config["SmtpSettings:Username"] ?? senderEmail;
+            var appPassword = _config["SmtpSettings:AppPassword"] ?? "jblkicpealbwskrk";
+
+            string statusMsg = stage.Contains("Reject", StringComparison.OrdinalIgnoreCase) 
+                ? "We appreciate the time you took to interview with us. Unfortunately, we will not be moving forward with your application at this time."
+                : $"Congratulations! Your application has advanced to the following stage: <strong>{stage}</strong>. Our team will contact you shortly with next steps.";
+
+            string htmlContent = $@"
+<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #ffffff;'>
+    <div style='text-align: center; margin-bottom: 24px;'>
+        <h2 style='color: #2563eb; margin: 0;'>Application Update</h2>
+        <p style='color: #64748b; font-size: 14px; margin-top: 4px;'>Role: <strong>{jobTitle}</strong></p>
+    </div>
+    
+    <p style='font-size: 15px; color: #1e293b;'>Dear <strong>{candidateName}</strong>,</p>
+    <p style='font-size: 14px; color: #475569; line-height: 1.6;'>
+        {statusMsg}
+    </p>
+
+    <hr style='border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;'/>
+    <p style='color: #94a3b8; font-size: 11px; text-align: center; margin: 0;'>
+        Wainfo Pvt Ltd &bull; Recruitment &amp; Talent Acquisition Team
+    </p>
+</div>
+";
+            try
+            {
+                using var message = new MailMessage
+                {
+                    From = new MailAddress(senderEmail, senderName),
+                    Subject = $"Application Update: {jobTitle} - Wainfo Pvt Ltd",
+                    Body = htmlContent,
+                    IsBodyHtml = true
+                };
+
+                message.To.Add(new MailAddress(toEmail, candidateName));
+
+                using var smtp = new SmtpClient(host, port)
+                {
+                    Credentials = new NetworkCredential(username, appPassword),
+                    EnableSsl = enableSsl
+                };
+
+                await smtp.SendMailAsync(message);
+                return (true, $"Stage update email sent successfully to {toEmail}!");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send stage update email to {Recipient}", toEmail);
                 return (false, $"Gmail SMTP Error: {ex.Message}");
             }
         }
