@@ -1180,3 +1180,469 @@
                             @Model.DelayedCount
                         </div>
                     </div>
+
+                    <div class="stat-icon delayed">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl col-lg-6 col-md-6">
+            <div class="stat-card completed">
+                <div class="stat-top">
+                    <div>
+                        <div class="stat-label">Completed</div>
+                        <div class="stat-number" id="stat-completed">
+                            @Model.CompletedCount
+                        </div>
+                    </div>
+
+                    <div class="stat-icon completed">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Search & Filter Panel -->
+    <div class="row g-3 my-3">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 filter-panel bg-white">
+                <div class="row g-3 align-items-center">
+                    <div class="col-lg-5">
+                        <div class="search-wrapper">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="taskSearchInput" class="form-control task-search" placeholder="Search tasks by title, description or manager..." onkeyup="filterTasks()" />
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="filter-pills">
+                            <div class="filter-pill active" data-filter="All" onclick="setStatusFilter('All', this)">
+                                <span>All Tasks</span>
+                                <span class="filter-count">@Model.TotalTasksCount</span>
+                            </div>
+                            <div class="filter-pill" data-filter="In Progress" onclick="setStatusFilter('In Progress', this)">
+                                <span>In Progress</span>
+                                <span class="filter-count">@Model.InProgressCount</span>
+                            </div>
+                            <div class="filter-pill" data-filter="Review" onclick="setStatusFilter('Review', this)">
+                                <span>In Review</span>
+                                <span class="filter-count">@Model.InReviewCount</span>
+                            </div>
+                            <div class="filter-pill" data-filter="Delayed" onclick="setStatusFilter('Delayed', this)">
+                                <span>Delayed</span>
+                                <span class="filter-count">@Model.DelayedCount</span>
+                            </div>
+                            <div class="filter-pill" data-filter="Completed" onclick="setStatusFilter('Completed', this)">
+                                <span>Completed</span>
+                                <span class="filter-count">@Model.CompletedCount</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sprint Table Panel -->
+    <div class="card border-0 shadow-sm rounded-4 table-panel bg-white mb-4">
+        <div class="table-panel-header">
+            <div class="table-panel-title">
+                <div class="table-panel-icon">
+                    <i class="fa-solid fa-diagram-project"></i>
+                </div>
+                <div>
+                    <h6>Executive Deliverables & Sprint Delegations</h6>
+                    <span>Active directives assigned to department managers</span>
+                </div>
+            </div>
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span>Sprint Board</span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table sprint-table align-middle" id="tasksTable">
+                <thead>
+                    <tr>
+                        <th style="width: 28%;">Task & Objective</th>
+                        <th style="width: 20%;">Assigned Manager</th>
+                        <th style="width: 12%;">Priority</th>
+                        <th style="width: 14%;">Due Date</th>
+                        <th style="width: 12%;">Status</th>
+                        <th style="width: 14%;">Progress</th>
+                        <th style="width: 10%;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tasksTableBody">
+                    @{
+                        var taskList = Model.HierarchicalTasks ?? new List<ERP_System.Models.HierarchicalTask>();
+                    }
+                    @if (!taskList.Any())
+                    {
+                        <tr id="emptyTasksRow">
+                            <td colspan="7" class="text-center empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fa-solid fa-list-check"></i>
+                                </div>
+                                <h6>No sprint tasks found</h6>
+                                <p>You have not delegated any tasks to your subordinate managers yet.</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var task in taskList)
+                        {
+                            var priClass = task.Priority == "Urgent" ? "priority-urgent" : (task.Priority == "High" ? "priority-high" : (task.Priority == "Medium" ? "priority-medium" : "priority-low"));
+                            var stClass = task.Status == "Completed" ? "status-completed" : (task.Status == "Delayed" ? "status-delayed" : ((task.Status == "Review" || task.Status == "In Review") ? "status-review" : "status-progress"));
+                            var assignedName = task.AssignedTo?.FullName ?? "Department Manager";
+                            var assignedDept = task.AssignedTo?.Department?.DepartmentName ?? task.AssignedTo?.DepartmentName ?? "Operations";
+                            var initials = string.IsNullOrEmpty(assignedName) ? "MG" : (assignedName.Length >= 2 ? assignedName.Substring(0, 2).ToUpper() : assignedName.ToUpper());
+
+                            <tr class="task-row" data-id="@task.Id" data-status="@task.Status" data-title="@(task.Title?.ToLower())" data-assigned="@assignedName.ToLower()">
+                                <td>
+                                    <div class="task-title">@task.Title</div>
+                                    <div class="task-description">@task.Description</div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-wrapper">@initials</div>
+                                        <div>
+                                            <span class="member-name">@assignedName</span>
+                                            <span class="member-email">@assignedDept Head</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="priority-badge @priClass">
+                                        <i class="fa-solid fa-flag"></i> @task.Priority
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="due-date">
+                                        <i class="fa-regular fa-calendar me-1"></i>
+                                        @(task.DueDate.HasValue ? task.DueDate.Value.ToString("dd MMM yyyy") : "No Due Date")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge @stClass" id="status-badge-@task.Id">
+                                        <i class="fa-solid fa-circle-dot"></i> @task.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress-cell">
+                                        <div class="progress-top">
+                                            <span class="progress-label">Completion</span>
+                                            <span class="progress-value" id="progress-val-@task.Id">@task.ProgressPercentage%</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar" id="progress-bar-@task.Id" style="width: @task.ProgressPercentage%;"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1">
+                                        <button type="button" class="btn action-btn edit" onclick="openEditModal(@task.Id, @task.ProgressPercentage, '@task.Status')" title="Update Progress">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button type="button" class="btn action-btn delete" onclick="deleteTask(@task.Id)" title="Delete Task">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Assign New Task Modal -->
+<div class="modal fade sprint-modal" id="assignTaskModal" tabindex="-1" aria-labelledby="assignTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="sprint-modal-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="modal-title-wrap">
+                        <div class="modal-title-icon">
+                            <i class="fa-solid fa-plus"></i>
+                        </div>
+                        <div>
+                            <h5 id="assignTaskModalLabel">Delegate Task to Department Manager</h5>
+                            <span>Assign executive directives and operational deliverables</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <form id="assignTaskForm" onsubmit="submitAssignTask(event)">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Task Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="title" id="newTaskTitle" placeholder="e.g., Complete Quarterly Audit Review" required />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Description & Strategic Objectives</label>
+                            <textarea class="form-control" name="description" id="newTaskDescription" rows="3" placeholder="Provide operational expectations, KPIs, or deliverables..."></textarea>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Assign To Manager <span class="text-danger">*</span></label>
+                            <select class="form-select" name="assignedToUserId" id="newTaskAssignedTo" required>
+                                <option value="">-- Select Subordinate Manager --</option>
+                                @{
+                                    var subManagers = ViewBag.SubordinateManagers as IEnumerable<ERP_System.Models.User> ?? Enumerable.Empty<ERP_System.Models.User>();
+                                }
+                                @foreach (var sm in subManagers)
+                                {
+                                    var smDept = sm.Department?.DepartmentName ?? sm.DepartmentName ?? "Operations";
+                                    <option value="@sm.UserId">@sm.FullName (@smDept Head)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Priority</label>
+                            <select class="form-select" name="priority" id="newTaskPriority">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Due Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="dueDate" id="newTaskDueDate" value="@DateTime.Today.AddDays(7).ToString("yyyy-MM-dd")" required />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn modal-submit-btn" id="btnSubmitTask">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Delegate Task
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Task Progress Modal -->
+<div class="modal fade sprint-modal" id="editProgressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="sprint-modal-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="modal-title-wrap">
+                        <div class="modal-title-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <div>
+                            <h5>Update Task Progress</h5>
+                            <span>Adjust completion percentage and current milestone status</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <form id="editProgressForm" onsubmit="submitProgressUpdate(event)">
+                <input type="hidden" id="editTaskId" />
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">Progress Percentage</label>
+                            <span class="progress-number" id="progressSliderVal">50%</span>
+                        </div>
+                        <input type="range" class="form-range" id="progressRangeInput" min="0" max="100" step="5" value="50" oninput="document.getElementById('progressSliderVal').textContent = this.value + '%'" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Task Status</label>
+                        <select class="form-select" id="editTaskStatus">
+                            <option value="In Progress">In Progress</option>
+                            <option value="Review">In Review</option>
+                            <option value="Delayed">Delayed</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn modal-submit-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStatusFilter = 'All';
+
+    function setStatusFilter(status, elem) {
+        currentStatusFilter = status;
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        if (elem) elem.classList.add('active');
+        filterTasks();
+    }
+
+    function filterTasks() {
+        const query = (document.getElementById('taskSearchInput')?.value || '').trim().toLowerCase();
+        const rows = document.querySelectorAll('#tasksTableBody tr.task-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status') || '';
+            const rowTitle = row.getAttribute('data-title') || '';
+            const rowAssigned = row.getAttribute('data-assigned') || '';
+
+            const matchesStatus = (currentStatusFilter === 'All') ||
+                (currentStatusFilter === 'Review' && (rowStatus === 'Review' || rowStatus === 'In Review')) ||
+                (rowStatus.toLowerCase() === currentStatusFilter.toLowerCase());
+
+            const matchesSearch = query === '' || rowTitle.includes(query) || rowAssigned.includes(query);
+
+            if (matchesStatus && matchesSearch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const emptyRow = document.getElementById('emptyTasksRow');
+        if (emptyRow) {
+            emptyRow.style.display = visibleCount === 0 ? '' : 'none';
+        }
+    }
+
+    function submitAssignTask(e) {
+        e.preventDefault();
+        const form = document.getElementById('assignTaskForm');
+        const submitBtn = document.getElementById('btnSubmitTask');
+        submitBtn.disabled = true;
+
+        const data = {
+            title: document.getElementById('newTaskTitle').value,
+            description: document.getElementById('newTaskDescription').value,
+            assignedToUserId: document.getElementById('newTaskAssignedTo').value,
+            priority: document.getElementById('newTaskPriority').value,
+            dueDate: document.getElementById('newTaskDueDate').value
+        };
+
+        $.ajax({
+            url: '/Manager/AssignTask',
+            type: 'POST',
+            data: data,
+            success: function (res) {
+                submitBtn.disabled = false;
+                if (res.success) {
+                    if (typeof toastr !== 'undefined') toastr.success(res.message);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
+                    if (modal) modal.hide();
+                    setTimeout(() => location.reload(), 600);
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(res.message);
+                }
+            },
+            error: function () {
+                submitBtn.disabled = false;
+                if (typeof toastr !== 'undefined') toastr.error('Failed to delegate task.');
+            }
+        });
+    }
+
+    function openEditModal(taskId, progress, status) {
+        document.getElementById('editTaskId').value = taskId;
+        document.getElementById('progressRangeInput').value = progress;
+        document.getElementById('progressSliderVal').textContent = progress + '%';
+        document.getElementById('editTaskStatus').value = (status === 'In Review') ? 'Review' : status;
+        const modal = new bootstrap.Modal(document.getElementById('editProgressModal'));
+        modal.show();
+    }
+
+    function submitProgressUpdate(e) {
+        e.preventDefault();
+        const taskId = document.getElementById('editTaskId').value;
+        const progress = document.getElementById('progressRangeInput').value;
+        const status = document.getElementById('editTaskStatus').value;
+
+        $.ajax({
+            url: '/Manager/UpdateTaskProgress',
+            type: 'POST',
+            data: { id: taskId, progress: progress, status: status },
+            success: function (res) {
+                if (res.success) {
+                    if (typeof toastr !== 'undefined') toastr.success(res.message);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editProgressModal'));
+                    if (modal) modal.hide();
+                    setTimeout(() => location.reload(), 600);
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(res.message);
+                }
+            },
+            error: function () {
+                if (typeof toastr !== 'undefined') toastr.error('Error updating task progress.');
+            }
+        });
+    }
+
+    function deleteTask(taskId) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete Task?',
+                text: 'Are you sure you want to remove this delegated task?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Delete'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeDeleteTask(taskId);
+                }
+            });
+        } else {
+            if (confirm('Delete this task?')) {
+                executeDeleteTask(taskId);
+            }
+        }
+    }
+
+    function executeDeleteTask(taskId) {
+        $.ajax({
+            url: '/Manager/DeleteTask',
+            type: 'POST',
+            data: { id: taskId },
+            success: function (res) {
+                if (res.success) {
+                    if (typeof toastr !== 'undefined') toastr.success(res.message);
+                    const row = document.querySelector(`tr[data-id="${taskId}"]`);
+                    if (row) {
+                        row.classList.add('task-row-removing');
+                        setTimeout(() => row.remove(), 450);
+                    }
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(res.message);
+                }
+            },
+            error: function () {
+                if (typeof toastr !== 'undefined') toastr.error('Failed to delete task.');
+            }
+        });
+    }
+</script>

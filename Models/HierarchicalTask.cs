@@ -26,9 +26,21 @@ namespace ERP_System.Models
         public DateTime? CreatedAt { get; set; } = DateTime.UtcNow;
 
         [NotMapped]
+        public string? AssignedById { get => AssignedByUserId; set => AssignedByUserId = value; }
+
+        [NotMapped]
+        public string? AssignedToId { get => AssignedToUserId; set => AssignedToUserId = value; }
+
+        [NotMapped]
         public virtual ApplicationUser? AssignedToUser { get; set; }
 
         [NotMapped]
         public virtual ApplicationUser? AssignedByUser { get; set; }
+
+        [NotMapped]
+        public virtual User? AssignedTo { get; set; }
+
+        [NotMapped]
+        public virtual User? AssignedBy { get; set; }
     }
 }

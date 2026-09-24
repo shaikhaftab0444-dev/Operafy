@@ -6,6 +6,8 @@ namespace ERP_System.Models
 {
     public class ApplicationUser : User
     {
+        [NotMapped]
+        public virtual ApplicationUser? ReportingManager { get; set; }
     }
 
     [Table("erp_ESSExpenseClaims")]

@@ -1085,6 +1085,17 @@ namespace ERP_System.Data
                         ActionedAt DATETIME NULL
                     );
                 END
+                ELSE
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.LeaveRequests') AND name = 'ManagerStatus')
+                        ALTER TABLE AITStudent.LeaveRequests ADD ManagerStatus NVARCHAR(100) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.LeaveRequests') AND name = 'ManagerRemarks')
+                        ALTER TABLE AITStudent.LeaveRequests ADD ManagerRemarks NVARCHAR(MAX) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.LeaveRequests') AND name = 'ReviewedBy')
+                        ALTER TABLE AITStudent.LeaveRequests ADD ReviewedBy NVARCHAR(450) NULL;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('AITStudent.LeaveRequests') AND name = 'ReviewedAt')
+                        ALTER TABLE AITStudent.LeaveRequests ADD ReviewedAt DATETIME2 NULL;
+                END
 
                 IF OBJECT_ID('AITStudent.CompanyHolidays', 'U') IS NULL
                 BEGIN
