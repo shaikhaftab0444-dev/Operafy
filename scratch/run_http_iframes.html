@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="results"></div>
+<script>
+const viewports = [
+    { name: "320px (Compact phone)", w: 320, h: 640 },
+    { name: "360px (Small Android)", w: 360, h: 740 },
+    { name: "375px (Standard iPhone)", w: 375, h: 667 },
+    { name: "390px (Modern iPhone)", w: 390, h: 844 },
+    { name: "430px (iPhone Pro Max)", w: 430, h: 932 },
+    { name: "768px (Tablet portrait)", w: 768, h: 1024 },
+    { name: "1024px (Tablet landscape / Laptop)", w: 1024, h: 768 },
+    { name: "1366px (Standard Laptop)", w: 1366, h: 768 },
+    { name: "1920px (Desktop Full HD)", w: 1920, h: 1080 }
+];
+
+const results = [];
+
+async function run() {
+    for (const vp of viewports) {
+        await new Promise(res => {
+            const f = document.createElement('iframe');
+            f.style.width = vp.w + 'px';
+            f.style.height = vp.h + 'px';
+            f.src = 'http://localhost:8999/test_page.html';
+            f.onload = () => {
+                setTimeout(() => {
+                    const doc = f.contentDocument;
+                    const win = f.contentWindow;
+                    const winW = win.innerWidth;
+                    const docW = doc.documentElement.scrollWidth;
+                    const bodyW = doc.body.scrollWidth;
+                    
+                    const bad = [];
+                    doc.querySelectorAll('*').forEach(el => {
+                        const tag = el.tagName.toLowerCase();
+                        if (['script', 'style', 'defs', 'lineargradient', 'stop', 'path', 'circle', 'g', 'svg'].includes(tag)) return;
+                        if (el.closest('.table-responsive, .role-table-wrap') && el !== el.closest('.table-responsive, .role-table-wrap')) return;
+                        const r = el.getBoundingClientRect();
+                        if (r.right > winW + 1.5) {
+                            bad.push({ tag: el.tagName, cls: (typeof el.className === 'string') ? el.className.slice(0, 30) : '', r: Math.round(r.right), w: Math.round(r.width) });
+                        }
+                    });
+
+                    results.push({
+                        name: vp.name,
+                        target: vp.w,
+                        winW: winW,
+                        docW: docW,
+                        bodyW: bodyW,
+                        hasOverflow: docW > winW,
+                        badCount: bad.length,
+                        bad: bad.slice(0, 5)
+                    });
+                    document.body.removeChild(f);
+                    res();
+                }, 300);
+            };
+            document.body.appendChild(f);
+        });
+    }
+    const p = document.createElement('pre');
+    p.id = 'FINAL_RESULTS';
+    p.textContent = JSON.stringify(results, null, 2);
+    document.body.appendChild(p);
+}
+run();
+</script>
+</body>
+</html>

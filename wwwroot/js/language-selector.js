@@ -18,7 +18,9 @@
             date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
             expires = "; expires=" + date.toUTCString();
         }
-        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        const isSecure = window.location.protocol === 'https:';
+        const secureFlag = isSecure ? "; Secure; SameSite=Lax" : "; SameSite=Lax";
+        document.cookie = name + "=" + (value || "") + expires + "; path=/" + secureFlag;
     }
 
     function getCookie(name) {
@@ -34,8 +36,11 @@
 
     window.changeLanguage = function (langCode) {
         const langObj = supportedLanguages.find(l => l.code === langCode) || supportedLanguages[0];
+        const aspNetCulture = (langCode === 'en' ? 'en-US' : langCode);
+        const cookieVal = 'c=' + aspNetCulture + '|uic=' + aspNetCulture;
         
-        // Save choice in cookie & localStorage
+        // Save choice in hardened cookies & localStorage
+        setCookie('.AspNetCore.Culture', cookieVal, 365);
         setCookie('googtrans', '/en/' + langCode, 365);
         setCookie('app_lang', langCode, 365);
         localStorage.setItem('app_lang', langCode);
@@ -47,15 +52,24 @@
             document.documentElement.removeAttribute('dir');
         }
 
-        // Trigger Google Translate frame if loaded
-        const selectElem = document.querySelector('.goog-te-combo');
-        if (selectElem) {
-            selectElem.value = langCode;
-            selectElem.dispatchEvent(new Event('change'));
-        } else {
-            // Reload page to apply google translation cookie globally
-            window.location.reload();
-        }
+        // Notify server language toggle endpoint to strictly set hardened IResponseCookies
+        const url = '/Home/SetLanguage?culture=' + encodeURIComponent(aspNetCulture);
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).catch(function () {
+            return fetch(url);
+        }).finally(function () {
+            // Trigger Google Translate frame if loaded
+            const selectElem = document.querySelector('.goog-te-combo');
+            if (selectElem) {
+                selectElem.value = langCode;
+                selectElem.dispatchEvent(new Event('change'));
+            } else {
+                // Reload page to apply ASP.NET Core culture cookie globally
+                window.location.reload();
+            }
+        });
     };
 
     // Google Translate Initialization Callback
