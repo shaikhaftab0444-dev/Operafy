@@ -2,11 +2,55 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using ERP_System.Models;
 using ERP_System.Data;
+using System.Globalization;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
+// Add services to the container with Localization
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+builder.Services.AddControllersWithViews()
+    .AddViewLocalization(LanguageViewLocationExpanderFormat.Suffix)
+    .AddDataAnnotationsLocalization();
+
+// Cloud server reverse proxy support (HTTPS termination / forward headers)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Configure Request Localization Options & Explicit Culture Registration
+var supportedCultures = new[] { "en-US", "ar", "hi", "es", "fr", "de", "ur", "zh-CN", "en" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("en-US")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+// Ensure CookieRequestCultureProvider is the primary provider (index 0)
+var cookieProvider = localizationOptions.RequestCultureProviders.OfType<CookieRequestCultureProvider>().FirstOrDefault();
+if (cookieProvider != null)
+{
+    localizationOptions.RequestCultureProviders.Remove(cookieProvider);
+    localizationOptions.RequestCultureProviders.Insert(0, cookieProvider);
+}
+else
+{
+    cookieProvider = new CookieRequestCultureProvider();
+    localizationOptions.RequestCultureProviders.Insert(0, cookieProvider);
+}
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = localizationOptions.DefaultRequestCulture;
+    options.SupportedCultures = localizationOptions.SupportedCultures;
+    options.SupportedUICultures = localizationOptions.SupportedUICultures;
+    options.RequestCultureProviders = localizationOptions.RequestCultureProviders;
+});
 
 // Configure DB Context with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -403,6 +447,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+app.UseForwardedHeaders();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -414,6 +460,9 @@ app.UseStaticFiles(new StaticFileOptions
 {
     ServeUnknownFileTypes = true
 });
+
+// CRITICAL: Request Localization Middleware MUST run BEFORE UseRouting and UseAuthorization
+app.UseRequestLocalization(localizationOptions);
 
 app.UseRouting();
 
@@ -443,6 +492,11 @@ app.UseAuthorization();
 
 // Map Hub Endpoint before routing/endpoints termination
 app.MapHub<ERP_System.Hubs.ErpNotificationHub>("/erpNotificationHub");
+
+app.MapControllerRoute(
+    name: "setLanguage",
+    pattern: "SetLanguage",
+    defaults: new { controller = "Home", action = "SetLanguage" });
 
 app.MapControllerRoute(
     name: "default",
