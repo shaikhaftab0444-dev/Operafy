@@ -11,6 +11,11 @@
         { code: 'zh-CN', name: '中文 (Chinese)', flag: '🇨🇳' }
     ];
 
+    function deleteCookie(name) {
+        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    }
+
     function setCookie(name, value, days) {
         let expires = "";
         if (days) {
@@ -39,37 +44,55 @@
         const aspNetCulture = (langCode === 'en' ? 'en-US' : langCode);
         const cookieVal = 'c=' + aspNetCulture + '|uic=' + aspNetCulture;
         
-        // Save choice in hardened cookies & localStorage
+        // 1. Force cookie deletion on client before setting to prevent conflicts
+        deleteCookie('.AspNetCore.Culture');
+        deleteCookie('app_lang');
+        deleteCookie('googtrans');
+
+        // 2. Save choice in hardened cookies & localStorage
         setCookie('.AspNetCore.Culture', cookieVal, 365);
         setCookie('googtrans', '/en/' + langCode, 365);
         setCookie('app_lang', langCode, 365);
         localStorage.setItem('app_lang', langCode);
 
-        // Update document dir for RTL languages
+        // 3. Update document dir for RTL languages
         if (langObj.rtl) {
             document.documentElement.setAttribute('dir', 'rtl');
         } else {
             document.documentElement.removeAttribute('dir');
         }
 
-        // Notify server language toggle endpoint to strictly set hardened IResponseCookies
-        const url = '/Home/SetLanguage?culture=' + encodeURIComponent(aspNetCulture);
-        fetch(url, {
-            method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        }).catch(function () {
-            return fetch(url);
-        }).finally(function () {
-            // Trigger Google Translate frame if loaded
-            const selectElem = document.querySelector('.goog-te-combo');
-            if (selectElem) {
-                selectElem.value = langCode;
-                selectElem.dispatchEvent(new Event('change'));
-            } else {
-                // Reload page to apply ASP.NET Core culture cookie globally
-                window.location.reload();
-            }
-        });
+        // 4. Trigger Google Translate frame if loaded
+        const selectElem = document.querySelector('.goog-te-combo');
+        if (selectElem) {
+            selectElem.value = langCode;
+            selectElem.dispatchEvent(new Event('change'));
+        }
+
+        // 5. Clean current URL of any old lang_refresh parameter
+        let currentReturnUrl = window.location.pathname + window.location.search;
+        currentReturnUrl = currentReturnUrl.replace(/([?&])lang_refresh=\d+(&|$)/g, '$1').replace(/[?&]$/, '') || '/';
+
+        // 6. Submit POST form to /Home/SetLanguage to perform server-side cookie overwrite and cache-busted redirect
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/Home/SetLanguage';
+        form.style.display = 'none';
+
+        const cultureInput = document.createElement('input');
+        cultureInput.type = 'hidden';
+        cultureInput.name = 'culture';
+        cultureInput.value = aspNetCulture;
+        form.appendChild(cultureInput);
+
+        const returnUrlInput = document.createElement('input');
+        returnUrlInput.type = 'hidden';
+        returnUrlInput.name = 'returnUrl';
+        returnUrlInput.value = currentReturnUrl;
+        form.appendChild(returnUrlInput);
+
+        document.body.appendChild(form);
+        form.submit();
     };
 
     // Google Translate Initialization Callback
