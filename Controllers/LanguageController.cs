@@ -24,23 +24,16 @@ namespace ERP_System.Controllers
                 culture = "en-US";
             }
 
-            // Determine if request is HTTPS directly or behind reverse proxy
-            var proto = Request.Headers["X-Forwarded-Proto"].ToString();
-            var isHttpsOrProxy = Request.IsHttps || 
-                                 string.Equals(Request.Scheme, "https", StringComparison.OrdinalIgnoreCase) ||
-                                 (!string.IsNullOrEmpty(proto) && proto.StartsWith("https", StringComparison.OrdinalIgnoreCase)) ||
-                                 string.Equals(Request.Headers["X-Forwarded-Ssl"], "on", StringComparison.OrdinalIgnoreCase) ||
-                                 string.Equals(Request.Headers["Front-End-Https"], "on", StringComparison.OrdinalIgnoreCase) ||
-                                 Request.Headers["X-Forwarded-Port"] == "443";
-
+            // CRITICAL: Relax cookie security for HTTP / free hosting environments (e.g. runasp.net)
+            // Secure must be false so browsers do not reject the cookie on http:// domains
             var deleteOptions = new CookieOptions
             {
                 Path = "/",
-                Secure = isHttpsOrProxy,
-                SameSite = SameSiteMode.Lax
+                SameSite = SameSiteMode.Lax,
+                Secure = false
             };
 
-            // 1. Force Cookie Deletion Before Setting: Explicitly delete old cookies with matching security flags
+            // 1. Force Cookie Deletion Before Setting: Explicitly delete old cookies with Path="/"
             Response.Cookies.Delete(CookieRequestCultureProvider.DefaultCookieName, deleteOptions);
             Response.Cookies.Delete("app_lang", deleteOptions);
 
@@ -50,7 +43,7 @@ namespace ERP_System.Controllers
                 IsEssential = true,
                 Path = "/",
                 SameSite = SameSiteMode.Lax,
-                Secure = isHttpsOrProxy,
+                Secure = false, // CRITICAL: Must be false to work on http:// domains
                 HttpOnly = false
             };
 
