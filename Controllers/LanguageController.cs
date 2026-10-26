@@ -24,13 +24,25 @@ namespace ERP_System.Controllers
                 culture = "en-US";
             }
 
-            // 1. Force Cookie Deletion Before Setting: Explicitly delete old cookies with Path="/"
-            Response.Cookies.Delete(CookieRequestCultureProvider.DefaultCookieName, new CookieOptions { Path = "/" });
-            Response.Cookies.Delete("app_lang", new CookieOptions { Path = "/" });
-
             // Determine if request is HTTPS directly or behind reverse proxy
+            var proto = Request.Headers["X-Forwarded-Proto"].ToString();
             var isHttpsOrProxy = Request.IsHttps || 
-                                 string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
+                                 string.Equals(Request.Scheme, "https", StringComparison.OrdinalIgnoreCase) ||
+                                 (!string.IsNullOrEmpty(proto) && proto.StartsWith("https", StringComparison.OrdinalIgnoreCase)) ||
+                                 string.Equals(Request.Headers["X-Forwarded-Ssl"], "on", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(Request.Headers["Front-End-Https"], "on", StringComparison.OrdinalIgnoreCase) ||
+                                 Request.Headers["X-Forwarded-Port"] == "443";
+
+            var deleteOptions = new CookieOptions
+            {
+                Path = "/",
+                Secure = isHttpsOrProxy,
+                SameSite = SameSiteMode.Lax
+            };
+
+            // 1. Force Cookie Deletion Before Setting: Explicitly delete old cookies with matching security flags
+            Response.Cookies.Delete(CookieRequestCultureProvider.DefaultCookieName, deleteOptions);
+            Response.Cookies.Delete("app_lang", deleteOptions);
 
             var cookieOptions = new CookieOptions
             {

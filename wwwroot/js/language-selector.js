@@ -14,6 +14,9 @@
     function deleteCookie(name) {
         document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+        const host = window.location.hostname;
+        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + host + ";";
+        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." + host + ";";
     }
 
     function setCookie(name, value, days) {
@@ -49,24 +52,28 @@
         deleteCookie('app_lang');
         deleteCookie('googtrans');
 
-        // 2. Save choice in hardened cookies & localStorage
+        // 2. Frontend Storage Synchronization: explicitly clear stored language values
+        // Prevents the frontend from fighting the server's new state during language switches
+        localStorage.removeItem('language');
+        localStorage.removeItem('culture');
+        localStorage.removeItem('googtrans'); // If using Google Translate fallback
+        sessionStorage.clear();
+
+        // 3. Save choice in hardened cookies & localStorage
         setCookie('.AspNetCore.Culture', cookieVal, 365);
-        setCookie('googtrans', '/en/' + langCode, 365);
+        if (langCode === 'en') {
+            deleteCookie('googtrans');
+        } else {
+            setCookie('googtrans', '/en/' + langCode, 365);
+        }
         setCookie('app_lang', langCode, 365);
         localStorage.setItem('app_lang', langCode);
 
-        // 3. Update document dir for RTL languages
+        // 4. Update document dir for RTL languages
         if (langObj.rtl) {
             document.documentElement.setAttribute('dir', 'rtl');
         } else {
             document.documentElement.removeAttribute('dir');
-        }
-
-        // 4. Trigger Google Translate frame if loaded
-        const selectElem = document.querySelector('.goog-te-combo');
-        if (selectElem) {
-            selectElem.value = langCode;
-            selectElem.dispatchEvent(new Event('change'));
         }
 
         // 5. Clean current URL of any old lang_refresh parameter
