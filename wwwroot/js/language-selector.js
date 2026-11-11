@@ -1,32 +1,12 @@
 // Global Language Selector & Software Translator
 (function () {
     const supportedLanguages = [
-        { code: 'en', name: 'English', flag: '🇬🇧' },
-        { code: 'hi', name: 'हिंदी (Hindi)', flag: '🇮🇳' },
-        { code: 'es', name: 'Español (Spanish)', flag: '🇪🇸' },
-        { code: 'ar', name: 'العربية (Arabic)', flag: '🇸🇦', rtl: true },
-        { code: 'fr', name: 'Français (French)', flag: '🇫🇷' },
-        { code: 'de', name: 'Deutsch (German)', flag: '🇩🇪' },
-        { code: 'ur', name: 'اردو (Urdu)', flag: '🇵🇰', rtl: true },
-        { code: 'zh-CN', name: '中文 (Chinese)', flag: '🇨🇳' }
+        { code: 'en-US', short: 'en', name: 'English', flag: '🇬🇧' },
+        { code: 'hi-IN', short: 'hi', name: 'Hindi (हिन्दी)', flag: '🇮🇳' },
+        { code: 'ur-PK', short: 'ur', name: 'Urdu (اردو)', flag: '🇵🇰', rtl: true },
+        { code: 'mr-IN', short: 'mr', name: 'Marathi (मराठी)', flag: '🇮🇳' },
+        { code: 'ar-SA', short: 'ar', name: 'Arabic (العربية)', flag: '🇸🇦', rtl: true }
     ];
-
-    function deleteCookie(name) {
-        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-    }
-
-    function setCookie(name, value, days) {
-        let expires = "";
-        if (days) {
-            let date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            expires = "; expires=" + date.toUTCString();
-        }
-        const isSecure = window.location.protocol === 'https:';
-        const secureFlag = isSecure ? "; Secure; SameSite=Lax" : "; SameSite=Lax";
-        document.cookie = name + "=" + (value || "") + expires + "; path=/" + secureFlag;
-    }
 
     function getCookie(name) {
         let nameEQ = name + "=";
@@ -39,67 +19,46 @@
         return null;
     }
 
-    window.changeLanguage = function (langCode) {
-        const langObj = supportedLanguages.find(l => l.code === langCode) || supportedLanguages[0];
-        const aspNetCulture = (langCode === 'en' ? 'en-US' : langCode);
-        const cookieVal = 'c=' + aspNetCulture + '|uic=' + aspNetCulture;
+    function switchLanguage(cultureCode) {
+        if (!cultureCode) cultureCode = 'en-US';
         
-        // 1. Force cookie deletion on client before setting to prevent conflicts
-        deleteCookie('.AspNetCore.Culture');
-        deleteCookie('app_lang');
-        deleteCookie('googtrans');
+        // Set cookie directly in JavaScript as well to avoid race conditions
+        const date = new Date();
+        date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+        const expires = "; expires=" + date.toUTCString();
+        
+        // Write both AspNetCore culture and localStorage with SameSite=Lax (safe for HTTP)
+        document.cookie = ".AspNetCore.Culture=c=" + cultureCode + "|uic=" + cultureCode + expires + "; path=/; SameSite=Lax";
+        localStorage.setItem("user_selected_language", cultureCode);
 
-        // 2. Save choice in hardened cookies & localStorage
-        setCookie('.AspNetCore.Culture', cookieVal, 365);
-        setCookie('googtrans', '/en/' + langCode, 365);
-        setCookie('app_lang', langCode, 365);
-        localStorage.setItem('app_lang', langCode);
+        // Also sync Google Translate googtrans and app_lang cookies
+        const shortLang = cultureCode.split('-')[0];
+        document.cookie = "googtrans=/en/" + shortLang + expires + "; path=/; SameSite=Lax";
+        document.cookie = "app_lang=" + cultureCode + expires + "; path=/; SameSite=Lax";
+        localStorage.setItem("app_lang", shortLang);
 
-        // 3. Update document dir for RTL languages
-        if (langObj.rtl) {
-            document.documentElement.setAttribute('dir', 'rtl');
-        } else {
-            document.documentElement.removeAttribute('dir');
-        }
+        // POST/GET to backend controller and reload cleanly
+        window.location.href = '/Home/SetLanguage?culture=' + encodeURIComponent(cultureCode) + '&returnUrl=' + encodeURIComponent(window.location.pathname);
+    }
 
-        // 4. Trigger Google Translate frame if loaded
-        const selectElem = document.querySelector('.goog-te-combo');
-        if (selectElem) {
-            selectElem.value = langCode;
-            selectElem.dispatchEvent(new Event('change'));
-        }
+    window.switchLanguage = switchLanguage;
 
-        // 5. Clean current URL of any old lang_refresh parameter
-        let currentReturnUrl = window.location.pathname + window.location.search;
-        currentReturnUrl = currentReturnUrl.replace(/([?&])lang_refresh=\d+(&|$)/g, '$1').replace(/[?&]$/, '') || '/';
-
-        // 6. Submit POST form to /Home/SetLanguage to perform server-side cookie overwrite and cache-busted redirect
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/Home/SetLanguage';
-        form.style.display = 'none';
-
-        const cultureInput = document.createElement('input');
-        cultureInput.type = 'hidden';
-        cultureInput.name = 'culture';
-        cultureInput.value = aspNetCulture;
-        form.appendChild(cultureInput);
-
-        const returnUrlInput = document.createElement('input');
-        returnUrlInput.type = 'hidden';
-        returnUrlInput.name = 'returnUrl';
-        returnUrlInput.value = currentReturnUrl;
-        form.appendChild(returnUrlInput);
-
-        document.body.appendChild(form);
-        form.submit();
+    window.changeLanguage = function (langCode) {
+        const codeMap = {
+            'en': 'en-US',
+            'hi': 'hi-IN',
+            'ur': 'ur-PK',
+            'mr': 'mr-IN',
+            'ar': 'ar-SA'
+        };
+        switchLanguage(codeMap[langCode] || langCode);
     };
 
     // Google Translate Initialization Callback
     window.googleTranslateElementInit = function () {
         new google.translate.TranslateElement({
             pageLanguage: 'en',
-            includedLanguages: 'en,hi,es,ar,fr,de,ur,zh-CN',
+            includedLanguages: 'en,hi,ur,mr,ar,es,fr,de,zh-CN',
             layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
             autoDisplay: false
         }, 'google_translate_element');
@@ -154,19 +113,43 @@
     document.addEventListener("DOMContentLoaded", function () {
         hideGoogleBannerStyle();
 
+        // Update labels on UI
+        const langMap = {
+            'en-US': '🇬🇧 English',
+            'en': '🇬🇧 English',
+            'hi-IN': '🇮🇳 Hindi (हिन्दी)',
+            'hi': '🇮🇳 Hindi (हिन्दी)',
+            'ur-PK': '🇵🇰 Urdu (اردو)',
+            'ur': '🇵🇰 Urdu (اردو)',
+            'mr-IN': '🇮🇳 Marathi (मराठी)',
+            'mr': '🇮🇳 Marathi (मराठी)',
+            'ar-SA': '🇸🇦 Arabic (العربية)',
+            'ar': '🇸🇦 Arabic (العربية)'
+        };
+        const current = localStorage.getItem("user_selected_language") || getCookie('app_lang') || 'en-US';
+        
+        const label = document.getElementById("currentLangLabel");
+        if (label && langMap[current]) {
+            label.textContent = langMap[current];
+        }
+        const landingLabel = document.getElementById("landingLangLabel");
+        if (landingLabel && langMap[current]) {
+            landingLabel.textContent = langMap[current];
+        }
+
+        // Apply RTL if Arabic or Urdu
+        if (current.startsWith('ar') || current.startsWith('ur')) {
+            document.documentElement.setAttribute('dir', 'rtl');
+        } else {
+            document.documentElement.removeAttribute('dir');
+        }
+
         // Load Google Translate Script asynchronously
         if (!document.getElementById('google-translate-script')) {
             const gtScript = document.createElement('script');
             gtScript.id = 'google-translate-script';
             gtScript.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
             document.head.appendChild(gtScript);
-        }
-
-        // Auto-restore saved language & RTL setting
-        const savedLang = getCookie('app_lang') || localStorage.getItem('app_lang') || 'en';
-        const langObj = supportedLanguages.find(l => l.code === savedLang);
-        if (langObj && langObj.rtl) {
-            document.documentElement.setAttribute('dir', 'rtl');
         }
 
         // Remove injected Google topbar iframes continuously

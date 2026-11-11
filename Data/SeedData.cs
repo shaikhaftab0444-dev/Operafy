@@ -2857,8 +2857,9 @@ namespace ERP_System.Data
                 var usd = new Currency { CurrencyCode = "USD", CurrencyName = "US Dollar", Symbol = "$", ExchangeRate = 83.450000m, DecimalPlaces = 2, IsActive = true, IsBaseCurrency = false, LastUpdated = DateTime.Now };
                 var eur = new Currency { CurrencyCode = "EUR", CurrencyName = "Euro", Symbol = "€", ExchangeRate = 90.200000m, DecimalPlaces = 2, IsActive = true, IsBaseCurrency = false, LastUpdated = DateTime.Now };
                 var gbp = new Currency { CurrencyCode = "GBP", CurrencyName = "British Pound", Symbol = "£", ExchangeRate = 105.600000m, DecimalPlaces = 2, IsActive = true, IsBaseCurrency = false, LastUpdated = DateTime.Now };
+                var sar = new Currency { CurrencyCode = "SAR", CurrencyName = "Saudi Riyal", Symbol = "SAR", ExchangeRate = 22.250000m, DecimalPlaces = 2, IsActive = true, IsBaseCurrency = false, LastUpdated = DateTime.Now };
 
-                await context.Currencies.AddRangeAsync(new List<Currency> { inr, usd, eur, gbp });
+                await context.Currencies.AddRangeAsync(new List<Currency> { inr, usd, eur, gbp, sar });
                 await context.SaveChangesAsync(); // save to generate IDs for history
 
                 await context.CurrencyRateHistories.AddRangeAsync(new List<CurrencyRateHistory>
