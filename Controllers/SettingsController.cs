@@ -23,8 +23,10 @@ namespace ERP_System.Controllers
             var model = new SettingsViewModel();
             if (Request.Cookies.TryGetValue("UserSettings_SystemName", out var sysName) && !string.IsNullOrEmpty(sysName)) model.SystemName = sysName;
             if (Request.Cookies.TryGetValue("UserSettings_CurrencySymbol", out var curr) && !string.IsNullOrEmpty(curr)) model.CurrencySymbol = curr;
+            else if (Request.Cookies.TryGetValue("UserSettings_DefaultCurrency", out var defCurr) && !string.IsNullOrEmpty(defCurr)) model.CurrencySymbol = defCurr;
             if (Request.Cookies.TryGetValue("UserSettings_DateFormat", out var fmt) && !string.IsNullOrEmpty(fmt)) model.DateFormat = fmt;
             if (Request.Cookies.TryGetValue("UserSettings_TimeZone", out var tz) && !string.IsNullOrEmpty(tz)) model.TimeZone = tz;
+            else if (Request.Cookies.TryGetValue("UserSettings_DefaultTimezone", out var defTz) && !string.IsNullOrEmpty(defTz)) model.TimeZone = defTz;
             if (Request.Cookies.TryGetValue("UserSettings_DefaultPageSize", out var psStr) && int.TryParse(psStr, out int ps)) model.DefaultPageSize = ps;
 
             if (Request.Cookies.TryGetValue("UserSettings_SessionTimeout", out var stStr) && int.TryParse(stStr, out int st)) model.SessionTimeoutMinutes = st;
@@ -62,8 +64,10 @@ namespace ERP_System.Controllers
             {
                 Response.Cookies.Append("UserSettings_SystemName", model.SystemName ?? "ERP System Solutions", options);
                 Response.Cookies.Append("UserSettings_CurrencySymbol", model.CurrencySymbol ?? "₹ (INR)", options);
+                Response.Cookies.Append("UserSettings_DefaultCurrency", model.CurrencySymbol ?? "₹ (INR)", options);
                 Response.Cookies.Append("UserSettings_DateFormat", model.DateFormat ?? "DD/MM/YYYY", options);
                 Response.Cookies.Append("UserSettings_TimeZone", model.TimeZone ?? "Asia/Kolkata (IST +5:30)", options);
+                Response.Cookies.Append("UserSettings_DefaultTimezone", model.TimeZone ?? "Asia/Kolkata (IST +5:30)", options);
                 Response.Cookies.Append("UserSettings_DefaultPageSize", model.DefaultPageSize.ToString(), options);
             }
             else if (section == "Security")

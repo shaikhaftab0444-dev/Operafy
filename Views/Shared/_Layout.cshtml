@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - ERP_System</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/fontawesome-free/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ERP_System.styles.css" asp-append-version="true" />
 </head>
@@ -26,6 +27,20 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
+
+                    <!-- Language Dropdown -->
+                    <div class="dropdown ms-auto">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle rounded-pill px-3" type="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-globe me-1"></i> <span id="currentLangLabel">Language</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="langDropdown">
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchLanguage('en-US')">🇬🇧 English</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchLanguage('hi-IN')">🇮🇳 Hindi (हिन्दी)</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchLanguage('ur-PK')">🇵🇰 Urdu (اردو)</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchLanguage('mr-IN')">🇮🇳 Marathi (मराठी)</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchLanguage('ar-SA')">🇸🇦 Arabic (العربية)</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -44,6 +59,36 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        function switchLanguage(cultureCode) {
+            // Set cookie directly in JavaScript as well to avoid race conditions
+            const date = new Date();
+            date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+            const expires = "; expires=" + date.toUTCString();
+            
+            // Write both AspNetCore culture and localStorage
+            document.cookie = ".AspNetCore.Culture=c=" + cultureCode + "|uic=" + cultureCode + expires + "; path=/; SameSite=Lax";
+            localStorage.setItem("user_selected_language", cultureCode);
+
+            // POST/GET to backend controller and reload cleanly
+            window.location.href = '/Home/SetLanguage?culture=' + encodeURIComponent(cultureCode) + '&returnUrl=' + encodeURIComponent(window.location.pathname);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const langMap = {
+                'en-US': '🇬🇧 English',
+                'hi-IN': '🇮🇳 Hindi (हिन्दी)',
+                'ur-PK': '🇵🇰 Urdu (اردو)',
+                'mr-IN': '🇮🇳 Marathi (मराठी)',
+                'ar-SA': '🇸🇦 Arabic (العربية)'
+            };
+            const current = localStorage.getItem("user_selected_language");
+            if (current && langMap[current]) {
+                const label = document.getElementById("currentLangLabel");
+                if (label) label.textContent = langMap[current];
+            }
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

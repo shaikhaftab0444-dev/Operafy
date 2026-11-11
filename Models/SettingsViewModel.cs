@@ -9,17 +9,39 @@ namespace ERP_System.Models
         [Display(Name = "System Name")]
         public string SystemName { get; set; } = "ERP System Solutions";
 
+        private string _currencySymbol = "₹ (INR)";
         [Required]
         [Display(Name = "Default Currency Symbol")]
-        public string CurrencySymbol { get; set; } = "₹ (INR)";
+        public string CurrencySymbol
+        {
+            get => _currencySymbol;
+            set => _currencySymbol = (value == "SAR - Saudi Riyal (SAR)" || value == "SAR") ? "SAR" : value;
+        }
+
+        public string DefaultCurrency
+        {
+            get => CurrencySymbol;
+            set => CurrencySymbol = value;
+        }
 
         [Required]
         [Display(Name = "Date Format")]
         public string DateFormat { get; set; } = "DD/MM/YYYY";
 
+        private string _timeZone = "Asia/Kolkata (IST +5:30)";
         [Required]
         [Display(Name = "System TimeZone")]
-        public string TimeZone { get; set; } = "Asia/Kolkata (IST +5:30)";
+        public string TimeZone
+        {
+            get => _timeZone;
+            set => _timeZone = (value == "Asia/Riyadh (AST +3:00)" || value == "Asia/Riyadh") ? "Asia/Riyadh" : value;
+        }
+
+        public string DefaultTimezone
+        {
+            get => TimeZone;
+            set => TimeZone = value;
+        }
 
         [Range(5, 100)]
         [Display(Name = "Default Records Per Page")]

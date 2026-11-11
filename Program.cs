@@ -25,24 +25,23 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 // Configure Request Localization Options & Explicit Culture Registration
-var supportedCultures = new[] { "en-US", "ar", "hi", "es", "fr", "de", "ur", "zh-CN", "en" };
+var supportedCultures = new[] { "en-US", "hi-IN", "ur-PK", "ar-SA", "mr-IN", "en", "hi", "ur", "ar", "mr", "es", "fr", "de", "zh-CN" };
 var localizationOptions = new RequestLocalizationOptions()
     .SetDefaultCulture("en-US")
     .AddSupportedCultures(supportedCultures)
     .AddSupportedUICultures(supportedCultures);
 
-// Ensure CookieRequestCultureProvider is the primary provider (index 0)
-var cookieProvider = localizationOptions.RequestCultureProviders.OfType<CookieRequestCultureProvider>().FirstOrDefault();
-if (cookieProvider != null)
+// Ensure Culture Cookie works across HTTP & HTTPS on live domains
+localizationOptions.RequestCultureProviders.Insert(0, new CustomRequestCultureProvider(context =>
 {
-    localizationOptions.RequestCultureProviders.Remove(cookieProvider);
-    localizationOptions.RequestCultureProviders.Insert(0, cookieProvider);
-}
-else
-{
-    cookieProvider = new CookieRequestCultureProvider();
-    localizationOptions.RequestCultureProviders.Insert(0, cookieProvider);
-}
+    // 1. Check query string first (?culture=...)
+    var cultureQuery = context.Request.Query["culture"].ToString();
+    if (!string.IsNullOrEmpty(cultureQuery))
+    {
+        return Task.FromResult<ProviderCultureResult?>(new ProviderCultureResult(cultureQuery, cultureQuery));
+    }
+    return Task.FromResult<ProviderCultureResult?>(null);
+}));
 
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
@@ -438,6 +437,57 @@ using (var scope = app.Services.CreateScope())
         await SeedData.InitializeAuditorDataAsync(context);
         await DbInitializer.InitializeAsync(context);
         await SeedData.InitializeAccountantDataAsync(context);
+
+        // Seed Saudi Riyal (SAR) in Currencies master table if not already present
+        try
+        {
+            var sarExists = await context.Currencies.AnyAsync(c => c.CurrencyCode == "SAR");
+            if (!sarExists)
+            {
+                var sar = new Currency
+                {
+                    CurrencyCode = "SAR",
+                    CurrencyName = "Saudi Riyal",
+                    Symbol = "SAR",
+                    ExchangeRate = 22.250000m,
+                    DecimalPlaces = 2,
+                    IsActive = true,
+                    IsBaseCurrency = false,
+                    LastUpdated = DateTime.Now
+                };
+                await context.Currencies.AddAsync(sar);
+                await context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(@"
+                    IF OBJECT_ID('AITStudent.erp_Currencies', 'U') IS NOT NULL
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM AITStudent.erp_Currencies WHERE CurrencyCode = 'SAR')
+                        BEGIN
+                            INSERT INTO AITStudent.erp_Currencies (CurrencyCode, CurrencyName, Symbol, ExchangeRate, DecimalPlaces, IsActive, IsBaseCurrency, LastUpdated)
+                            VALUES ('SAR', 'Saudi Riyal', 'SAR', 22.250000, 2, 1, 0, GETDATE());
+                        END
+                    END
+                    ELSE IF OBJECT_ID('erp_Currencies', 'U') IS NOT NULL
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM erp_Currencies WHERE CurrencyCode = 'SAR')
+                        BEGIN
+                            INSERT INTO erp_Currencies (CurrencyCode, CurrencyName, Symbol, ExchangeRate, DecimalPlaces, IsActive, IsBaseCurrency, LastUpdated)
+                            VALUES ('SAR', 'Saudi Riyal', 'SAR', 22.250000, 2, 1, 0, GETDATE());
+                        END
+                    END
+                ");
+            }
+            catch
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning(ex, "Failed to seed Saudi Riyal (SAR) in Currencies master table.");
+            }
+        }
     }
     catch (Exception ex)
     {
