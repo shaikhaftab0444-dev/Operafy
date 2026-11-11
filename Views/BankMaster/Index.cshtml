@@ -1,1211 +1,1101 @@
-﻿
-@model IEnumerable<ERP_System.Models.Product>
+@model IEnumerable<ERP_System.Models.CompanyBankAccount>
 
 @{
     Layout = "_DashboardLayout";
-    ViewData["Title"] = "Product Inventory Manager";
+    ViewData["Title"] = "Company Bank Accounts & Master";
 
     var inCulture = new System.Globalization.CultureInfo("en-IN");
-
-    var branches = ViewBag.BranchesList as IEnumerable<ERP_System.Models.Branch>
-                   ?? Enumerable.Empty<ERP_System.Models.Branch>();
-
-    var categories = ViewBag.CategoriesList as IEnumerable<string>
-                     ?? Enumerable.Empty<string>();
-
-    var productCount = Model?.Count() ?? 0;
+    var bankList = Model ?? Enumerable.Empty<ERP_System.Models.CompanyBankAccount>();
+    var totalAccounts = bankList.Count();
+    var primaryAccount = bankList.FirstOrDefault(b => b.IsPrimaryAccount);
+    var totalBalance = bankList.Sum(b => b.CurrentBalance);
+    var activeAccounts = bankList.Count(b => b.IsActive);
 }
 
 <style>
-    .product-inventory-page {
-        --pi-primary: #2563eb;
-        --pi-primary-dark: #1d4ed8;
-        --pi-primary-soft: #eff6ff;
-        --pi-success: #16a34a;
-        --pi-success-soft: #f0fdf4;
-        --pi-warning: #d97706;
-        --pi-warning-soft: #fffbeb;
-        --pi-danger: #dc2626;
-        --pi-danger-soft: #fef2f2;
-        --pi-info: #0891b2;
-        --pi-info-soft: #ecfeff;
-        --pi-text: #172033;
-        --pi-muted: #64748b;
-        --pi-border: #e5eaf1;
-        --pi-white: #ffffff;
-        --pi-shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
+    .bank-master-page {
+        --bm-primary: #4f46e5;
+        --bm-primary-dark: #4338ca;
+        --bm-primary-soft: #eef2ff;
+        --bm-success: #10b981;
+        --bm-success-soft: #ecfdf5;
+        --bm-warning: #f59e0b;
+        --bm-warning-soft: #fffbeb;
+        --bm-danger: #ef4444;
+        --bm-danger-soft: #fef2f2;
+        --bm-info: #0284c7;
+        --bm-info-soft: #f0f9ff;
+        --bm-text: #0f172a;
+        --bm-muted: #64748b;
+        --bm-border: #e2e8f0;
+        --bm-card-bg: rgba(255, 255, 255, 0.85);
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #eff6ff 100%);
         min-height: calc(100vh - 70px);
-        background: radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.045), transparent 28%), linear-gradient(180deg, #f8faff 0%, #f6f8fc 100%);
-        padding-bottom: 35px;
+        padding-bottom: 40px;
     }
 
-        .product-inventory-page .page-shell {
-            max-width: 1700px;
-            margin: 0 auto;
-        }
+    .bank-master-page .page-shell {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
 
-        .product-inventory-page .page-header {
-            padding: 8px 0 20px;
-        }
+    /* =========================
+       HERO HEADER
+    ========================= */
+    .bank-hero-card {
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 24px 28px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 30px rgba(31, 38, 135, 0.06);
+    }
 
-        .product-inventory-page .breadcrumb-line {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 7px;
-            margin-bottom: 9px;
-            color: var(--pi-muted);
-            font-size: .77rem;
-        }
+    .bank-hero-icon {
+        width: 52px;
+        height: 52px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        color: #fff;
+        background: linear-gradient(135deg, #4f46e5, #3b82f6);
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.28);
+        font-size: 1.35rem;
+    }
 
-            .product-inventory-page .breadcrumb-line a {
-                color: var(--pi-muted);
-                text-decoration: none;
-                transition: color .2s ease;
-            }
+    .bank-hero-title {
+        color: var(--bm-text);
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        margin: 0 0 4px;
+    }
 
-                .product-inventory-page .breadcrumb-line a:hover {
-                    color: var(--pi-primary);
-                }
+    .bank-hero-subtitle {
+        color: var(--bm-muted);
+        font-size: 0.85rem;
+        margin: 0;
+        line-height: 1.5;
+    }
 
-        .product-inventory-page .breadcrumb-separator {
-            color: #cbd5e1;
-        }
+    .btn-add-bank {
+        background: linear-gradient(135deg, #4f46e5, #3b82f6);
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 11px 22px;
+        border-radius: 12px;
+        border: 0;
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
+        transition: all 0.25s ease;
+        white-space: nowrap;
+    }
 
-        .product-inventory-page .title-row {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-        }
+    .btn-add-bank:hover {
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(79, 70, 229, 0.35);
+    }
 
-        .product-inventory-page .title-icon {
-            width: 44px;
-            height: 44px;
-            flex: 0 0 44px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--pi-primary-soft);
-            color: var(--pi-primary);
-            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .08);
-        }
+    /* =========================
+       KPI STATS GRID
+    ========================= */
+    .bank-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 24px;
+    }
 
-        .product-inventory-page .page-title {
-            color: var(--pi-text);
-            font-size: clamp(1.4rem, 2vw, 1.75rem);
-            font-weight: 750;
-            letter-spacing: -.025em;
-            margin: 0;
-        }
+    .bank-stat-card {
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        border-radius: 18px;
+        padding: 18px 20px;
+        box-shadow: 0 8px 24px rgba(31, 38, 135, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s ease;
+    }
 
-        .product-inventory-page .page-subtitle {
-            color: var(--pi-muted);
-            font-size: .82rem;
-            margin: 4px 0 0;
-        }
+    .bank-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(31, 38, 135, 0.10);
+    }
 
-        .product-inventory-page .add-product-btn {
-            border: 0;
-            border-radius: 11px;
-            padding: 10px 17px;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: #fff;
-            font-size: .82rem;
-            font-weight: 650;
-            box-shadow: 0 7px 17px rgba(37, 99, 235, .18);
-            transition: all .2s ease;
-        }
+    .bank-stat-card::after {
+        content: "";
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 0;
+        height: 4px;
+        border-radius: 99px;
+    }
 
-            .product-inventory-page .add-product-btn:hover {
-                color: #fff;
-                transform: translateY(-1px);
-                box-shadow: 0 11px 24px rgba(37, 99, 235, .24);
-            }
+    .bank-stat-card.total::after { background: #4f46e5; }
+    .bank-stat-card.primary::after { background: #f59e0b; }
+    .bank-stat-card.balance::after { background: #10b981; }
+    .bank-stat-card.active-stat::after { background: #0284c7; }
 
-        .product-inventory-page .success-alert {
-            border: 1px solid #bbf7d0 !important;
-            border-left: 4px solid #16a34a !important;
-            border-radius: 11px;
-            background: #f0fdf4 !important;
-            color: #15803d !important;
-            padding: 12px 15px;
-            font-size: .82rem;
-        }
+    .stat-meta .stat-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--bm-muted);
+        margin-bottom: 4px;
+        white-space: nowrap;
+    }
 
-        .product-inventory-page .filter-card {
-            background: rgba(255, 255, 255, .96);
-            border: 1px solid var(--pi-border);
-            border-radius: 16px;
-            padding: 17px;
-            margin-bottom: 18px;
-            box-shadow: var(--pi-shadow);
-        }
+    .stat-meta .stat-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--bm-text);
+        line-height: 1.1;
+    }
 
-        .product-inventory-page .filter-heading {
-            color: var(--pi-text);
-            font-size: .83rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
+    .stat-badge-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
 
-            .product-inventory-page .filter-heading i {
-                color: var(--pi-primary);
-                margin-right: 7px;
-            }
+    .stat-badge-icon.total { background: rgba(79, 70, 229, 0.12); color: #4f46e5; }
+    .stat-badge-icon.primary { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+    .stat-badge-icon.balance { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+    .stat-badge-icon.active-stat { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
 
-        .product-inventory-page .filter-control {
-            min-height: 43px;
-            border: 1px solid #dbe2ea;
-            border-radius: 10px;
-            background: #fff;
-            color: #334155;
-            font-size: .8rem;
-            transition: all .18s ease;
-        }
+    /* =========================
+       FILTER PANEL
+    ========================= */
+    .bank-filter-card {
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        border-radius: 18px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 24px rgba(31, 38, 135, 0.05);
+    }
 
-            .product-inventory-page .filter-control:focus {
-                border-color: #93c5fd;
-                box-shadow: 0 0 0 3px rgba(37, 99, 235, .09);
-            }
+    .search-input-wrap {
+        position: relative;
+    }
 
-        .product-inventory-page .search-wrapper {
-            position: relative;
-        }
+    .search-input-wrap i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
 
-            .product-inventory-page .search-wrapper .search-icon {
-                position: absolute;
-                left: 14px;
-                top: 50%;
-                transform: translateY(-50%);
-                color: #94a3b8;
-                pointer-events: none;
-                z-index: 2;
-            }
+    .bank-search-input {
+        padding-left: 38px;
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        font-size: 0.84rem;
+        transition: all 0.2s ease;
+    }
 
-            .product-inventory-page .search-wrapper .filter-control {
-                padding-left: 39px;
-            }
+    .bank-search-input:focus {
+        border-color: #818cf8;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
 
-        .product-inventory-page .clear-filter-btn {
-            min-height: 43px;
-            border: 1px solid #dbe2ea;
-            border-radius: 10px;
-            background: #fff;
-            color: #64748b;
-            font-size: .78rem;
-            font-weight: 650;
-            transition: all .18s ease;
-        }
+    .bank-filter-select {
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        font-size: 0.84rem;
+    }
 
-            .product-inventory-page .clear-filter-btn:hover {
-                background: #f8fafc;
-                color: var(--pi-primary);
-                border-color: #bfdbfe;
-            }
+    /* =========================
+       BANK ACCOUNTS TABLE
+    ========================= */
+    .bank-table-card {
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 32px rgba(31, 38, 135, 0.06);
+    }
 
-        .product-inventory-page .inventory-card {
-            background: var(--pi-white);
-            border: 1px solid var(--pi-border);
-            border-radius: 17px;
-            box-shadow: var(--pi-shadow);
-            overflow: hidden;
-        }
+    .bank-table-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.45);
+    }
 
-        .product-inventory-page .inventory-header {
-            padding: 17px 19px;
-            border-bottom: 1px solid var(--pi-border);
-            background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
-        }
+    .bank-table {
+        width: 100%;
+        margin: 0;
+        font-size: 0.83rem;
+    }
 
-        .product-inventory-page .inventory-title {
-            color: var(--pi-text);
-            font-size: .94rem;
-            font-weight: 700;
-            margin: 0;
-        }
+    .bank-table thead th {
+        background: rgba(241, 245, 249, 0.7);
+        color: #64748b;
+        font-size: 0.70rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        white-space: nowrap;
+    }
 
-        .product-inventory-page .inventory-description {
-            color: var(--pi-muted);
-            font-size: .74rem;
-            margin-top: 3px;
-        }
+    .bank-table tbody td {
+        padding: 16px 18px;
+        vertical-align: middle;
+        border-color: rgba(226, 232, 240, 0.65);
+    }
 
-        .product-inventory-page .record-count {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 29px;
-            height: 24px;
-            padding: 0 8px;
-            border-radius: 999px;
-            background: var(--pi-primary-soft);
-            color: var(--pi-primary);
-            font-size: .71rem;
-            font-weight: 750;
-        }
+    .bank-table tbody tr {
+        transition: background 0.2s ease;
+    }
 
-        .product-inventory-page .inventory-scroll {
-            overflow-x: auto;
-        }
+    .bank-table tbody tr:hover {
+        background: rgba(248, 250, 252, 0.85);
+    }
 
-        .product-inventory-page .products-table {
-            min-width: 1450px;
-            margin: 0;
-            font-size: .78rem;
-        }
+    .bank-name-title {
+        font-weight: 800;
+        color: var(--bm-text);
+        font-size: 0.88rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-            .product-inventory-page .products-table thead th {
-                background: #f8fafc;
-                color: #64748b;
-                border-top: 0;
-                border-bottom: 1px solid var(--pi-border);
-                padding: 12px 14px;
-                font-size: .65rem;
-                font-weight: 750;
-                text-transform: uppercase;
-                letter-spacing: .055em;
-                white-space: nowrap;
-            }
+    .bank-branch-sub {
+        font-size: 0.74rem;
+        color: var(--bm-muted);
+        margin-top: 3px;
+    }
 
-            .product-inventory-page .products-table tbody td {
-                padding: 14px;
-                border-color: #eef2f7;
-                vertical-align: middle;
-                color: #475569;
-            }
+    .account-num-text {
+        font-family: monospace, monospace;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1e293b;
+        letter-spacing: 0.5px;
+    }
 
-            .product-inventory-page .products-table tbody tr {
-                transition: background-color .18s ease;
-            }
+    .ifsc-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        font-family: monospace, monospace;
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: #334155;
+    }
 
-                .product-inventory-page .products-table tbody tr:hover {
-                    background: #f8fbff;
-                }
+    .copy-btn {
+        cursor: pointer;
+        color: #64748b;
+        transition: color 0.15s ease;
+    }
 
-        .product-inventory-page .product-id {
-            display: inline-flex;
-            padding: 5px 8px;
-            border-radius: 7px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            color: #475569;
-            font-size: .69rem;
-            font-weight: 750;
-            white-space: nowrap;
-        }
+    .copy-btn:hover {
+        color: var(--bm-primary);
+    }
 
-        .product-inventory-page .product-name {
-            color: var(--pi-text);
-            font-size: .8rem;
-            font-weight: 700;
-            line-height: 1.35;
-        }
+    .type-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 30px;
+        font-size: 0.70rem;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
 
-        .product-inventory-page .product-branch {
-            color: #94a3b8;
-            font-size: .68rem;
-            margin-top: 3px;
-            white-space: nowrap;
-        }
+    .type-pill.current { background: rgba(79, 70, 229, 0.12); color: #4f46e5; border: 1px solid rgba(79, 70, 229, 0.2); }
+    .type-pill.savings { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); }
+    .type-pill.overdraft { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); }
 
-        .product-inventory-page .category-badge {
-            display: inline-flex;
-            padding: 5px 9px;
-            border-radius: 7px;
-            background: #f8fafc;
-            color: #475569;
-            border: 1px solid #e2e8f0;
-            font-size: .68rem;
-            font-weight: 650;
-            white-space: nowrap;
-        }
+    .primary-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 11px;
+        border-radius: 30px;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
 
-        .product-inventory-page .price-value {
-            color: var(--pi-text);
-            font-weight: 750;
-            white-space: nowrap;
-        }
+    .primary-pill.is-primary {
+        background: rgba(245, 158, 11, 0.15);
+        color: #b45309;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
 
-        .product-inventory-page .gst-badge {
-            display: inline-flex;
-            padding: 5px 8px;
-            border-radius: 7px;
-            background: var(--pi-info-soft);
-            color: var(--pi-info);
-            border: 1px solid #a5f3fc;
-            font-size: .68rem;
-            font-weight: 700;
-        }
+    .primary-pill.not-primary {
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+    }
 
-        .product-inventory-page .stock-number {
-            font-weight: 750;
-            color: var(--pi-text);
-        }
+    .status-toggle-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-            .product-inventory-page .stock-number.low {
-                color: var(--pi-danger);
-            }
+    .action-btn-group {
+        display: inline-flex;
+        gap: 6px;
+    }
 
-        .product-inventory-page .quantity-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 65px;
-            padding: 5px 8px;
-            border-radius: 7px;
-            font-size: .68rem;
-            font-weight: 700;
-        }
+    .btn-action {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #64748b;
+        transition: all 0.2s ease;
+    }
 
-        .product-inventory-page .free-stock {
-            background: var(--pi-success-soft);
-            color: var(--pi-success);
-            border: 1px solid #bbf7d0;
-        }
+    .btn-action.edit:hover {
+        border-color: #818cf8;
+        color: #4f46e5;
+        background: #eef2ff;
+        transform: translateY(-2px);
+    }
 
-        .product-inventory-page .reserved-stock {
-            background: var(--pi-warning-soft);
-            color: var(--pi-warning);
-            border: 1px solid #fde68a;
-        }
+    .btn-action.delete:hover {
+        border-color: #fca5a5;
+        color: #dc2626;
+        background: #fef2f2;
+        transform: translateY(-2px);
+    }
 
-        .product-inventory-page .availability-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-size: .67rem;
-            font-weight: 700;
-            white-space: nowrap;
-        }
+    /* =========================
+       MODAL STYLING
+    ========================= */
+    .bank-modal .modal-content {
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
+    }
 
-        .product-inventory-page .badge-in-stock {
-            background: var(--pi-success-soft);
-            color: var(--pi-success);
-            border: 1px solid #bbf7d0;
-        }
+    .bank-modal .modal-header {
+        padding: 22px 24px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        background: rgba(248, 250, 252, 0.65);
+    }
 
-        .product-inventory-page .badge-low-stock {
-            background: var(--pi-warning-soft);
-            color: var(--pi-warning);
-            border: 1px solid #fde68a;
-        }
+    .bank-modal .modal-body {
+        padding: 24px;
+    }
 
-        .product-inventory-page .badge-out-stock {
-            background: var(--pi-danger-soft);
-            color: var(--pi-danger);
-            border: 1px solid #fecaca;
-        }
+    .bank-modal .modal-footer {
+        padding: 16px 24px 22px;
+        border-top: 1px solid rgba(226, 232, 240, 0.8);
+        background: rgba(248, 250, 252, 0.5);
+    }
 
-        .product-inventory-page .edit-btn {
-            border: 1px solid #dbe2ea;
-            background: #fff;
-            color: #475569;
-            font-size: .7rem;
-            font-weight: 650;
-            border-radius: 8px;
-            padding: 6px 9px;
-            transition: all .18s ease;
-            white-space: nowrap;
-        }
-
-            .product-inventory-page .edit-btn:hover {
-                background: var(--pi-primary-soft);
-                border-color: #bfdbfe;
-                color: var(--pi-primary);
-            }
-
-        .product-inventory-page .delete-btn {
-            border: 1px solid #fecaca;
-            background: #fff;
-            color: var(--pi-danger);
-            font-size: .7rem;
-            font-weight: 650;
-            border-radius: 8px;
-            padding: 6px 9px;
-            transition: all .18s ease;
-            white-space: nowrap;
-        }
-
-            .product-inventory-page .delete-btn:hover {
-                background: var(--pi-danger-soft);
-                border-color: #fca5a5;
-            }
-
-        .product-inventory-page .readonly-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 9px;
-            border-radius: 8px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            color: #94a3b8;
-            font-size: .68rem;
-            font-weight: 650;
-            white-space: nowrap;
-        }
-
-        .product-inventory-page .empty-state {
-            padding: 65px 20px !important;
-        }
-
-        .product-inventory-page .empty-icon {
-            width: 62px;
-            height: 62px;
-            margin: 0 auto 14px;
-            border-radius: 17px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f1f5f9;
-            color: #94a3b8;
-            font-size: 1.4rem;
-        }
-
-        .product-inventory-page .empty-title {
-            color: var(--pi-text);
-            font-size: .92rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .product-inventory-page .empty-text {
-            color: var(--pi-muted);
-            font-size: .77rem;
-            margin: 0;
-        }
-
-    @@media (max-width: 768px) {
-
-        .product-inventory-page .page-header {
-            padding-top: 2px;
-        }
-
-        .product-inventory-page .header-action {
-            width: 100%;
-        }
-
-        .product-inventory-page .add-product-btn {
-            width: 100%;
-        }
-
-        .product-inventory-page .filter-card {
-            padding: 14px;
-        }
-
-        .product-inventory-page .inventory-header {
-            padding: 15px 16px;
+    /* =========================
+       RESPONSIVE
+    ========================= */
+    @@media (max-width: 1199.98px) {
+        .bank-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    @@media (max-width: 480px) {
-
-        .product-inventory-page .title-icon {
-            width: 38px;
-            height: 38px;
-            flex-basis: 38px;
-            border-radius: 10px;
+    @@media (max-width: 767.98px) {
+        .bank-master-page {
+            padding: 16px 10px;
         }
 
-        .product-inventory-page .page-title {
+        .bank-hero-card {
+            padding: 18px 16px;
+        }
+
+        .bank-hero-title {
             font-size: 1.25rem;
         }
 
-        .product-inventory-page .page-subtitle {
-            font-size: .75rem;
+        .bank-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .bank-stat-card {
+            padding: 14px;
+        }
+
+        .stat-meta .stat-val {
+            font-size: 1.25rem;
+        }
+
+        .bank-table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .bank-table {
+            min-width: 860px;
         }
     }
 
-    @@media print {
-
-        .product-inventory-page {
-            background: #fff !important;
+    @@media (max-width: 575.98px) {
+        .bank-stats-grid {
+            grid-template-columns: 1fr;
         }
-
-            .product-inventory-page .header-action,
-            .product-inventory-page .filter-card,
-            .product-inventory-page .inventory-header,
-            .product-inventory-page .edit-btn,
-            .product-inventory-page .delete-btn,
-            .product-inventory-page .readonly-badge {
-                display: none !important;
-            }
-
-            .product-inventory-page .inventory-card {
-                border: 1px solid #ddd;
-                box-shadow: none;
-            }
     }
 </style>
 
-<div class="product-inventory-page">
+<div class="bank-master-page py-3">
+    <div class="container-fluid px-3 px-md-4 page-shell">
 
-    <div class="container-fluid py-3 px-3 px-md-4 page-shell">
-
-        <!-- Page Header -->
-        <div class="page-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
-
-            <div>
-
-                <div class="breadcrumb-line">
-
-                    <a href="/Dashboard">
-                        <i class="fa-solid fa-chart-line me-1"></i>
-                        Dashboard
-                    </a>
-
-                    <span class="breadcrumb-separator">/</span>
-
-                    <span>Products</span>
-
-                </div>
-
-                <div class="title-row">
-
-                    <span class="title-icon">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                    </span>
-
-                    <div>
-
-                        <h4 class="page-title">
-                            Product Management
-                        </h4>
-
-                        <p class="page-subtitle">
-                            Manage product pricing, stock availability, branches and inventory levels.
-                        </p>
-
+        <!-- Hero Header -->
+        <div class="bank-hero-card">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bank-hero-icon">
+                        <i class="fa-solid fa-building-columns"></i>
                     </div>
-
+                    <div>
+                        <h4 class="bank-hero-title">Company Bank Accounts</h4>
+                        <p class="bank-hero-subtitle">
+                            Configure institutional accounts, routing codes, IFSC standards and default payout credentials.
+                        </p>
+                    </div>
                 </div>
-
+                <div>
+                    <button type="button" class="btn btn-add-bank" onclick="openCreateModal()">
+                        <i class="fa-solid fa-plus me-2"></i> Add Bank Account
+                    </button>
+                </div>
             </div>
-
-            <div class="header-action">
-
-                @if (User.IsInRole("Sales Manager") ||
-                                User.IsInRole("Admin") ||
-                                User.IsInRole("Super Admin"))
-                {
-                    <a href="/Products/Create"
-                       class="btn add-product-btn">
-
-                        <i class="fa-solid fa-plus me-2"></i>
-                        Add New Product
-
-                    </a>
-                }
-
-            </div>
-
         </div>
 
-        <!-- Success Alert -->
+        <!-- Alert Notifications -->
         @if (TempData["SuccessMessage"] != null)
         {
-            <div class="alert alert-success alert-dismissible fade show shadow-sm success-alert mb-4"
-                 role="alert">
-
-                <i class="fa-solid fa-circle-check me-2"></i>
-
-                @TempData["SuccessMessage"]
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert"
-                        aria-label="Close">
-                </button>
-
+            <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+                <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i> @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         }
 
-        <!-- Filters -->
-        <div class="filter-card">
-
-            <div class="filter-heading">
-
-                <i class="fa-solid fa-sliders"></i>
-
-                Inventory Filters
-
+        <!-- KPI Summary Cards -->
+        <div class="bank-stats-grid">
+            <div class="bank-stat-card total">
+                <div class="stat-meta">
+                    <div class="stat-label">Total Accounts</div>
+                    <div class="stat-val">@totalAccounts</div>
+                </div>
+                <div class="stat-badge-icon total">
+                    <i class="fa-solid fa-vault"></i>
+                </div>
             </div>
 
-            <div class="row g-3">
-
-                <!-- Search -->
-                <div class="col-lg-5 col-md-6">
-
-                    <div class="search-wrapper">
-
-                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-
-                        <input type="text"
-                               id="searchProduct"
-                               class="form-control filter-control"
-                               placeholder="Search products by name..." />
-
+            <div class="bank-stat-card primary">
+                <div class="stat-meta">
+                    <div class="stat-label">Primary Account</div>
+                    <div class="stat-val" style="font-size: 1.15rem; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        @(primaryAccount?.BankName ?? "None Assigned")
                     </div>
-
                 </div>
-
-                <!-- Category -->
-                <div class="col-lg-3 col-md-6">
-
-                    <select id="filterCategory"
-                            class="form-select filter-control">
-
-                        <option value="">
-                            All Categories
-                        </option>
-
-                        @foreach (var cat in categories)
-                        {
-                            <option value="@cat">
-                                @cat
-                            </option>
-                        }
-
-                    </select>
-
+                <div class="stat-badge-icon primary">
+                    <i class="fa-solid fa-star"></i>
                 </div>
-
-                <!-- Branch -->
-                <div class="col-lg-3 col-md-6">
-
-                    <select id="filterBranch"
-                            class="form-select filter-control">
-
-                        <option value="">
-                            All Branches
-                        </option>
-
-                        @foreach (var branch in branches)
-                        {
-                            <option value="@branch.BranchName">
-                                @branch.BranchName
-                            </option>
-                        }
-
-                    </select>
-
-                </div>
-
-                <!-- Clear -->
-                <div class="col-lg-1 col-md-6">
-
-                    <button type="button"
-                            id="clearFilters"
-                            class="btn clear-filter-btn w-100"
-                            title="Clear filters">
-
-                        <i class="fa-solid fa-rotate-left"></i>
-
-                    </button>
-
-                </div>
-
             </div>
 
+            <div class="bank-stat-card balance">
+                <div class="stat-meta">
+                    <div class="stat-label">Combined Balance</div>
+                    <div class="stat-val" style="font-size: 1.25rem;">
+                        ₹@totalBalance.ToString("N2", inCulture)
+                    </div>
+                </div>
+                <div class="stat-badge-icon balance">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+            </div>
+
+            <div class="bank-stat-card active-stat">
+                <div class="stat-meta">
+                    <div class="stat-label">Active Accounts</div>
+                    <div class="stat-val">@activeAccounts</div>
+                </div>
+                <div class="stat-badge-icon active-stat">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
         </div>
 
-        <!-- Inventory -->
-        <div class="inventory-card">
-
-            <div class="inventory-header d-flex flex-wrap justify-content-between align-items-center gap-3">
-
-                <div>
-
-                    <div class="d-flex align-items-center gap-2">
-
-                        <h6 class="inventory-title">
-                            Product Inventory
-                        </h6>
-
-                        <span class="record-count">
-                            @productCount
-                        </span>
-
+        <!-- Filter & Search Controls -->
+        <div class="bank-filter-card">
+            <div class="row g-3 align-items-center">
+                <div class="col-lg-5 col-md-6">
+                    <div class="search-input-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text"
+                               id="bankSearchInput"
+                               class="form-control bank-search-input"
+                               placeholder="Search by Bank Name, Account Number, IFSC, or Branch..."
+                               onkeyup="filterBankAccounts()" />
                     </div>
-
-                    <div class="inventory-description">
-                        Current product stock, pricing and availability across branches.
-                    </div>
-
                 </div>
+                <div class="col-lg-3 col-md-3 col-sm-6">
+                    <select id="filterAccountType" class="form-select bank-filter-select" onchange="filterBankAccounts()">
+                        <option value="">All Account Types</option>
+                        <option value="Current">Current Account</option>
+                        <option value="Savings">Savings Account</option>
+                        <option value="Overdraft">Overdraft (OD)</option>
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-3 col-sm-6">
+                    <select id="filterAccountStatus" class="form-select bank-filter-select" onchange="filterBankAccounts()">
+                        <option value="">All Statuses</option>
+                        <option value="Active">Active Only</option>
+                        <option value="Inactive">Inactive Only</option>
+                        <option value="Primary">Primary Account</option>
+                    </select>
+                </div>
+                <div class="col-lg-1 col-md-12 text-md-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" style="height: 44px; border-radius: 12px;" onclick="resetFilters()" title="Reset Filters">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
 
+        <!-- Bank Accounts Table -->
+        <div class="bank-table-card">
+            <div class="bank-table-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-list-check text-primary"></i>
+                    <span class="fw-bold text-dark">Registered Accounts</span>
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 ms-1" id="visibleCountBadge">@totalAccounts</span>
+                </div>
+                <div class="text-muted small">
+                    Default accounts receive priority for vendor payments and payroll runs
+                </div>
             </div>
 
-            <div class="inventory-scroll table-responsive">
-
-                <table class="table table-hover products-table"
-                       id="productsTable">
-
+            <div class="bank-table-scroll table-responsive">
+                <table class="table bank-table align-middle" id="bankAccountsTable">
                     <thead>
-
                         <tr>
-
-                            <th>
-                                Product ID
-                            </th>
-
-                            <th>
-                                Product Name
-                            </th>
-
-                            <th>
-                                Category
-                            </th>
-
-                            <th class="text-end">
-                                Unit Price (₹)
-                            </th>
-
-                            <th class="text-center">
-                                GST Rate
-                            </th>
-
-                            <th class="text-center">
-                                Free Available
-                            </th>
-
-                            <th class="text-center">
-                                Reserved
-                            </th>
-
-                            <th class="text-center">
-                                Total Stock
-                            </th>
-
-                            <th class="text-center">
-                                Sold Qty
-                            </th>
-
-                            <th>
-                                Availability
-                            </th>
-
-                            <th class="text-center">
-                                Actions
-                            </th>
-
+                            <th style="width: 24%;">Bank Name & Branch</th>
+                            <th style="width: 18%;">Account Number</th>
+                            <th style="width: 14%;">IFSC Code</th>
+                            <th style="width: 12%;">Type</th>
+                            <th style="width: 14%;">Current Balance</th>
+                            <th style="width: 10%;">Designation</th>
+                            <th style="width: 8%;">Status</th>
+                            <th style="width: 8%;" class="text-end">Actions</th>
                         </tr>
-
                     </thead>
-
-                    <tbody>
-
-                        @if (Model != null && Model.Any())
+                    <tbody id="bankTableBody">
+                        @if (!bankList.Any())
                         {
-                            foreach (var prod in Model)
+                            <tr id="emptyBankRow">
+                                <td colspan="8" class="text-center py-5">
+                                    <div class="mb-3 text-muted" style="font-size: 2.5rem; opacity: 0.4;">
+                                        <i class="fa-solid fa-building-columns"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">No Company Bank Accounts Registered</h6>
+                                    <p class="text-muted small mb-3">Add institutional bank accounts to route payroll, vendor disbursements, and client remittances.</p>
+                                    <button type="button" class="btn btn-sm btn-add-bank" onclick="openCreateModal()">
+                                        <i class="fa-solid fa-plus me-1"></i> Register Bank Account
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var b in bankList)
                             {
-                                var badgeClass =
-                                prod.Status == "In Stock"
-                                ? "badge-in-stock"
-                                : prod.Status == "Low Stock"
-                                ? "badge-low-stock"
-                                : "badge-out-stock";
+                                var typeClass = b.AccountType?.ToLower() == "savings" ? "savings" : (b.AccountType?.ToLower() == "overdraft" ? "overdraft" : "current");
 
-                                var price =
-                                prod.UnitSellingPrice > 0
-                                ? prod.UnitSellingPrice
-                                : (
-                                prod.StockQty > 0
-                                ? prod.Revenue / Math.Max(1, prod.SoldQty)
-                                : 1000m
-                                );
+                                <tr class="bank-row"
+                                    data-id="@b.Id"
+                                    data-bank="@b.BankName.ToLower()"
+                                    data-account="@b.AccountNumber.ToLower()"
+                                    data-ifsc="@b.IFSCCode.ToLower()"
+                                    data-branch="@((b.BranchName ?? string.Empty).ToLower())"
+                                    data-type="@(b.AccountType ?? "Current")"
+                                    data-status="@(b.IsActive ? "Active" : "Inactive")"
+                                    data-primary="@(b.IsPrimaryAccount ? "Primary" : "Secondary")">
 
-                                var freeStock = prod.FreeAvailableStock;
-                                var reservedStock = prod.ReservedStockQty;
-
-                                <tr>
-
-                                    <!-- Product ID -->
+                                    <!-- Bank & Branch -->
                                     <td>
-
-                                        <span class="product-id">
-                                            PROD#@prod.ProductId.ToString("D3")
-                                        </span>
-
-                                    </td>
-
-                                    <!-- Product Name / Branch -->
-                                    <td>
-
-                                        <div class="product-name">
-                                            @prod.ProductName
+                                        <div class="bank-name-title">
+                                            <i class="fa-solid fa-building-columns text-primary"></i>
+                                            @b.BankName
+                                            @if (b.IsPrimaryAccount)
+                                            {
+                                                <i class="fa-solid fa-circle-check text-warning ms-1" title="Primary Corporate Account"></i>
+                                            }
                                         </div>
-
-                                        <div class="product-branch">
-
+                                        <div class="bank-branch-sub">
                                             <i class="fa-solid fa-location-dot me-1"></i>
-
-                                            @(prod.Branch?.BranchName ?? "Head Office")
-
+                                            @(string.IsNullOrWhiteSpace(b.BranchName) ? "Main Corporate Branch" : b.BranchName)
                                         </div>
-
                                     </td>
 
-                                    <!-- Category -->
+                                    <!-- Account Number -->
                                     <td>
-
-                                        <span class="category-badge">
-                                            @prod.Category
-                                        </span>
-
+                                        <div class="account-num-text">@b.AccountNumber</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">Added @b.CreatedAt.ToString("dd MMM yyyy")</div>
                                     </td>
 
-                                    <!-- Price -->
-                                    <td class="text-end">
-
-                                        <span class="price-value">
-                                            ₹@price.ToString("N2", inCulture)
-                                        </span>
-
-                                    </td>
-
-                                    <!-- GST -->
-                                    <td class="text-center">
-
-                                        <span class="gst-badge">
-
-                                            @(prod.GstRate > 0
-                                                                                ? prod.GstRate.ToString("0.##")
-                                                                                : "18")%
-
-                                </span>
-
-                                    </td>
-
-                                    <!-- Free Stock -->
-                                    <td class="text-center">
-
-                                        <span class="quantity-badge free-stock">
-                                            @freeStock Units
-                                        </span>
-
-                                    </td>
-
-                                    <!-- Reserved -->
-                                    <td class="text-center">
-
-                                        <span class="quantity-badge reserved-stock">
-                                            @reservedStock Units
-                                        </span>
-
-                                    </td>
-
-                                    <!-- Total Stock -->
-                                    <td class="text-center">
-
-                                        <span class="stock-number @(prod.StockQty <= 50 ? "low" : "")">
-                                            @prod.StockQty
-                                        </span>
-
-                                    </td>
-
-                                    <!-- Sold -->
-                                    <td class="text-center">
-
-                                        <span class="fw-semibold text-secondary">
-                                            @prod.SoldQty
-                                        </span>
-
-                                    </td>
-
-                                    <!-- Availability -->
+                                    <!-- IFSC Code with Copy -->
                                     <td>
+                                        <div class="ifsc-badge">
+                                            <span id="ifsc-text-@b.Id">@b.IFSCCode</span>
+                                            <i class="fa-regular fa-copy copy-btn" onclick="copyIFSC('@b.IFSCCode')" title="Copy IFSC Code"></i>
+                                        </div>
+                                    </td>
 
-                                        <span class="availability-badge @badgeClass">
-
-                                    @if (prod.Status == "In Stock")
-                                            {
-                                                <i class="fa-solid fa-circle-check"></i>
-                                            }
-                                            else if (prod.Status == "Low Stock")
-                                            {
-                                                <i class="fa-solid fa-triangle-exclamation"></i>
-                                            }
-                                            else
-                                            {
-                                                <i class="fa-solid fa-circle-xmark"></i>
-                                            }
-
-                                            @prod.Status
-
+                                    <!-- Account Type -->
+                                    <td>
+                                        <span class="type-pill @typeClass">
+                                            <i class="fa-solid fa-shield me-1"></i> @b.AccountType
                                         </span>
+                                    </td>
 
+                                    <!-- Balance -->
+                                    <td>
+                                        <div class="fw-bold text-dark">₹@b.CurrentBalance.ToString("N2", inCulture)</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">Opening: ₹@b.OpeningBalance.ToString("N2", inCulture)</div>
+                                    </td>
+
+                                    <!-- Primary Status -->
+                                    <td>
+                                        @if (b.IsPrimaryAccount)
+                                        {
+                                            <span class="primary-pill is-primary">
+                                                <i class="fa-solid fa-star"></i> Primary
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="primary-pill not-primary">
+                                                Secondary
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <!-- Status Toggle -->
+                                    <td>
+                                        <div class="form-check form-switch m-0">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   role="switch"
+                                                   id="switch-@b.Id"
+                                                   @(b.IsActive ? "checked" : "")
+                                                   onchange="toggleBankStatus(@b.Id, this)" />
+                                        </div>
                                     </td>
 
                                     <!-- Actions -->
-                                    <td class="text-center">
-
-                                        <div class="d-flex justify-content-center align-items-center gap-2">
-
-                                            @if (User.IsInRole("Sales Manager") ||
-                                                                                User.IsInRole("Admin") ||
-                                                                                User.IsInRole("Super Admin"))
-                                            {
-                                                <a href="/Products/Edit/@prod.ProductId"
-                                                   class="btn edit-btn">
-
-                                                    <i class="fa-solid fa-pen-to-square me-1"></i>
-                                                    Edit
-
-                                                </a>
-
-                                                @if (User.IsInRole("Super Admin") ||
-                                                                                    User.IsInRole("Admin"))
-                                                {
-                                                    <form asp-action="Delete"
-                                                          asp-route-id="@prod.ProductId"
-                                                          method="post"
-                                                          onsubmit="return confirm('Are you sure you want to delete this product?');"
-                                                          style="display:inline;">
-
-                                                        @Html.AntiForgeryToken()
-
-                                                        <button type="submit"
-                                                                class="btn delete-btn">
-
-                                                            <i class="fa-solid fa-trash-can me-1"></i>
-                                                            Delete
-
-                                                        </button>
-
-                                                    </form>
-                                                }
-                                            }
-                                            else
-                                            {
-                                                <span class="readonly-badge">
-
-                                                    <i class="fa-solid fa-lock"></i>
-
-                                                    Read-Only
-
-                                                </span>
-                                            }
-
+                                    <td class="text-end">
+                                        <div class="action-btn-group">
+                                            <button type="button"
+                                                    class="btn-action edit"
+                                                    onclick="openEditModal(@b.Id)"
+                                                    title="Edit Account Details">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <button type="button"
+                                                    class="btn-action delete"
+                                                    onclick="confirmDeleteBank(@b.Id, '@b.BankName', @(b.IsPrimaryAccount ? "true" : "false"))"
+                                                    title="Delete Account">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
                                         </div>
-
                                     </td>
 
                                 </tr>
                             }
                         }
-                        else
-                        {
-                            <tr>
-
-                                <td colspan="11"
-                                    class="text-center empty-state">
-
-                                    <div class="empty-icon">
-
-                                        <i class="fa-solid fa-box-open"></i>
-
-                                    </div>
-
-                                    <div class="empty-title">
-                                        No product records found
-                                    </div>
-
-                                    <p class="empty-text">
-                                        No products are currently available in the warehouse inventory.
-                                    </p>
-
-                                </td>
-
-                            </tr>
-                        }
-
                     </tbody>
-
                 </table>
-
             </div>
-
         </div>
 
     </div>
-
 </div>
 
-@section Scripts {
+<!-- =========================
+     ADD / EDIT BANK MODAL
+========================= -->
+<div class="modal fade bank-modal" id="bankAccountModal" tabindex="-1" aria-labelledby="bankModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bank-hero-icon" style="width: 44px; height: 44px; font-size: 1.15rem;">
+                        <i class="fa-solid fa-building-columns"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark m-0" id="bankModalLabel">Add Corporate Bank Account</h5>
+                        <p class="text-muted small m-0">Institutional routing and settlement details</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
+            <form id="bankAccountForm" method="post" action="/BankMaster/CreateOrEdit">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="modalBankId" name="Id" value="0" />
 
-            const searchInput =
-                document.getElementById("searchProduct");
+                <div class="modal-body">
+                    <div class="row g-3">
 
-            const categorySelect =
-                document.getElementById("filterCategory");
+                        <!-- Bank Name -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-dark">
+                                Bank Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="modalBankName"
+                                   name="BankName"
+                                   placeholder="e.g., HDFC Bank, State Bank of India"
+                                   required />
+                        </div>
 
-            const branchSelect =
-                document.getElementById("filterBranch");
+                        <!-- Account Number -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-dark">
+                                Account Number <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="modalAccountNumber"
+                                   name="AccountNumber"
+                                   placeholder="e.g., 50200012345678"
+                                   required />
+                        </div>
 
-            const clearButton =
-                document.getElementById("clearFilters");
+                        <!-- IFSC Code -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-dark">
+                                IFSC Code <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   class="form-control text-uppercase"
+                                   id="modalIfscCode"
+                                   name="IFSCCode"
+                                   maxlength="11"
+                                   placeholder="e.g., HDFC0001234"
+                                   required />
+                        </div>
 
-            const table =
-                document.getElementById("productsTable");
+                        <!-- Branch Name -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-dark">
+                                Branch Name / Location
+                            </label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="modalBranchName"
+                                   name="BranchName"
+                                   placeholder="e.g., Fort Branch, Mumbai" />
+                        </div>
 
+                        <!-- Account Type -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-dark">
+                                Account Type
+                            </label>
+                            <select class="form-select" id="modalAccountType" name="AccountType">
+                                <option value="Current">Current Account</option>
+                                <option value="Savings">Savings Account</option>
+                                <option value="Overdraft">Overdraft (OD) Account</option>
+                            </select>
+                        </div>
 
-            function filterTable() {
+                        <!-- Opening Balance -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-dark">
+                                Opening Balance (₹)
+                            </label>
+                            <input type="number"
+                                   step="0.01"
+                                   class="form-control"
+                                   id="modalOpeningBalance"
+                                   name="OpeningBalance"
+                                   value="0.00" />
+                        </div>
 
-                if (!searchInput ||
-                    !categorySelect ||
-                    !branchSelect ||
-                    !table) {
+                        <!-- Settings Checks -->
+                        <div class="col-12 mt-4">
+                            <div class="p-3 rounded-4 bg-light border">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="modalIsPrimary" name="IsPrimaryAccount" value="true" />
+                                    <label class="form-check-label fw-bold text-dark small" for="modalIsPrimary">
+                                        Set as Primary Corporate Account
+                                    </label>
+                                    <div class="text-muted" style="font-size: 0.73rem;">
+                                        Primary account is selected by default for invoices, payroll batches, and vendor remittances.
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="modalIsActive" name="IsActive" value="true" checked />
+                                    <label class="form-check-label fw-bold text-dark small" for="modalIsActive">
+                                        Account Active & Available for Operations
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
 
-                    return;
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light rounded-3 px-3 fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-add-bank" id="btnSaveBank">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Bank Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden Delete Form -->
+<form id="deleteBankForm" method="post" action="/BankMaster/Delete" style="display: none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="deleteTargetId" />
+</form>
+
+<script>
+    function openCreateModal() {
+        document.getElementById("modalBankId").value = "0";
+        document.getElementById("bankModalLabel").textContent = "Add Corporate Bank Account";
+        document.getElementById("modalBankName").value = "";
+        document.getElementById("modalAccountNumber").value = "";
+        document.getElementById("modalIfscCode").value = "";
+        document.getElementById("modalBranchName").value = "";
+        document.getElementById("modalAccountType").value = "Current";
+        document.getElementById("modalOpeningBalance").value = "0.00";
+        document.getElementById("modalOpeningBalance").disabled = false;
+        document.getElementById("modalIsPrimary").checked = false;
+        document.getElementById("modalIsActive").checked = true;
+
+        const modal = new bootstrap.Modal(document.getElementById("bankAccountModal"));
+        modal.show();
+    }
+
+    function openEditModal(id) {
+        fetch('/BankMaster/GetAccount/' + id)
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    const data = res.data;
+                    document.getElementById("modalBankId").value = data.id;
+                    document.getElementById("bankModalLabel").textContent = "Edit Corporate Bank Account";
+                    document.getElementById("modalBankName").value = data.bankName || "";
+                    document.getElementById("modalAccountNumber").value = data.accountNumber || "";
+                    document.getElementById("modalIfscCode").value = data.ifscCode || "";
+                    document.getElementById("modalBranchName").value = data.branchName || "";
+                    document.getElementById("modalAccountType").value = data.accountType || "Current";
+                    document.getElementById("modalOpeningBalance").value = data.openingBalance || "0.00";
+                    document.getElementById("modalOpeningBalance").disabled = true; // Opening balance immutable in edit
+                    document.getElementById("modalIsPrimary").checked = !!data.isPrimaryAccount;
+                    document.getElementById("modalIsActive").checked = !!data.isActive;
+
+                    const modal = new bootstrap.Modal(document.getElementById("bankAccountModal"));
+                    modal.show();
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(res.message || "Unable to load account details.");
                 }
+            })
+            .catch(() => {
+                if (typeof toastr !== 'undefined') toastr.error("Network error fetching account details.");
+            });
+    }
 
-
-                const query =
-                    searchInput.value
-                        .toLowerCase()
-                        .trim();
-
-                const selectedCategory =
-                    categorySelect.value
-                        .toLowerCase()
-                        .trim();
-
-                const selectedBranch =
-                    branchSelect.value
-                        .toLowerCase()
-                        .trim();
-
-
-                const rows =
-                    table.querySelectorAll("tbody tr");
-
-
-                rows.forEach(function (row) {
-
-                    /*
-                     * Empty-state row has fewer cells.
-                     */
-                    if (row.cells.length < 11) {
-                        return;
-                    }
-
-
-                    const productName =
-                        row.cells[1]
-                            .innerText
-                            .toLowerCase();
-
-
-                    const category =
-                        row.cells[2]
-                            .innerText
-                            .toLowerCase();
-
-
-                    const branchElement =
-                        row.cells[1]
-                            .querySelector(".product-branch");
-
-
-                    const branchText =
-                        branchElement
-                            ? branchElement.innerText.toLowerCase()
-                            : "";
-
-
-                    const matchesSearch =
-                        productName.includes(query);
-
-
-                    const matchesCategory =
-                        selectedCategory === "" ||
-                        category.includes(selectedCategory);
-
-
-                    const matchesBranch =
-                        selectedBranch === "" ||
-                        branchText.includes(selectedBranch);
-
-
-                    row.style.display =
-                        matchesSearch &&
-                        matchesCategory &&
-                        matchesBranch
-                            ? ""
-                            : "none";
-
-                });
-
+    function toggleBankStatus(id, elem) {
+        fetch('/BankMaster/ToggleStatus', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'id=' + encodeURIComponent(id)
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success) {
+                if (typeof toastr !== 'undefined') toastr.success(res.message);
+                const row = document.querySelector(`tr[data-id="${id}"]`);
+                if (row) {
+                    row.setAttribute("data-status", res.isActive ? "Active" : "Inactive");
+                }
+            } else {
+                elem.checked = !elem.checked;
+                if (typeof toastr !== 'undefined') toastr.error(res.message || "Failed to update account status.");
             }
-
-
-            if (searchInput) {
-
-                searchInput.addEventListener(
-                    "input",
-                    filterTable
-                );
-
-            }
-
-
-            if (categorySelect) {
-
-                categorySelect.addEventListener(
-                    "change",
-                    filterTable
-                );
-
-            }
-
-
-            if (branchSelect) {
-
-                branchSelect.addEventListener(
-                    "change",
-                    filterTable
-                );
-
-            }
-
-
-            if (clearButton) {
-
-                clearButton.addEventListener(
-                    "click",
-                    function () {
-
-                        if (searchInput) {
-                            searchInput.value = "";
-                        }
-
-                        if (categorySelect) {
-                            categorySelect.value = "";
-                        }
-
-                        if (branchSelect) {
-                            branchSelect.value = "";
-                        }
-
-                        filterTable();
-
-                        if (searchInput) {
-                            searchInput.focus();
-                        }
-
-                    }
-                );
-
-            }
-
+        })
+        .catch(() => {
+            elem.checked = !elem.checked;
+            if (typeof toastr !== 'undefined') toastr.error("Network error updating status.");
         });
-    </script>
+    }
 
-}
+    function confirmDeleteBank(id, bankName, isPrimary) {
+        if (isPrimary) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Cannot Delete Primary Account',
+                    text: 'This account is designated as the primary corporate account. Assign another primary account before deleting.',
+                    icon: 'warning',
+                    confirmButtonColor: '#4f46e5'
+                });
+            } else {
+                alert('Cannot delete the primary bank account. Assign another primary account first.');
+            }
+            return;
+        }
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete Bank Account?',
+                text: `Are you sure you want to remove '${bankName}'? This action cannot be reversed.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Delete'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    document.getElementById("deleteTargetId").value = id;
+                    document.getElementById("deleteBankForm").submit();
+                }
+            });
+        } else {
+            if (confirm(`Are you sure you want to delete bank account '${bankName}'?`)) {
+                document.getElementById("deleteTargetId").value = id;
+                document.getElementById("deleteBankForm").submit();
+            }
+        }
+    }
+
+    function copyIFSC(code) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(code).then(() => {
+                if (typeof toastr !== 'undefined') toastr.info('IFSC Code ' + code + ' copied to clipboard!');
+            });
+        } else {
+            const input = document.createElement("input");
+            input.value = code;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand("copy");
+            document.body.removeChild(input);
+            if (typeof toastr !== 'undefined') toastr.info('IFSC Code ' + code + ' copied to clipboard!');
+        }
+    }
+
+    function filterBankAccounts() {
+        const query = (document.getElementById("bankSearchInput")?.value || "").toLowerCase().trim();
+        const selectedType = (document.getElementById("filterAccountType")?.value || "").toLowerCase().trim();
+        const selectedStatus = (document.getElementById("filterAccountStatus")?.value || "").trim();
+
+        const rows = document.querySelectorAll("#bankTableBody tr.bank-row");
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const bank = row.getAttribute("data-bank") || "";
+            const account = row.getAttribute("data-account") || "";
+            const ifsc = row.getAttribute("data-ifsc") || "";
+            const branch = row.getAttribute("data-branch") || "";
+            const type = (row.getAttribute("data-type") || "").toLowerCase();
+            const status = row.getAttribute("data-status") || "";
+            const primary = row.getAttribute("data-primary") || "";
+
+            const matchesSearch = query === "" || bank.includes(query) || account.includes(query) || ifsc.includes(query) || branch.includes(query);
+            const matchesType = selectedType === "" || type === selectedType;
+
+            let matchesStatus = true;
+            if (selectedStatus === "Active") matchesStatus = status === "Active";
+            else if (selectedStatus === "Inactive") matchesStatus = status === "Inactive";
+            else if (selectedStatus === "Primary") matchesStatus = primary === "Primary";
+
+            if (matchesSearch && matchesType && matchesStatus) {
+                row.style.display = "";
+                visibleCount++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        const badge = document.getElementById("visibleCountBadge");
+        if (badge) badge.textContent = visibleCount;
+
+        const emptyRow = document.getElementById("emptyBankRow");
+        if (emptyRow) {
+            emptyRow.style.display = visibleCount === 0 ? "" : "none";
+        }
+    }
+
+    function resetFilters() {
+        const search = document.getElementById("bankSearchInput");
+        const type = document.getElementById("filterAccountType");
+        const status = document.getElementById("filterAccountStatus");
+
+        if (search) search.value = "";
+        if (type) type.value = "";
+        if (status) status.value = "";
+
+        filterBankAccounts();
+    }
+</script>
